@@ -7,10 +7,11 @@ import dotenv
 
 #API_URL = "https://api-inference.huggingface.co/models/WizardLM/WizardLM-70B-V1.0"
 #API_URL = "https://api-inference.huggingface.co/models/WizardLM/WizardCoder-Python-34B-V1.0"
-API_URL = "https://api-inference.huggingface.co/models/gpt2"
+#API_URL = "https://api-inference.huggingface.co/models/gpt2"
 #API_URL = "https://api-inference.huggingface.co/models/codeparrot/starcoder-self-instruct"
-#API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-2-7b-hf"
+API_URL = "https://api-inference.huggingface.co/models/codellama/CodeLlama-7b-hf"
 
+# Setting the logger
 logger = logging.getLogger(__name__)
 
 def send_query(payload,headers):
@@ -90,17 +91,21 @@ def main():
     # load the hugging face API token from .env file
     dotenv.load_dotenv()
     
+    # Setting logger and hugging face token.
+    logger = get_logger('VICI.log')
+    hugging_face_token = os.getenv("HUGGING_FACE_TOKEN")
+    
     # read the model config from .config file
     temperature, max_length, min_length, max_new_tokens = read_config_file()
     
-    print("VICI Model Config")
-    print(f"Temparature: {temperature}")
-    print(f"Max Length: {max_length}")
-    print(f"Min Length: {min_length}")
-    print(f"Max New Tokens: {max_new_tokens}\n")
+    # log configuration information
+    logger.info("VICI Model Config")
+    logger.info(f"Temparature: {temperature}")
+    logger.info(f"Max Length: {max_length}")
+    logger.info(f"Min Length: {min_length}")
+    logger.info(f"Max New Tokens: {max_new_tokens}\n")
     
-    logger = get_logger('VICI.log')
-    hugging_face_token = os.getenv("HUGGING_FACE_TOKEN")
+
     
     # Set the token to the header
     headers = {"Authorization": "Bearer " + hugging_face_token}
@@ -109,8 +114,6 @@ def main():
     model_name = API_URL.split("/")[-1]
     print("Welcome - VICI AI @" + model_name)
     prompt = input("Enter your prompt: ")
-    
-    print("Temperature: [0.1 - 1.0] - Default: 0.3")
     
     # generate random number for filename
     random_number = random.randint(1, 1000)
