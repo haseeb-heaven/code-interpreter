@@ -5,17 +5,15 @@ import os
 import random
 import dotenv
 
-#API_URL = "https://api-inference.huggingface.co/models/WizardLM/WizardLM-70B-V1.0"
-#API_URL = "https://api-inference.huggingface.co/models/WizardLM/WizardCoder-Python-34B-V1.0"
+API_URL = "https://api-inference.huggingface.co/models/WizardLM/WizardCoder-Python-34B-V1.0"
 #API_URL = "https://api-inference.huggingface.co/models/gpt2"
-#API_URL = "https://api-inference.huggingface.co/models/codeparrot/starcoder-self-instruct"
-API_URL = "https://api-inference.huggingface.co/models/codellama/CodeLlama-7b-hf"
+#API_URL = "https://api-inference.huggingface.co/models/codellama/CodeLlama-7b-hf"
 
 # Setting the logger
 logger = logging.getLogger(__name__)
 
 def send_query(payload,headers):
-    logger.info("Trying to send query to Hugging Face API")
+    logger.info("Trying to send query to server... ")
     response = requests.post(API_URL, headers=headers, json=payload)
     if response.status_code == 200:
         logger.info("Query sent successfully")
@@ -82,7 +80,6 @@ def read_config_file():
     max_length = int(config_values["max_length"])
     min_length = int(config_values["min_length"])
     max_new_tokens = int(config_values["max_new_tokens"])
-    
     return temperature, max_length, min_length, max_new_tokens
 
 def main():
@@ -105,8 +102,6 @@ def main():
     logger.info(f"Min Length: {min_length}")
     logger.info(f"Max New Tokens: {max_new_tokens}\n")
     
-
-    
     # Set the token to the header
     headers = {"Authorization": "Bearer " + hugging_face_token}
     
@@ -128,7 +123,9 @@ def main():
         if output and output.__len__() > 0:
             logger.info(f"Output: {output}")
             output = output[0]['generated_text']
-            print(f"Output: {output}")
+            output_text = output.split("\end{code}")[0][1:]
+            print(output_text)
+            #print(output)
             # save the output to a file
             save_output(output,random_number)
     except Exception as e:
@@ -136,5 +133,16 @@ def main():
         logger.error(f"Error occurred: {e}")
         logger.error(f"Stack Trace: {stack_trace}")
 
+def run_app():
+    while True:
+        main()
+        user_input = input("Press 'q' to quit the app, or any other key to continue: ")
+        if user_input.lower() == 'q':
+            break
+
 if __name__ == '__main__':
-    main()
+    print("Running VICI AI...")
+    # run the main function once to test the API 
+    run_app()
+    print("Exiting VICI AI...")
+
