@@ -1,7 +1,9 @@
+import subprocess
 import time
 from rich import print as rich_print
 from rich.markdown import Markdown
 from rich.rule import Rule
+from rich.syntax import Syntax
 
 def display_markdown_message(message):
     """
@@ -22,7 +24,7 @@ def display_markdown_message(message):
         # Aesthetic choice. For these tags, they need a space below them
         print("")
         
-from rich.syntax import Syntax
+
 
 def display_code(codes: list, language: str = "python"):
     try:
@@ -56,7 +58,7 @@ def display_code_stream(stream):
             output_code = output.token.text
             output_code = output_code.replace("```","") if output_code else output_code
             if output_code  == '\n':
-                highlighted_code = Syntax(code, "python", theme="monokai", line_numbers=True)
+                highlighted_code = Syntax(code, "python", theme="monokai", line_numbers=False,word_wrap=True)
                 rich_print(highlighted_code, end="", flush=True)
                 code = ""
             else:

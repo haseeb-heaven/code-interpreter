@@ -46,10 +46,11 @@ def main():
     while True:
         try:
             # Define the task
-            task = "Show me all prime numbers from 30 to 66" 
+            task = input("> ")
 
             # Define the specifications
             specifications = [
+                "You are code interpreter and can do and solve tasks using Python language so whatever user ask just try to solve that using Python code",
                 "Write Code in Python and dont add a main method.",
                 "Code should be sequential",
                 "The output should only contain the code.",
@@ -63,9 +64,9 @@ def main():
         
             logger.info(f"Prompt: {prompt}")
             code = []
-            stream = generate(prompt, history, temperature=0.1, max_new_tokens=1024)
+            stream = generate(prompt, history, temperature=0.1, max_new_tokens=4096)
             display_code_stream(stream)
-            break
+            
         except Exception as exception:
             print(f"Error: {exception}")
 
