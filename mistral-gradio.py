@@ -5,7 +5,7 @@ import random
 import logging
 from markdown_code import display_code, display_code_stream
 API_URL = "https://api-inference.huggingface.co/models/"
-
+from chat_coder_llm import ChatCoderLLM
 client = InferenceClient(
     "mistralai/Mistral-7B-Instruct-v0.1"
 )
@@ -16,7 +16,7 @@ def format_prompt(message, history):
   prompt = "<s>"
   for user_prompt, bot_response in history:
     prompt += f"[INST] {user_prompt} [/INST]"
-    prompt += f" {bot_response}</s> "
+    prompt += f" {bot_response} "
   prompt += f"[INST] {message} [/INST]"
   return prompt
 
@@ -40,13 +40,29 @@ def generate(prompt, history, temperature=0.9, max_new_tokens=512, top_p=0.95, r
     stream = client.text_generation(formatted_prompt, **generate_kwargs, stream=True, details=True, return_full_text=False)
     return stream
 
+def extract_code_from_stream(stream):
+    try:
+        code = ""
+        for output in stream:
+            code += output.token.text
+    except Exception as exception:
+        logger.error(f"Error occurred while extracting code from stream: {exception}")
+        raise
+    return code
+
+
 def main():
     history = []
     print("Mistral Chat - v 1.0")
+    chat_coder_llm = ChatCoderLLM()
+    
     while True:
         try:
             # Define the task
             task = input("> ")
+            if task.lower() in ['exit', 'quit']:
+                print("Exiting Mistral Chat.")
+                break
 
             # Define the specifications
             specifications = [
@@ -62,10 +78,29 @@ def main():
             # Combine the task and specifications into a single prompt
             prompt = task + " " + " ".join(specifications)
         
-            logger.info(f"Prompt: {prompt}")
+            #logger.info(f"Prompt: {prompt}")
             code = []
-            stream = generate(prompt, history, temperature=0.1, max_new_tokens=4096)
+            stream = list(generate(prompt, history, temperature=0.1, max_new_tokens=4096))
             display_code_stream(stream)
+            
+            code = extract_code_from_stream(stream)
+            #logger.info(f"Code: {code}")
+            
+            extracted_code = chat_coder_llm.extract_code(code)
+            #logger.info(f"Extracted code: {extracted_code}")
+            
+            # Save the extracted code in file
+            chat_coder_llm.save_code(code=extracted_code)
+            
+            if extracted_code:
+                # Ask for user confirmation before executing the extracted code
+                execute = input("Do you want to execute the extracted code? (Y/N): ")
+                if execute.lower() == 'y':
+                    try:
+                        output = chat_coder_llm.execute_code(extracted_code,language='python')
+                        logger.info(f"Output: {output}")
+                    except Exception as exception:
+                        raise exception
             
         except Exception as exception:
             print(f"Error: {exception}")

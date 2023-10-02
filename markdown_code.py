@@ -64,5 +64,7 @@ def display_code_stream(stream):
             else:
                 code += output_code + ""
             time.sleep(0.03)
+        
+        return code
     except Exception as e:
         print(f"Error while printing as markdown: {e}")

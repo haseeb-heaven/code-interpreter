@@ -4,7 +4,7 @@ It includes features like:
 - Code execution in multiple languages
 - Code extraction from strings
 - Saving code to a file
-- Running AppleScript
+- Executing Code,Scripts
 - Checking for compilers
 """
 
@@ -84,7 +84,7 @@ class ChatCoderLLM:
         finally:
             return stdout.decode().strip() if stdout else None, stderr.decode().strip() if stderr else None
     
-    def check_compilers(self, language):
+    def _check_compilers(self, language):
         try:
             language = language.lower().strip()
             
@@ -116,7 +116,17 @@ class ChatCoderLLM:
             self.logger.error(f"Error occurred while checking compilers: {exception}")
             raise Exception(f"Error occurred while checking compilers: {exception}")
     
-    def execute_code(self,code, language):
+    def execute_code(self, code, language):
+        """
+        This method is used to execute the provided code in the specified language.
+
+        Parameters:
+        code (str): The code to be executed.
+        language (str): The programming language in which the code is written.
+
+        Returns:
+        str: The output of the executed code.
+        """
         try:
             language = language.lower()
             self.logger.info(f"Running code: {code[:100]} in language: {language}")
@@ -126,7 +136,7 @@ class ChatCoderLLM:
                 return "Code is empty. Cannot execute an empty code."
             
             # Check for compilers on the system
-            compilers_status = self.check_compilers(language)
+            compilers_status = self._check_compilers(language)
             if not compilers_status:
                 return "Compilers not found. Please install compilers on your system."
             
