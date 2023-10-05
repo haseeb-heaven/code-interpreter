@@ -18,7 +18,12 @@ client = InferenceClient(
 )
 
 DEFAULT_SYSTEM_PROMPT = """\
-You are a helpful, respectful and honest assistant with a deep knowledge of code and software design. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content.Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\
+As 'LLama-Interpreter', your role is to generate Python code. The code you produce should adhere to the following guidelines:
+- It should be sequential with main method included: The code should follow a linear, step-by-step progression.
+- It should be devoid of comments: To maintain clarity, avoid adding comments within the code.
+- It should not ask for user input: The code should be able to run independently without requiring any input during its execution.
+- It should not contain explanations or additional text: The output should strictly be Python code, free from any supplementary text or explanations.
+Remember, the goal is to provide clear, concise, and safe code solutions.\
 """
 
 def get_prompt(message: str, chat_history: list[tuple[str, str]],system_prompt: str) -> str:
@@ -36,8 +41,7 @@ def get_prompt(message: str, chat_history: list[tuple[str, str]],system_prompt: 
 def generate_text(message,chat_history: list[tuple[str, str]], temperature=0.9, max_new_tokens=512, top_p=0.95, repetition_penalty=1.0):
     logger.debug("Generating code.")
     temperature = float(temperature)
-    if temperature < 1e-2:
-        temperature = 1e-2
+    temperature = max(temperature, 0.01)
     top_p = float(top_p)
 
     generate_kwargs = dict(
@@ -55,21 +59,21 @@ def generate_text(message,chat_history: list[tuple[str, str]], temperature=0.9, 
     #logger.debug(f"Generated code {stream}")
     return stream
 
-
-def extract_code_from_stream(stream):
+def extract_text_stream(stream):
+    output = ""
     try:
-        output = ""
         for response in stream:
             if any([end_token in response.token.text for end_token in [EOS_STRING, EOT_STRING]]):
+                logger.debug("End token found in response. Returning output.")
                 return output
             else:
                 output += response.token.text
-            yield output
-        return output
-    except Exception as exception:
-        logger.error(f"Error occurred while extracting code from stream: {exception}")
-        raise
-    return code
+                logger.debug(f"Current output: {output}")
+    except Exception as e:
+        logger.error(f"Error occurred while extracting text stream: {e}")
+        raise e
+    logger.debug(f"Extracted text stream: {output}")
+    return output
 
 def main():
     history = []
@@ -84,40 +88,27 @@ def main():
                 print("Exiting CodeLlama Chat.")
                 break
     
-            # Define the specifications
-            specifications = [
-                "You are code interpreter and can do and solve tasks",
-                "Write Code in Python and dont add a main method.",
-                "Code should be sequential",
-                "The output should only contain the code.",
-                "The code should not have any comments.",
-                "The code should not ask for any input.",
-                "The output should not contain any text or explanations",
-            ]
-
             # Combine the task and specifications into a single prompt
-            prompt = "Now write Python code for this task '" + task #+ "' " + " ".join(specifications)
+            prompt = f"Create a Python code for this task '{task}'"
             logger.debug(f"Prompt: {prompt}")
                     
-            output = generate_text(prompt,history,temperature=0.1,max_new_tokens=256)
-            code_output = display_code_stream(output)
-            print(f"code_output is {code_output}")
+            stream = generate_text(prompt,history,temperature=0.1,max_new_tokens=1024)
+            extracted_code = display_code_stream(stream)
             
-            extract_code = extract_code_from_stream(output)
-            print(f"extract_code is {extract_code}")
-
-            start_code_separator = "begin{code}"
-            end_code_separator = 'end{code}'
-            extracted_code = chat_coder_llm.extract_code(code_output,start_sep=start_code_separator,end_sep=end_code_separator)
-            logger.debug(f"extracted_code is {extracted_code}")
+            #extracted_code = extract_text_stream(stream)
             
             if extracted_code:
+                if not chat_coder_llm.is_python_code(extracted_code):
+                    logger.warning("The extracted code is not valid Python code.")
+                    
                 # Ask for user confirmation before executing the extracted code
                 execute = input("Do you want to execute the extracted code? (Y/N): ")
                 if execute.lower() == 'y':
                     try:
-                        output = chat_coder_llm.execute_code(extracted_code,language='python')
-                        logger.info(f"Output: {output}")
+                        python_code = chat_coder_llm.extract_python_code(extracted_code)
+                        chat_coder_llm.save_code(code=python_code)
+                        stream = chat_coder_llm.execute_code(python_code,language='python')
+                        logger.info(f"Output: {stream}")
                     except Exception as exception:
                         raise exception
         except Exception as exception:

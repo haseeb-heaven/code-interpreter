@@ -9,8 +9,9 @@ It includes features like:
 """
 
 import logging
+import re
 import subprocess
-
+import ast
 
 class ChatCoderLLM:
 
@@ -219,4 +220,55 @@ class ChatCoderLLM:
                 return "Unsupported language."
         except Exception as exception:
             self.logger.error(f"Exception in running code: {str(exception)}")
+            raise exception
+        
+
+    def is_python_code(self,text):
+        try:
+            # Try to parse the text as Python code
+            ast.parse(text)
+            return True
+        except SyntaxError:
+            # If parsing fails, the text is not valid Python code
+            return False
+        
+    
+    def extract_python_code(self,text):
+        try:            
+            # remove ` if there is present in text
+            text = re.sub(r'`', '', text) if '`' in text else text
+            
+            # check if text is already python code
+            if self.is_python_code(text):
+                self.logger.info("Text is already Python code.")
+                return text
+            
+            # Split the text into blocks using two or more newline characters
+            blocks = re.split(r'\n\s*\n', text.strip())
+            
+            # This function checks if a block looks like Python code
+            def is_code_block(block):
+                lines = block.split('\n')
+                code_lines = [line for line in lines if re.match(r'^\s*(import|from|def|class|if|elif|else|for|while|try|except|with|async|await|pass|break|continue|return|raise|yield|print|assert|global|nonlocal|del|lambda|and|or|not|=|\(|\)|\[|\]|\{|\}|:)', line)]
+                return len(code_lines) > len(lines) / 2  # More than half of the lines should look like code
+            
+            # If the entire content is Python code, return the entire content
+            if is_code_block(text):
+                return text.strip()
+    
+            # Identify the largest block that seems to contain Python code
+            code_blocks = [block for block in blocks if is_code_block(block)]
+            if not code_blocks:
+                return ""
+            
+            # Return the largest block without filtering out any lines
+            largest_code_block = code_blocks[0].strip()
+            if largest_code_block:
+                self.logger.info("Extracted Python code successfully.")
+                return largest_code_block
+            else:
+                self.logger.warning("Extracted code block is empty.")
+                return ""
+        except Exception as exception:
+            self.logger.error(f"Exception in extracting Python code: {str(exception)}")
             raise exception

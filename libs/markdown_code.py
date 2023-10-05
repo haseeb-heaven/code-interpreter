@@ -1,9 +1,13 @@
+import io
 import subprocess
 import time
 from rich import print as rich_print
 from rich.markdown import Markdown
 from rich.rule import Rule
 from rich.syntax import Syntax
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import TerminalFormatter
 
 def display_markdown_message(message):
     """
@@ -25,7 +29,6 @@ def display_markdown_message(message):
         print("")
         
 
-
 def display_code(codes: list, language: str = "python"):
     try:
         code = '\n'.join(codes)
@@ -34,9 +37,6 @@ def display_code(codes: list, language: str = "python"):
     except Exception as exception:
         print(f"An error occurred: {exception}")
         
-from pygments import highlight
-from pygments.lexers import PythonLexer
-from pygments.formatters import TerminalFormatter
 
 class CustomFormatter(TerminalFormatter):
     def format(self, tokensource, outfile):
@@ -47,6 +47,9 @@ class CustomFormatter(TerminalFormatter):
         if outfile.read() == '\n':
             outfile.truncate()
 
+import re
+from rich.console import Console
+
 def display_code_stream(stream):
     """
     This function prints each token in the stream as a Python syntax highlighted code block.
@@ -54,17 +57,26 @@ def display_code_stream(stream):
     """
     try:
         code = ""
+        console = Console(record=True)  # Create a Console object that records print calls
+
         for output in stream:
             output_code = output.token.text
             output_code = output_code.replace("```","") if output_code else output_code
+            output_code = output_code.replace("</s>","") if output_code else output_code
             if output_code  == '\n':
                 highlighted_code = Syntax(code, "python", theme="monokai", line_numbers=False,word_wrap=True)
-                rich_print(highlighted_code, end="", flush=True)
+                console.print(highlighted_code)  # Print to the console object
                 code = ""
             else:
                 code += output_code + ""
             time.sleep(0.03)
-        
-        return code
-    except Exception as e:
-        print(f"Error while printing as markdown: {e}")
+
+        # Check if there is any remaining code that hasn't been printed
+        if code:
+            highlighted_code = Syntax(code, "python", theme="monokai", line_numbers=False,word_wrap=True)
+            console.print(highlighted_code)  # Print to the console object
+            code = ""
+            
+        return console.export_text().strip()  # Return the recorded text
+    except Exception as exception:
+        print(f"Error while printing as markdown: {exception}")
