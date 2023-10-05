@@ -47,18 +47,19 @@ class ChatCoderLLM:
             self.logger.error(f"Error occurred while saving code to file: {exception}")
             raise Exception(f"Error occurred while saving code to file: {exception}")
 
-    def extract_code(self, code):
+    def extract_code(self, code:str, start_sep='```', end_sep='```',skip_first_line=False):
         """
         Extracts the code from the provided string.
-        If the string contains '```', it extracts the code between them.
+        If the string contains the start and end separators, it extracts the code between them.
         Otherwise, it returns the original string.
         """
         try:
-            if '```' in code:
-                start = code.find('```') + len('```\n')
-                end = code.find('```', start)
-                # Skip the first line after ```
-                start = code.find('\n', start) + 1
+            if start_sep in code and end_sep in code:
+                start = code.find(start_sep) + len(start_sep + '\n')
+                end = code.find(end_sep, start)
+                if skip_first_line:
+                    # Skip the first line after the start separator
+                    start = code.find('\n', start) + 1
                 extracted_code = code[start:end]
                 self.logger.info("Code extracted successfully.")
                 return extracted_code

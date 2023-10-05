@@ -3,12 +3,14 @@ import time
 from huggingface_hub import InferenceClient
 import random
 import logging
-from markdown_code import display_code, display_code_stream
+from libs.markdown_code import display_code, display_code_stream
+from libs.chat_coder_llm import ChatCoderLLM
+
 API_URL = "https://api-inference.huggingface.co/models/"
-from chat_coder_llm import ChatCoderLLM
 client = InferenceClient(
     "mistralai/Mistral-7B-Instruct-v0.1"
 )
+
 # Initialize logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

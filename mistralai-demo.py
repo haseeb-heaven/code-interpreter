@@ -2,7 +2,7 @@ import random
 import time
 from huggingface_hub import InferenceClient
 import logging
-from markdown_code import display_code
+from libs.markdown_code import display_code
 API_URL = "https://api-inference.huggingface.co/models/"
 
 client = InferenceClient(
