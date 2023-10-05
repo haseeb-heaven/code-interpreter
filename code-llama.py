@@ -6,6 +6,7 @@ from libs.chat_coder_llm import ChatCoderLLM
 from huggingface_hub import InferenceClient
 
 from libs.markdown_code import display_code, display_code_stream, display_markdown_message
+from libs.package_installer import PackageInstaller
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -83,12 +84,16 @@ def get_os_platform():
         logger.error(f"Error in checking OS and version: {str(exception)}")
         raise Exception(f"Error in checking OS and version: {str(exception)}")
 
+
+
+
 def main():
     history = []
-    CODE_INTERPRETER_LANGUAGE = 'javascript'
+    INTERPRETER_LANGUAGE = 'javascript'
     
     print("CodeLlama Chat - v 1.0")
     chat_coder_llm = ChatCoderLLM()
+    package_installer = PackageInstaller()
     
     # Get the OS Platform and version.
     os_platform = get_os_platform()
@@ -96,7 +101,7 @@ def main():
     os_version = os_platform[1]
     
     display_code(f"OS = {os_name}")
-    display_code(f"language = {CODE_INTERPRETER_LANGUAGE}")
+    display_code(f"language = {INTERPRETER_LANGUAGE}")
     
     while True:
         try:
@@ -107,7 +112,7 @@ def main():
                 break
     
             # Combine the task and specifications into a single prompt
-            prompt = f"Generate the code in {CODE_INTERPRETER_LANGUAGE} programming language for this task '{task} for Operating System is {os_name}'."
+            prompt = f"Generate the code in {INTERPRETER_LANGUAGE} programming language for this task '{task} for Operating System is {os_name}'."
             history.append((task,prompt))
             logger.debug(f"Prompt: {prompt}")
                     
@@ -124,13 +129,32 @@ def main():
                 if execute.lower() == 'y':
                     try:
                         #python_code = chat_coder_llm.extract_python_code(extracted_code)
-                        logger.info(f"Extracted {CODE_INTERPRETER_LANGUAGE} code: {extracted_code[:50]}")
+                        logger.info(f"Extracted {INTERPRETER_LANGUAGE} code: {extracted_code[:50]}")
+                        
                         chat_coder_llm.save_code("code_generated.js",extracted_code)
                         logger.info(f"Python code saved successfully.")
-                        code_output,code_error = chat_coder_llm.execute_code(extracted_code,language=CODE_INTERPRETER_LANGUAGE)
+                        
+                        code_output,code_error = chat_coder_llm.execute_code(extracted_code,language=INTERPRETER_LANGUAGE)
+                        
+                        package_name = None
+                        
+                        # Install the missing package on error.
+                        if INTERPRETER_LANGUAGE == 'javascript' and "Cannot find module" in code_error:
+                            package_name = package_installer.extract_javascript_package_name(code_error)
+                                
+                        # Install the missing package on error.
+                        if INTERPRETER_LANGUAGE == 'python' and "ModuleNotFoundError" in code_error or "No module named" in code_error:
+                            package_name = package_installer.extract_python_package_name(code_error)
+                            
+                        if package_name:
+                            logger.info(f"Trying to install missing package **'{package_name}'** on error")
+                            display_markdown_message(f"Installing missing package **'{package_name}'** on error")
+                            package_installer.install_package(package_name,language=INTERPRETER_LANGUAGE)
+                        
                         if code_output and code_output != None and code_output.__len__() > 0:
-                            logger.info(f"{CODE_INTERPRETER_LANGUAGE} code executed successfully.")
+                            logger.info(f"{INTERPRETER_LANGUAGE} code executed successfully.")
                             display_markdown_message(f"Output: {code_output}")
+                        
                         elif code_error:
                             logger.info(f"Python code executed with error.")
                             display_markdown_message(f"Error: {code_error}")
