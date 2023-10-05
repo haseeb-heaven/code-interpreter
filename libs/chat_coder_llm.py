@@ -92,16 +92,7 @@ class ChatCoderLLM:
             
             compilers = {
                 "python": ["python", "--version"],
-                "nodejs": ["node", "--version"],
-                "c": ["gcc", "--version"],
-                "c++": ["g++", "--version"],
-                "csharp": ["csc", "--version"],
-                "go": ["go", "version"],
-                "ruby": ["ruby", "--version"],
-                "java": ["java", "--version"],
-                "kotlin": ["kotlinc", "--version"],
-                "scala": ["scala", "--version"],
-                "swift": ["swift", "--version"]
+                "javascript": ["node", "--version"],
             }
 
             if language not in compilers:
@@ -140,144 +131,28 @@ class ChatCoderLLM:
             # Check for compilers on the system
             compilers_status = self._check_compilers(language)
             if not compilers_status:
-                return "Compilers not found. Please install compilers on your system."
+                raise Exception("Compilers not found. Please install compilers on your system.")
             
             if language == "python":
                 process = subprocess.Popen(["python", "-c", code], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = process.communicate()
                 stdout_output = stdout.decode("utf-8")
                 stderr_output = stderr.decode("utf-8")
-                self.logger.info(f"Runner Output execution: {stdout_output}, Errors: {stderr_output}")
+                self.logger.info(f"Python Output execution: {stdout_output}, Errors: {stderr_output}")
                 return stdout_output, stderr_output
-
-            elif language == "c" or language == "c++":
-                compile_output = subprocess.run(
-                    ["gcc" if language == "c" else "g++", "-x", language, "-"], input=code, capture_output=True, text=True)
-                if compile_output.returncode != 0:
-                    self.logger.info(f"Compiler Output: {compile_output.stderr}")
-                    return compile_output.stderr
-                run_output = subprocess.run([compile_output.stdout], capture_output=True, text=True)
-                self.logger.info(f"Runner Output: {run_output.stdout + run_output.stderr}")
-                return run_output.stdout,run_output.stderr
-
+            
             elif language == "javascript":
-                output = subprocess.run(["node", "-e", code], capture_output=True, text=True)
-                self.logger.info(f"Runner Output: {output.stdout + output.stderr}")
-                return output.stdout,output.stderr
-                
-            elif language == "java":
-                classname = "Main"  # Assuming the class name is Main, adjust if needed
-                compile_output = subprocess.run(["javac", "-"], input=code, capture_output=True, text=True)
-                if compile_output.returncode != 0:
-                    self.logger.info(f"Compiler Output: {compile_output.stderr}")
-                    return compile_output.stderr
-                run_output = subprocess.run(["java", "-cp", ".", classname], capture_output=True, text=True)
-                self.logger.info(f"Runner Output: {run_output.stdout + run_output.stderr}")
-                return run_output.stdout,run_output.stderr
-
-            elif language == "swift":
-                output = subprocess.run(["swift", "-"], input=code, capture_output=True, text=True)
-                self.logger.info(f"Runner Output: {output.stdout + output.stderr}")
-                return output.stdout + output.stderr
-
-            elif language == "c#":
-                compile_output = subprocess.run(["csc", "-"], input=code, capture_output=True, text=True)
-                if compile_output.returncode != 0:
-                    self.logger.info(f"Compiler Output: {compile_output.stderr}")
-                    return compile_output.stderr
-                run_output = subprocess.run([compile_output.stdout], capture_output=True, text=True)
-                self.logger.info(f"Runner Output: {run_output.stdout + run_output.stderr}")
-                return run_output.stdout,run_output.stderr
-
-            elif language == "scala":
-                output = subprocess.run(["scala", "-e", code], capture_output=True, text=True)
-                self.logger.info(f"Runner Output: {output.stdout + output.stderr}")
-                return output.stdout + output.stderr
-
-            elif language == "ruby":
-                output = subprocess.run(["ruby", "-e", code], capture_output=True, text=True)
-                self.logger.info(f"Runner Output: {output.stdout + output.stderr}")
-                return output.stdout,output.stderr
-
-            elif language == "kotlin":
-                compile_output = subprocess.run(["kotlinc", "-script", "-"], input=code, capture_output=True, text=True)
-                if compile_output.returncode != 0:
-                    self.logger.info(f"Compiler Output: {compile_output.stderr}")
-                    return compile_output.stderr
-                run_output = subprocess.run(["java", "-jar", compile_output.stdout], capture_output=True, text=True)
-                self.logger.info(f"Runner Output: {run_output.stdout + run_output.stderr}")
-                return run_output.stdout,run_output.stderr
-
-            elif language == "go":
-                compile_output = subprocess.run(["go", "run", "-"], input=code, capture_output=True, text=True)
-                if compile_output.returncode != 0:
-                    self.logger.info(f"Compiler Output: {compile_output.stderr}")
-                    return compile_output.stderr
-                self.logger.info(f"Runner Output: {compile_output.stdout + compile_output.stderr}")
-                return compile_output.stdout,compile_output.stderr
+                process = subprocess.Popen(["node", "-e", code], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = process.communicate()
+                stdout_output = stdout.decode("utf-8")
+                stderr_output = stderr.decode("utf-8")
+                self.logger.info(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
+                return stdout_output, stderr_output
+            
             else:
                 self.logger.info("Unsupported language.")
-                return "Unsupported language."
+                raise Exception("Unsupported language.")
+                
         except Exception as exception:
             self.logger.error(f"Exception in running code: {str(exception)}")
-            raise exception
-        
-
-    def is_python_code(self,text):
-        try:
-            # Try to parse the text as Python code
-            ast.parse(text)
-            return True
-        except SyntaxError:
-            # If parsing fails, the text is not valid Python code
-            return False
-        
-    
-    def extract_python_code(self, text):
-        try:
-            # remove ` if there is present in text
-            text = re.sub(r'`', '', text)
-            
-            # Split the text into blocks using two or more newline characters
-            blocks = re.split(r'\n\s*\n', text.strip())
-            
-            # This function checks if a line looks like Python code
-            def is_code_line(line):
-                return re.match(r'^\s*(import|from|def|class|if|elif|else|for|while|try|except|with|async|await|pass|break|continue|return|raise|yield|print|assert|global|open|del|lambda|and|or|not|=|\(|\)|\[|\]|\{|\}|:)', line)
-            
-            # This function checks if a block looks like Python code
-            def is_code_block(block):
-                lines = block.split('\n')
-                code_lines = [line for line in lines if is_code_line(line)]
-                return len(code_lines) > len(lines) / 2  # More than half of the lines should look like code
-            
-            # Identify the blocks that seem to contain Python code
-            code_blocks = [block for block in blocks if is_code_block(block)]
-            
-            if not code_blocks:
-                return ""
-            
-            # Merge adjacent code blocks
-            merged_code_blocks = []
-            current_block = []
-            
-            for block in code_blocks:
-                if current_block and block:
-                    current_block.append(block)
-                else:
-                    if current_block:
-                        merged_code_blocks.append('\n'.join(current_block))
-                        current_block = []
-                    current_block.append(block)
-            
-            if current_block:
-                merged_code_blocks.append('\n'.join(current_block))
-            
-            # Return the largest merged block
-            largest_code_block = max(merged_code_blocks, key=len)
-            self.logger.info("Extracted Python code successfully.")
-            return largest_code_block.strip()
-
-        except Exception as exception:
-            self.logger.error(f"Exception in extracting Python code: {str(exception)}")
             raise exception

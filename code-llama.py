@@ -6,8 +6,6 @@ from libs.chat_coder_llm import ChatCoderLLM
 from huggingface_hub import InferenceClient
 
 from libs.markdown_code import display_code, display_code_stream, display_markdown_message
-EOS_STRING = "</s>"
-EOT_STRING = "<EOT>"
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -60,25 +58,9 @@ def generate_text(message,chat_history: list[tuple[str, str]], temperature=0.9, 
 
     prompt = get_prompt(message, chat_history, DEFAULT_SYSTEM_PROMPT)
     
-    stream = client.text_generation(prompt, **generate_kwargs, stream=True, details=True, return_full_text=False)
-    logger.debug(f"Generated code {stream}")
-    return stream
-
-def extract_text_stream(stream):
-    output = ""
-    try:
-        for response in stream:
-            if any([end_token in response.token.text for end_token in [EOS_STRING, EOT_STRING]]):
-                logger.debug("End token found in response. Returning output.")
-                return output
-            else:
-                output += response.token.text
-                logger.debug(f"Current output: {output}")
-    except Exception as e:
-        logger.error(f"Error occurred while extracting text stream: {e}")
-        raise e
-    logger.debug(f"Extracted text stream: {output}")
-    return output
+    stream = client.text_generation(prompt, **generate_kwargs, stream=False, details=True, return_full_text=False)
+    logger.debug(f"Generated code {stream.generated_text}")
+    return stream.generated_text
 
 def get_os_platform():
     try:
@@ -103,6 +85,8 @@ def get_os_platform():
 
 def main():
     history = []
+    CODE_INTERPRETER_LANGUAGE = 'javascript'
+    
     print("CodeLlama Chat - v 1.0")
     chat_coder_llm = ChatCoderLLM()
     
@@ -111,7 +95,8 @@ def main():
     os_name = os_platform[0]
     os_version = os_platform[1]
     
-    display_code(f"os_type = {os_name}")
+    display_code(f"OS = {os_name}")
+    display_code(f"language = {CODE_INTERPRETER_LANGUAGE}")
     
     while True:
         try:
@@ -122,31 +107,34 @@ def main():
                 break
     
             # Combine the task and specifications into a single prompt
-            prompt = f"Generate only code for this task '{task} for Operating System {os_name}'."
+            prompt = f"Generate the code in {CODE_INTERPRETER_LANGUAGE} programming language for this task '{task} for Operating System is {os_name}'."
             history.append((task,prompt))
             logger.debug(f"Prompt: {prompt}")
                     
-            stream = generate_text(prompt,history,temperature=0.1,max_new_tokens=1024)
-            extracted_code = display_code_stream(stream)
+            generated_output = generate_text(prompt,history,temperature=0.1,max_new_tokens=1024)
+            logger.info(f"Generated output type {type(generated_output)}")
             
-            #extracted_code = extract_text_stream(stream)
+            extracted_code = chat_coder_llm.extract_code(generated_output)
+            logger.info(f"Extracted code: {extracted_code[:50]}")
+            display_code(extracted_code)
             
             if extracted_code:
-                if not chat_coder_llm.is_python_code(extracted_code):
-                    logger.warning("The extracted code is not valid Python code.")
-                    display_markdown_message("The extracted code is not valid Python code.")
-                    
                 # Ask for user confirmation before executing the extracted code
                 execute = input("Do you want to execute the extracted code? (Y/N): ")
                 if execute.lower() == 'y':
                     try:
-                        python_code = chat_coder_llm.extract_python_code(extracted_code)
-                        logger.info(f"Extracted Python code: {python_code[:50]}")
-                        chat_coder_llm.save_code(code=python_code)
+                        #python_code = chat_coder_llm.extract_python_code(extracted_code)
+                        logger.info(f"Extracted {CODE_INTERPRETER_LANGUAGE} code: {extracted_code[:50]}")
+                        chat_coder_llm.save_code("code_generated.js",extracted_code)
                         logger.info(f"Python code saved successfully.")
-                        code_output,code_error = chat_coder_llm.execute_code(python_code,language='python')
-                        logger.info(f"Python code executed successfully.")
-                        display_markdown_message(code_output)
+                        code_output,code_error = chat_coder_llm.execute_code(extracted_code,language=CODE_INTERPRETER_LANGUAGE)
+                        if code_output and code_output != None and code_output.__len__() > 0:
+                            logger.info(f"{CODE_INTERPRETER_LANGUAGE} code executed successfully.")
+                            display_markdown_message(f"Output: {code_output}")
+                        elif code_error:
+                            logger.info(f"Python code executed with error.")
+                            display_markdown_message(f"Error: {code_error}")
+                            
                         logger.info(f"Output: {code_output}")
                     except Exception as exception:
                         raise exception

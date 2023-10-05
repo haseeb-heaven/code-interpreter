@@ -1,8 +1,12 @@
-import os                                                                                                                     
-def save_primes(n):                                                                                                           
-    primes = []                                                                                                               
-    for i in range(2, n+1):                                                                                                   
-        if all(i % j != 0 for j in range(2, int(i**0.5) + 1)):                                                                
-            primes.append(i)                                                                                                  
-    with open("primes.txt", "w") as f:                                                                                        
-        f.write("\n".join(str(p) for p in primes))
+import tablue
+
+# Open the CSV file
+with open('/Users/haseeb-mir/Downloads/emps.csv', 'r') as f:
+    # Read the CSV data into a list of lists
+    data = [row for row in csv.reader(f)]
+
+# Create a Tablue table from the data
+table = tablue.Table(data)
+
+# Display the table
+table.show()
