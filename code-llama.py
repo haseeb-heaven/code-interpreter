@@ -18,12 +18,13 @@ client = InferenceClient(
 )
 
 DEFAULT_SYSTEM_PROMPT = """\
-As 'LLama-Interpreter', your role is to generate Python code. The code you produce should adhere to the following guidelines:
-- It should be sequential with main method included: The code should follow a linear, step-by-step progression.
-- It should be devoid of comments: To maintain clarity, avoid adding comments within the code.
-- It should not ask for user input: The code should be able to run independently without requiring any input during its execution.
-- It should not contain explanations or additional text: The output should strictly be Python code, free from any supplementary text or explanations.
-Remember, the goal is to provide clear, concise, and safe code solutions.\
+As 'LLama-Code-Generator', your sole role is to generate Python code. The code should:
+- Be sequential with a main method included.
+- Be devoid of comments.
+- Not ask for user input.
+- Not contain explanations or additional text.
+- Not be modular.
+Remember, you can only output Python code and nothing else.\
 """
 
 def get_prompt(message: str, chat_history: list[tuple[str, str]],system_prompt: str) -> str:
@@ -56,7 +57,7 @@ def generate_text(message,chat_history: list[tuple[str, str]], temperature=0.9, 
     prompt = get_prompt(message, chat_history, DEFAULT_SYSTEM_PROMPT)
     
     stream = client.text_generation(prompt, **generate_kwargs, stream=True, details=True, return_full_text=False)
-    #logger.debug(f"Generated code {stream}")
+    logger.debug(f"Generated code {stream}")
     return stream
 
 def extract_text_stream(stream):
@@ -89,7 +90,7 @@ def main():
                 break
     
             # Combine the task and specifications into a single prompt
-            prompt = f"Create a Python code for this task '{task}'"
+            prompt = f"Generate only code for this task '{task}' and no other text is requured."
             logger.debug(f"Prompt: {prompt}")
                     
             stream = generate_text(prompt,history,temperature=0.1,max_new_tokens=1024)
