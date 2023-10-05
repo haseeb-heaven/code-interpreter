@@ -158,12 +158,12 @@ class ChatCoderLLM:
                     return compile_output.stderr
                 run_output = subprocess.run([compile_output.stdout], capture_output=True, text=True)
                 self.logger.info(f"Runner Output: {run_output.stdout + run_output.stderr}")
-                return run_output.stdout + run_output.stderr
+                return run_output.stdout,run_output.stderr
 
             elif language == "javascript":
                 output = subprocess.run(["node", "-e", code], capture_output=True, text=True)
                 self.logger.info(f"Runner Output: {output.stdout + output.stderr}")
-                return output.stdout + output.stderr
+                return output.stdout,output.stderr
                 
             elif language == "java":
                 classname = "Main"  # Assuming the class name is Main, adjust if needed
@@ -173,7 +173,7 @@ class ChatCoderLLM:
                     return compile_output.stderr
                 run_output = subprocess.run(["java", "-cp", ".", classname], capture_output=True, text=True)
                 self.logger.info(f"Runner Output: {run_output.stdout + run_output.stderr}")
-                return run_output.stdout + run_output.stderr
+                return run_output.stdout,run_output.stderr
 
             elif language == "swift":
                 output = subprocess.run(["swift", "-"], input=code, capture_output=True, text=True)
@@ -187,7 +187,7 @@ class ChatCoderLLM:
                     return compile_output.stderr
                 run_output = subprocess.run([compile_output.stdout], capture_output=True, text=True)
                 self.logger.info(f"Runner Output: {run_output.stdout + run_output.stderr}")
-                return run_output.stdout + run_output.stderr
+                return run_output.stdout,run_output.stderr
 
             elif language == "scala":
                 output = subprocess.run(["scala", "-e", code], capture_output=True, text=True)
@@ -197,7 +197,7 @@ class ChatCoderLLM:
             elif language == "ruby":
                 output = subprocess.run(["ruby", "-e", code], capture_output=True, text=True)
                 self.logger.info(f"Runner Output: {output.stdout + output.stderr}")
-                return output.stdout + output.stderr
+                return output.stdout,output.stderr
 
             elif language == "kotlin":
                 compile_output = subprocess.run(["kotlinc", "-script", "-"], input=code, capture_output=True, text=True)
@@ -206,7 +206,7 @@ class ChatCoderLLM:
                     return compile_output.stderr
                 run_output = subprocess.run(["java", "-jar", compile_output.stdout], capture_output=True, text=True)
                 self.logger.info(f"Runner Output: {run_output.stdout + run_output.stderr}")
-                return run_output.stdout + run_output.stderr
+                return run_output.stdout,run_output.stderr
 
             elif language == "go":
                 compile_output = subprocess.run(["go", "run", "-"], input=code, capture_output=True, text=True)
@@ -214,7 +214,7 @@ class ChatCoderLLM:
                     self.logger.info(f"Compiler Output: {compile_output.stderr}")
                     return compile_output.stderr
                 self.logger.info(f"Runner Output: {compile_output.stdout + compile_output.stderr}")
-                return compile_output.stdout + compile_output.stderr
+                return compile_output.stdout,compile_output.stderr
             else:
                 self.logger.info("Unsupported language.")
                 return "Unsupported language."

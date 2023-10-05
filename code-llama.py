@@ -5,13 +5,17 @@ import json
 from libs.chat_coder_llm import ChatCoderLLM
 from huggingface_hub import InferenceClient
 
-from libs.markdown_code import display_code_stream
+from libs.markdown_code import display_code, display_code_stream, display_markdown_message
 EOS_STRING = "</s>"
 EOT_STRING = "<EOT>"
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[logging.StreamHandler()])
+file_handler = logging.FileHandler(__file__.replace('.py','') + '.log')
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+logger.setLevel(logging.DEBUG)
 
 client = InferenceClient(
     "codellama/CodeLlama-34b-Instruct-hf"
@@ -24,7 +28,7 @@ As 'LLama-Code-Generator', your sole role is to generate Python code. The code s
 - Not ask for user input.
 - Not contain explanations or additional text.
 - Not be modular.
-Remember, you can only output Python code and nothing else.\
+Remember, you can only output Python code and nothing else you don't have ability to respond in plain text.
 """
 
 def get_prompt(message: str, chat_history: list[tuple[str, str]],system_prompt: str) -> str:
@@ -76,10 +80,38 @@ def extract_text_stream(stream):
     logger.debug(f"Extracted text stream: {output}")
     return output
 
+def get_os_platform():
+    try:
+        import platform
+        os_info = platform.uname()
+        os_name = os_info.system
+
+        # Map the system attribute to the desired format
+        os_name_mapping = {
+            'Darwin': 'MacOS',
+            'Linux': 'Linux',
+            'Windows': 'Windows'
+        }
+
+        os_name = os_name_mapping.get(os_name, 'Other')
+
+        logger.info(f"Operating System: {os_name} Version: {os_info.version}")
+        return os_name, os_info.version
+    except Exception as exception:
+        logger.error(f"Error in checking OS and version: {str(exception)}")
+        raise Exception(f"Error in checking OS and version: {str(exception)}")
+
 def main():
     history = []
     print("CodeLlama Chat - v 1.0")
     chat_coder_llm = ChatCoderLLM()
+    
+    # Get the OS Platform and version.
+    os_platform = get_os_platform()
+    os_name = os_platform[0]
+    os_version = os_platform[1]
+    
+    display_code(f"os_type = {os_name}")
     
     while True:
         try:
@@ -90,7 +122,8 @@ def main():
                 break
     
             # Combine the task and specifications into a single prompt
-            prompt = f"Generate only code for this task '{task}' and no other text is requured."
+            prompt = f"Generate only code for this task '{task} for Operating System {os_name}'."
+            history.append((task,prompt))
             logger.debug(f"Prompt: {prompt}")
                     
             stream = generate_text(prompt,history,temperature=0.1,max_new_tokens=1024)
@@ -101,19 +134,28 @@ def main():
             if extracted_code:
                 if not chat_coder_llm.is_python_code(extracted_code):
                     logger.warning("The extracted code is not valid Python code.")
+                    display_markdown_message("The extracted code is not valid Python code.")
                     
                 # Ask for user confirmation before executing the extracted code
                 execute = input("Do you want to execute the extracted code? (Y/N): ")
                 if execute.lower() == 'y':
                     try:
                         python_code = chat_coder_llm.extract_python_code(extracted_code)
+                        logger.info(f"Extracted Python code: {python_code[:50]}")
                         chat_coder_llm.save_code(code=python_code)
-                        stream = chat_coder_llm.execute_code(python_code,language='python')
-                        logger.info(f"Output: {stream}")
+                        logger.info(f"Python code saved successfully.")
+                        code_output,code_error = chat_coder_llm.execute_code(python_code,language='python')
+                        logger.info(f"Python code executed successfully.")
+                        display_markdown_message(code_output)
+                        logger.info(f"Output: {code_output}")
                     except Exception as exception:
                         raise exception
         except Exception as exception:
-            logger.error(f"Error: {exception}")
+            # print the traceback
+            import traceback
+            traceback.print_exc()
+            logger.error(f"Error occurred: {str(exception)}")
+            raise exception
     
 if __name__ == "__main__":
     main()

@@ -29,9 +29,8 @@ def display_markdown_message(message):
         print("")
         
 
-def display_code(codes: list, language: str = "python"):
+def display_code(code: list, language: str = "python"):
     try:
-        code = '\n'.join(codes)
         syntax = Syntax(code, language, theme="monokai", line_numbers=True)
         rich_print(syntax,end="",flush=True)
     except Exception as exception:

@@ -1,8 +1,8 @@
-import platform                                                                                                                                              
-def get_kernel_version():                                                                                                                                    
-    return platform.release()                                                                                                                                
-def get_system_details():                                                                                                                                    
-    return platform.uname()                                                                                                                                  
-if __name__ == "__main__":                                                                                                                                   
-    print(get_kernel_version())                                                                                                                              
-    print(get_system_details())
+import os                                                                                                                     
+def save_primes(n):                                                                                                           
+    primes = []                                                                                                               
+    for i in range(2, n+1):                                                                                                   
+        if all(i % j != 0 for j in range(2, int(i**0.5) + 1)):                                                                
+            primes.append(i)                                                                                                  
+    with open("primes.txt", "w") as f:                                                                                        
+        f.write("\n".join(str(p) for p in primes))
