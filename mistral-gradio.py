@@ -67,15 +67,15 @@ def main():
                 break
 
             # Define the specifications
-            specifications = [
-                "You are code interpreter and can do and solve tasks using Python language so whatever user ask just try to solve that using Python code",
-                "Write Code in Python and dont add a main method.",
-                "Code should be sequential",
-                "The output should only contain the code.",
-                "The code should not have any comments.",
-                "The code should not ask for any input.",
-                "The output should not contain any text or explanations",
-            ]
+            specifications = """
+            As 'code-generator', your sole role is to generate code. The code should:
+            - Be sequential with a main method included.
+            - Be devoid of comments.
+            - Not ask for user input.
+            - Not contain explanations or additional text.
+            - Not be modular.
+            Remember, you can only output code and nothing else you don't have ability to respond in plain text.
+            """
 
             # Combine the task and specifications into a single prompt
             prompt = task + " " + " ".join(specifications)
@@ -92,7 +92,7 @@ def main():
             #logger.info(f"Extracted code: {extracted_code}")
             
             # Save the extracted code in file
-            chat_coder_llm.save_code(code=extracted_code)
+            #chat_coder_llm.save_code(code=extracted_code)
             
             if extracted_code:
                 # Ask for user confirmation before executing the extracted code

@@ -12,6 +12,7 @@ import logging
 import re
 import subprocess
 import ast
+import traceback
 
 class ChatCoderLLM:
 
@@ -71,21 +72,29 @@ class ChatCoderLLM:
             self.logger.error(f"Error occurred while extracting code: {exception}")
             raise Exception(f"Error occurred while extracting code: {exception}")
     
-    def execute_apple_script(self, script: str):
+    def _execute_script(self, script: str, shell: str):
         stdout = stderr = None
         try:
-            self.logger.info("Running AppleScript")
-            process = subprocess.Popen(['osascript', '-'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate(script.encode())
+            self.logger.info(f"Running {shell} script")
+            if shell == "bash":
+                process = subprocess.Popen(['bash', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            elif shell == "powershell":
+                process = subprocess.Popen(['powershell', '-Command', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            elif shell == "applescript":
+                process = subprocess.Popen(['osascript', '-'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            else:
+                self.logger.error(f"Invalid shell selected: {shell}")
+                return None, f"Invalid shell selected: {shell}"
+            stdout, stderr = process.communicate()
             self.logger.info(f"Output is {stdout.decode()} and error is {stderr.decode()}")
             if process.returncode != 0:
-                self.logger.error(f"Error in running AppleScript: {stderr.decode()}")
+                self.logger.error(f"Error in running {shell} script: {stderr.decode()}")
         except Exception as exception:
-            self.logger.error(f"Exception in running AppleScript: {str(exception)}")
+            self.logger.error(f"Exception in running {shell} script: {str(exception)}")
             stderr = str(exception)
         finally:
             return stdout.decode().strip() if stdout else None, stderr.decode().strip() if stderr else None
-    
+        
     def _check_compilers(self, language):
         try:
             language = language.lower().strip()
@@ -155,4 +164,53 @@ class ChatCoderLLM:
                 
         except Exception as exception:
             self.logger.error(f"Exception in running code: {str(exception)}")
+            raise exception
+        
+    def execute_script(self, script:str, os_type:str='macos'):
+        output = error = None
+        try:
+            if not script:
+                raise ValueError("Script must be provided.")
+            if not os_type:
+                raise ValueError("OS type must be provided.")
+            
+            self.logger.info(f"Attempting to execute script: {script[:50]}")
+            if os_type.lower() == 'macos':
+                output, error = self._execute_script(script, shell='applescript')
+            elif os_type.lower() == 'linux':
+                output, error = self._execute_script(script, shell='bash')
+            elif os_type.lower() == 'windows':
+                output, error = self._execute_script(script, shell='powershell')
+            else:
+                raise ValueError("Invalid OS type. Please provide 'macos', 'linux', or 'windows'.")
+            
+            if output:
+                self.logger.info(f"Script executed successfully with output: {output[:50]}...")
+            if error:
+                self.logger.error(f"Script executed with error: {error}...")
+        except Exception as exception:
+            self.logger.error(f"Error in executing script: {traceback.format_exc()}")
+            error = str(exception)
+        finally:
+            return output, error
+        
+    def execute_command(self, command:str):
+        try:
+            if not command:
+                raise ValueError("Command must be provided.")
+            
+            self.logger.info(f"Attempting to execute command: {command}")
+            process = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            stdout_output = process.stdout.decode("utf-8")
+            stderr_output = process.stderr.decode("utf-8")
+            
+            if stdout_output:
+                self.logger.info(f"Command executed successfully with output: {stdout_output}")
+            if stderr_output:
+                self.logger.error(f"Command executed with error: {stderr_output}")
+            
+            return stdout_output, stderr_output
+        except Exception as exception:
+            self.logger.error(f"Error in executing command: {str(exception)}")
             raise exception
