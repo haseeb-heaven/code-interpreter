@@ -14,7 +14,7 @@ import subprocess
 import ast
 import traceback
 
-class ChatCoderLLM:
+class CodeInterpreter:
 
     def __init__(self):
         self.logger = self.create_logger()
@@ -26,7 +26,7 @@ class ChatCoderLLM:
         try:
             logger = logging.getLogger(__name__)
             logger.setLevel(logging.INFO)
-            handler = logging.FileHandler('chat-coder.log')
+            handler = logging.FileHandler('logs/chat-coder.log')
             handler.setLevel(logging.INFO)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)

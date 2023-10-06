@@ -4,7 +4,7 @@ from huggingface_hub import InferenceClient
 import random
 import logging
 from libs.markdown_code import display_code, display_code_stream
-from libs.chat_coder_llm import ChatCoderLLM
+from libs.code_interpreter_lib import CodeInterpreter
 
 API_URL = "https://api-inference.huggingface.co/models/"
 client = InferenceClient(
@@ -56,7 +56,7 @@ def extract_code_from_stream(stream):
 def main():
     history = []
     print("Mistral Chat - v 1.0")
-    chat_coder_llm = ChatCoderLLM()
+    chat_coder_llm = CodeInterpreter()
     
     while True:
         try:

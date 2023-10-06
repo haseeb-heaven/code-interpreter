@@ -1,16 +1,19 @@
 import argparse
+import json
+import os
 import sys
 import traceback
 import logging
 import random
-from libs.chat_coder_llm import ChatCoderLLM
+from datetime import datetime
+from libs.code_interpreter_lib import CodeInterpreter
 from huggingface_hub import InferenceClient
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_installer import PackageInstaller
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-file_handler = logging.FileHandler(__file__.replace('.py','') + '.log')
+file_handler = logging.FileHandler('logs/code-llama.log')
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -23,7 +26,7 @@ client = InferenceClient(
 
 DEFAULT_SYSTEM_PROMPT = """\
 As 'code-generator', your sole role is to generate code. The code should:
-- Be sequential with a main method included.
+- Be sequential in code.
 - Be devoid of comments.
 - Not ask for user input.
 - Not contain explanations or additional text.
@@ -85,6 +88,33 @@ def get_os_platform():
         logger.error(f"Error in checking OS and version: {str(exception)}")
         raise Exception(f"Error in checking OS and version: {str(exception)}")
 
+def save_history_json(task, mode, os_name, language, prompt, extracted_code, filename):
+    history_entry = {
+        "Assistant": {
+            "Task": task,
+            "Mode": mode,
+            "OS detected": os_name,
+            "Language selected": language
+        },
+        "User": prompt,
+        "System": extracted_code
+    }
+
+    # Check if file exists and it is not empty
+    if os.path.isfile(filename) and os.path.getsize(filename) > 0:
+        # If file exists and is not empty, load its contents
+        with open(filename, "r") as history_file:
+            data = json.load(history_file)
+    else:
+        # If file doesn't exist or is empty, initialize an empty list
+        data = []
+
+    # Append new data
+    data.append(history_entry)
+
+    # Write updated data back to file
+    with open(filename, "w") as history_file:
+        json.dump(data, history_file)
 
 def llama_main(args):
     history = []
@@ -95,24 +125,33 @@ def llama_main(args):
     DISPLAY_CODE = args.display_code
     COMMAND_MODE = args.command
     
-    print("CodeLlama Chat - v 1.0")
-    chat_coder_llm = ChatCoderLLM()
+    print("Llama Interpreter - v 1.0")
+    code_interpreter = CodeInterpreter()
     package_installer = PackageInstaller()
     
     # Get the OS Platform and version.
     os_platform = get_os_platform()
-    os_name = "Linux"
+    os_name = os_platform[0]
     os_version = os_platform[1]
+    command_mode = 'Code'
     
     # Display the OS and language selected
     display_code(f"OS detected: '{os_name}'")
     display_code(f"Language selected: '{INTERPRETER_LANGUAGE}'")
     if SCRIPT_MODE:
         display_code(f"Mode selected: 'Script'")
+        command_mode = 'Script'
     elif COMMAND_MODE:
         display_code(f"Mode selected: 'Command'")
+        command_mode = 'Command'
     else:
         display_code(f"Mode selected: 'Code'")
+        command_mode = 'Code'
+    
+    # Open the history file to save the data.
+    history_file_name = "history/history.json"
+    
+    history_file = open(history_file_name, "a")
     
     while True:
         try:
@@ -123,12 +162,13 @@ def llama_main(args):
                 break
             
             prompt = ""
+            current_time = datetime.now().strftime("%H%M%S")
             # Combine the task and specifications into a single prompt
             if not SCRIPT_MODE and not COMMAND_MODE:
-                prompt = f"Generate the code in {INTERPRETER_LANGUAGE} programming language for this task '{task} for Operating System is {os_name}'."
+                prompt = f"Generate the code add main method as well in {INTERPRETER_LANGUAGE} programming language for this task '{task} for Operating System is {os_name}'."
                 history.append((task,prompt))
             
-            if SCRIPT_MODE:
+            elif SCRIPT_MODE:
                 display_markdown_message(f"**Script** mode is selected")
                 if os_name.lower() == 'macos':  # MacOS
                     INTERPRETER_LANGUAGE = 'applescript'
@@ -143,16 +183,18 @@ def llama_main(args):
                     INTERPRETER_LANGUAGE = 'python'
                     prompt += "\nGenerate a script for this prompt and make this script easy to read and understand"
                 prompt += f"\nfor this task '{task} for Operating System is {os_name}'."
+                
             elif COMMAND_MODE:
                 display_markdown_message(f"**Command** mode is selected")
                 prompt = f"Generate the single terminal command for this task '{task} for Operating System is {os_name}'."
             logger.debug(f"Prompt: {prompt}")
-                    
-            generated_output = generate_text(prompt,history,temperature=0.1,max_new_tokens=1024)
+            
+            
+            generated_output = generate_text(prompt,history,temperature=0.1,max_new_tokens=2048)
             logger.info(f"Generated output type {type(generated_output)}")
             
             # Extract code from generated output
-            extracted_code = chat_coder_llm.extract_code(generated_output)
+            extracted_code = code_interpreter.extract_code(generated_output)
             logger.info(f"Extracted code: {extracted_code[:50]}")
             
             # Display extracted code
@@ -162,11 +204,11 @@ def llama_main(args):
             
             if extracted_code:
                 if INTERPRETER_LANGUAGE == 'javascript' and SAVE_CODE:
-                    chat_coder_llm.save_code("code_generated.js",extracted_code)
+                    code_interpreter.save_code("code_generated.js",extracted_code)
                     logger.info(f"JavaScript code saved successfully.")
                     
                 elif INTERPRETER_LANGUAGE == 'python' and SAVE_CODE:
-                    chat_coder_llm.save_code("code_generated.py",extracted_code)
+                    code_interpreter.save_code("code_generated.py",extracted_code)
                     logger.info(f"Python code saved successfully.")
                 
                 if EXECUTE_CODE:
@@ -180,11 +222,11 @@ def llama_main(args):
                         logger.info(f"Extracted {INTERPRETER_LANGUAGE} code: {extracted_code[:50]}")
                         
                         if args.script:
-                            code_output,code_error = chat_coder_llm.execute_script(extracted_code,os_type=os_name)
+                            code_output,code_error = code_interpreter.execute_script(extracted_code,os_type=os_name)
                         elif COMMAND_MODE:
-                            code_output,code_error = chat_coder_llm.execute_command(extracted_code)
+                            code_output,code_error = code_interpreter.execute_command(extracted_code)
                         else:
-                            code_output,code_error = chat_coder_llm.execute_code(extracted_code,language=INTERPRETER_LANGUAGE)
+                            code_output,code_error = code_interpreter.execute_code(extracted_code,language=INTERPRETER_LANGUAGE)
                         
                         package_name = None
                         
@@ -204,7 +246,7 @@ def llama_main(args):
                             
                         if code_output and code_output != None and code_output.__len__() > 0:
                             logger.info(f"{INTERPRETER_LANGUAGE} code executed successfully.")
-                            display_markdown_message(f"Output: {code_output}")
+                            display_code(code_output)
                         
                         elif code_error:
                             logger.info(f"Python code executed with error.")
@@ -213,6 +255,8 @@ def llama_main(args):
                         logger.info(f"Output: {code_output}")
                     except Exception as exception:
                         raise exception
+            save_history_json(task, command_mode, os_name, INTERPRETER_LANGUAGE, prompt, extracted_code, history_file_name)
+            
         except Exception as exception:
             # print the traceback
             import traceback
@@ -247,6 +291,6 @@ if __name__ == "__main__":
         
         # Call the main bard.
         llama_main(args)
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
+    except Exception as exception:
+        logger.error(f"Error occurred: {str(exception)}")
         traceback.print_exc()
