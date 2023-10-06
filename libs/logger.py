@@ -21,5 +21,3 @@ def initialize_logger(filename):
         logger.addHandler(file_handler)
     
     return logger
-
-logger = initialize_logger("bardcoder.log")

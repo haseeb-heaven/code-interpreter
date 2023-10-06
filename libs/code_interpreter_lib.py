@@ -1,5 +1,5 @@
 """
-This is the ChatCoderLLM class. It provides all methods for Code LLM like Display, Execute, Format code from different llm's.
+This is the Code Interpreter class. It provides all methods for Code LLM like Display, Execute, Format code from different llm's.
 It includes features like:
 - Code execution in multiple languages
 - Code extraction from strings
@@ -9,9 +9,7 @@ It includes features like:
 """
 
 import logging
-import re
 import subprocess
-import ast
 import traceback
 
 class CodeInterpreter:
@@ -21,12 +19,12 @@ class CodeInterpreter:
 
     def create_logger(self):
         """
-        Creates a logger that logs to a file named 'chat-coder.log'.
+        Creates a logger that logs.
         """
         try:
             logger = logging.getLogger(__name__)
             logger.setLevel(logging.INFO)
-            handler = logging.FileHandler('logs/chat-coder.log')
+            handler = logging.FileHandler('logs/code-interpreter.log')
             handler.setLevel(logging.INFO)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)
