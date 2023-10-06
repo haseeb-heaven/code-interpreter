@@ -10,6 +10,7 @@ from huggingface_hub import InferenceClient
 from libs.logger import initialize_logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_installer import PackageInstaller
+from libs.helper_utils import HelperUtils
 
 # Initialize the logger.
 logger = initialize_logger("logs/interpreter.log")
@@ -30,7 +31,6 @@ Remember, you can only output code and nothing else you don't have ability to re
 
 def get_prompt(message: str, chat_history: list[tuple[str, str]],system_prompt: str) -> str:
     texts = [f'<s>[INST] <<SYS>>\n{system_prompt}\n<</SYS>>\n\n']
-    # The first user input is _not_ stripped
     do_strip = False
     for user_input, response in chat_history:
         user_input = user_input.strip() if do_strip else user_input
@@ -39,7 +39,7 @@ def get_prompt(message: str, chat_history: list[tuple[str, str]],system_prompt: 
     message = message.strip() if do_strip else message
     texts.append(f'{message} [/INST]')
     return ''.join(texts)
-
+    
 def generate_text(message, chat_history: list[tuple[str, str]], temperature=0.9, max_new_tokens=512, top_p=0.95, repetition_penalty=1.0, config_values=None):
     logger.debug("Generating code.")
     
@@ -68,90 +68,16 @@ def generate_text(message, chat_history: list[tuple[str, str]], temperature=0.9,
     logger.debug(f"Generated code {stream.generated_text}")
     return stream.generated_text
 
-def get_os_platform():
-    try:
-        import platform
-        os_info = platform.uname()
-        os_name = os_info.system
-
-        # Map the system attribute to the desired format
-        os_name_mapping = {
-            'Darwin': 'MacOS',
-            'Linux': 'Linux',
-            'Windows': 'Windows'
-        }
-
-        os_name = os_name_mapping.get(os_name, 'Other')
-
-        logger.info(f"Operating System: {os_name} Version: {os_info.version}")
-        return os_name, os_info.version
-    except Exception as exception:
-        logger.error(f"Error in checking OS and version: {str(exception)}")
-        raise Exception(f"Error in checking OS and version: {str(exception)}")
-
-def save_history_json(task, mode, os_name, language, prompt, extracted_code, filename="history/history.json"):
-    history_entry = {
-        "Assistant": {
-            "Task": task,
-            "Mode": mode,
-            "OS": os_name,
-            "Language": language
-        },
-        "User": prompt,
-        "System": extracted_code
-    }
-
-    # Check if file exists and it is not empty
-    if os.path.isfile(filename) and os.path.getsize(filename) > 0:
-        # If file exists and is not empty, load its contents
-        with open(filename, "r") as history_file:
-            data = json.load(history_file)
-    else:
-        # If file doesn't exist or is empty, initialize an empty list
-        data = []
-
-    # Append new data
-    data.append(history_entry)
-
-    # Write updated data back to file
-    with open(filename, "w") as history_file:
-        json.dump(data, history_file)
-
-import readline
-
-def initialize_readline_history():
-    # Load history from file
-    histfile = os.path.join(os.path.expanduser("~"), ".python_history")
-    try:
-        readline.read_history_file(histfile)
-    except FileNotFoundError:
-        pass
-
-    # Save history to file before exiting
-    import atexit
-    atexit.register(readline.write_history_file, histfile)
-
-def read_config_file(filename=".config"):
-    try:
-        config_data = {}
-        with open(filename, "r") as config_file:
-            for line in config_file:
-                key, value = line.strip().split("=")
-                config_data[key.strip()] = value.strip()
-        return config_data
-    except Exception as exception:
-        logger.error(f"Error in reading config file: {str(exception)}")
-        raise Exception(f"Error in reading config file: {str(exception)}")
-
 def llama_main(args):
     history = []
     INTERPRETER_LANGUAGE = args.lang if args.lang else 'python'
     SAVE_CODE = args.save_code
     EXECUTE_CODE = args.exec
     DISPLAY_CODE = args.display_code
-
+    helper_utils = HelperUtils()
+    
     # Get all values from config file
-    config_values = read_config_file()
+    config_values = helper_utils.read_config_file()
     # Store all values to variables
     for key, value in config_values.items():
         globals()[key] = value
@@ -170,7 +96,7 @@ def llama_main(args):
     package_installer = PackageInstaller()
     
     # Get the OS Platform and version.
-    os_platform = get_os_platform()
+    os_platform = helper_utils.get_os_platform()
     os_name = os_platform[0]
     os_version = os_platform[1]
     command_mode = 'Code'
@@ -189,7 +115,7 @@ def llama_main(args):
         command_mode = 'Code'
     
    # Call this function before your main loop
-    initialize_readline_history()
+    helper_utils.initialize_readline_history()
     
     while True:
         try:
@@ -293,7 +219,7 @@ def llama_main(args):
                         logger.info(f"Output: {code_output[:100]}")
                     except Exception as exception:
                         raise exception
-            save_history_json(task, command_mode, os_name, INTERPRETER_LANGUAGE, prompt, extracted_code)
+            helper_utils.save_history_json(task, command_mode, os_name, INTERPRETER_LANGUAGE, prompt, extracted_code)
             
         except Exception as exception:
             # print the traceback
