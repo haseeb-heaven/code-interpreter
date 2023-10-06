@@ -5,7 +5,7 @@ import sys
 import traceback
 import random
 from datetime import datetime
-from libs.code_interpreter_lib import CodeInterpreter
+from libs.code_interpreter import CodeInterpreter
 from huggingface_hub import InferenceClient
 from libs.logger import initialize_logger
 from libs.markdown_code import display_code, display_markdown_message
@@ -207,7 +207,6 @@ def llama_main(args):
                 history.append((task,prompt))
             
             elif SCRIPT_MODE:
-                display_markdown_message(f"**Script** mode is selected")
                 if os_name.lower() == 'macos':  # MacOS
                     INTERPRETER_LANGUAGE = 'applescript'
                     prompt += "\nGenerate Apple script for this prompt and make this script easy to read and understand"
@@ -223,7 +222,6 @@ def llama_main(args):
                 prompt += f"\nfor this task '{task} for Operating System is {os_name}'."
                 
             elif COMMAND_MODE:
-                display_markdown_message(f"**Command** mode is selected")
                 prompt = f"Generate the single terminal command for this task '{task} for Operating System is {os_name}'."
             logger.debug(f"Prompt: {prompt}")
             
@@ -253,7 +251,7 @@ def llama_main(args):
                     execute = 'y'
                 else:
                     # Ask for user confirmation before executing the extracted code
-                    execute = input("Do you want to execute the extracted code? (Y/N): ")
+                    execute = input("Execute the code? (Y/N): ")
                     
                 if execute.lower() == 'y':
                     try:
