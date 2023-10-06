@@ -62,7 +62,7 @@ def generate_text(message, chat_history: list[tuple[str, str]], temperature=0.9,
     logger.debug(f"Generated code {stream.generated_text}")
     return stream.generated_text
 
-def llama_main(args):
+def interpreter_main(args):
     history = []
     INTERPRETER_LANGUAGE = args.lang if args.lang else 'python'
     SAVE_CODE = args.save_code
@@ -82,7 +82,7 @@ def llama_main(args):
     for key, value in config_values.items():
         globals()[key] = value
     
-    # Initialize the InferenceClient with the model "codellama/CodeLlama-34b-Instruct-hf"
+    # Initialize the InferenceClient"
     global client
     HF_MODEL = str(config_values.get('HF_MODEL', "codellama/CodeLlama-34b-Instruct-h"))
     logger.info(f"Using model {HF_MODEL}")
@@ -97,7 +97,7 @@ def llama_main(args):
     if not SCRIPT_MODE and not COMMAND_MODE:
         CODE_MODE = True
         
-    print("Llama Interpreter - v 1.0")
+    print("Code Interpreter - v 1.0")
     code_interpreter = CodeInterpreter()
     package_installer = PackageInstaller()
     
@@ -115,8 +115,11 @@ def llama_main(args):
    # Call this function before your main loop
     helper_utils.initialize_readline_history()
     
+    start_sep = str(config_values.get('start_sep', '```'))
+    end_sep = str(config_values.get('end_sep', '```'))
     skip_first_line = config_values.get('skip_first_line', 'False') == 'True'
-    logger.info(f"Skip first line: {skip_first_line}")
+    
+    logger.info(f"Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
             
     while True:
         try:
@@ -148,7 +151,7 @@ def llama_main(args):
             logger.info(f"Generated output type {type(generated_output)}")
             
             # Extract code from generated output
-            extracted_code = code_interpreter.extract_code(generated_output,skip_first_line=skip_first_line)
+            extracted_code = code_interpreter.extract_code(generated_output,start_sep,end_sep,skip_first_line)
             logger.info(f"Extracted code: {extracted_code[:50]}")
             
             # Display extracted code
@@ -223,7 +226,7 @@ def llama_main(args):
 # App main entry point.
 if __name__ == "__main__":
     try:
-        parser = argparse.ArgumentParser(description='LLama - Interpreter')
+        parser = argparse.ArgumentParser(description='Code - Interpreter')
         parser.add_argument('--exec', '-e', action='store_true', help='Execute the code')
         parser.add_argument('--save_code', '-s', action='store_true', help='Save the generated code')
         parser.add_argument('--mode', '-m', choices=['code', 'script', 'command'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands)')
@@ -238,7 +241,7 @@ if __name__ == "__main__":
             sys.exit(1)
         
         # Call the main method.
-        llama_main(args)
+        interpreter_main(args)
     except Exception as exception:
         logger.error(f"Error occurred: {str(exception)}")
         traceback.print_exc()

@@ -66,6 +66,9 @@ class HelperUtils:
             config_data = {}
             with open(filename, "r") as config_file:
                 for line in config_file:
+                    # Ignore comments and lines without an equals sign
+                    if line.strip().startswith('#') or '=' not in line:
+                        continue
                     key, value = line.strip().split("=")
                     config_data[key.strip()] = value.strip()
             return config_data
