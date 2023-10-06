@@ -1,6 +1,5 @@
 import argparse
 import json
-import os
 import sys
 import traceback
 import random
@@ -12,20 +11,15 @@ from libs.markdown_code import display_code, display_markdown_message
 from libs.package_installer import PackageInstaller
 from libs.helper_utils import HelperUtils
 
-# Initialize the logger.
-logger = initialize_logger("logs/interpreter.log")
-
-client = InferenceClient(
-    "codellama/CodeLlama-34b-Instruct-hf"
-)
+logger = None
+client = None
 
 DEFAULT_SYSTEM_PROMPT = """\
 As 'code-generator', your sole role is to generate code. The code should:
-- Be sequential in code.
+- Be sequential in code
 - Be devoid of comments.
 - Not ask for user input.
 - Not contain explanations or additional text.
-- Not be modular.
 Remember, you can only output code and nothing else you don't have ability to respond in plain text.
 """
 
@@ -74,6 +68,12 @@ def llama_main(args):
     SAVE_CODE = args.save_code
     EXECUTE_CODE = args.exec
     DISPLAY_CODE = args.display_code
+    
+    # Initialize the logger.
+    global logger
+    logger = initialize_logger("logs/interpreter.log")
+    
+    # Initialize the HelperUtils class
     helper_utils = HelperUtils()
     
     # Get all values from config file
@@ -81,7 +81,13 @@ def llama_main(args):
     # Store all values to variables
     for key, value in config_values.items():
         globals()[key] = value
-        
+    
+    # Initialize the InferenceClient with the model "codellama/CodeLlama-34b-Instruct-hf"
+    global client
+    HF_MODEL = str(config_values.get('HF_MODEL', "codellama/CodeLlama-34b-Instruct-h"))
+    logger.info(f"Using model {HF_MODEL}")
+    client = InferenceClient(HF_MODEL)
+    
     # Update the mode based on the string value of args.mode
     CODE_MODE = True if args.mode == 'code' else False
     SCRIPT_MODE = True if args.mode == 'script' else False
@@ -102,21 +108,16 @@ def llama_main(args):
     command_mode = 'Code'
     
     # Display the OS and language selected
-    display_code(f"OS detected: '{os_name}'")
-    display_code(f"Language selected: '{INTERPRETER_LANGUAGE}'")
-    if SCRIPT_MODE:
-        display_code(f"Mode selected: 'Script'")
-        command_mode = 'Script'
-    elif COMMAND_MODE:
-        display_code(f"Mode selected: 'Command'")
-        command_mode = 'Command'
-    else:
-        display_code(f"Mode selected: 'Code'")
-        command_mode = 'Code'
+    mode = 'Script' if SCRIPT_MODE else 'Command' if COMMAND_MODE else 'Code'
+    display_code(f"OS: '{os_name}', Language: '{INTERPRETER_LANGUAGE}', Mode: '{mode}' Model: {HF_MODEL}")
+    command_mode = mode
     
    # Call this function before your main loop
     helper_utils.initialize_readline_history()
     
+    skip_first_line = config_values.get('skip_first_line', 'False') == 'True'
+    logger.info(f"Skip first line: {skip_first_line}")
+            
     while True:
         try:
             # Define the task
@@ -129,23 +130,14 @@ def llama_main(args):
             current_time = datetime.now().strftime("%H%M%S")
             # Combine the task and specifications into a single prompt
             if CODE_MODE:
-                prompt = f"Generate the code add main method as well in {INTERPRETER_LANGUAGE} programming language for this task '{task} for Operating System is {os_name}'."
+                prompt = f"Generate the code in {INTERPRETER_LANGUAGE} language for this task '{task} for Operating System: {os_name}'."
                 history.append((task,prompt))
             
             elif SCRIPT_MODE:
-                if os_name.lower() == 'macos':  # MacOS
-                    INTERPRETER_LANGUAGE = 'applescript'
-                    prompt += "\nGenerate Apple script for this prompt and make this script easy to read and understand"
-                elif os_name.lower() == 'linux':  # Linux
-                    INTERPRETER_LANGUAGE = 'bash'
-                    prompt += "\nGenerate Bash Shell script for this prompt and make this script easy to read and understand"
-                elif os_name.lower() == 'windows':  # Windows
-                    INTERPRETER_LANGUAGE = 'powershell'
-                    prompt += "\nGenerate Powershell script for this prompt and make this script easy to read and understand"
-                else:
-                    INTERPRETER_LANGUAGE = 'python'
-                    prompt += "\nGenerate a script for this prompt and make this script easy to read and understand"
-                prompt += f"\nfor this task '{task} for Operating System is {os_name}'."
+                language_map = {'macos': 'applescript', 'linux': 'bash', 'windows': 'powershell'}
+                INTERPRETER_LANGUAGE = language_map.get(os_name.lower(), 'python')
+                script_type = 'Apple script' if os_name.lower() == 'macos' else 'Bash Shell script' if os_name.lower() == 'linux' else 'Powershell script' if os_name.lower() == 'windows' else 'script'
+                prompt += f"\nGenerate {script_type} for this prompt and make this script easy to read and understand for this task '{task} for Operating System is {os_name}'."
                 
             elif COMMAND_MODE:
                 prompt = f"Generate the single terminal command for this task '{task} for Operating System is {os_name}'."
@@ -156,7 +148,7 @@ def llama_main(args):
             logger.info(f"Generated output type {type(generated_output)}")
             
             # Extract code from generated output
-            extracted_code = code_interpreter.extract_code(generated_output)
+            extracted_code = code_interpreter.extract_code(generated_output,skip_first_line=skip_first_line)
             logger.info(f"Extracted code: {extracted_code[:50]}")
             
             # Display extracted code
@@ -211,12 +203,12 @@ def llama_main(args):
                         if code_output and code_output != None and code_output.__len__() > 0:
                             logger.info(f"{INTERPRETER_LANGUAGE} code executed successfully.")
                             display_code(code_output)
+                            logger.info(f"Output: {code_output[:100]}")
                         
                         elif code_error:
                             logger.info(f"Python code executed with error.")
                             display_markdown_message(f"Error: {code_error}")
                             
-                        logger.info(f"Output: {code_output[:100]}")
                     except Exception as exception:
                         raise exception
             helper_utils.save_history_json(task, command_mode, os_name, INTERPRETER_LANGUAGE, prompt, extracted_code)
@@ -241,17 +233,11 @@ if __name__ == "__main__":
         args = parser.parse_args()
         
         # Check if only the application name is passed
-        if len(sys.argv) == 0:
-            display_markdown_message("**Usage: python interpreter.py [options]**")
-            display_markdown_message("**Options:**")
-            display_markdown_message("**--exec, -e: Execute the code**")
-            display_markdown_message("**--save_code -s: Save the generated code**")
-            display_markdown_message("**--mode, -m: Select the mode (code for generating code, script for generating shell scripts, command for generating single line commands)**")
-            display_markdown_message("**--version: Show the version of the program**")
-            display_markdown_message("**--lang, -l: Set the interpreter language, (Defaults to Python)**")
+        if len(sys.argv) <= 1:
+            parser.print_help()
             sys.exit(1)
         
-        # Call the main llama.
+        # Call the main method.
         llama_main(args)
     except Exception as exception:
         logger.error(f"Error occurred: {str(exception)}")
