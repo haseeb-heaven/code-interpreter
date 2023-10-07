@@ -2,17 +2,17 @@
 
 ![Interpreter](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/movie.gif?raw=true)
 
-Welcome to Open-Code-Interpreter 🎉, an innovative open-source alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
+**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
 
-Open-Code-Interpreter is more than just a code translator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
+**Open-Code-Interpreter is more than just a code translator.** It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
 
-After processing your instructions, Open-Code-Interpreter executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code.
+After processing your instructions, **Open-Code-Interpreter executes the generated code and provides you with the result.** This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code.
 
-Designed with versatility in mind, Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
+Designed with versatility in mind, **Open-Code-Interpreter works seamlessly on every operating system,** including Windows, MacOS, and Linux. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
 
-Experience the future of code interpretation with Open-Code-Interpreter today! 🚀
+**Experience the future of code interpretation with Open-Code-Interpreter today! 🚀**
 
-## Table of Contents
+## **Table of Contents**
 - [Features](#🌟-features)
 - [Installation](#📥-installation)
 - [Usage](#️🛠️-usage)
@@ -24,7 +24,7 @@ Experience the future of code interpretation with Open-Code-Interpreter today! �
 - [License](#📜-license)
 - [Acknowledgments](#🙏-acknowledgments)
 
-## 🌟 Features
+## 🌟 **Features**
 
 - 🚀 Code Execution: Open-Code-Interpreter can execute the code generated from your instructions.
 - 💾 Code Saving: It has the ability to save the generated code for future use or reference.
@@ -37,7 +37,7 @@ Experience the future of code interpretation with Open-Code-Interpreter today! �
 - 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
 - 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
 
-## 📥 Installation
+## 📥 **Installation**
 
 To get started with Open-Code-Interpreter, follow these steps:</br>
 
@@ -48,7 +48,7 @@ cd open-code-interpreter</br>
 3. Save the token in a `.env` file as:</br>
 `HUGGINGFACEHUB_API_TOKEN` = "Your Access Token"
 
-## 🛠️ Usage
+## 🛠️ **Usage**
 
 To use Open-Code-Interpreter, use the following command options:
 
@@ -81,7 +81,7 @@ python interpreter.py -m 'code-llama' -md 'code' -s
 python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 ```
 
-## 📖 Examples
+## 📖 **Examples**
 
 Example of Code llama with code mode:
 ![code_llama_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-code.png?raw=true "Code Llama Code Mode")</br>
@@ -93,7 +93,7 @@ Example of Mistral with code mode:
 ![mistral_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/mistral-code.png?raw=true "Mistral Code Mode")</br>
 
 
-## ⚙️ Settings
+## ⚙️ **Settings**
 You can customize the settings of the current model from the `.config` file. It contains all the necessary parameters such as `temperature`, `max_new_tokens`, and more.
 
 If you want to add a new model from Hugging Face, follow these steps:
@@ -104,7 +104,7 @@ If you want to add a new model from Hugging Face, follow these steps:
 4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
 5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
 
-# 🏗️ Structure
+# 🏗️ **Structure**
 ```markdown
 This is the directory strcuture of this repo.
 .
@@ -134,19 +134,19 @@ This is the directory strcuture of this repo.
 |____LICENSE.txt: Text file containing the license details for the project.
 ```
 
-## 🤝 Contributing
+## 🤝 **Contributing**
 
-If you'd like to contribute to Open-Code-Interpreter, please fork the repository and submit a pull request. We welcome all contributions and are always looking for feedback and improvements.
+If you're interested in contributing to **Open-Code-Interpreter**, we'd love to have you! Please fork the repository and submit a pull request. We welcome all contributions and are always eager to hear your feedback and suggestions for improvements.
 
-## 📌 Versioning
+## 📌 **Versioning**
 
-v1.0.0 - Initial release
+**v1.0.0** - This marks our initial release.
 
-## 📜 License
+## 📜 **License**
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the **MIT License**. For more details, please refer to the LICENSE file.
 
-## 🙏 Acknowledgments
+## 🙏 **Acknowledgments**
 
-- Thanks to HuggingFace for providing the models.
-- Special thanks to the open-source community for their continuous support and contributions.
+- We would like to express our gratitude to **HuggingFace** for providing the models.
+- A special shout-out to the open-source community. Your continuous support and contributions are invaluable to us.
