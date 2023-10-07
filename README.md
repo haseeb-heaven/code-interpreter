@@ -13,16 +13,16 @@ Designed with versatility in mind, Open-Code-Interpreter works seamlessly on eve
 Experience the future of code interpretation with Open-Code-Interpreter today! 🚀
 
 ## Table of Contents
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Settings](#settings)
-- [Examples](#examples)
-- [Structure](#structure)
-- [Contributing](#contributing)
-- [Versioning](#versioning)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
+- [Features](#🌟-features)
+- [Installation](#📥-installation)
+- [Usage](#️🛠️-usage)
+- [Examples](#📖-examples)
+- [Settings](#️⚙️-settings)
+- [Structure](#🏗️-structure)
+- [Contributing](#🤝-contributing)
+- [Versioning](#📌-versioning)
+- [License](#📜-license)
+- [Acknowledgments](#🙏-acknowledgments)
 
 ## 🌟 Features
 
@@ -37,7 +37,7 @@ Experience the future of code interpretation with Open-Code-Interpreter today! �
 - 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
 - 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
 
-## Installation
+## 📥 Installation
 
 To get started with Open-Code-Interpreter, follow these steps:</br>
 
@@ -48,7 +48,7 @@ cd open-code-interpreter</br>
 3. Save the token in a `.env` file as:</br>
 `HUGGINGFACEHUB_API_TOKEN` = "Your Access Token"
 
-## Usage
+## 🛠️ Usage
 
 To use Open-Code-Interpreter, use the following command options:
 
@@ -104,7 +104,7 @@ If you want to add a new model from Hugging Face, follow these steps:
 4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
 5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
 
-# Structure
+# 🏗️ Structure
 ```markdown
 This is the directory strcuture of this repo.
 .
