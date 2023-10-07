@@ -2,7 +2,7 @@
 
 ![cover_logo](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/logo.png?raw=true "")</br>
 
-! [Open Interpreter] (movie.gif)
+![Interpreter](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/movie.gif?raw=true)
 
 Welcome to Open-Code-Interpreter 🎉, an innovative open-source alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
 
@@ -18,7 +18,9 @@ Experience the future of code interpretation with Open-Code-Interpreter today! �
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Settings](#settings)
 - [Examples](#examples)
+- [Structure](#structure)
 - [Contributing](#contributing)
 - [Versioning](#versioning)
 - [License](#license)
@@ -39,13 +41,13 @@ Experience the future of code interpretation with Open-Code-Interpreter today! �
 
 ## Installation
 
-To get started with Open-Code-Interpreter, follow these steps:
+To get started with Open-Code-Interpreter, follow these steps:</br>
 
-1. Clone the repository:
-git clone https://github.com/haseeb-heaven/open-code-interpreter.git
-cd Open-Code-Interpreter
-2. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
-3. Save the token in a `.env` file as:
+1. Clone the repository:</br>
+git clone https://github.com/haseeb-heaven/open-code-interpreter.git</br>
+cd open-code-interpreter</br>
+2. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
+3. Save the token in a `.env` file as:</br>
 `HUGGINGFACEHUB_API_TOKEN` = "Your Access Token"
 
 ## Usage
@@ -81,30 +83,72 @@ python interpreter.py -m 'code-llama' -md 'code' -s
 python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 ```
 
-## Examples
+## 📖 Examples
 
 Example of Code llama with code mode:
-![code_llama_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-code.png?raw=true "")</br>
+![code_llama_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-code.png?raw=true "Code Llama Code Mode")</br>
 
 Example of Code llama with command mode:
-![code_llama_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-command.png?raw=true "")</br>
+![code_llama_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-command.png?raw=true "Code Llama Command Mode")</br>
 
 Example of Mistral with code mode:
-![mistral_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/mistral-code.png?raw=true "")</br>
+![mistral_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/mistral-code.png?raw=true "Mistral Code Mode")</br>
 
-## Contributing
+
+## ⚙️ Settings
+You can customize the settings of the current model from the `.config` file. It contains all the necessary parameters such as `temperature`, `max_new_tokens`, and more.
+
+If you want to add a new model from Hugging Face, follow these steps:
+
+1. 📋 Copy the `.config` file and rename it to `configs/hf-model-new.config`.
+2. 🛠️ Modify the parameters of the model like `start_sep`, `end_sep`, `skip_first_line`.
+3. 📝 Set the model name from Hugging Face to `HF_MODEL = 'Model name here'`.
+4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
+5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
+
+# Structure
+```markdown
+This is the directory strcuture of this repo.
+.
+|____.config: Configuration file for the project.
+|____resources: Directory containing various resource files used in the project.
+|____libs: Directory containing various Python modules used in the project.
+| |____package_installer.py: Module for installing necessary packages.
+| |____code_interpreter.py: Module for code execution and management.
+| |____markdown_code.py: Handles markdown messages and code snippets.
+| |____logger.py: Logs interpreter activities.
+| |____utility_manager.py: Provides utility functions like reading configs and getting OS platform.
+|____README.md: Project's main documentation.
+|____interpreter.py: Handles command-line arguments, manages code generation, and executes code.
+|____logs: Directory containing log files.
+| |____interpreter.log: Log file for the interpreter activities.
+| |____code-interpreter.log: Log file for the code interpreter activities.
+|____.gitignore: Specifies intentionally untracked files that Git should ignore.
+|____.env: Environment variables for the project.
+|____configs: Directory containing configuration files for different models.
+| |____mistral-7b.config: Configuration file for the Mistral-7b model.
+| |____wizard-coder.config: Configuration file for the Wizard Coder model.
+| |____star-chat.config: Configuration file for the Star Chat model.
+| |____code-llama.config: Configuration file for the Code Llama model.
+| |____code-llama-phind.config: Configuration file for the Code Llama Phind model.
+|____history: Directory containing history files.
+| |____history.json: JSON file storing the history of commands.
+|____LICENSE.txt: Text file containing the license details for the project.
+```
+
+## 🤝 Contributing
 
 If you'd like to contribute to Open-Code-Interpreter, please fork the repository and submit a pull request. We welcome all contributions and are always looking for feedback and improvements.
 
-## Versioning
+## 📌 Versioning
 
 v1.0.0 - Initial release
 
-## License
+## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 - Thanks to HuggingFace for providing the models.
 - Special thanks to the open-source community for their continuous support and contributions.
