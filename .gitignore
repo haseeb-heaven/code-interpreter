@@ -4,6 +4,5 @@
 *.pyo
 *.pyd
 .DS_Store
-*.env
 *.log
 *.json

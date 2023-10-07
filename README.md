@@ -1,7 +1,5 @@
 # Open-Code-Interpreter 🚀
 
-![cover_logo](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/logo.png?raw=true "")</br>
-
 ![Interpreter](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/movie.gif?raw=true)
 
 Welcome to Open-Code-Interpreter 🎉, an innovative open-source alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
