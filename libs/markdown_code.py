@@ -1,12 +1,8 @@
-import io
-import subprocess
 import time
 from rich import print as rich_print
 from rich.markdown import Markdown
 from rich.rule import Rule
 from rich.syntax import Syntax
-from pygments import highlight
-from pygments.lexers import PythonLexer
 from pygments.formatters import TerminalFormatter
 
 def display_markdown_message(message):
@@ -46,7 +42,6 @@ class CustomFormatter(TerminalFormatter):
         if outfile.read() == '\n':
             outfile.truncate()
 
-import re
 from rich.console import Console
 
 def display_code_stream(stream):

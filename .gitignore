@@ -8,3 +8,4 @@
 *.env
 *.log
 *.config
+*.json

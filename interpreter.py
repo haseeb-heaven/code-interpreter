@@ -116,6 +116,7 @@ class Interpreter:
     def handle_script_mode(self, task, os_name):
         language_map = {'macos': 'applescript', 'linux': 'bash', 'windows': 'powershell'}
         self.INTERPRETER_LANGUAGE = language_map.get(os_name.lower(), 'python')
+        
         script_type = 'Apple script' if os_name.lower() == 'macos' else 'Bash Shell script' if os_name.lower() == 'linux' else 'Powershell script' if os_name.lower() == 'windows' else 'script'
         prompt = f"\nGenerate {script_type} for this prompt and make this script easy to read and understand for this task '{task} for Operating System is {os_name}'."
         return prompt
@@ -174,7 +175,6 @@ class Interpreter:
                 
                 task = input("> ")
                 if task.lower() in ['exit', 'quit']:
-                    print("Exiting CodeLlama Chat.")
                     break
                 prompt = self.handle_mode(task, os_name)
                 
@@ -219,8 +219,7 @@ class Interpreter:
                 self.logger.error(f"Error occurred: {str(exception)}")
                 raise exception
 
-if __name__ == "__main__":
-    try:
+def main():
         parser = argparse.ArgumentParser(description='Code - Interpreter')
         parser.add_argument('--exec', '-e', action='store_true', help='Execute the code')
         parser.add_argument('--save_code', '-s', action='store_true', help='Save the generated code')
@@ -234,10 +233,14 @@ if __name__ == "__main__":
         # Check if only the application name is passed
         if len(sys.argv) <= 1:
             parser.print_help()
-            sys.exit(1)
+            return
 
         # Create an instance of the Interpreter class and call the main method.
         interpreter = Interpreter(args)
         interpreter.interpreter_main()
-    except Exception as exception:
+
+if __name__ == "__main__":
+    try:
+        main()
+    except:
         traceback.print_exc()

@@ -28,7 +28,7 @@ class UtilityManager:
             self.logger.error(f"Error in checking OS and version: {str(exception)}")
             raise Exception(f"Error in checking OS and version: {str(exception)}")
 
-    def save_history_json(self, task, mode, os_name, language, prompt, extracted_code,model_name, filename="history/history.json"):
+    def save_history_json(self, task, mode, os_name, language, prompt, extracted_code, model_name, filename="history/history.json"):
         history_entry = {
             "Assistant": {
                 "Task": task,
@@ -41,11 +41,10 @@ class UtilityManager:
             "System": extracted_code
         }
 
+        data = []
         if os.path.isfile(filename) and os.path.getsize(filename) > 0:
-            with open(filename, "r") as history_file:
+            with open(filename, "r") as history_file:  # Open the file in read mode
                 data = json.load(history_file)
-        else:
-            data = []
 
         data.append(history_entry)
 
