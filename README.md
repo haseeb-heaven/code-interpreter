@@ -1,21 +1,18 @@
-# Open-Code-Interpreter
+# Open-Code-Interpreter 🚀
 
-![cover_logo](https://github.com/haseeb-heaven/open-code-interpreter/blob/master/resources/logo.png?raw=true "")</br>
+![cover_logo](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/logo.png?raw=true "")</br>
 
-<video width="320" height="240" controls autoplay>
-  <source src="https://github.com/haseeb-heaven/open-code-interpreter/blob/master/resources/movie.mp4?raw=true" type="video/mp4">
-Your browser does not support the video tag.
-</video>
+! [Open Interpreter] (movie.gif)
 
-Welcome to Open-Code-Interpreter, an innovative open-source alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
+Welcome to Open-Code-Interpreter 🎉, an innovative open-source alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
 
-Open-Code-Interpreter is more than just a code translator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
+Open-Code-Interpreter is more than just a code translator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
 
-After processing your instructions, Open-Code-Interpreter executes the generated code and provides you with the result. This makes it an invaluable tool for developers, data scientists, and anyone who needs to quickly turn ideas into working code.
+After processing your instructions, Open-Code-Interpreter executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code.
 
-Designed with versatility in mind, Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux. So, no matter what platform you're on, you can take advantage of this powerful tool.
+Designed with versatility in mind, Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
 
-Experience the future of code interpretation with Open-Code-Interpreter today!
+Experience the future of code interpretation with Open-Code-Interpreter today! 🚀
 
 ## Table of Contents
 - [Features](#features)
@@ -27,18 +24,18 @@ Experience the future of code interpretation with Open-Code-Interpreter today!
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
 
-## Features
+## 🌟 Features
 
-- Code Execution: Open-Code-Interpreter can execute the code generated from your instructions.
-- Code Saving: It has the ability to save the generated code for future use or reference.
-- Command History: It has the ability to save all the commands as history.
-- Mode Selection: It allows you to select the mode of operation. You can choose from `code` for generating code, `script` for generating shell scripts, or `command` for generating single line commands.
-- Model Selection: You can set the model for code generation. By default, it uses the `code-llama` model.
-- Language Selection: You can set the interpreter language to Python or `JavaScript`. By default, it uses `Python`.
-- Code Display: It can display the generated code in the output, allowing you to review the code before execution.
-- Cross-Platform: Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
-- Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
-- Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
+- 🚀 Code Execution: Open-Code-Interpreter can execute the code generated from your instructions.
+- 💾 Code Saving: It has the ability to save the generated code for future use or reference.
+- 📜 Command History: It has the ability to save all the commands as history.
+- 🔄 Mode Selection: It allows you to select the mode of operation. You can choose from `code` for generating code, `script` for generating shell scripts, or `command` for generating single line commands.
+- 🧠 Model Selection: You can set the model for code generation. By default, it uses the `code-llama` model.
+- 🌐 Language Selection: You can set the interpreter language to Python or `JavaScript`. By default, it uses `Python`.
+- 👀 Code Display: It can display the generated code in the output, allowing you to review the code before execution.
+- 💻 Cross-Platform: Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
+- 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
+- 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
 
 ## Installation
 
@@ -87,13 +84,13 @@ python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 ## Examples
 
 Example of Code llama with code mode:
-![code_llama_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/master/resources/code-llama-code.png?raw=true "")</br>
+![code_llama_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-code.png?raw=true "")</br>
 
 Example of Code llama with command mode:
-![code_llama_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/master/resources/code-llama-command.png?raw=true "")</br>
+![code_llama_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-command.png?raw=true "")</br>
 
 Example of Mistral with code mode:
-![mistral_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/master/resources/mistral-code.png?raw=true "")</br>
+![mistral_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/mistral-code.png?raw=true "")</br>
 
 ## Contributing
 
