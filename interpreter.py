@@ -1,6 +1,7 @@
 import argparse
 import json
 import sys
+import time
 import traceback
 import random
 from datetime import datetime
@@ -68,6 +69,7 @@ def interpreter_main(args):
     SAVE_CODE = args.save_code
     EXECUTE_CODE = args.exec
     DISPLAY_CODE = args.display_code
+    HF_MODEL = args.model if args.model else None
     
     # Initialize the logger.
     global logger
@@ -75,18 +77,65 @@ def interpreter_main(args):
     
     # Initialize the HelperUtils class
     helper_utils = HelperUtils()
-    
-    # Get all values from config file
-    config_values = helper_utils.read_config_file()
-    # Store all values to variables
-    for key, value in config_values.items():
-        globals()[key] = value
+    code_llama_model = 'codellama/CodeLlama-34b-Instruct-hf'
     
     # Initialize the InferenceClient"
     global client
-    HF_MODEL = str(config_values.get('HF_MODEL', "codellama/CodeLlama-34b-Instruct-h"))
-    logger.info(f"Using model {HF_MODEL}")
-    client = InferenceClient(HF_MODEL)
+    hf_model_name = ""
+    
+    logger.info("Initializing InferenceClient")
+    if HF_MODEL is None or HF_MODEL == "":
+        logger.info("HF_MODEL is not provided, using default model.")
+        HF_MODEL = code_llama_model
+        hf_model_name = HF_MODEL.strip().split("/")[-1]
+        
+        # Write the config file
+        config_file_name = f"configs/code-llama.config"
+        logger.info(f"Reading config file: {config_file_name}")
+        
+        try:
+            with open(config_file_name, 'r') as source_file, open('.config', 'w') as dest_file:
+                content = source_file.read()
+                logger.info(f"Writing content from {config_file_name}: {content[:50]}")
+                dest_file.write(content)
+        except FileNotFoundError:
+            logger.error(f"Config file {config_file_name} not found.")
+            raise FileNotFoundError(f"Model config file {config_file_name} not found.")
+        
+    else:
+        # Read the HF_MODEL name and from configs file read the filename with its name
+        config_file_name = f"configs/{HF_MODEL}.config"
+        logger.info(f"Reading config file: {config_file_name}")
+        try:
+            # If found then copy that content of file to .config file
+            with open(config_file_name, 'r') as source_file, open('.config', 'w') as dest_file:
+                content = source_file.read()
+                logger.info(f"Writing content from {config_file_name}: {content[:50]}")
+                dest_file.write(content)
+                
+                # Get all values from config file
+                logger.info("Reading values from .config file")
+                config_values = helper_utils.read_config_file(config_file_name)
+                logger.info(f"Read values from .config file: {config_values}")
+                
+                # Store all values to variables
+                logger.info("Storing values from .config file to variables")
+                for key, value in config_values.items():
+                    globals()[key] = value
+                    
+                # Extract the model name from the HF_MODEL string, Set default to Code-LLama model.
+                HF_MODEL = str(config_values.get('HF_MODEL',code_llama_model))       
+                hf_model_name = HF_MODEL.strip().split("/")[-1]
+                logger.info(f"Model set to {HF_MODEL}")
+                    
+            logger.info(f"Successfully read config file: {config_file_name}")
+        except FileNotFoundError:
+            # If not found then give error file not found
+            logger.error(f"Config file {config_file_name} not found.")
+            raise FileNotFoundError(f"Model config file {config_file_name} not found.")
+    
+    logger.info(f"Using model {hf_model_name}")
+    client = InferenceClient(model=HF_MODEL,token=False)
     
     # Update the mode based on the string value of args.mode
     CODE_MODE = True if args.mode == 'code' else False
@@ -109,7 +158,7 @@ def interpreter_main(args):
     
     # Display the OS and language selected
     mode = 'Script' if SCRIPT_MODE else 'Command' if COMMAND_MODE else 'Code'
-    display_code(f"OS: '{os_name}', Language: '{INTERPRETER_LANGUAGE}', Mode: '{mode}' Model: {HF_MODEL}")
+    display_code(f"OS: '{os_name}', Language: '{INTERPRETER_LANGUAGE}', Mode: '{mode}' Model: {hf_model_name}")
     command_mode = mode
     
    # Call this function before your main loop
@@ -214,7 +263,7 @@ def interpreter_main(args):
                             
                     except Exception as exception:
                         raise exception
-            helper_utils.save_history_json(task, command_mode, os_name, INTERPRETER_LANGUAGE, prompt, extracted_code)
+            helper_utils.save_history_json(task, command_mode, os_name, INTERPRETER_LANGUAGE, prompt, extracted_code,hf_model_name)
             
         except Exception as exception:
             # print the traceback
@@ -229,7 +278,8 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description='Code - Interpreter')
         parser.add_argument('--exec', '-e', action='store_true', help='Execute the code')
         parser.add_argument('--save_code', '-s', action='store_true', help='Save the generated code')
-        parser.add_argument('--mode', '-m', choices=['code', 'script', 'command'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands)')
+        parser.add_argument('--mode', '-md', choices=['code', 'script', 'command'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands)')
+        parser.add_argument('--model', '-m', type=str, default='code-llama', help='Set the model for code generation. (Defaults to code-llama)')
         parser.add_argument('--version', '-v', action='version', version='%(prog)s 1.0')
         parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
         parser.add_argument('--display_code', '-dc', action='store_true', help='Display the code in output')

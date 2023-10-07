@@ -28,13 +28,14 @@ class HelperUtils:
             self.logger.error(f"Error in checking OS and version: {str(exception)}")
             raise Exception(f"Error in checking OS and version: {str(exception)}")
 
-    def save_history_json(self, task, mode, os_name, language, prompt, extracted_code, filename="history/history.json"):
+    def save_history_json(self, task, mode, os_name, language, prompt, extracted_code,model_name, filename="history/history.json"):
         history_entry = {
             "Assistant": {
                 "Task": task,
                 "Mode": mode,
                 "OS": os_name,
-                "Language": language
+                "Language": language,
+                "Model": model_name
             },
             "User": prompt,
             "System": extracted_code
