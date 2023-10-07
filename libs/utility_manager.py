@@ -4,7 +4,7 @@ import readline
 from libs.logger import initialize_logger
 
 
-class HelperUtils:
+class UtilityManager:
     def __init__(self):
         self.logger = initialize_logger("logs/interpreter.log")
 
