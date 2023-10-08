@@ -70,7 +70,11 @@ class Interpreter:
         self.code_llama_model = 'codellama/CodeLlama-34b-Instruct-hf'
         self.initialize_inference_client()
         self.initialize_mode()
-        self.utility_manager.initialize_readline_history()
+        
+        try: # Make this as optional step to have readline history.
+            self.utility_manager.initialize_readline_history()
+        except:
+            print(f"Exception on initializing readline history")
 
     def initialize_inference_client(self):
         load_dotenv()
