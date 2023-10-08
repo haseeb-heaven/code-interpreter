@@ -1,2 +1,7 @@
-huggingface_hub
-python-dotenv
+beautifulsoup4==4.12.2
+huggingface_hub==0.17.3
+Pygments==2.16.1
+pyreadline==2.1
+python-dotenv==1.0.0
+Requests==2.31.0
+rich==13.6.0

@@ -1,6 +1,10 @@
 import json
 import os
-import readline
+import os
+if os.name == 'posix':
+    import readline
+else:
+    import pyreadline as readline
 from libs.logger import initialize_logger
 
 
