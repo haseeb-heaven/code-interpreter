@@ -1,6 +1,10 @@
-# Open-Code-Interpreter 🚀
-
 ![Interpreter](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/movie.gif?raw=true)
+
+### **Hosting and Spaces:**
+[![Plugin](https://img.shields.io/badge/Google-Colab-blue)](https://colab.research.google.com/drive/1lzhLsGQicM5Dr4ixLDYNwzTT2d_YJgCg?usp=sharing)
+[![Plugin](https://img.shields.io/badge/Replit-Replit-blue)](https://replit.com/@HaseebMir/open-code-interpreter)
+
+<a href="https://www.buymeacoffee.com/haseebheaven"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=haseebheaven&button_colour=40DCA5&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
 
 **Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like **Code-llama**, **Mistral 7b**, **Wizard Coder**, **GPT 3**, **PALM 2** and many more to transform your instructions into executable code.
 
