@@ -1,6 +1,7 @@
 import json
 import os
 import os
+import traceback
 if os.name == 'posix':
     import readline
 else:
@@ -10,6 +11,13 @@ from libs.logger import initialize_logger
 
 class UtilityManager:
     def __init__(self):
+        try:
+            if not os.path.exists('logs'):
+                os.makedirs('logs')
+            if not os.path.isfile('logs/interpreter.log'):
+                open('logs/interpreter.log', 'w').close()
+        except:
+            traceback.print_exc()
         self.logger = initialize_logger("logs/interpreter.log")
 
     def get_os_platform(self):
