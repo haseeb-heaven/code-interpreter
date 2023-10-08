@@ -271,7 +271,12 @@ class Interpreter:
                     elif code_error:
                         self.logger.info(f"Python code executed with error.")
                         display_markdown_message(f"Error: {code_error}")
-                
+                        
+                        # install Package on error.
+                        package_name = self.package_installer.extract_package_name(code_error,self.INTERPRETER_LANGUAGE)
+                        if package_name:
+                            self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
+                            self.package_installer.install_package(package_name,self.INTERPRETER_LANGUAGE)
 
                     try:
                         # Check if graph.png exists and open it.

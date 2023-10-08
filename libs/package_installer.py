@@ -38,7 +38,7 @@ class PackageInstaller:
                 self.logger.info(f"Package {package_name} is already installed")
         elif language == "javascript":
             try:
-                if not self.check_package_exists_npm(package_name):
+                if not self._check_package_exists_npm(package_name):
                     exception = ValueError(f"Package {package_name} does not exist")
                     self.logger.error(exception)
                     raise exception
@@ -53,6 +53,16 @@ class PackageInstaller:
             except subprocess.CalledProcessError as exception:
                 self.logger.error(f"Failed to install package with npm: {package_name}")
                 raise exception
+        else:
+            exception = ValueError("Invalid language selected.")
+            self.logger.error(exception)
+            raise exception
+        
+    def extract_package_name(self,error,language):
+        if language == "python":
+            return self._extract_python_package_name(error)
+        elif language == "javascript":
+            return self._extract_javascript_package_name(error)
         else:
             exception = ValueError("Invalid language selected.")
             self.logger.error(exception)
@@ -118,7 +128,7 @@ class PackageInstaller:
             raise exception
         
     
-    def extract_python_package_name(self, error_message):
+    def _extract_python_package_name(self, error_message):
         # Regular expression pattern to match the error message
         pattern = r"ModuleNotFoundError: No module named '(\w+)'|ModuleNotFoundError: '(\w+)'"
         match = re.search(pattern, error_message)
@@ -132,7 +142,7 @@ class PackageInstaller:
             self.logger.error(exception)
             raise exception
     
-    def extract_javascript_package_name(self,error_message):
+    def _extract_javascript_package_name(self,error_message):
         try:
             lines = error_message.split('\n')
             for line in lines:
@@ -169,7 +179,7 @@ class PackageInstaller:
         except requests.exceptions.RequestException as exception:
             raise exception
         
-    def check_package_exists_npm(self, package_name):
+    def _check_package_exists_npm(self, package_name):
         try:
             response = requests.get(f"https://www.npmjs.com/package/{package_name}")
             if response.status_code == 200:
