@@ -141,7 +141,7 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 
 ## 📌 **Versioning**
 
-**v1.0.0** - This marks our initial release.
+**v1.0.0** - Initial release.</br>
 **v1.0.1** - Added Graphs and Charts support.
 
 ## 📜 **License**
