@@ -44,8 +44,9 @@ To get started with Open-Code-Interpreter, follow these steps:</br>
 1. Clone the repository:</br>
 git clone https://github.com/haseeb-heaven/open-code-interpreter.git</br>
 cd open-code-interpreter</br>
-2. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
-3. Save the token in a `.env` file as:</br>
+2. Install the required packages `pip install -r requirements.txt`</br>
+3. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
+4. Save the token in a `.env` file as:</br>
 `HUGGINGFACEHUB_API_TOKEN` = "Your Access Token"
 
 ## 🛠️ **Usage**
