@@ -2,21 +2,21 @@
 
 ![Interpreter](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/movie.gif?raw=true)
 
-**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
+**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This powerful tool is not just free, but it also leverages the power of HuggingFace models like **Code-llama**, **Mistral 7b**, **Wizard Coder**, **GPT 3**, **PALM 2** and many more to transform your instructions into executable code.
 
-**Open-Code-Interpreter is more than just a code translator.** It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
+**Open-Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
 
-After processing your instructions, **Open-Code-Interpreter executes the generated code and provides you with the result.** This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code.
+After processing your instructions, **Open-Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code.
 
-Designed with versatility in mind, **Open-Code-Interpreter works seamlessly on every operating system,** including Windows, MacOS, and Linux. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
+Designed with versatility in mind, **Open-Code-Interpreter** works seamlessly on every operating system, including _Windows, MacOS, and Linux_. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
 
 **Experience the future of code interpretation with Open-Code-Interpreter today! 🚀**
 
-**Unique Application:**
+## **Unique Interpreter:**
 
-The difference between Open-Code-Interpreter and other code interpreters is that **Open-Code-Interpreter will always be free 🆓 and does not require any model downloads or go to tedious process or methods to run.** 🏃‍♂️
+The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model downloads or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users. 🏃‍♂️
 
-**Future Plans:**
+## **Future Plans:**
 - 🎯 We plan to provide **GPT 3.5** models for free.
 - 🌐 We plan to provide **Vertex AI (PALM 2)** models for free.
 - 🔗 We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)
@@ -47,18 +47,28 @@ cd open-code-interpreter</br>
 3. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
 4. Save the token in a `.env` file as:</br>
 `HUGGINGFACEHUB_API_TOKEN` = "Your Access Token"
+5. Run the interpreter ```python interpreter.py -m 'code-llama' -md 'code' -dc```
 
 ## 🌟 **Features**
 
 - 🚀 Code Execution: Open-Code-Interpreter can execute the code generated from your instructions.
+
 - 💾 Code Saving: It has the ability to save the generated code for future use or reference.
+
 - 📜 Command History: It has the ability to save all the commands as history.
+
 - 🔄 Mode Selection: It allows you to select the mode of operation. You can choose from `code` for generating code, `script` for generating shell scripts, or `command` for generating single line commands.
+
 - 🧠 Model Selection: You can set the model for code generation. By default, it uses the `code-llama` model.
+
 - 🌐 Language Selection: You can set the interpreter language to Python or `JavaScript`. By default, it uses `Python`.
+
 - 👀 Code Display: It can display the generated code in the output, allowing you to review the code before execution.
+
 - 💻 Cross-Platform: Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
+
 - 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
+
 - 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
 
 ## 🛠️ **Usage**
