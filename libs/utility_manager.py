@@ -1,13 +1,7 @@
 import json
 import os
-import os
-import traceback
-if os.name == 'posix':
-    import readline
-else:
-    import pyreadline as readline
 from libs.logger import initialize_logger
-
+import traceback
 
 class UtilityManager:
     def __init__(self):
@@ -70,6 +64,14 @@ class UtilityManager:
 
     def initialize_readline_history(self):
         try:
+            # Checking the OS type
+            # If it's posix (Unix-like), import readline for handling lines from input
+            # If it's not posix, import pyreadline as readline
+            if os.name == 'posix':
+                import readline
+            else:
+                import pyreadline as readline
+                
             histfile = os.path.join(os.path.expanduser("~"), ".python_history")
             readline.read_history_file(histfile)
             
