@@ -12,6 +12,18 @@ Designed with versatility in mind, **Open-Code-Interpreter works seamlessly on e
 
 **Experience the future of code interpretation with Open-Code-Interpreter today! 🚀**
 
+**Unique Application:**
+
+The difference between Open-Code-Interpreter and other code interpreters is that **Open-Code-Interpreter will always be free 🆓 and does not require any model downloads or go to tedious process or methods to run.** 🏃‍♂️
+
+**Future Plans:**
+- 🎯 We plan to provide **GPT 3.5** models for free.
+- 🌐 We plan to provide **Vertex AI (PALM 2)** models for free.
+- 🔗 We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)
+- 🤖 More **Hugging Face** models with free-tier.
+- 💻 Support for more **Operating Systems**.
+
+
 ## **Table of Contents**
 - [Features](#🌟-features)
 - [Installation](#📥-installation)
@@ -23,6 +35,18 @@ Designed with versatility in mind, **Open-Code-Interpreter works seamlessly on e
 - [Versioning](#📌-versioning)
 - [License](#📜-license)
 - [Acknowledgments](#🙏-acknowledgments)
+
+## 📥 **Installation**
+
+To get started with Open-Code-Interpreter, follow these steps:</br>
+
+1. Clone the repository:</br>
+git clone https://github.com/haseeb-heaven/open-code-interpreter.git</br>
+cd open-code-interpreter</br>
+2. Install the required packages `pip install -r requirements.txt`</br>
+3. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
+4. Save the token in a `.env` file as:</br>
+`HUGGINGFACEHUB_API_TOKEN` = "Your Access Token"
 
 ## 🌟 **Features**
 
@@ -36,18 +60,6 @@ Designed with versatility in mind, **Open-Code-Interpreter works seamlessly on e
 - 💻 Cross-Platform: Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
 - 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
 - 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
-
-## 📥 **Installation**
-
-To get started with Open-Code-Interpreter, follow these steps:</br>
-
-1. Clone the repository:</br>
-git clone https://github.com/haseeb-heaven/open-code-interpreter.git</br>
-cd open-code-interpreter</br>
-2. Install the required packages `pip install -r requirements.txt`</br>
-3. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
-4. Save the token in a `.env` file as:</br>
-`HUGGINGFACEHUB_API_TOKEN` = "Your Access Token"
 
 ## 🛠️ **Usage**
 
