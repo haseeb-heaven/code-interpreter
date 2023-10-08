@@ -9,6 +9,7 @@ It includes features like:
 """
 
 import logging
+import os
 import subprocess
 import traceback
 
@@ -34,12 +35,17 @@ class CodeInterpreter:
             print(f"Error occurred while creating logger: {exception}")
             raise Exception(f"Error occurred while creating logger: {exception}")
 
-    def save_code(self, filename='code_generated.py', code=None):
+    def save_code(self, filename='output/code_generated.py', code=None):
         """
         Saves the provided code to a file.
         The default filename is 'code_generated.py'.
         """
         try:
+            # Check if the directory exists, if not create it
+            directory = os.path.dirname(filename)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+
             with open(filename, 'w') as file:
                 file.write(code)
                 self.logger.info(f"Code saved successfully to {filename}.")
