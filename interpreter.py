@@ -1,4 +1,7 @@
 import argparse
+import os
+import platform
+import subprocess
 import sys
 import time
 import traceback
@@ -9,6 +12,7 @@ from libs.logger import initialize_logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_installer import PackageInstaller
 from libs.utility_manager import UtilityManager
+from dotenv import load_dotenv
 
 class Interpreter:
     logger = None
@@ -34,6 +38,29 @@ class Interpreter:
         self.config_values = None
         self.initialize()
 
+    def _open_resource_file(self,filename):
+        try:
+            if os.path.isfile(filename):
+                if platform.system() == "Windows":
+                    subprocess.call(['start', filename], shell=True)
+                elif platform.system() == "Darwin":
+                    subprocess.call(['open', filename])
+                elif platform.system() == "Linux":
+                    subprocess.call(['xdg-open', filename])
+                self.logger.info(f"{filename} exists and opened successfully")
+        except Exception as exception:
+            display_markdown_message(f"Error in opening files: {str(exception)}")
+
+    def _clean_responses(self):
+        files_to_remove = ['graph.png', 'chart.png', 'table.md']
+        for file in files_to_remove:
+            try:
+                if os.path.isfile(file):
+                    os.remove(file)
+                    self.logger.info(f"{file} removed successfully")
+            except Exception as e:
+                print(f"Error in removing {file}: {str(e)}")
+                
     def initialize(self):
         self.INTERPRETER_LANGUAGE = self.args.lang if self.args.lang else 'python'
         self.SAVE_CODE = self.args.save_code
@@ -46,6 +73,7 @@ class Interpreter:
         self.utility_manager.initialize_readline_history()
 
     def initialize_inference_client(self):
+        load_dotenv()
         hf_model_name = ""
         self.logger.info("Initializing InferenceClient")
         if self.HF_MODEL is None or self.HF_MODEL == "":
@@ -60,7 +88,12 @@ class Interpreter:
         hf_model_name = self.HF_MODEL.strip().split("/")[-1]
         
         self.logger.info(f"Using model {hf_model_name}")
-        self.client = InferenceClient(model=self.HF_MODEL, token=False)
+        # Read the token from the .env file
+        hf_token = os.getenv('HUGGINGFACEHUB_API_TOKEN')
+        if not hf_token:
+            raise Exception("HuggingFace token not found in .env file.")
+        self.logger.info(f"Using HuggingFace token: {hf_token}")
+        self.client = InferenceClient(model=self.HF_MODEL, token=hf_token)
 
     def initialize_mode(self):
         self.CODE_MODE = True if self.args.mode == 'code' else False
@@ -68,7 +101,7 @@ class Interpreter:
         self.COMMAND_MODE = True if self.args.mode == 'command' else False
         if not self.SCRIPT_MODE and not self.COMMAND_MODE:
             self.CODE_MODE = True
-
+    
     def get_prompt(self,message: str, chat_history: list[tuple[str, str]],system_prompt: str) -> str:
         texts = [f'<s>[INST] <<SYS>>\n{system_prompt}\n<</SYS>>\n\n']
         do_strip = False
@@ -156,7 +189,6 @@ class Interpreter:
         print("Code Interpreter - v 1.0")
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
-        os_version = os_platform[1]
         command_mode = 'Code'
         mode = 'Script' if self.SCRIPT_MODE else 'Command' if self.COMMAND_MODE else 'Code'
         
@@ -178,6 +210,30 @@ class Interpreter:
                     break
                 prompt = self.handle_mode(task, os_name)
                 
+                # Clean the responses
+                self._clean_responses()
+                
+                # If graph were requested.
+                if 'graph' in prompt.lower():
+                    if self.INTERPRETER_LANGUAGE == 'python':
+                        prompt += "\n" + "using Python use Matplotlib save the graph in file called 'graph.png'"
+                    elif self.INTERPRETER_LANGUAGE == 'javascript':
+                        prompt += "\n" + "using JavaScript use Chart.js save the graph in file called 'graph.png'"
+
+                # if Chart were requested
+                if 'chart' in prompt.lower() or 'plot' in prompt.lower():
+                    if self.INTERPRETER_LANGUAGE == 'python':
+                        prompt += "\n" + "using Python use Plotly save the chart in file called 'chart.png'"
+                    elif self.INTERPRETER_LANGUAGE == 'javascript':
+                        prompt += "\n" + "using JavaScript use Chart.js save the chart in file called 'chart.png'"
+
+                # if Table were requested
+                if 'table' in prompt.lower():
+                    if self.INTERPRETER_LANGUAGE == 'python':
+                        prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
+                    elif self.INTERPRETER_LANGUAGE == 'javascript':
+                        prompt += "\n" + "using JavaScript use DataTables save the table in file called 'table.html'"
+                    
                 self.logger.debug(f"Prompt: {prompt}")
                 generated_output = self.generate_text(prompt, self.history, config_values=self.config_values)
                 
@@ -185,6 +241,7 @@ class Interpreter:
                 extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line)
                 
                 self.logger.info(f"Extracted code: {extracted_code[:50]}")
+
                 
                 if self.DISPLAY_CODE:
                     display_code(extracted_code)
@@ -210,6 +267,19 @@ class Interpreter:
                     elif code_error:
                         self.logger.info(f"Python code executed with error.")
                         display_markdown_message(f"Error: {code_error}")
+                
+
+                    try:
+                        # Check if graph.png exists and open it.
+                        self._open_resource_file('graph.png')
+                        
+                        # Check if chart.png exists and open it.
+                        self._open_resource_file('chart.png')
+                        
+                        # Check if table.md exists and open it.
+                        self._open_resource_file('table.md')
+                    except Exception as exception:
+                        display_markdown_message(f"Error in opening resource files: {str(exception)}")
                 
                 self.utility_manager.save_history_json(task, command_mode, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.HF_MODEL)
                 

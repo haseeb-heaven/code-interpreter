@@ -5,3 +5,5 @@
 .DS_Store
 *.log
 *.json
+history/history.json
+history/*
