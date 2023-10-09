@@ -46,7 +46,7 @@ cd open-code-interpreter</br>
 2. Install the required packages `pip install -r requirements.txt`</br>
 3. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
 4. Save the token in a `.env` file as:</br>
-`HUGGINGFACEHUB_API_TOKEN` = "Your Access Token"
+`HUGGINGFACE_API_KEY` = "Your Access Token"
 5. Run the interpreter ```python interpreter.py -m 'code-llama' -md 'code' -dc```
 
 ## 🌟 **Features**
