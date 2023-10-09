@@ -8,73 +8,15 @@ It includes features like:
 - Checking for compilers
 """
 
-import logging
 import os
 import subprocess
 import traceback
+from libs.logger import initialize_logger
 
 class CodeInterpreter:
 
     def __init__(self):
-        self.logger = self.create_logger()
-
-    def create_logger(self):
-        """
-        Creates a logger that logs.
-        """
-        try:
-            logger = logging.getLogger(__name__)
-            logger.setLevel(logging.INFO)
-            handler = logging.FileHandler('logs/code-interpreter.log')
-            handler.setLevel(logging.INFO)
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-            return logger
-        except Exception as exception:
-            print(f"Error occurred while creating logger: {exception}")
-            raise Exception(f"Error occurred while creating logger: {exception}")
-
-    def save_code(self, filename='output/code_generated.py', code=None):
-        """
-        Saves the provided code to a file.
-        The default filename is 'code_generated.py'.
-        """
-        try:
-            # Check if the directory exists, if not create it
-            directory = os.path.dirname(filename)
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-
-            with open(filename, 'w') as file:
-                file.write(code)
-                self.logger.info(f"Code saved successfully to {filename}.")
-        except Exception as exception:
-            self.logger.error(f"Error occurred while saving code to file: {exception}")
-            raise Exception(f"Error occurred while saving code to file: {exception}")
-
-    def extract_code(self, code:str, start_sep='```', end_sep='```',skip_first_line=False):
-        """
-        Extracts the code from the provided string.
-        If the string contains the start and end separators, it extracts the code between them.
-        Otherwise, it returns the original string.
-        """
-        try:
-            if start_sep in code and end_sep in code:
-                start = code.find(start_sep) + len(start_sep + '\n')
-                end = code.find(end_sep, start)
-                if skip_first_line:
-                    # Skip the first line after the start separator
-                    start = code.find('\n', start) + 1
-                extracted_code = code[start:end]
-                self.logger.info("Code extracted successfully.")
-                return extracted_code
-            else:
-                self.logger.info("No special characters found in the code. Returning the original code.")
-                return code
-        except Exception as exception:
-            self.logger.error(f"Error occurred while extracting code: {exception}")
-            raise Exception(f"Error occurred while extracting code: {exception}")
+        self.logger = initialize_logger("logs/code-interpreter.log")
     
     def _execute_script(self, script: str, shell: str):
         stdout = stderr = None
@@ -121,7 +63,48 @@ class CodeInterpreter:
         except Exception as exception:
             self.logger.error(f"Error occurred while checking compilers: {exception}")
             raise Exception(f"Error occurred while checking compilers: {exception}")
-    
+  
+    def save_code(self, filename='output/code_generated.py', code=None):
+        """
+        Saves the provided code to a file.
+        The default filename is 'code_generated.py'.
+        """
+        try:
+            # Check if the directory exists, if not create it
+            directory = os.path.dirname(filename)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+
+            with open(filename, 'w') as file:
+                file.write(code)
+                self.logger.info(f"Code saved successfully to {filename}.")
+        except Exception as exception:
+            self.logger.error(f"Error occurred while saving code to file: {exception}")
+            raise Exception(f"Error occurred while saving code to file: {exception}")
+
+    def extract_code(self, code:str, start_sep='```', end_sep='```',skip_first_line=False):
+        """
+        Extracts the code from the provided string.
+        If the string contains the start and end separators, it extracts the code between them.
+        Otherwise, it returns the original string.
+        """
+        try:
+            if start_sep in code and end_sep in code:
+                start = code.find(start_sep) + len(start_sep + '\n')
+                end = code.find(end_sep, start)
+                if skip_first_line:
+                    # Skip the first line after the start separator
+                    start = code.find('\n', start) + 1
+                extracted_code = code[start:end]
+                self.logger.info("Code extracted successfully.")
+                return extracted_code
+            else:
+                self.logger.info("No special characters found in the code. Returning the original code.")
+                return code
+        except Exception as exception:
+            self.logger.error(f"Error occurred while extracting code: {exception}")
+            raise Exception(f"Error occurred while extracting code: {exception}")
+          
     def execute_code(self, code, language):
         """
         This method is used to execute the provided code in the specified language.

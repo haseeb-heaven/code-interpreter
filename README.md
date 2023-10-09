@@ -75,6 +75,10 @@ cd open-code-interpreter</br>
 
 To use Open-Code-Interpreter, use the following command options:
 
+- Code interpreter with least options.
+```python
+python interpreter.py -dc
+```
 - Code Llama with code mode selected.
 ```python
 python interpreter.py -m 'code-llama' -md 'code'
@@ -117,7 +121,7 @@ Example of Mistral with code mode:
 
 
 ## ⚙️ **Settings**
-You can customize the settings of the current model from the `.config` file. It contains all the necessary parameters such as `temperature`, `max_new_tokens`, and more.
+You can customize the settings of the current model from the `.config` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
 
 If you want to add a new model from Hugging Face, follow these steps:
 
@@ -163,8 +167,9 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 
 ## 📌 **Versioning**
 
-**v1.0.0** - Initial release.</br>
-**v1.0.1** - Added Graphs and Charts support.
+**v1.0** - Initial release.</br>
+**v1.1** - Added Graphs and Charts support.
+**v1.2** - Added LiteLLM Support.
 
 ## 📜 **License**
 
