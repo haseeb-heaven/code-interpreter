@@ -170,7 +170,9 @@ class Interpreter:
         messages = self.get_prompt(message, chat_history)
         
          # Call the completion function
-        if 'huggingface/' not in self.INTERPRRETER_MODEL:
+         
+        
+        if 'huggingface/' not in self.INTERPRRETER_MODEL and 'gpt' not in self.INTERPRRETER_MODEL:
             self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
 
         # Check if the model is gpt-3.5-turbo
