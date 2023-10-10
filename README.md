@@ -17,7 +17,7 @@ Designed with versatility in mind, **Open-Code-Interpreter** works seamlessly on
 The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model downloads or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users. 🏃‍♂️
 
 ## **Future Plans:**
-- 🎯 We plan to provide **GPT 3.5** models for free.
+- ~~🎯 We plan to provide **GPT 3.5** models for free.~~ 🎯 We have added support for **GPT 3.5** models.
 - 🌐 We plan to provide **Vertex AI (PALM 2)** models for free.
 - 🔗 We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)
 - 🤖 More **Hugging Face** models with free-tier.
@@ -41,13 +41,31 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 To get started with Open-Code-Interpreter, follow these steps:</br>
 
 1. Clone the repository:</br>
-git clone https://github.com/haseeb-heaven/open-code-interpreter.git</br>
-cd open-code-interpreter</br>
-2. Install the required packages `pip install -r requirements.txt`</br>
-3. You will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
-4. Save the token in a `.env` file as:</br>
-`HUGGINGFACE_API_KEY` = "Your Access Token"
-5. Run the interpreter ```python interpreter.py -m 'code-llama' -md 'code' -dc```
+```git
+git clone https://github.com/haseeb-heaven/open-code-interpreter.git
+cd open-code-interpreter
+```
+2. Install the required packages:</br>
+```bash
+pip install -r requirements.txt
+```
+3. **(ONLY FOR HUGGING FACE)**:</br>
+If you plan to use HuggingFace models, you will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
+
+4. **(ONLY FOR HUGGING FACE)**:</br>
+If you obtained a HuggingFace token, save the token in a `.env` file as:</br>
+```bash
+echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
+```
+5. **(ONLY FOR HUGGING FACE)**:</br>
+Run the interpreter. If you are using HuggingFace models, use the following command:</br>
+```bash
+python interpreter.py -m 'code-llama' -md 'code' -dc
+```
+6. If you are using GPT 3.5 or PALM models directly,just use the following command:</br>
+```bash
+python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
+```
 
 ## 🌟 **Features**
 
@@ -78,6 +96,10 @@ To use Open-Code-Interpreter, use the following command options:
 - Code interpreter with least options.
 ```python
 python interpreter.py -dc
+```
+- Code interpreter with GPT 3.5.
+```python
+python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
 ```
 - Code Llama with code mode selected.
 ```python
@@ -168,12 +190,16 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 ## 📌 **Versioning**
 
 **v1.0** - Initial release.</br>
-**v1.1** - Added Graphs and Charts support.
-**v1.2** - Added LiteLLM Support.
+**v1.1** - Added Graphs and Charts support.</br>
+**v1.2** - Added LiteLLM Support.</br>
+**v1.3** - Added Gpt 3.5 Support.</br>
+
 
 ## 📜 **License**
 
 This project is licensed under the **MIT License**. For more details, please refer to the LICENSE file.
+Although this project is licensed under the MIT License, the GPT 3.5 model is provided by Heaven-GPT and is subject to its own permissive license. You can read more about it [here](https://heaven-gpt.haseebmir.repl.co/privacy). Please note that this license is inclusive to this interpreter only.
+
 
 ## 🙏 **Acknowledgments**
 

@@ -115,10 +115,24 @@ class Interpreter:
         
         self.logger.info(f"Using model {hf_model_name}")
         
+        if "gpt" in self.INTERPRRETER_MODEL:
+            # Ask for user confirmation before using Heaven-GPT
+            print("GPT 3.5 is provided by Heaven-GPT. Make sure you understand the terms and agreements before using them.")
+            print("You can read the terms and agreements here: https://heaven-gpt.haseebmir.repl.co/privacy")
+            confirmation = input("Do you agree to the terms and conditions? (Y/N): ")
+            if confirmation.lower() != 'y':
+                self.logger.info("User does not agree to the terms and conditions. Exiting...")
+                exit(1)
+            else:
+                self.logger.info("User agrees to the terms and conditions.")
+                return # Skip reading from .env file
+            
         # Read the token from the .env file
         hf_token = os.getenv('HUGGINGFACE_API_KEY')
         if not hf_token:
             raise Exception("HuggingFace token not found in .env file.")
+        elif not hf_token.startswith('hf_'):
+            raise Exception("HuggingFace token should start with 'hf_'. Please check your .env file.")
 
     def initialize_mode(self):
         self.CODE_MODE = True if self.args.mode == 'code' else False
@@ -158,8 +172,21 @@ class Interpreter:
          # Call the completion function
         if 'huggingface/' not in self.INTERPRRETER_MODEL:
             self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
-             
-        output = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+
+        # Check if the model is gpt-3.5-turbo
+        if 'gpt-3.5-turbo' in self.INTERPRRETER_MODEL:
+            # Set environment variables
+            os.environ["OPENAI_API_KEY"] = "Ignore the Key." 
+            # Set the API base URL
+            api_base = "https://heaven-gpt.haseebmir.repl.co" # This is private GPT by Heaven make sure you understand the terms and conditions.
+            # Set the custom language model provider
+            custom_llm_provider = "openai"
+            # Call the chat completions - OpenAI,PALM-2
+            output = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=0.1,max_tokens=2048,api_base=api_base,custom_llm_provider=custom_llm_provider)
+        else:
+            # Call the chat completions - Hugging Face Models.
+            output = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+        
         self.logger.info(f"Generated text {output}")
         generated_text = self._extract_content(output)
         self.logger.info(f"Generated content {generated_text}")
