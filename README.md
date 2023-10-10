@@ -21,7 +21,7 @@ Designed with versatility in mind, **Open-Code-Interpreter** works seamlessly on
 The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model downloads or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users and works on all major OS **_Windows,Linux,MacOS_**
 
 ## **Future Plans:**
-- ~~🎯 We plan to provide **GPT 3.5** models for free.~~ 🎯 We have added support for **GPT 3.5** models.
+- ~~🎯 We plan to provide **GPT 3.5** models for free.~~ 🎯 We have added support for **GPT 3.5** models using **Heaven-GPT**.
 - 🌐 We plan to provide **Vertex AI (PALM 2)** models for free.
 - 🔗 ~~We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)~~. Added Support for [**LiteLLM**](https://litellm.ai/)
 - 🤖 More **Hugging Face** models with free-tier.
@@ -135,7 +135,7 @@ python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 ```
 
 ## 📖 **Examples**
-Example of GPT 3.5 Turbo with code mode:
+Example of GPT 3.5 Turbo based on **Heaven-GPT**.
 ![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/chat-gpt-command.png?raw=true "GPT 3.5 Turbo Code")</br>
 
 Example of Code llama with code mode:
@@ -204,7 +204,7 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 ## 📜 **License**
 
 This project is licensed under the **MIT License**. For more details, please refer to the LICENSE file.
-Although this project is licensed under the MIT License, the GPT 3.5 model is provided by Heaven-GPT and is subject to its own permissive license. You can read more about it [here](https://heaven-gpt.haseebmir.repl.co/privacy). Please note that this license is inclusive to this interpreter only.
+Although this project is licensed under the MIT License, the **GPT 3.5 model** is provided by **Heaven-GPT** and is subject to its own permissive license. You can read more about it [here](https://heaven-gpt.haseebmir.repl.co/privacy). Please note that **Heaven-GPT** is to used only with this **code-interpreter**.
 
 
 ## 🙏 **Acknowledgments**
