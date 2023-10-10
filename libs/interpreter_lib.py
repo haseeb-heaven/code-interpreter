@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.2"
+    interpreter_version = "1.3"
     
     def __init__(self, args):
         self.args = args
@@ -115,10 +115,18 @@ class Interpreter:
         
         self.logger.info(f"Using model {hf_model_name}")
         
+        import webbrowser
+
         if "gpt" in self.INTERPRRETER_MODEL:
-            # Ask for user confirmation before using Heaven-GPT
-            print("GPT 3.5 is provided by Heaven-GPT. Make sure you understand the terms and agreements before using them.")
-            print("You can read the terms and agreements here: https://heaven-gpt.haseebmir.repl.co/privacy")
+            # Inform user about Heaven-GPT
+            display_markdown_message("**GPT 3.5** is provided by **Heaven-GPT**, A Private **GPT** made exclusive for this code-interpreter.")
+            # Ask if user wants to read the terms and agreements
+            confirmation = input("Do you want to read the terms and agreements before using Heaven-GPT? (Y/N): ")
+            if confirmation.lower() == 'y':
+                url = "https://heaven-gpt.haseebmir.repl.co/privacy"
+                display_markdown_message(f"You can read the terms and agreements here: {url}")
+                webbrowser.open(url)
+            # Ask for user's agreement to the terms and conditions
             confirmation = input("Do you agree to the terms and conditions? (Y/N): ")
             if confirmation.lower() != 'y':
                 self.logger.info("User does not agree to the terms and conditions. Exiting...")
@@ -245,7 +253,7 @@ class Interpreter:
         command_mode = 'Code'
         mode = 'Script' if self.SCRIPT_MODE else 'Command' if self.COMMAND_MODE else 'Code'
         
-        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{mode}' Model: {self.INTERPRRETER_MODEL}")
+        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{mode}' Model: '{self.INTERPRRETER_MODEL}'")
         
         command_mode = mode
         start_sep = str(self.config_values.get('start_sep', '```'))

@@ -18,7 +18,7 @@ Designed with versatility in mind, **Open-Code-Interpreter** works seamlessly on
 
 ## **Why this is Unique Interpreter?**
 
-The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model downloads or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users and works on all majos OS **_Windows,Linux,MacOS_**
+The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model downloads or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users and works on all major OS **_Windows,Linux,MacOS_**
 
 ## **Future Plans:**
 - ~~🎯 We plan to provide **GPT 3.5** models for free.~~ 🎯 We have added support for **GPT 3.5** models.
@@ -135,6 +135,8 @@ python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 ```
 
 ## 📖 **Examples**
+Example of GPT 3.5 Turbo with code mode:
+![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/chat-gpt-command.png?raw=true "GPT 3.5 Turbo Code")</br>
 
 Example of Code llama with code mode:
 ![code_llama_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-code.png?raw=true "Code Llama Code Mode")</br>
