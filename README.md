@@ -206,8 +206,16 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 ## 📜 **License**
 
 This project is licensed under the **MIT License**. For more details, please refer to the LICENSE file.
-Although this project is licensed under the MIT License, the **GPT 3.5 model** is provided by **Heaven-GPT** and is subject to its own permissive license. You can read more about it [here](https://heaven-gpt.haseebmir.repl.co/privacy). Please note that **Heaven-GPT** is to used only with this **code-interpreter**.
 
+Please note the following additional licensing details:
+
+- The **GPT 3.5 model** is provided by **Heaven-GPT** and is subject to its own permissive license. It is intended for use exclusively with this **code-interpreter**. More information can be found [here](https://heaven-gpt.haseebmir.repl.co/privacy).
+
+- The **GPT Models** are sourced from the [gpt4free](https://github.com/xtekky/gpt4free) repository, which does not come with a license. Please ensure you agree to their terms as outlined in their [legal notice](https://github.com/xtekky/gpt4free/blob/main/LEGAL_NOTICE.md).
+
+- The **PALM models** are officially supported by the **Google PALM 2 API** and come with their own license and support. Please ensure you understand and agree to their terms before using.
+
+- The **Hugging Face models** are provided by **Hugging Face Inc.** and are subject to their own license. Please ensure you understand and agree to their terms before using. More information can be found [here](https://huggingface.co/terms-of-service).
 
 ## 🙏 **Acknowledgments**
 
