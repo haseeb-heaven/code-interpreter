@@ -135,6 +135,8 @@ python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 ```
 
 ## 📖 **Examples**
+[![code_interpreter_demo](https://img.youtube.com/vi/GGLNBfbN0oY/0.jpg)](https://youtube.com/shorts/GGLNBfbN0oY)
+
 Example of GPT 3.5 Turbo based on **Heaven-GPT**.
 ![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/chat-gpt-command.png?raw=true "GPT 3.5 Turbo Code")</br>
 
