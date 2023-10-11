@@ -6,7 +6,7 @@
 
 <a href="https://www.buymeacoffee.com/haseebheaven"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=haseebheaven&button_colour=40DCA5&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
 
-**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, **GPT 3**, **PALM 2** and many more to transform your instructions into executable code for **free** and **safe** to use environments.
+**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments.
 
 **Open-Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
 

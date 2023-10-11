@@ -15,6 +15,7 @@ import os
 import platform
 import subprocess
 import time
+import webbrowser
 from libs.code_interpreter import CodeInterpreter
 from litellm import completion
 from libs.logger import initialize_logger
@@ -22,7 +23,7 @@ from libs.markdown_code import display_code, display_markdown_message
 from libs.package_installer import PackageInstaller
 from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
-
+        
 class Interpreter:
     logger = None
     client = None
@@ -76,7 +77,8 @@ class Interpreter:
         self.EXECUTE_CODE = self.args.exec
         self.DISPLAY_CODE = self.args.display_code
         self.INTERPRRETER_MODEL = self.args.model if self.args.model else None
-        
+        self.logger.info(f"Interpreter args model selected is '{self.args.model}")
+        self.logger.info(f"Interpreter model selected is '{self.INTERPRRETER_MODEL}")
         self.system_message = ""
         # Open file system_message.txt to a variable system_message
         try:
@@ -87,36 +89,37 @@ class Interpreter:
         except Exception as exception:
             self.logger.error(f"Error occurred while reading system_message.txt: {str(exception)}")
             raise
-            
+        
+        # Initialize client and mode.
         self.initialize_client()
         self.initialize_mode()
         
         try: # Make this as optional step to have readline history.
             self.utility_manager.initialize_readline_history()
         except:
-            print(f"Exception on initializing readline history")
+            self.logger.error(f"Exception on initializing readline history")
 
     def initialize_client(self):
         load_dotenv()
         hf_model_name = ""
         self.logger.info("Initializing Client")
         
+        self.logger.info(f"Interpreter model selected is '{self.INTERPRRETER_MODEL}")
         if self.INTERPRRETER_MODEL is None or self.INTERPRRETER_MODEL == "":
             self.logger.info("HF_MODEL is not provided, using default model.")
             self.INTERPRRETER_MODEL = self.INTERPRRETER_MODEL
             hf_model_name = self.INTERPRRETER_MODEL.strip().split("/")[-1]
-            config_file_name = f"configs/code-llama.config"
+            config_file_name = f"configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
         else:
             config_file_name = f"configs/{self.INTERPRRETER_MODEL}.config"
-            
+        
+        self.logger.info(f"Reading config file {config_file_name}")    
         self.config_values = self.utility_manager.read_config_file(config_file_name)
         self.INTERPRRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRRETER_MODEL))       
         hf_model_name = self.INTERPRRETER_MODEL.strip().split("/")[-1]
         
         self.logger.info(f"Using model {hf_model_name}")
         
-        import webbrowser
-
         if "gpt" in self.INTERPRRETER_MODEL:
             # Inform user about Heaven-GPT
             display_markdown_message("**GPT 3.5** is provided by **Heaven-GPT**, A Private **GPT** made exclusive for this code-interpreter.")
