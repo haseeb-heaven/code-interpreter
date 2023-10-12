@@ -79,18 +79,16 @@ echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 echo "PALM_API_KEY=Your API Key" > .env
 ```
 
-4. Run the interpreter:</br>
-### Running GPT 3.5.
+4. Run the interpreter with Python:</br>
+### Running with Python.
 ```bash
 python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
 ```
-### Running PALM-2.
+
+5. Run the interpreter directly:</br>
+### Running Interpreter without Python (Executable MacOs/Linux only).
 ```bash
-python interpreter.py -md 'code' -m 'palm-2' -dc 
-```
-### Running Code Llama.
-```bash
-python interpreter.py -md 'code' -m 'code-llama' -dc 
+./interpreter -md 'code' -m 'gpt-3.5-turbo' -dc 
 ```
 
 ## 🌟 **Features**
