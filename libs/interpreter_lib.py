@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.3"
+    interpreter_version = "1.4"
     
     def __init__(self, args):
         self.args = args
@@ -137,13 +137,18 @@ class Interpreter:
             else:
                 self.logger.info("User agrees to the terms and conditions.")
                 return # Skip reading from .env file
-            
-        # Read the token from the .env file
-        hf_token = os.getenv('HUGGINGFACE_API_KEY')
-        if not hf_token:
-            raise Exception("HuggingFace token not found in .env file.")
-        elif not hf_token.startswith('hf_'):
-            raise Exception("HuggingFace token should start with 'hf_'. Please check your .env file.")
+        
+        elif "palm-2" in self.INTERPRRETER_MODEL:
+            self.logger("User has agreed to terms and conditions of PALM-2")
+            return # Skip reading from .env file
+        
+        else:
+            # Read the token from the .env file
+            hf_token = os.getenv('HUGGINGFACE_API_KEY')
+            if not hf_token:
+                raise Exception("HuggingFace token not found in .env file.")
+            elif not hf_token.startswith('hf_'):
+                raise Exception("HuggingFace token should start with 'hf_'. Please check your .env file.")
 
     def initialize_mode(self):
         self.CODE_MODE = True if self.args.mode == 'code' else False
@@ -183,7 +188,7 @@ class Interpreter:
          # Call the completion function
          
         
-        if 'huggingface/' not in self.INTERPRRETER_MODEL and 'gpt' not in self.INTERPRRETER_MODEL:
+        if 'huggingface/' not in self.INTERPRRETER_MODEL and 'gpt' not in self.INTERPRRETER_MODEL and 'palm' not in self.INTERPRRETER_MODEL:
             self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
 
         # Check if the model is gpt-3.5-turbo
@@ -195,13 +200,20 @@ class Interpreter:
             # Set the custom language model provider
             custom_llm_provider = "openai"
             # Call the chat completions - OpenAI,PALM-2
-            output = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=0.1,max_tokens=2048,api_base=api_base,custom_llm_provider=custom_llm_provider)
-        else:
-            # Call the chat completions - Hugging Face Models.
-            output = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=0.1,max_tokens=2048,api_base=api_base,custom_llm_provider=custom_llm_provider)
         
-        self.logger.info(f"Generated text {output}")
-        generated_text = self._extract_content(output)
+        # Check if the model is PALM-2
+        elif 'palm-2' in self.INTERPRRETER_MODEL:
+            os.environ['PALM_API_KEY'] = os.getenv('PALM_API_KEY')
+            self.INTERPRRETER_MODEL = "palm/chat-bison"
+            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+        
+        # Check if model are from Hugging Face.
+        else:
+            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+        
+        self.logger.info(f"Generated text {response}")
+        generated_text = self._extract_content(response)
         self.logger.info(f"Generated content {generated_text}")
         return generated_text
 
@@ -250,13 +262,11 @@ class Interpreter:
 
     def interpreter_main(self):
         
-        print(f"Code Interpreter - v{self.interpreter_version}")
+        self.logger.info(f"Code Interpreter - v{self.interpreter_version}")
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
         command_mode = 'Code'
         mode = 'Script' if self.SCRIPT_MODE else 'Command' if self.COMMAND_MODE else 'Code'
-        
-        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{mode}' Model: '{self.INTERPRRETER_MODEL}'")
         
         command_mode = mode
         start_sep = str(self.config_values.get('start_sep', '```'))
@@ -264,7 +274,11 @@ class Interpreter:
         skip_first_line = self.config_values.get('skip_first_line', 'False') == 'True'
         
         self.logger.info(f"Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
-        current_time = time.strftime("%H:%M:%S", time.localtime())
+        
+        # Display system and Assistant information.
+        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{mode}' Model: '{self.INTERPRRETER_MODEL}'")
+        display_markdown_message("Welcome to the **Interpreter**. I'm here to **assist** you with your everyday tasks. "
+                                  "\nPlease enter your task and I'll do my best to help you out.")
         
         while True:
             try:
@@ -302,7 +316,7 @@ class Interpreter:
                 generated_output = self.generate_text(prompt, self.history, config_values=self.config_values)
                 
                 self.logger.info(f"Generated output type {type(generated_output)}")
-                extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line)
+                extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
                 
                 self.logger.info(f"Extracted code: {extracted_code[:50]}")
 
@@ -312,15 +326,24 @@ class Interpreter:
                     self.logger.info("Code extracted successfully.")
                 
                 if extracted_code:
+                    current_time = time.strftime("%Y_%m_%d-%H_%M_%S", time.localtime())
                     
-                    if self.INTERPRETER_LANGUAGE == 'javascript' and self.SAVE_CODE:
-                        self.code_interpreter.save_code(f"output/code_generated_{current_time}.js", extracted_code)
+                    if self.INTERPRETER_LANGUAGE == 'javascript' and self.SAVE_CODE and self.CODE_MODE:
+                        self.code_interpreter.save_code(f"output/code_{current_time}.js", extracted_code)
                         self.logger.info(f"JavaScript code saved successfully.")
                     
-                    elif self.INTERPRETER_LANGUAGE == 'python' and self.SAVE_CODE:
-                        self.code_interpreter.save_code(f"output/code_generated_{current_time}.py", extracted_code)
+                    elif self.INTERPRETER_LANGUAGE == 'python' and self.SAVE_CODE and self.CODE_MODE:
+                        self.code_interpreter.save_code(f"output/code_{current_time}.py", extracted_code)
                         self.logger.info(f"Python code saved successfully.")
                     
+                    elif self.SAVE_CODE and self.COMMAND_MODE:
+                        self.code_interpreter.save_code(f"output/command_{current_time}.txt", extracted_code)
+                        self.logger.info(f"Command saved successfully.")
+  
+                    elif self.SAVE_CODE and self.SCRIPT_MODE:
+                        self.code_interpreter.save_code(f"output/script_{current_time}.txt", extracted_code)
+                        self.logger.info(f"Script saved successfully.")
+                  
                     # Execute the code if the user has selected.
                     code_output, code_error = self.execute_code(extracted_code, os_name)
                     
@@ -354,8 +377,5 @@ class Interpreter:
                 
                 self.utility_manager.save_history_json(task, command_mode, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRRETER_MODEL)
                 
-            except Exception as exception:
-                import traceback
-                traceback.print_exc()
-                self.logger.error(f"Error occurred: {str(exception)}")
-                raise exception
+            except:
+                raise

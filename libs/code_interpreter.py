@@ -82,19 +82,30 @@ class CodeInterpreter:
             self.logger.error(f"Error occurred while saving code to file: {exception}")
             raise Exception(f"Error occurred while saving code to file: {exception}")
 
-    def extract_code(self, code:str, start_sep='```', end_sep='```',skip_first_line=False):
+    def extract_code(self, code:str, start_sep='```', end_sep='```',skip_first_line=False,code_mode=False):
         """
         Extracts the code from the provided string.
         If the string contains the start and end separators, it extracts the code between them.
         Otherwise, it returns the original string.
         """
         try:
+            has_newline = False
             if start_sep in code and end_sep in code:
-                start = code.find(start_sep) + len(start_sep + '\n')
+                start = code.find(start_sep) + len(start_sep)
+                # Skip the newline character after the start separator
+                if code[start] == '\n':
+                    start += 1
+                    has_newline = True
+                    
                 end = code.find(end_sep, start)
-                if skip_first_line:
+                # Skip the newline character before the end separator
+                if code[end - 1] == '\n':
+                    end -= 1
+                    
+                if skip_first_line and code_mode and not has_newline:
                     # Skip the first line after the start separator
                     start = code.find('\n', start) + 1
+                    
                 extracted_code = code[start:end]
                 self.logger.info("Code extracted successfully.")
                 return extracted_code

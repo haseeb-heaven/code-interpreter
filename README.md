@@ -53,22 +53,44 @@ cd open-code-interpreter
 ```bash
 pip install -r requirements.txt
 ```
-3. **(ONLY FOR HUGGING FACE)**:</br>
-If you plan to use HuggingFace models, you will need a HuggingFace token. Go to [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
+3. Setup the Keys required.(**_Not needed for GPT 3.5_**)
 
-4. **(ONLY FOR HUGGING FACE)**:</br>
-If you obtained a HuggingFace token, save the token in a `.env` file as:</br>
+## HUGGING FACE API Key setup.
+
+*Step 1:* **Obtain the HuggingFace API key.**
+
+*Step 2:* Visit the following URL: *https://huggingface.co/settings/tokens* and get your Access Token.
+
+*Step 3:* Save the token in a `.env` file as:</br>
 ```bash
 echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 ```
-5. **(ONLY FOR HUGGING FACE)**:</br>
-Run the interpreter. If you are using HuggingFace models, use the following command:</br>
+
+## Google PALM-2 API Key setup.
+
+*Step 1:* **Obtain the Google Palm API key.**
+
+*Step 2:* Visit the following URL: *https://makersuite.google.com/app/apikey*
+
+*Step 3:* Click on the **Create API Key** button.
+
+*Step 4:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
 ```bash
-python interpreter.py -m 'code-llama' -md 'code' -dc
+echo "PALM_API_KEY=Your API Key" > .env
 ```
-6. If you are using GPT 3.5 or PALM models directly,just use the following command:</br>
+
+4. Run the interpreter:</br>
+### Running GPT 3.5.
 ```bash
 python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
+```
+### Running PALM-2.
+```bash
+python interpreter.py -md 'code' -m 'palm-2' -dc 
+```
+### Running Code Llama.
+```bash
+python interpreter.py -md 'code' -m 'code-llama' -dc 
 ```
 
 ## 🌟 **Features**
@@ -105,6 +127,10 @@ python interpreter.py -dc
 ```python
 python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
 ```
+- Code interpreter with PALM-2.
+```python
+python interpreter.py -md 'code' -m 'palm-2' -dc 
+```
 - Code Llama with code mode selected.
 ```python
 python interpreter.py -m 'code-llama' -md 'code'
@@ -135,10 +161,14 @@ python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 ```
 
 ## 📖 **Examples**
+Code Interpreter Demo
 [![code_interpreter_demo](https://img.youtube.com/vi/GGLNBfbN0oY/0.jpg)](https://youtube.com/shorts/GGLNBfbN0oY)
 
 Example of GPT 3.5 Turbo based on **Heaven-GPT**.
 ![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/chat-gpt-command.png?raw=true "GPT 3.5 Turbo Code")</br>
+
+Example of PALM-2 Turbo based on **Google Vertex AI**.
+![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/palm-2-command.png?raw=true "GPT 3.5 Turbo Code")</br>
 
 Example of Code llama with code mode:
 ![code_llama_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-code.png?raw=true "Code Llama Code Mode")</br>
@@ -201,7 +231,7 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 **v1.1** - Added Graphs and Charts support.</br>
 **v1.2** - Added LiteLLM Support.</br>
 **v1.3** - Added Gpt 3.5 Support.</br>
-
+**v1.4** - Added PALM 2 Support.</br>
 
 ## 📜 **License**
 
@@ -213,11 +243,11 @@ Please note the following additional licensing details:
 
 - The **GPT Models** are sourced from the [gpt4free](https://github.com/xtekky/gpt4free) repository, which does not come with a license. Please ensure you agree to their terms as outlined in their [legal notice](https://github.com/xtekky/gpt4free/blob/main/LEGAL_NOTICE.md).
 
-- The **PALM models** are officially supported by the **Google PALM 2 API** and come with their own license and support. Please ensure you understand and agree to their terms before using.
+- The **PALM models** are officially supported by the **Google PALM 2 API** and come with their own license and support. Please ensure you understand and agree to their terms before using More information can be found [here](https://developers.generativeai.google/terms).
 
 - The **Hugging Face models** are provided by **Hugging Face Inc.** and are subject to their own license. Please ensure you understand and agree to their terms before using. More information can be found [here](https://huggingface.co/terms-of-service).
 
 ## 🙏 **Acknowledgments**
 
-- We would like to express our gratitude to **HuggingFace** for providing the models.
+- We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI** for providing the models.
 - A special shout-out to the open-source community. Your continuous support and contributions are invaluable to us.
