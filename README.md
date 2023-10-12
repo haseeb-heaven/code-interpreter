@@ -18,11 +18,11 @@ Designed with versatility in mind, **Open-Code-Interpreter** works seamlessly on
 
 ## **Why this is Unique Interpreter?**
 
-The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model downloads or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users and works on all major OS **_Windows,Linux,MacOS_**
+The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model to download or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users and works on all major OS **_Windows,Linux,MacOS_**
 
 ## **Future Plans:**
-- ~~🎯 We plan to provide **GPT 3.5** models for free.~~ 🎯 We have added support for **GPT 3.5** models using **Heaven-GPT**.
-- 🌐 .~~We plan to provide **Vertex AI (PALM 2)** models for free..~~ We have added support for **PALM-2** model using [**LiteLLM**](https://litellm.ai/)
+- ~~🎯 We plan to integrate **GPT 3.5** models.~~ *🎯 We have added support for **GPT 3.5** models*.
+- 🌐 .~~We plan to provide **Vertex AI (PALM 2)** models..~~ We have added support for **PALM-2** model using [**LiteLLM**](https://litellm.ai/)
 - 🔗 ~~We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)~~. Added Support for [**LiteLLM**](https://litellm.ai/)
 - 🤖 More **Hugging Face** models with free-tier.
 - 💻 Support for more **Operating Systems**.
@@ -53,7 +53,7 @@ cd open-code-interpreter
 ```bash
 pip install -r requirements.txt
 ```
-3. Setup the Keys required.(**_Not needed for GPT 3.5_**)
+3. Setup the Keys required.
 
 ## HUGGING FACE API Key setup.
 
@@ -77,6 +77,23 @@ echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 *Step 4:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
 ```bash
 echo "PALM_API_KEY=Your API Key" > .env
+```
+
+## OpenAI API Key setup.
+
+*Step 1:* **Obtain the OpenAI API key.**
+
+*Step 2:* Visit the following URL: *https://platform.openai.com/account/api-keys*
+
+*Step 3:* Sign up for an account or log in if you already have one.
+
+*Step 4:* Navigate to the API section in your account dashboard.
+
+*Step 5:* Click on the **Create New Key** button.
+
+*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
+```bash
+echo "OPENAI_API_KEY=Your API Key" > .env
 ```
 
 4. Run the interpreter with Python:</br>
@@ -162,7 +179,7 @@ python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 Code Interpreter Demo
 [![code_interpreter_demo](https://img.youtube.com/vi/GGLNBfbN0oY/0.jpg)](https://youtube.com/shorts/GGLNBfbN0oY)
 
-Example of GPT 3.5 Turbo based on **Heaven-GPT**.
+Example of GPT 3.5 Turbo.
 ![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/chat-gpt-command.png?raw=true "GPT 3.5 Turbo Code")</br>
 
 Example of PALM-2 based on **Google Vertex AI**.
@@ -181,7 +198,19 @@ Example of Mistral with code mode:
 ## ⚙️ **Settings**
 You can customize the settings of the current model from the `.config` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
 
-If you want to add a new model from Hugging Face, follow these steps:
+### **Steps to add your own custom API Server**
+To integrate your own API server for OpenAI instead of the default server, follow these steps:
+1. Navigate to the `Configs` directory.
+2. Open the configuration file for the model you want to modify. This could be either `gpt-3.5-turbo.config` or `gpt-4.config`.
+3. Add the following line at the end of the file:
+   ```
+   api_base = https://my-custom-base.com
+   ```
+   Replace `https://my-custom-base.com` with the URL of your custom API server.
+4. Save and close the file.
+Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will automatically use your custom server.
+
+### **Steps to add new Hugging Face model**
 
 1. 📋 Copy the `.config` file and rename it to `configs/hf-model-new.config`.
 2. 🛠️ Modify the parameters of the model like `start_sep`, `end_sep`, `skip_first_line`.
@@ -230,6 +259,7 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 **v1.2** - Added LiteLLM Support.</br>
 **v1.3** - Added Gpt 3.5 Support.</br>
 **v1.4** - Added PALM 2 Support.</br>
+**v1.5** - Added Gpt 3.5/4 models official Support.</br>
 
 ## 📜 **License**
 
@@ -237,13 +267,11 @@ This project is licensed under the **MIT License**. For more details, please ref
 
 Please note the following additional licensing details:
 
-- The **GPT 3.5 model** is provided by **Heaven-GPT** and is subject to its own permissive license. It is intended for use exclusively with this **code-interpreter**. More information can be found [here](https://heaven-gpt.haseebmir.repl.co/privacy).
+- The **GPT 3.5/4 models** are provided by **OpenAI** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [OpenAI's Terms of Use](https://openai.com/policies/terms-of-use).
 
-- The **GPT Models** are sourced from the [gpt4free](https://github.com/xtekky/gpt4free) repository, which does not come with a license. Please ensure you agree to their terms as outlined in their [legal notice](https://github.com/xtekky/gpt4free/blob/main/LEGAL_NOTICE.md).
+- The **PALM models** are officially supported by the **Google PALM 2 API**. These models have their own licensing terms and support. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Google Generative AI's Terms of Service](https://developers.generativeai.google/terms).
 
-- The **PALM models** are officially supported by the **Google PALM 2 API** and come with their own license and support. Please ensure you understand and agree to their terms before using More information can be found [here](https://developers.generativeai.google/terms).
-
-- The **Hugging Face models** are provided by **Hugging Face Inc.** and are subject to their own license. Please ensure you understand and agree to their terms before using. More information can be found [here](https://huggingface.co/terms-of-service).
+- The **Hugging Face models** are provided by **Hugging Face Inc.** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Hugging Face's Terms of Service](https://huggingface.co/terms-of-service).
 
 ## 🙏 **Acknowledgments**
 

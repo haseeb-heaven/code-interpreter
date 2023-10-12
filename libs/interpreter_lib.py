@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.4"
+    interpreter_version = "1.5"
     
     def __init__(self, args):
         self.args = args
@@ -121,23 +121,18 @@ class Interpreter:
         self.logger.info(f"Using model {hf_model_name}")
         
         if "gpt" in self.INTERPRRETER_MODEL:
-            # Inform user about Heaven-GPT
-            display_markdown_message("**GPT 3.5** is provided by **Heaven-GPT**, A Private **GPT** made exclusive for this code-interpreter.")
-            # Ask if user wants to read the terms and agreements
-            confirmation = input("Do you want to read the terms and agreements before using Heaven-GPT? (Y/N): ")
-            if confirmation.lower() == 'y':
-                url = "https://heaven-gpt.haseebmir.repl.co/privacy"
-                display_markdown_message(f"You can read the terms and agreements here: {url}")
-                webbrowser.open(url)
-            # Ask for user's agreement to the terms and conditions
-            confirmation = input("Do you agree to the terms and conditions? (Y/N): ")
-            if confirmation.lower() != 'y':
-                self.logger.info("User does not agree to the terms and conditions. Exiting...")
-                exit(1)
-            else:
-                self.logger.info("User agrees to the terms and conditions.")
-                return # Skip reading from .env file
-        
+            if os.getenv("OPENAI_API_KEY") is None:
+                load_dotenv()
+            if os.getenv("OPENAI_API_KEY") is None:
+                # if there is no .env file, try to load from the current working directory
+                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+                
+            # Read the token from the .env file
+            openai_key = os.getenv('OPENAI_API_KEY')
+            if not openai_key:
+                raise Exception("OpenAI Key not found in .env file.")
+            elif not openai_key.startswith('sk-'):
+                raise Exception("OpenAI token should start with 'sk-'. Please check your .env file.")
         
         elif "palm" in self.INTERPRRETER_MODEL:
             self.logger.info("User has agreed to terms and conditions of PALM-2")
@@ -163,10 +158,10 @@ class Interpreter:
                 load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
                 
             # Read the token from the .env file
-            hf_token = os.getenv('HUGGINGFACE_API_KEY')
-            if not hf_token:
+            openai_key = os.getenv('HUGGINGFACE_API_KEY')
+            if not openai_key:
                 raise Exception("HuggingFace token not found in .env file.")
-            elif not hf_token.startswith('hf_'):
+            elif not openai_key.startswith('hf_'):
                 raise Exception("HuggingFace token should start with 'hf_'. Please check your .env file.")
 
     def initialize_mode(self):
@@ -200,6 +195,7 @@ class Interpreter:
         if config_values:
             temperature = float(config_values.get('temperature', temperature))
             max_tokens = int(config_values.get('max_tokens', max_tokens))
+            api_base = str(config_values.get('api_base', None)) # Only for OpenAI.
 
         # Get the system prompt
         messages = self.get_prompt(message, chat_history)
@@ -210,25 +206,31 @@ class Interpreter:
         if 'huggingface/' not in self.INTERPRRETER_MODEL and 'gpt' not in self.INTERPRRETER_MODEL and 'palm' not in self.INTERPRRETER_MODEL:
             self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
 
-        # Check if the model is gpt-3.5-turbo
-        if 'gpt-3.5-turbo' in self.INTERPRRETER_MODEL:
-            # Set environment variables
-            os.environ["OPENAI_API_KEY"] = "Ignore the Key." 
-            # Set the API base URL
-            api_base = "https://heaven-gpt.haseebmir.repl.co" # This is private GPT by Heaven make sure you understand the terms and conditions.
-            # Set the custom language model provider
-            custom_llm_provider = "openai"
-            # Call the chat completions - OpenAI,PALM-2
-            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=0.1,max_tokens=2048,api_base=api_base,custom_llm_provider=custom_llm_provider)
-        
+        # Check if the model is GPT 3.5/4
+        if 'gpt' in self.INTERPRRETER_MODEL:
+            self.logger.info("Model is GPT 3.5/4.")
+            if api_base != 'None':
+                # Set the custom language model provider
+                custom_llm_provider = "openai"
+                self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
+                response = completion(self.INTERPRRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+            else:
+                self.logger.info(f"Default API mode selected for OpenAI.")
+                response = completion(self.INTERPRRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
+            self.logger.info("Response received from completion function.")
+                
         # Check if the model is PALM-2
-        elif 'palm-2' in self.INTERPRRETER_MODEL:
+        elif 'palm' in self.INTERPRRETER_MODEL:
+            self.logger.info("Model is PALM-2.")
             self.INTERPRRETER_MODEL = "palm/chat-bison"
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            self.logger.info("Response received from completion function.")
         
         # Check if model are from Hugging Face.
         else:
+            self.logger.info("Model is from Hugging Face.")
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            self.logger.info("Response received from completion function.")
         
         self.logger.info(f"Generated text {response}")
         generated_text = self._extract_content(response)
@@ -395,5 +397,6 @@ class Interpreter:
                 
                 self.utility_manager.save_history_json(task, command_mode, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRRETER_MODEL)
                 
-            except:
+            except Exception as exception:
+                self.logger.error(f"An error occurred: {str(exception)}")
                 raise

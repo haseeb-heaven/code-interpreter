@@ -1,4 +1,22 @@
 #!/usr/bin/env python3
+
+"""
+This is the main file for the Open-Code-Interpreter.
+It handles command line arguments and initializes the Interpreter.
+
+Command line arguments:
+--exec, -e: Executes the code generated from the user's instructions.
+--save_code, -s: Saves the generated code.
+--mode, -md: Selects the mode of operation. Choices are 'code', 'script', and 'command'.
+--model, -m: Sets the model for code generation. Default is 'code-llama'.
+--version, -v: Displays the version of the program.
+--lang, -l: Sets the interpreter language. Default is 'python'.
+--display_code, -dc: Displays the generated code in the output.
+
+Author: HeavenHM
+Date: 2023/10/12
+"""
+
 from libs.interpreter_lib import Interpreter
 import argparse
 import sys
@@ -10,7 +28,7 @@ def main():
         parser.add_argument('--save_code', '-s', action='store_true', help='Save the generated code')
         parser.add_argument('--mode', '-md', choices=['code', 'script', 'command'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands)')
         parser.add_argument('--model', '-m', type=str, default='code-llama', help='Set the model for code generation. (Defaults to gpt-3.5-turbo)')
-        parser.add_argument('--version', '-v', action='version', version='%(prog)s 1.4')
+        parser.add_argument('--version', '-v', action='version', version='%(prog)s 1.5')
         parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
         parser.add_argument('--display_code', '-dc', action='store_true', help='Display the code in output')
         args = parser.parse_args()

@@ -7,6 +7,3 @@
 *.json
 history/*
 output/*
-.*
-.env
-.config
