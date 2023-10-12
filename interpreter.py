@@ -1,4 +1,20 @@
-#!/usr/bin/env python3
+"""
+This is the main file for the Open-Code-Interpreter.
+It handles command line arguments and initializes the Interpreter.
+
+Command line arguments:
+--exec, -e: Executes the code generated from the user's instructions.
+--save_code, -s: Saves the generated code.
+--mode, -md: Selects the mode of operation. Choices are 'code', 'script', and 'command'.
+--model, -m: Sets the model for code generation. Default is 'code-llama'.
+--version, -v: Displays the version of the program.
+--lang, -l: Sets the interpreter language. Default is 'python'.
+--display_code, -dc: Displays the generated code in the output.
+
+Author: HeavenHM
+Date: 2023/10/12
+"""
+
 from libs.interpreter_lib import Interpreter
 import argparse
 import sys
