@@ -138,11 +138,30 @@ class Interpreter:
                 self.logger.info("User agrees to the terms and conditions.")
                 return # Skip reading from .env file
         
-        elif "palm-2" in self.INTERPRRETER_MODEL:
-            self.logger("User has agreed to terms and conditions of PALM-2")
-            return # Skip reading from .env file
+        
+        elif "palm" in self.INTERPRRETER_MODEL:
+            self.logger.info("User has agreed to terms and conditions of PALM-2")
+            
+            if os.getenv("PALM_API_KEY") is None:
+                load_dotenv()
+            if os.getenv("PALM_API_KEY") is None:
+                # if there is no .env file, try to load from the current working directory
+                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+            
+            palm_token = os.getenv('PALM_API_KEY')
+            # Validate the token
+            if not palm_token:
+                raise Exception("PALM token not found in .env file.")
+            elif " " in palm_token or len(palm_token) <= 15:
+                raise Exception("PALM API Key should have no spaces, length greater than 15. Please check your .env file.")
         
         else:
+            if os.getenv("HUGGINGFACE_API_KEY") is None:
+                load_dotenv()
+            if os.getenv("HUGGINGFACE_API_KEY") is None:
+                # if there is no .env file, try to load from the current working directory
+                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+                
             # Read the token from the .env file
             hf_token = os.getenv('HUGGINGFACE_API_KEY')
             if not hf_token:
@@ -204,7 +223,6 @@ class Interpreter:
         
         # Check if the model is PALM-2
         elif 'palm-2' in self.INTERPRRETER_MODEL:
-            os.environ['PALM_API_KEY'] = os.getenv('PALM_API_KEY')
             self.INTERPRRETER_MODEL = "palm/chat-bison"
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
         
