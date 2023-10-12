@@ -22,7 +22,7 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 
 ## **Future Plans:**
 - ~~🎯 We plan to provide **GPT 3.5** models for free.~~ 🎯 We have added support for **GPT 3.5** models using **Heaven-GPT**.
-- 🌐 We plan to provide **Vertex AI (PALM 2)** models for free.
+- 🌐 .~~We plan to provide **Vertex AI (PALM 2)** models for free..~~ We have added support for **PALM-2** model using [**LiteLLM**](https://litellm.ai/)
 - 🔗 ~~We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)~~. Added Support for [**LiteLLM**](https://litellm.ai/)
 - 🤖 More **Hugging Face** models with free-tier.
 - 💻 Support for more **Operating Systems**.
@@ -167,7 +167,7 @@ Code Interpreter Demo
 Example of GPT 3.5 Turbo based on **Heaven-GPT**.
 ![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/chat-gpt-command.png?raw=true "GPT 3.5 Turbo Code")</br>
 
-Example of PALM-2 Turbo based on **Google Vertex AI**.
+Example of PALM-2 based on **Google Vertex AI**.
 ![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/palm-2-command.png?raw=true "GPT 3.5 Turbo Code")</br>
 
 Example of Code llama with code mode:
