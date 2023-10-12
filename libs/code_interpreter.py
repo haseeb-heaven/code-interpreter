@@ -107,6 +107,10 @@ class CodeInterpreter:
                     start = code.find('\n', start) + 1
                     
                 extracted_code = code[start:end]
+                # Remove extra words for commands present.
+                if not code_mode and 'bash' in extracted_code:
+                    extracted_code = extracted_code.replace('bash', '')
+                    
                 self.logger.info("Code extracted successfully.")
                 return extracted_code
             else:
