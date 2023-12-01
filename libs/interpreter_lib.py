@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.5"
+    interpreter_version = "1.6"
     
     def __init__(self, args):
         self.args = args
@@ -302,7 +302,6 @@ class Interpreter:
         
         while True:
             try:
-                
                 task = input("> ")
                 if task.lower() in ['exit', 'quit']:
                     break
@@ -311,15 +310,63 @@ class Interpreter:
                 # Clean the responses
                 self._clean_responses()
                 
+                # Check if prompt contains any file uploaded by user.
+                extracted_name = self.utility_manager.extract_file_name(prompt)
+                self.logger.info(f"Input prompt extracted_name: '{extracted_name}'")
+
+                if extracted_name is not None:
+                    full_path = self.utility_manager.get_full_file_path(extracted_name)
+                    self.logger.info(f"Input prompt full_path: '{full_path}'")
+                    
+
+                    # Check if the file exists and is a file
+                    if os.path.isfile(full_path):
+                        # Check if file size is less than 50 KB
+                        file_size = os.path.getsize(full_path)
+                        self.logger.info(f"Input prompt file_size: '{file_size}'")
+                        if file_size < 50000:
+                            try:
+                                with open(full_path, 'r', encoding='utf-8') as file:
+                                    # Check if file extension is .json, .csv, or .xml
+                                    file_extension = os.path.splitext(full_path)[1].lower()
+                                    
+                                    if file_extension in ['.json','.xml']:
+                                        # Split by new line and read only 100 lines
+                                        file_data = '\n'.join(file.readline() for _ in range(20))
+                                        self.logger.info(f"Input prompt JSON/XML file_data: '{str(file_data)}'")
+                                        
+                                    elif file_extension == '.csv':
+                                        # Read only headers of the csv file
+                                        file_data = self.utility_manager.read_csv_headers(full_path)
+                                        self.logger.info(f"Input prompt CSV file_data: '{str(file_data)}'")
+                                        
+                                    else:
+                                        file_data = file.read()
+                                        self.logger.info(f"Input prompt file_data: '{str(file_data)}'")
+                                        
+                                    if any(word in prompt.lower() for word in ['graph', 'graphs', 'chart', 'charts']):
+                                        prompt += "\n" + "This is file data from user input: " + str(file_data) + " use this to analyze the data."
+                                        self.logger.info(f"Input Prompt: '{prompt}'")
+                                    else:
+                                        self.logger.info("The prompt does not contain both 'graph' and 'chart'.")
+                            except Exception as exception:
+                                self.logger.error(f"Error reading file: {exception}")
+                        else:
+                            self.logger.error("File size is greater.")
+                    else:
+                        self.logger.error("File does not exist or is not a file.")                         
+                else:
+                    self.logger.info("No file name found in the prompt.")
+                
                 # If graph were requested.
-                if 'graph' in prompt.lower():
+                if any(word in prompt.lower() for word in ['graph', 'graphs']):
                     if self.INTERPRETER_LANGUAGE == 'python':
                         prompt += "\n" + "using Python use Matplotlib save the graph in file called 'graph.png'"
                     elif self.INTERPRETER_LANGUAGE == 'javascript':
                         prompt += "\n" + "using JavaScript use Chart.js save the graph in file called 'graph.png'"
 
                 # if Chart were requested
-                if 'chart' in prompt.lower() or 'plot' in prompt.lower():
+                if any(word in prompt.lower() for word in ['chart', 'charts', 'plot', 'plots']):    
                     if self.INTERPRETER_LANGUAGE == 'python':
                         prompt += "\n" + "using Python use Plotly save the chart in file called 'chart.png'"
                     elif self.INTERPRETER_LANGUAGE == 'javascript':
@@ -331,13 +378,16 @@ class Interpreter:
                         prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
                     elif self.INTERPRETER_LANGUAGE == 'javascript':
                         prompt += "\n" + "using JavaScript use DataTables save the table in file called 'table.html'"
-                    
+                 
+                # Start the LLM Request.     
                 self.logger.info(f"Prompt: {prompt}")
                 generated_output = self.generate_text(prompt, self.history, config_values=self.config_values)
                 
+                # Extract the code from the generated output.
                 self.logger.info(f"Generated output type {type(generated_output)}")
                 extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
                 
+                # Display the extracted code.
                 self.logger.info(f"Extracted code: {extracted_code[:50]}")
 
                 

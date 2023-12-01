@@ -1,7 +1,11 @@
 import json
 import os
+import re
 from libs.logger import initialize_logger
 import traceback
+import csv
+import pandas as pd
+from xml.etree import ElementTree as ET
 
 class UtilityManager:
     def __init__(self):
@@ -98,3 +102,45 @@ class UtilityManager:
         except Exception as exception:
             self.logger.error(f"Error in reading config file: {str(exception)}")
             raise
+
+    def extract_file_name(self, prompt):
+        # Updated regular expression to more accurately capture file names and extensions
+        # This pattern looks for typical file paths and names, then stops at the end of the extension
+        pattern = r"([a-zA-Z]:\\(?:[\w\-\.]+\\)*[\w\-\.]+\.\w+|/(?:[\w\-\.]+/)*[\w\-\.]+\.\w+|\b[\w\-\.]+\.\w+\b)"
+        match = re.search(pattern, prompt)
+
+        # Return the matched file name or path, if any match found
+        if match:
+            file_name = match.group()
+            file_extension = os.path.splitext(file_name)[1].lower()
+            self.logger.info(f"File extension: '{file_extension}'")
+            # Check if the file extension is one of the non-binary types
+            if file_extension in ['.json', '.csv', '.xml', '.xls', '.txt','.md','.html']:
+                self.logger.info(f"File name: '{file_name}'")
+                return file_name
+            else:
+                return None
+        else:
+            return None
+
+    def get_full_file_path(self, file_name):
+        if not file_name:
+            return None
+
+        # Check if the file path is absolute. If not, prepend the current working directory
+        if not os.path.isabs(file_name):
+            return os.path.join(os.getcwd(), file_name)
+        return file_name
+    
+    def read_csv_headers(self,file_path):
+        try:
+            with open(file_path, newline='') as csvfile:
+                reader = csv.reader(csvfile)
+                headers = next(reader)
+                return headers
+        except IOError as exception:
+            self.logger.error(f"IOError: {exception}")
+            return []
+        except StopIteration:
+            self.logger.error("CSV file is empty.")
+            return []

@@ -254,12 +254,13 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 
 ## 📌 **Versioning**
 
-**v1.0** - Initial release.</br>
-**v1.1** - Added Graphs and Charts support.</br>
-**v1.2** - Added LiteLLM Support.</br>
-**v1.3** - Added Gpt 3.5 Support.</br>
-**v1.4** - Added PALM 2 Support.</br>
-**v1.5** - Added Gpt 3.5/4 models official Support.</br>
+🚀 ***v1.0*** - Initial release.</br>
+📊 ***v1.1*** - Added **Graphs** and **Charts** support.</br>
+🔥 ***v1.2*** - Added **LiteLLM** Support.</br>
+🌟 ***v1.3*** - Added **GPT 3.5** Support.</br>
+🌴 ***v1.4*** - Added **PALM 2** Support.</br>
+🎉 ***v1.5*** - Added **GPT 3.5/4** models official Support.</br>
+📝 ***v1.6*** - Updated Code Interpreter for Documents files (***JSON***, ***CSV***,***XML***).</br>
 
 ## 📜 **License**
 
