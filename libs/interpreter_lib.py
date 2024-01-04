@@ -128,28 +128,33 @@ class Interpreter:
                 load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
                 
             # Read the token from the .env file
-            openai_key = os.getenv('OPENAI_API_KEY')
-            if not openai_key:
+            hf_key = os.getenv('OPENAI_API_KEY')
+            if not hf_key:
                 raise Exception("OpenAI Key not found in .env file.")
-            elif not openai_key.startswith('sk-'):
+            elif not hf_key.startswith('sk-'):
                 raise Exception("OpenAI token should start with 'sk-'. Please check your .env file.")
         
-        elif "palm" in self.INTERPRRETER_MODEL:
-            self.logger.info("User has agreed to terms and conditions of PALM-2")
-            
-            if os.getenv("PALM_API_KEY") is None:
-                load_dotenv()
-            if os.getenv("PALM_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-            
-            palm_token = os.getenv('PALM_API_KEY')
-            # Validate the token
-            if not palm_token:
-                raise Exception("PALM token not found in .env file.")
-            elif " " in palm_token or len(palm_token) <= 15:
-                raise Exception("PALM API Key should have no spaces, length greater than 15. Please check your .env file.")
-        
+        model_api_keys = {
+            "palm": "PALM_API_KEY",
+            "gemini-pro": "GEMINI_API_KEY"
+        }
+
+        for model, api_key_name in model_api_keys.items():
+            if model in self.INTERPRRETER_MODEL:
+                self.logger.info(f"User has agreed to terms and conditions of {model}")
+
+                if os.getenv(api_key_name) is None:
+                    load_dotenv()
+                if os.getenv(api_key_name) is None:
+                    # if there is no .env file, try to load from the current working directory
+                    load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+
+                api_key = os.getenv(api_key_name)
+                # Validate the token
+                if not api_key:
+                    raise Exception(f"{api_key_name} not found in .env file.")
+                elif " " in api_key or len(api_key) <= 15:
+                    raise Exception(f"{api_key_name} should have no spaces, length greater than 15. Please check your .env file.")
         else:
             if os.getenv("HUGGINGFACE_API_KEY") is None:
                 load_dotenv()
@@ -158,10 +163,10 @@ class Interpreter:
                 load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
                 
             # Read the token from the .env file
-            openai_key = os.getenv('HUGGINGFACE_API_KEY')
-            if not openai_key:
+            hf_key = os.getenv('HUGGINGFACE_API_KEY')
+            if not hf_key:
                 raise Exception("HuggingFace token not found in .env file.")
-            elif not openai_key.startswith('hf_'):
+            elif not hf_key.startswith('hf_'):
                 raise Exception("HuggingFace token should start with 'hf_'. Please check your .env file.")
 
     def initialize_mode(self):
@@ -201,8 +206,6 @@ class Interpreter:
         messages = self.get_prompt(message, chat_history)
         
          # Call the completion function
-         
-        
         if 'huggingface/' not in self.INTERPRRETER_MODEL and 'gpt' not in self.INTERPRRETER_MODEL and 'palm' not in self.INTERPRRETER_MODEL:
             self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
 
@@ -224,6 +227,13 @@ class Interpreter:
             self.logger.info("Model is PALM-2.")
             self.INTERPRRETER_MODEL = "palm/chat-bison"
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            self.logger.info("Response received from completion function.")
+        
+        # Check if the model is Gemini Pro
+        elif 'gemini-pro' in self.INTERPRRETER_MODEL:
+            self.logger.info("Model is Gemini Pro.")
+            self.INTERPRRETER_MODEL = "gemini/gemini-pro"
+            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature)
             self.logger.info("Response received from completion function.")
         
         # Check if model are from Hugging Face.
@@ -322,16 +332,17 @@ class Interpreter:
                     # Check if the file exists and is a file
                     if os.path.isfile(full_path):
                         # Check if file size is less than 50 KB
+                        file_size_max = 50000
                         file_size = os.path.getsize(full_path)
                         self.logger.info(f"Input prompt file_size: '{file_size}'")
-                        if file_size < 50000:
+                        if file_size < file_size_max:
                             try:
                                 with open(full_path, 'r', encoding='utf-8') as file:
                                     # Check if file extension is .json, .csv, or .xml
                                     file_extension = os.path.splitext(full_path)[1].lower()
                                     
                                     if file_extension in ['.json','.xml']:
-                                        # Split by new line and read only 100 lines
+                                        # Split by new line and read only 20 lines
                                         file_data = '\n'.join(file.readline() for _ in range(20))
                                         self.logger.info(f"Input prompt JSON/XML file_data: '{str(file_data)}'")
                                         
