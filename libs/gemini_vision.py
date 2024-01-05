@@ -101,8 +101,13 @@ class GeminiVision:
             raise
 
     def gemini_vision_path(self, prompt, image_path):
-        self.logger.info(f"Generating text from image path: {image_path}")
+        self.logger.info(f"Generating text from image path: '{image_path}'")
         try:
+            self.logger.info(f"Checking if image path exists for: '{image_path}'")
+            
+            if not image_path:
+                raise ValueError(f"Image path is not initialized")
+            
             # check if the image path exists
             if not os.path.exists(image_path):
                 raise ValueError(f"Image path does not exist: {image_path}")

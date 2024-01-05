@@ -18,6 +18,7 @@ import time
 import webbrowser
 from libs.code_interpreter import CodeInterpreter
 from litellm import completion
+from libs.gemini_vision import GeminiVision
 from libs.logger import initialize_logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_installer import PackageInstaller
@@ -27,7 +28,7 @@ from dotenv import load_dotenv
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.6"
+    interpreter_version = "1.7"
     
     def __init__(self, args):
         self.args = args
@@ -39,6 +40,7 @@ class Interpreter:
         self.client = None
         self.config_values = None
         self.system_message = ""
+        self.gemini_vision = GeminiVision()
         self.initialize()
 
     def _open_resource_file(self,filename):
@@ -80,15 +82,20 @@ class Interpreter:
         self.logger.info(f"Interpreter args model selected is '{self.args.model}")
         self.logger.info(f"Interpreter model selected is '{self.INTERPRRETER_MODEL}")
         self.system_message = ""
-        # Open file system_message.txt to a variable system_message
-        try:
-            with open('system/system_message.txt', 'r') as file:
-                self.system_message = file.read()
-                if self.system_message != "":
-                    self.logger.info(f"System message read successfully")
-        except Exception as exception:
-            self.logger.error(f"Error occurred while reading system_message.txt: {str(exception)}")
-            raise
+        self.INTERPRETER_MODE = 'code'
+
+        if self.INTERPRRETER_MODEL == "gemini-pro-vision":
+            self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
+        else:
+            # Open file system_message.txt to a variable system_message
+            try:
+                with open('system/system_message.txt', 'r') as file:
+                    self.system_message = file.read()
+                    if self.system_message != "":
+                        self.logger.info(f"System message read successfully")
+            except Exception as exception:
+                self.logger.error(f"Error occurred while reading system_message.txt: {str(exception)}")
+                raise
         
         # Initialize client and mode.
         self.initialize_client()
@@ -173,7 +180,8 @@ class Interpreter:
         self.CODE_MODE = True if self.args.mode == 'code' else False
         self.SCRIPT_MODE = True if self.args.mode == 'script' else False
         self.COMMAND_MODE = True if self.args.mode == 'command' else False
-        if not self.SCRIPT_MODE and not self.COMMAND_MODE:
+        self.VISION_MODE = True if self.args.mode == 'vision' else False
+        if not self.SCRIPT_MODE and not self.COMMAND_MODE and not self.VISION_MODE:
             self.CODE_MODE = True
     
     def get_prompt(self,message: str, chat_history: list[tuple[str, str]]) -> str:
@@ -185,7 +193,10 @@ class Interpreter:
             system_message = "Please generate a well-written script that is precise, easy to understand, and compatible with the current operating system."
         elif self.COMMAND_MODE:
             system_message = "Please generate a single line command that is precise, easy to understand, and compatible with the current operating system."
-            
+        elif self.VISION_MODE:
+            system_message = "Please generate a well-written description of the image that is precise, easy to understand"
+            return system_message
+        
         messages = [
             {"role": "system", "content":system_message},
             {"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
@@ -193,7 +204,7 @@ class Interpreter:
         ]
         return messages
     
-    def generate_text(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None):
+    def generate_text(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,file=None):
         self.logger.debug("Generating code.")
         
         # Use the values from the config file if they are provided
@@ -206,7 +217,7 @@ class Interpreter:
         messages = self.get_prompt(message, chat_history)
         
          # Call the completion function
-        if 'huggingface/' not in self.INTERPRRETER_MODEL and 'gpt' not in self.INTERPRRETER_MODEL and 'palm' not in self.INTERPRRETER_MODEL:
+        if 'huggingface/' not in self.INTERPRRETER_MODEL and 'gpt' not in self.INTERPRRETER_MODEL and 'palm' not in self.INTERPRRETER_MODEL and 'gemini' not in self.INTERPRRETER_MODEL:
             self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
 
         # Check if the model is GPT 3.5/4
@@ -230,15 +241,21 @@ class Interpreter:
             self.logger.info("Response received from completion function.")
         
         # Check if the model is Gemini Pro
-        elif 'gemini-pro' in self.INTERPRRETER_MODEL:
+        elif self.INTERPRRETER_MODEL == 'gemini-pro':
             self.logger.info("Model is Gemini Pro.")
             self.INTERPRRETER_MODEL = "gemini/gemini-pro"
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature)
             self.logger.info("Response received from completion function.")
         
+        elif 'gemini-pro-vision' in self.INTERPRRETER_MODEL:
+            self.logger.info("Model is Gemini Pro Vision.")
+            response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=file)
+            self.logger.info("Response received from completion function.")
+            return response # Return the response from Gemini Vision because its not coding model.
+
         # Check if model are from Hugging Face.
         else:
-            self.logger.info("Model is from Hugging Face.")
+            self.logger.info(f"Model is from Hugging Face. {self.INTERPRRETER_MODEL}")
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
@@ -247,12 +264,12 @@ class Interpreter:
         self.logger.info(f"Generated content {generated_text}")
         return generated_text
 
-    def handle_code_mode(self, task, os_name):
+    def get_code_prompt(self, task, os_name):
         prompt = f"Generate the code in {self.INTERPRETER_LANGUAGE} language for this task '{task} for Operating System: {os_name}'."
         self.history.append((task, prompt))
         return prompt
 
-    def handle_script_mode(self, task, os_name):
+    def get_script_prompt(self, task, os_name):
         language_map = {'macos': 'applescript', 'linux': 'bash', 'windows': 'powershell'}
         self.INTERPRETER_LANGUAGE = language_map.get(os_name.lower(), 'python')
         
@@ -260,19 +277,29 @@ class Interpreter:
         prompt = f"\nGenerate {script_type} for this prompt and make this script easy to read and understand for this task '{task} for Operating System is {os_name}'."
         return prompt
 
-    def handle_command_mode(self, task, os_name):
+    def get_command_prompt(self, task, os_name):
         prompt = f"Generate the single terminal command for this task '{task} for Operating System is {os_name}'."
         return prompt
+    
+    def handle_vision_mode(self, task):
+        prompt = f"Give accurate and detailed information about the image provided and be very detailed about the image '{task}'."
+        return prompt
 
-    def handle_mode(self, task, os_name):
+    def get_mode_prompt(self, task, os_name):
         if self.CODE_MODE:
-            return self.handle_code_mode(task, os_name)
+            return self.get_code_prompt(task, os_name)
         elif self.SCRIPT_MODE:
-            return self.handle_script_mode(task, os_name)
+            return self.get_script_prompt(task, os_name)
         elif self.COMMAND_MODE:
-            return self.handle_command_mode(task, os_name)
+            return self.get_command_prompt(task, os_name)
+        elif self.VISION_MODE:
+            return self.handle_vision_mode(task)
 
     def execute_code(self, extracted_code, os_name):
+        # If the interpreter mode is Vision, do not execute the code.
+        if self.INTERPRETER_MODE == 'Vision':
+            return None, None
+        
         execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
         if execute.lower() == 'y':
             try:
@@ -295,18 +322,23 @@ class Interpreter:
         self.logger.info(f"Code Interpreter - v{self.interpreter_version}")
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
-        command_mode = 'Code'
-        mode = 'Script' if self.SCRIPT_MODE else 'Command' if self.COMMAND_MODE else 'Code'
-        
-        command_mode = mode
+
+        # Seting the mode.
+        if self.SCRIPT_MODE:
+            self.INTERPRETER_MODE = 'Script'
+        elif self.COMMAND_MODE:
+            self.INTERPRETER_MODE = 'Command'
+        elif self.VISION_MODE:
+            self.INTERPRETER_MODE = 'Vision'
+
         start_sep = str(self.config_values.get('start_sep', '```'))
         end_sep = str(self.config_values.get('end_sep', '```'))
         skip_first_line = self.config_values.get('skip_first_line', 'False') == 'True'
         
-        self.logger.info(f"Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
-        
+        self.logger.info(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
+
         # Display system and Assistant information.
-        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{mode}' Model: '{self.INTERPRRETER_MODEL}'")
+        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}' Model: '{self.INTERPRRETER_MODEL}'")
         display_markdown_message("Welcome to the **Interpreter**. I'm here to **assist** you with your everyday tasks. "
                                   "\nPlease enter your task and I'll do my best to help you out.")
         
@@ -315,7 +347,7 @@ class Interpreter:
                 task = input("> ")
                 if task.lower() in ['exit', 'quit']:
                     break
-                prompt = self.handle_mode(task, os_name)
+                prompt = self.get_mode_prompt(task, os_name)
                 
                 # Clean the responses
                 self._clean_responses()
@@ -392,15 +424,19 @@ class Interpreter:
                  
                 # Start the LLM Request.     
                 self.logger.info(f"Prompt: {prompt}")
-                generated_output = self.generate_text(prompt, self.history, config_values=self.config_values)
+                generated_output = self.generate_text(prompt, self.history, config_values=self.config_values,file=extracted_name)
                 
+                # No extra processing for Vision mode.
+                if self.INTERPRETER_MODE == 'Vision':
+                    display_markdown_message(f"{generated_output}")
+                    continue
+
                 # Extract the code from the generated output.
                 self.logger.info(f"Generated output type {type(generated_output)}")
                 extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
                 
                 # Display the extracted code.
                 self.logger.info(f"Extracted code: {extracted_code[:50]}")
-
                 
                 if self.DISPLAY_CODE:
                     display_code(extracted_code)
@@ -456,7 +492,7 @@ class Interpreter:
                     except Exception as exception:
                         display_markdown_message(f"Error in opening resource files: {str(exception)}")
                 
-                self.utility_manager.save_history_json(task, command_mode, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRRETER_MODEL)
+                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRRETER_MODEL)
                 
             except Exception as exception:
                 self.logger.error(f"An error occurred: {str(exception)}")
