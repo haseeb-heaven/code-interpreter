@@ -236,7 +236,7 @@ class Interpreter:
             self.logger.info("Response received from completion function.")
         
         # Check if the model is Gemini Pro
-        elif self.INTERPRRETER_MODEL == 'gemini-pro':
+        elif 'gemini' in self.INTERPRRETER_MODEL:
 
             if self.INTERPRETER_MODE == 'Vision':
                 # Import Gemini Vision only if the model is Gemini Pro Vision.
@@ -260,7 +260,10 @@ class Interpreter:
 
         # Check if model are from Hugging Face.
         else:
-            self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
+            # Add huggingface/ if not present in the model name.
+            if 'huggingface/' not in self.INTERPRRETER_MODEL:
+                self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
+            
             self.logger.info(f"Model is from Hugging Face. {self.INTERPRRETER_MODEL}")
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")

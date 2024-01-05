@@ -181,6 +181,10 @@ python interpreter.py -m 'code-llama' -md 'code' -s
 ```python
 python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
 ```
+- Example of **Vision model* with Google **Gemini Pro**:
+```python
+python interpreter.py -m 'gemini-pro' -md 'code'
+```
 - Example of **Vision model* with Google **Gemini Pro** Vision:
 ```python
 python interpreter.py -m 'gemini-pro' -md 'vision'
