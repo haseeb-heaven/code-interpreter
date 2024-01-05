@@ -114,7 +114,7 @@ class UtilityManager:
             file_extension = os.path.splitext(file_name)[1].lower()
             self.logger.info(f"File extension: '{file_extension}'")
             # Check if the file extension is one of the non-binary types
-            if file_extension in ['.json', '.csv', '.xml', '.xls', '.txt','.md','.html','.png','.jpg','.jpeg','.gif','.svg']:
+            if file_extension in ['.json', '.csv', '.xml', '.xls', '.txt','.md','.html','.png','.jpg','.jpeg','.gif','.svg','.zip','.tar','.gz','.7z','.rar']:
                 self.logger.info(f"Extracted File name: '{file_name}'")
                 return file_name
             else:

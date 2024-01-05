@@ -507,6 +507,17 @@ class Interpreter:
                             self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
                             self.package_installer.install_package(package_name, self.INTERPRETER_LANGUAGE)
 
+                            # Wait and Execute the code again.
+                            time.sleep(10)
+                            code_output, code_error = self.execute_code(extracted_code, os_name)
+                            if code_output:
+                                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+                                display_code(code_output)
+                                self.logger.info(f"Output: {code_output[:100]}")
+                            elif code_error:
+                                self.logger.info(f"Python code executed with error.")
+                                display_markdown_message(f"Error: {code_error}")
+                            
                     try:
                         # Check if graph.png exists and open it.
                         self._open_resource_file('graph.png')
