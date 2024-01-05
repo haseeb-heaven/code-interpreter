@@ -5,8 +5,7 @@
 .DS_Store
 *.log
 *.json
-history/*
+history/history.json
 output/*
 *.env
 .env
-*.env.*

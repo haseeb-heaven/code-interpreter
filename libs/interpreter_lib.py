@@ -83,7 +83,7 @@ class Interpreter:
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
 
-        if self.INTERPRRETER_MODEL == "gemini-pro-vision":
+        if self.INTERPRETER_MODE == 'Vision':
             self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
         else:
             # Open file system_message.txt to a variable system_message
@@ -237,25 +237,26 @@ class Interpreter:
         
         # Check if the model is Gemini Pro
         elif self.INTERPRRETER_MODEL == 'gemini-pro':
-            self.logger.info("Model is Gemini Pro.")
-            self.INTERPRRETER_MODEL = "gemini/gemini-pro"
-            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature)
-            self.logger.info("Response received from completion function.")
-        
-        elif 'gemini-pro-vision' in self.INTERPRRETER_MODEL:
-            
-            # Import Gemini Vision only if the model is Gemini Pro Vision.
-            try:
-                from libs.gemini_vision import GeminiVision
-                self.gemini_vision = GeminiVision()
-            except Exception as exception:
-                self.logger.error(f"Error importing Gemini Vision: {exception}")
-                raise
 
-            self.logger.info("Model is Gemini Pro Vision.")
-            response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=file)
-            self.logger.info("Response received from completion function.")
-            return response # Return the response from Gemini Vision because its not coding model.
+            if self.INTERPRETER_MODE == 'Vision':
+                # Import Gemini Vision only if the model is Gemini Pro Vision.
+                try:
+                    from libs.gemini_vision import GeminiVision
+                    self.gemini_vision = GeminiVision()
+                except Exception as exception:
+                    self.logger.error(f"Error importing Gemini Vision: {exception}")
+                    raise
+
+                self.logger.info("Model is Gemini Pro Vision.")
+                response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=file)
+                self.logger.info("Response received from completion function.")
+                return response # Return the response from Gemini Vision because its not coding model.
+            else:
+                self.logger.info("Model is Gemini Pro.")
+                self.INTERPRRETER_MODEL = "gemini/gemini-pro"
+                response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature)
+                self.logger.info("Response received from completion function.")
+            
 
         # Check if model are from Hugging Face.
         else:
