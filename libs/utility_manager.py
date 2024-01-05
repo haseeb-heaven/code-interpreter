@@ -6,6 +6,10 @@ import traceback
 import csv
 import pandas as pd
 from xml.etree import ElementTree as ET
+import glob
+from datetime import datetime
+
+from libs.markdown_code import display_code, display_markdown_message
 
 class UtilityManager:
     def __init__(self):
@@ -143,3 +147,53 @@ class UtilityManager:
         except StopIteration:
             self.logger.error("CSV file is empty.")
             return []
+
+    def get_last_code_history(self, language='python'):
+        try:
+            self.logger.info("Starting to read last code history.")
+            output_folder = "output"
+            file_extension = 'py' if language == 'python' else 'js'
+            self.logger.info(f"Looking for files with extension: {file_extension}")
+
+            # Get a list of all files in the output folder with the correct extension
+            files = glob.glob(os.path.join(output_folder, f"*.{file_extension}"))
+            self.logger.info(f"Found {len(files)} files.")
+
+            # Sort the files by date
+            files.sort(key=lambda x: datetime.strptime(x.split('_', 1)[1].rsplit('.', 1)[0], '%Y_%m_%d-%H_%M_%S'), reverse=True)
+            self.logger.info("Files sorted by date.")
+
+            # Return the latest file
+            latest_file = files[0] if files else None
+            self.logger.info(f"Latest file: {latest_file}")
+
+            # Read the file and return the code
+            if latest_file:
+                with open(latest_file, "r") as code_file:
+                    code = code_file.read()
+                    return code
+
+        except Exception as exception:
+            self.logger.error(f"Error in reading last code history: {str(exception)}")
+            raise
+
+    def display_help(self):
+        display_markdown_message("Interpreter - v1.7\n\
+                \n\
+                Commands available:\n\
+                \n\
+                /exit - Exit the interpreter.\n\
+                /execute - Execute the last code generated.\n\
+                /install - Install a package from npm or pip.\n\
+                /mode - Change the mode of interpreter.\n\
+                /model - Change the model for interpreter.\n\
+                /language - Change the language of the interpreter.\n\
+                /clear - Clear the screen.\n\
+                /help - Display this help message.\n\
+                /version - Display the version of the interpreter.\n")
+    
+    def display_version(self,version):
+        display_markdown_message(f"Interpreter - {version}")
+
+    def clear_screen(self):
+        os.system('cls' if os.name == 'nt' else 'clear')

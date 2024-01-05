@@ -203,9 +203,27 @@ class Interpreter:
         ]
         return messages
     
+    def process_command_run_code(self,os_name,language='python'):
+        try:
+            latest_code = self.utility_manager.get_last_code_history(self.INTERPRETER_LANGUAGE)
+                
+            display_code(latest_code)
+            # Execute the code if the user has selected.
+            code_output, code_error = self.execute_code(latest_code, os_name)
+            if code_output:
+                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+                display_code(code_output)
+                self.logger.info(f"Output: {code_output[:100]}")
+            elif code_error:
+                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+                display_markdown_message(f"Error: {code_error}")
+        except Exception as exception:
+            self.logger.error(f"Error in processing command run code: {str(exception)}")
+            raise
+
     def generate_text(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
-        self.logger.debug("Generating code.")
-        
+        self.logger.info(f"Generating code with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
+
         # Use the values from the config file if they are provided
         if config_values:
             temperature = float(config_values.get('temperature', temperature))
@@ -310,12 +328,16 @@ class Interpreter:
 
     def get_mode_prompt(self, task, os_name):
         if self.CODE_MODE:
+            self.logger.info("Getting code prompt.")
             return self.get_code_prompt(task, os_name)
         elif self.SCRIPT_MODE:
+            self.logger.info("Getting script prompt.")
             return self.get_script_prompt(task, os_name)
         elif self.COMMAND_MODE:
+            self.logger.info("Getting command prompt.")
             return self.get_command_prompt(task, os_name)
         elif self.VISION_MODE:
+            self.logger.info("Getting vision prompt.")
             return self.handle_vision_mode(task)
 
     def execute_code(self, extracted_code, os_name):
@@ -367,14 +389,101 @@ class Interpreter:
         
         while True:
             try:
+                # Main input prompt - System and Assistant.
                 task = input("> ")
-                if task.lower() in ['exit', 'quit']:
+
+                # Process the task.
+                # Command without arguments.
+                if task.lower() in ['/exit', '/quit']:
                     break
-                prompt = self.get_mode_prompt(task, os_name)
                 
+                # HELP - Command section.
+                elif task.lower() in ['/help','/h']:
+                    self.utility_manager.display_help()
+                    continue
+                
+                # CLEAR - Command section.
+                elif task.lower() in ['/clear','/cls']:
+                    self.utility_manager.clear_screen()
+                    continue
+
+                # VERSION - Command section.
+                elif task.lower() in ['/version','/v']:
+                    self.utility_manager.display_version(self.interpreter_version)
+                    continue
+                
+                # EXECUTE - Command section.
+                elif task.lower() in ['/execute','/e']:
+                    self.process_command_run_code(os_name,self.INTERPRETER_LANGUAGE)
+                    continue
+                
+                # MODE - Command section.
+                elif any(command in task.lower() for command in ['/mode ', '/md ']):
+                    mode = task.split(' ')[1]
+                    if mode:
+                        if not mode.lower() in ['code','script','command','vision']:
+                            mode = 'code'
+                            display_markdown_message(f"The input mode is not supported. Mode changed to {mode}")
+                        else:
+                            modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE'}
+
+                            self.INTERPRETER_MODE = mode.lower()
+
+                            for key in modes:
+                                if self.INTERPRETER_MODE == key:
+                                    setattr(self, modes[key], True)
+                                else:
+                                    setattr(self, modes[key], False)
+                            display_markdown_message(f"Mode changed to '{self.INTERPRETER_MODE}'")
+                    continue
+
+                # MODEL - Command section.
+                elif any(command in task.lower() for command in ['/model ', '/m ']):
+                    model = task.split(' ')[1]
+                    if model:
+                        model_config_file = f"configs/{model}.config"
+                        if not os.path.isfile(model_config_file):
+                            display_markdown_message(f"Model {model} does not exists. Please check the model name.")
+                            continue
+                        else:
+                            self.INTERPRRETER_MODEL = model
+                            display_markdown_message(f"Model changed to '{self.INTERPRRETER_MODEL}'")
+                            self.initialize_client() # Reinitialize the client with new model.
+                    continue
+                
+                # LANGUAGE - Command section.
+                elif any(command in task.lower() for command in ['/language', '/l']):
+                    split_task = task.split(' ')
+                    if len(split_task) > 1:
+                        language = split_task[1]
+                        if language:
+                            self.INTERPRETER_LANGUAGE = language
+                            if not language in ['python','javascript']:
+                                self.INTERPRETER_LANGUAGE = 'python'
+                                display_markdown_message(f"The input language is not supported. Language changed to {self.INTERPRETER_LANGUAGE}")
+                            display_markdown_message(f"Language changed to '{self.INTERPRETER_LANGUAGE}'")
+                    continue
+                
+                # INSTALL - Command section.
+                elif any(command in task.lower() for command in ['/install', '/i']):
+                    # get the package name after the command 
+                    package_name = task.split(' ')[1]
+                    if package_name:
+                        self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
+                        self.package_installer.install_package(package_name, self.INTERPRETER_LANGUAGE)
+                    continue
+
+                
+                # Get the prompt based on the mode.
+                else:
+                    prompt = self.get_mode_prompt(task, os_name)
+
                 # Clean the responses
                 self._clean_responses()
                 
+                # Print Model and Mode information.
+                self.logger.info(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRRETER_MODEL}")
+
                 # Check if prompt contains any file uploaded by user.
                 extracted_file_name = self.utility_manager.extract_file_name(prompt)
                 self.logger.info(f"Input prompt extracted_name: '{extracted_file_name}'")
@@ -508,14 +617,14 @@ class Interpreter:
                             self.package_installer.install_package(package_name, self.INTERPRETER_LANGUAGE)
 
                             # Wait and Execute the code again.
-                            time.sleep(10)
+                            time.sleep(3)
                             code_output, code_error = self.execute_code(extracted_code, os_name)
                             if code_output:
                                 self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
                                 display_code(code_output)
                                 self.logger.info(f"Output: {code_output[:100]}")
                             elif code_error:
-                                self.logger.info(f"Python code executed with error.")
+                                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
                                 display_markdown_message(f"Error: {code_error}")
                             
                     try:
