@@ -178,7 +178,7 @@ class UtilityManager:
             raise
 
     def display_help(self):
-        display_markdown_message("Interpreter - v1.7\n\
+        display_markdown_message("Interpreter\n\
                 \n\
                 Commands available:\n\
                 \n\

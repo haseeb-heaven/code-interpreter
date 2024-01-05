@@ -123,6 +123,8 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 - 📜 Command History: It has the ability to save all the commands as history.
 
+- 📜 Command Mode: Commands entered with '/' are executed as commands like `/execute` or `/clear`.
+
 - 🔄 Mode Selection: It allows you to select the mode of operation. You can choose from `code` for generating code, `script` for generating shell scripts, or `command` for generating single line commands.
 
 - 🧠 Model Selection: You can set the model for code generation. By default, it uses the `code-llama` model.
@@ -189,6 +191,19 @@ python interpreter.py -m 'gemini-pro' -md 'code'
 ```python
 python interpreter.py -m 'gemini-pro' -md 'vision'
 ```
+# Interpreter Commands 🖥️
+
+Here are the available commands:
+
+- 🚪 `/exit` - Exit the interpreter.
+- ▶️ `/execute` - Execute the last code generated.
+- 📦 `/install` - Install a package from npm or pip.
+- 🔄 `/mode` - Change the mode of interpreter.
+- 🔄 `/model` - Change the model for interpreter.
+- 🌐 `/language` - Change the language of the interpreter.
+- 🧹 `/clear` - Clear the screen.
+- 🆘 `/help` - Display this help message.
+- 📝 `/version` - Display the version of the interpreter.
 
 
 ## 📖 **Examples**
@@ -278,6 +293,7 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 🎉 **v1.5** - Added **GPT 3.5/4** models official Support.</br>
 📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**,**XML**).</br>
 🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.</br>
+🌴 **v1.8** - Added **Interpreter Commands Support**.</br>
 
 ## 📜 **License**
 
