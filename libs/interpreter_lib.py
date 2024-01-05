@@ -20,7 +20,7 @@ from libs.code_interpreter import CodeInterpreter
 from litellm import completion
 from libs.logger import initialize_logger
 from libs.markdown_code import display_code, display_markdown_message
-from libs.package_installer import PackageInstaller
+from libs.package_manager import PackageManager
 from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
         
@@ -34,7 +34,7 @@ class Interpreter:
         self.history = []
         self.utility_manager = UtilityManager()
         self.code_interpreter = CodeInterpreter()
-        self.package_installer = PackageInstaller()
+        self.package_installer = PackageManager()
         self.logger = initialize_logger("logs/interpreter.log")
         self.client = None
         self.config_values = None
@@ -83,7 +83,7 @@ class Interpreter:
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
 
-        if self.INTERPRETER_MODE == 'Vision':
+        if self.INTERPRETER_MODE == 'vision':
             self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
         else:
             # Open file system_message.txt to a variable system_message
@@ -205,7 +205,7 @@ class Interpreter:
     
     def process_command_run_code(self,os_name,language='python'):
         try:
-            latest_code = self.utility_manager.get_last_code_history(self.INTERPRETER_LANGUAGE)
+            latest_code = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
                 
             display_code(latest_code)
             # Execute the code if the user has selected.
@@ -256,7 +256,7 @@ class Interpreter:
         # Check if the model is Gemini Pro
         elif 'gemini' in self.INTERPRRETER_MODEL:
 
-            if self.INTERPRETER_MODE == 'Vision':
+            if self.INTERPRETER_MODE == 'vision':
                 # Import Gemini Vision only if the model is Gemini Pro Vision.
                 try:
                     from libs.gemini_vision import GeminiVision
@@ -342,7 +342,7 @@ class Interpreter:
 
     def execute_code(self, extracted_code, os_name):
         # If the interpreter mode is Vision, do not execute the code.
-        if self.INTERPRETER_MODE == 'Vision':
+        if self.INTERPRETER_MODE == 'vision':
             return None, None
         
         execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
@@ -370,11 +370,11 @@ class Interpreter:
 
         # Seting the mode.
         if self.SCRIPT_MODE:
-            self.INTERPRETER_MODE = 'Script'
+            self.INTERPRETER_MODE = 'script'
         elif self.COMMAND_MODE:
-            self.INTERPRETER_MODE = 'Command'
+            self.INTERPRETER_MODE = 'command'
         elif self.VISION_MODE:
-            self.INTERPRETER_MODE = 'Vision'
+            self.INTERPRETER_MODE = 'vision'
 
         start_sep = str(self.config_values.get('start_sep', '```'))
         end_sep = str(self.config_values.get('end_sep', '```'))
@@ -562,7 +562,7 @@ class Interpreter:
                 generated_output = self.generate_text(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
                 
                 # No extra processing for Vision mode.
-                if self.INTERPRETER_MODE == 'Vision':
+                if self.INTERPRETER_MODE == 'vision':
                     display_markdown_message(f"{generated_output}")
                     continue
 

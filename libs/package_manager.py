@@ -4,7 +4,7 @@ import logging
 
 import requests
 
-class PackageInstaller:
+class PackageManager:
     def __init__(self):
         self.pip_command = "pip"
         self.pip3_command = "pip3"

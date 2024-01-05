@@ -148,7 +148,7 @@ class UtilityManager:
             self.logger.error("CSV file is empty.")
             return []
 
-    def get_last_code_history(self, language='python'):
+    def get_code_history(self, language='python'):
         try:
             self.logger.info("Starting to read last code history.")
             output_folder = "output"
