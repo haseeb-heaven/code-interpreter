@@ -18,7 +18,6 @@ import time
 import webbrowser
 from libs.code_interpreter import CodeInterpreter
 from litellm import completion
-from libs.gemini_vision import GeminiVision
 from libs.logger import initialize_logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_installer import PackageInstaller
@@ -40,7 +39,7 @@ class Interpreter:
         self.client = None
         self.config_values = None
         self.system_message = ""
-        self.gemini_vision = GeminiVision()
+        self.gemini_vision = None
         self.initialize()
 
     def _open_resource_file(self,filename):
@@ -216,10 +215,6 @@ class Interpreter:
         # Get the system prompt
         messages = self.get_prompt(message, chat_history)
         
-         # Call the completion function
-        if 'huggingface/' not in self.INTERPRRETER_MODEL and 'gpt' not in self.INTERPRRETER_MODEL and 'palm' not in self.INTERPRRETER_MODEL and 'gemini' not in self.INTERPRRETER_MODEL:
-            self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
-
         # Check if the model is GPT 3.5/4
         if 'gpt' in self.INTERPRRETER_MODEL:
             self.logger.info("Model is GPT 3.5/4.")
@@ -248,6 +243,15 @@ class Interpreter:
             self.logger.info("Response received from completion function.")
         
         elif 'gemini-pro-vision' in self.INTERPRRETER_MODEL:
+            
+            # Import Gemini Vision only if the model is Gemini Pro Vision.
+            try:
+                from libs.gemini_vision import GeminiVision
+                self.gemini_vision = GeminiVision()
+            except Exception as exception:
+                self.logger.error(f"Error importing Gemini Vision: {exception}")
+                raise
+
             self.logger.info("Model is Gemini Pro Vision.")
             response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=file)
             self.logger.info("Response received from completion function.")
@@ -255,6 +259,7 @@ class Interpreter:
 
         # Check if model are from Hugging Face.
         else:
+            self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
             self.logger.info(f"Model is from Hugging Face. {self.INTERPRRETER_MODEL}")
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")

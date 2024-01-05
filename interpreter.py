@@ -5,7 +5,7 @@ It handles command line arguments and initializes the Interpreter.
 Command line arguments:
 --exec, -e: Executes the code generated from the user's instructions.
 --save_code, -s: Saves the generated code.
---mode, -md: Selects the mode of operation. Choices are 'code', 'script', and 'command'.
+--mode, -md: Selects the mode of operation. Choices are 'code', 'script', and 'command' and 'vision'.
 --model, -m: Sets the model for code generation. Default is 'code-llama'.
 --version, -v: Displays the version of the program.
 --lang, -l: Sets the interpreter language. Default is 'python'.
@@ -39,11 +39,24 @@ def main():
         # Create an instance of the Interpreter class and call the main method.
         interpreter = Interpreter(args)
         interpreter.interpreter_main()
-
 if __name__ == "__main__":
     try:
         main()
     except SystemExit:
         pass  # Ignore the SystemExit exception caused by --version argument
-    except:
-        traceback.print_exc()
+    except Exception as exception:
+
+        # Print a meaningful error message if the interpreter is not setup properly.
+        if "check your .env file" in str(exception):
+            print("Interpreter is not setup properly. Please follow these steps \
+to setup the interpreter:\n\
+1. Create a .env file in the root directory of the project.\n\
+2. Add the following line to the .env file:\n\
+GEMINI_API_KEY=<your api key>\n\
+OPENIA_API_KEY=<your api key>\n\
+3. Replace <your api key> with your OpenAI/Gemini API key.\n\
+4. Run the interpreter again.")
+            
+        else:
+            print(f"An error occurred: {exception}")
+            traceback.print_exc()

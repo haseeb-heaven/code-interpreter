@@ -1,9 +1,17 @@
-beautifulsoup4
-litellm
-Pygments
-pyreadline
-python-dotenv
-Requests
+# Libraries for code interpretation and execution
+litellm  
+Pygments 
+pyreadline 
+python-dotenv 
+
+# Libraries for making HTTP requests
+Requests 
 rich
-google-generativeai
-pillow
+
+# Libraries for image processing
+pillow  # A library for image processing in Python
+
+# Libraries for data analysis
+pandas
+matplotlib
+plotly
