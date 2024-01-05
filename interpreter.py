@@ -47,7 +47,7 @@ if __name__ == "__main__":
     except Exception as exception:
 
         # Print a meaningful error message if the interpreter is not setup properly.
-        if "check your .env file" in str(exception):
+        if ".env file" in str(exception):
             print("Interpreter is not setup properly. Please follow these steps \
 to setup the interpreter:\n\
 1. Create a .env file in the root directory of the project.\n\

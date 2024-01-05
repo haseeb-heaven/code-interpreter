@@ -391,7 +391,7 @@ class Interpreter:
             try:
                 # Main input prompt - System and Assistant.
                 task = input("> ")
-
+                
                 # Process the task.
                 # Command without arguments.
                 if task.lower() in ['/exit', '/quit']:
@@ -472,7 +472,6 @@ class Interpreter:
                         self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
                         self.package_installer.install_package(package_name, self.INTERPRETER_LANGUAGE)
                     continue
-
                 
                 # Get the prompt based on the mode.
                 else:
