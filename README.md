@@ -12,11 +12,11 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments.
+**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
 
 **Open-Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
 
-After processing your instructions, **Open-Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code.
+After processing your instructions, **Open-Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code and now with **Vision Models** it can also process images and videos.
 
 Designed with versatility in mind, **Open-Code-Interpreter** works seamlessly on every operating system, including _Windows, MacOS, and Linux_. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
 
@@ -32,7 +32,8 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - 🔗 ~~We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)~~. Added Support for [**LiteLLM**](https://litellm.ai/)
 - 🤖 More **Hugging Face** models with free-tier.
 - 💻 Support for more **Operating Systems**.
-
+- 📝 Support for **Multi-Modal** for _Text_ and _Vision_.
+- 📊 Support for **Google** and **OpenAI** Vision Models.
 
 ## **Table of Contents**
 - [Features](#🌟-features)
@@ -260,13 +261,14 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 
 ## 📌 **Versioning**
 
-🚀 ***v1.0*** - Initial release.</br>
-📊 ***v1.1*** - Added **Graphs** and **Charts** support.</br>
-🔥 ***v1.2*** - Added **LiteLLM** Support.</br>
-🌟 ***v1.3*** - Added **GPT 3.5** Support.</br>
-🌴 ***v1.4*** - Added **PALM 2** Support.</br>
-🎉 ***v1.5*** - Added **GPT 3.5/4** models official Support.</br>
-📝 ***v1.6*** - Updated Code Interpreter for Documents files (***JSON***, ***CSV***,***XML***).</br>
+🚀 **v1.0** - Initial release.</br>
+📊 **v1.1** - Added **Graphs** and **Charts** support.</br>
+🔥 **v1.2** - Added **LiteLLM** Support.</br>
+🌟 **v1.3** - Added **GPT 3.5** Support.</br>
+🌴 **v1.4** - Added **PALM 2** Support.</br>
+🎉 **v1.5** - Added **GPT 3.5/4** models official Support.</br>
+📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**,**XML**).</br>
+🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.</br>
 
 ## 📜 **License**
 
