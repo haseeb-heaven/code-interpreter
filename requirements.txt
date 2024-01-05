@@ -5,3 +5,5 @@ pyreadline
 python-dotenv
 Requests
 rich
+google-generativeai
+pillow
