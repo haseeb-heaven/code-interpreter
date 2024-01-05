@@ -104,8 +104,8 @@ class UtilityManager:
             raise
 
     def extract_file_name(self, prompt):
-        # This pattern looks for typical file paths and names, then stops at the end of the extension
-        pattern = r"([a-zA-Z]:\\(?:[\w\-\.]+\\)*[\w\-\.]+\.\w+|/(?:[\w\-\.]+/)*[\w\-\.]+\.\w+|\b[\w\-\.]+\.\w+\b)"
+        # This pattern looks for typical file paths, names, and URLs, then stops at the end of the extension
+        pattern = r"((?:[a-zA-Z]:\\(?:[\w\-\.]+\\)*|/(?:[\w\-\.]+/)*|\b[\w\-\.]+\b|https?://[\w\-\.]+/[\w\-\.]+/)*[\w\-\.]+\.\w+)"
         match = re.search(pattern, prompt)
 
         # Return the matched file name or path, if any match found
@@ -115,7 +115,7 @@ class UtilityManager:
             self.logger.info(f"File extension: '{file_extension}'")
             # Check if the file extension is one of the non-binary types
             if file_extension in ['.json', '.csv', '.xml', '.xls', '.txt','.md','.html','.png','.jpg','.jpeg','.gif','.svg']:
-                self.logger.info(f"File name: '{file_name}'")
+                self.logger.info(f"Extracted File name: '{file_name}'")
                 return file_name
             else:
                 return None

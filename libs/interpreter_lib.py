@@ -203,7 +203,7 @@ class Interpreter:
         ]
         return messages
     
-    def generate_text(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,file=None):
+    def generate_text(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
         self.logger.debug("Generating code.")
         
         # Use the values from the config file if they are provided
@@ -248,7 +248,21 @@ class Interpreter:
                     raise
 
                 self.logger.info("Model is Gemini Pro Vision.")
-                response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=file)
+                response = None
+
+                # Check if image_file is valid.
+                if not image_file:
+                    self.logger.error("Image file is not valid or Corrupted.")
+                    raise ValueError("Image file is not valid or Corrupted.")
+                
+                # Check if image contains URL.
+                if 'http' in image_file or 'https' in image_file or 'www.' in image_file:
+                    self.logger.info("Image contains URL.")
+                    response = self.gemini_vision.gemini_vision_url(prompt=messages,image_url=image_file)
+                else:
+                    self.logger.info("Image contains file.")
+                    response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=image_file)
+                
                 self.logger.info("Response received from completion function.")
                 return response # Return the response from Gemini Vision because its not coding model.
             else:
@@ -362,54 +376,58 @@ class Interpreter:
                 self._clean_responses()
                 
                 # Check if prompt contains any file uploaded by user.
-                extracted_name = self.utility_manager.extract_file_name(prompt)
-                self.logger.info(f"Input prompt extracted_name: '{extracted_name}'")
+                extracted_file_name = self.utility_manager.extract_file_name(prompt)
+                self.logger.info(f"Input prompt extracted_name: '{extracted_file_name}'")
 
-                if extracted_name is not None:
-                    full_path = self.utility_manager.get_full_file_path(extracted_name)
+                if extracted_file_name is not None:
+                    full_path = self.utility_manager.get_full_file_path(extracted_file_name)
                     self.logger.info(f"Input prompt full_path: '{full_path}'")
                     
-
-                    # Check if the file exists and is a file
-                    if os.path.isfile(full_path):
-                        # Check if file size is less than 50 KB
-                        file_size_max = 50000
-                        file_size = os.path.getsize(full_path)
-                        self.logger.info(f"Input prompt file_size: '{file_size}'")
-                        if file_size < file_size_max:
-                            try:
-                                with open(full_path, 'r', encoding='utf-8') as file:
-                                    # Check if file extension is .json, .csv, or .xml
-                                    file_extension = os.path.splitext(full_path)[1].lower()
-                                    
-                                    if file_extension in ['.json','.xml']:
-                                        # Split by new line and read only 20 lines
-                                        file_data = '\n'.join(file.readline() for _ in range(20))
-                                        self.logger.info(f"Input prompt JSON/XML file_data: '{str(file_data)}'")
-                                        
-                                    elif file_extension == '.csv':
-                                        # Read only headers of the csv file
-                                        file_data = self.utility_manager.read_csv_headers(full_path)
-                                        self.logger.info(f"Input prompt CSV file_data: '{str(file_data)}'")
-                                        
-                                    else:
-                                        file_data = file.read()
-                                        self.logger.info(f"Input prompt file_data: '{str(file_data)}'")
-                                        
-                                    if any(word in prompt.lower() for word in ['graph', 'graphs', 'chart', 'charts']):
-                                        prompt += "\n" + "This is file data from user input: " + str(file_data) + " use this to analyze the data."
-                                        self.logger.info(f"Input Prompt: '{prompt}'")
-                                    else:
-                                        self.logger.info("The prompt does not contain both 'graph' and 'chart'.")
-                            except Exception as exception:
-                                self.logger.error(f"Error reading file: {exception}")
-                        else:
-                            self.logger.error("File size is greater.")
+                    # Check if image contains URL.
+                    if 'http' in extracted_file_name or 'https' in extracted_file_name or 'www.' in extracted_file_name:
+                        self.logger.info("Image contains URL Skipping the file processing.")
+                    
                     else:
-                        self.logger.error("File does not exist or is not a file.")                         
+                        # Check if the file exists and is a file
+                        if os.path.isfile(full_path):
+                            # Check if file size is less than 50 KB
+                            file_size_max = 50000
+                            file_size = os.path.getsize(full_path)
+                            self.logger.info(f"Input prompt file_size: '{file_size}'")
+                            if file_size < file_size_max:
+                                try:
+                                    with open(full_path, 'r', encoding='utf-8') as file:
+                                        # Check if file extension is .json, .csv, or .xml
+                                        file_extension = os.path.splitext(full_path)[1].lower()
+                                        
+                                        if file_extension in ['.json','.xml']:
+                                            # Split by new line and read only 20 lines
+                                            file_data = '\n'.join(file.readline() for _ in range(20))
+                                            self.logger.info(f"Input prompt JSON/XML file_data: '{str(file_data)}'")
+                                            
+                                        elif file_extension == '.csv':
+                                            # Read only headers of the csv file
+                                            file_data = self.utility_manager.read_csv_headers(full_path)
+                                            self.logger.info(f"Input prompt CSV file_data: '{str(file_data)}'")
+                                            
+                                        else:
+                                            file_data = file.read()
+                                            self.logger.info(f"Input prompt file_data: '{str(file_data)}'")
+                                            
+                                        if any(word in prompt.lower() for word in ['graph', 'graphs', 'chart', 'charts']):
+                                            prompt += "\n" + "This is file data from user input: " + str(file_data) + " use this to analyze the data."
+                                            self.logger.info(f"Input Prompt: '{prompt}'")
+                                        else:
+                                            self.logger.info("The prompt does not contain both 'graph' and 'chart'.")
+                                except Exception as exception:
+                                    self.logger.error(f"Error reading file: {exception}")
+                            else:
+                                self.logger.error("File size is greater.")
+                        else:
+                            self.logger.error("File does not exist or is not a file.")                         
                 else:
                     self.logger.info("No file name found in the prompt.")
-                
+            
                 # If graph were requested.
                 if any(word in prompt.lower() for word in ['graph', 'graphs']):
                     if self.INTERPRETER_LANGUAGE == 'python':
@@ -433,7 +451,7 @@ class Interpreter:
                  
                 # Start the LLM Request.     
                 self.logger.info(f"Prompt: {prompt}")
-                generated_output = self.generate_text(prompt, self.history, config_values=self.config_values,file=extracted_name)
+                generated_output = self.generate_text(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
                 
                 # No extra processing for Vision mode.
                 if self.INTERPRETER_MODE == 'Vision':
