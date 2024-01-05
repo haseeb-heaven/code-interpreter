@@ -83,7 +83,7 @@ class Interpreter:
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
 
-        if self.INTERPRETER_MODE == 'Vision':
+        if self.INTERPRETER_MODE == 'vision':
             self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
         else:
             # Open file system_message.txt to a variable system_message
@@ -205,7 +205,8 @@ class Interpreter:
     
     def generate_text(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
         self.logger.debug("Generating code.")
-        
+        response = None
+        self.logger.info(f"Config values: {config_values}")
         # Use the values from the config file if they are provided
         if config_values:
             temperature = float(config_values.get('temperature', temperature))
@@ -238,7 +239,7 @@ class Interpreter:
         # Check if the model is Gemini Pro
         elif 'gemini' in self.INTERPRRETER_MODEL:
 
-            if self.INTERPRETER_MODE == 'Vision':
+            if self.INTERPRETER_MODE == 'vision' and image_file is not None:
                 # Import Gemini Vision only if the model is Gemini Pro Vision.
                 try:
                     from libs.gemini_vision import GeminiVision
@@ -249,11 +250,6 @@ class Interpreter:
 
                 self.logger.info("Model is Gemini Pro Vision.")
                 response = None
-
-                # Check if image_file is valid.
-                if not image_file:
-                    self.logger.error("Image file is not valid or Corrupted.")
-                    raise ValueError("Image file is not valid or Corrupted.")
                 
                 # Check if image contains URL.
                 if 'http' in image_file or 'https' in image_file or 'www.' in image_file:
@@ -265,13 +261,30 @@ class Interpreter:
                 
                 self.logger.info("Response received from completion function.")
                 return response # Return the response from Gemini Vision because its not coding model.
-            else:
+            
+            elif self.INTERPRETER_MODE != 'vision' and image_file is None:
                 self.logger.info("Model is Gemini Pro.")
                 self.INTERPRRETER_MODEL = "gemini/gemini-pro"
                 response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature)
                 self.logger.info("Response received from completion function.")
-            
-
+            else:
+                self.logger.info(f"Interpreter mode is {self.INTERPRETER_MODE} and image_file is {image_file}")
+                if self.INTERPRETER_MODE == 'code':
+                    self.INTERPRETER_MODE = 'vision'
+                    self.VISION_MODE = True
+                    self.CODE_MODE = self.COMMAND_MODE = self.SCRIPT_MODE = False
+                    self.logger.info("Changing the Gemini mode to Vision.")
+                    self.logger.info(f"And messages are {messages}")
+                    display_markdown_message("Switching Gemini Pro **Code** mode to **Vision** mode.")
+                elif self.INTERPRETER_MODE == 'vision':
+                    self.INTERPRETER_MODE = 'code'
+                    self.CODE_MODE = True
+                    self.VISION_MODE = self.COMMAND_MODE = self.SCRIPT_MODE = False
+                    self.logger.info("Changing the Gemini mode to code.")
+                    self.logger.info(f"And messages are {messages}")
+                    display_markdown_message("Switching Gemini Pro **Vision** mode to **Code** mode.")
+                return None # Return None because the mode is changed.
+                
         # Check if model are from Hugging Face.
         else:
             # Add huggingface/ if not present in the model name.
@@ -282,10 +295,12 @@ class Interpreter:
             response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
-        self.logger.info(f"Generated text {response}")
-        generated_text = self._extract_content(response)
-        self.logger.info(f"Generated content {generated_text}")
-        return generated_text
+        if response:
+            self.logger.info(f"Generated text {response}")
+            generated_text = self._extract_content(response)
+            self.logger.info(f"Generated content {generated_text}")
+            return generated_text
+        return response
 
     def get_code_prompt(self, task, os_name):
         prompt = f"Generate the code in {self.INTERPRETER_LANGUAGE} language for this task '{task} for Operating System: {os_name}'."
@@ -320,7 +335,7 @@ class Interpreter:
 
     def execute_code(self, extracted_code, os_name):
         # If the interpreter mode is Vision, do not execute the code.
-        if self.INTERPRETER_MODE == 'Vision':
+        if self.INTERPRETER_MODE == 'vision':
             return None, None
         
         execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
@@ -348,11 +363,11 @@ class Interpreter:
 
         # Seting the mode.
         if self.SCRIPT_MODE:
-            self.INTERPRETER_MODE = 'Script'
+            self.INTERPRETER_MODE = 'script'
         elif self.COMMAND_MODE:
-            self.INTERPRETER_MODE = 'Command'
+            self.INTERPRETER_MODE = 'command'
         elif self.VISION_MODE:
-            self.INTERPRETER_MODE = 'Vision'
+            self.INTERPRETER_MODE = 'vision'
 
         start_sep = str(self.config_values.get('start_sep', '```'))
         end_sep = str(self.config_values.get('end_sep', '```'))
@@ -452,9 +467,14 @@ class Interpreter:
                 # Start the LLM Request.     
                 self.logger.info(f"Prompt: {prompt}")
                 generated_output = self.generate_text(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
-                
+
+                # Check if the generated output is None.
+                if generated_output is None:
+                    self.logger.info(f"Generated output is None.")
+                    continue
+
                 # No extra processing for Vision mode.
-                if self.INTERPRETER_MODE == 'Vision':
+                if self.INTERPRETER_MODE == 'vision':
                     display_markdown_message(f"{generated_output}")
                     continue
 
