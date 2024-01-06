@@ -1,1 +1,0 @@
-[{"Assistant": {"Task": "how many files in current directory?", "Mode": "Command", "OS": "MacOS", "Language": "python", "Model": "gpt-3.5-turbo"}, "User": "Generate the single terminal command for this task 'how many files in current directory? for Operating System is MacOS'.", "System": "shell\nls -l | grep -c '^-' "}]
