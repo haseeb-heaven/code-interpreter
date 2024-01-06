@@ -34,14 +34,16 @@ class Interpreter:
         self.history = []
         self.utility_manager = UtilityManager()
         self.code_interpreter = CodeInterpreter()
-        self.package_installer = PackageManager()
-        self.logger = initialize_logger("logs/interpreter.log")
+        self.package_manager = PackageManager()
         self.client = None
         self.config_values = None
         self.system_message = ""
         self.gemini_vision = None
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logs_file_path = os.path.join(self.base_dir, 'logs', 'interpreter.log')
+        self.logger = initialize_logger(logs_file_path)
         self.initialize()
-
+        
     def _open_resource_file(self,filename):
         try:
             if os.path.isfile(filename):
@@ -51,7 +53,7 @@ class Interpreter:
                     subprocess.call(['open', filename])
                 elif platform.system() == "Linux":
                     subprocess.call(['xdg-open', filename])
-                self.logger.info(f"{filename} exists and opened successfully")
+                print(f"{filename} exists and opened successfully")
         except Exception as exception:
             display_markdown_message(f"Error in opening files: {str(exception)}")
 
@@ -61,7 +63,7 @@ class Interpreter:
             try:
                 if os.path.isfile(file):
                     os.remove(file)
-                    self.logger.info(f"{file} removed successfully")
+                    print(f"{file} removed successfully")
             except Exception as e:
                 print(f"Error in removing {file}: {str(e)}")
     
@@ -77,9 +79,9 @@ class Interpreter:
         self.SAVE_CODE = self.args.save_code
         self.EXECUTE_CODE = self.args.exec
         self.DISPLAY_CODE = self.args.display_code
-        self.INTERPRRETER_MODEL = self.args.model if self.args.model else None
-        self.logger.info(f"Interpreter args model selected is '{self.args.model}")
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRRETER_MODEL}")
+        self.INTERPRETER_MODEL = self.args.model if self.args.model else None
+        print(f"Interpreter args model selected is '{self.args.model}")
+        print(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
 
@@ -88,12 +90,11 @@ class Interpreter:
         else:
             # Open file system_message.txt to a variable system_message
             try:
-                base_dir = os.path.dirname(os.path.abspath(__file__))
-                file_path = os.path.join(base_dir, 'system', 'system_message.txt')
+                file_path = os.path.join(self.base_dir, 'system', 'system_message.txt')
                 with open(file_path, 'r') as file:
                     self.system_message = file.read()
                     if self.system_message != "":
-                        self.logger.info(f"System message read successfully")
+                        print(f"System message read successfully")
             except Exception as exception:
                 self.logger.error(f"Error occurred while reading system_message.txt: {str(exception)}")
                 raise
@@ -110,25 +111,25 @@ class Interpreter:
     def initialize_client(self):
         load_dotenv()
         hf_model_name = ""
-        self.logger.info("Initializing Client")
+        print("Initializing Client")
         
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRRETER_MODEL}")
-        if self.INTERPRRETER_MODEL is None or self.INTERPRRETER_MODEL == "":
-            self.logger.info("HF_MODEL is not provided, using default model.")
-            self.INTERPRRETER_MODEL = self.INTERPRRETER_MODEL
-            hf_model_name = self.INTERPRRETER_MODEL.strip().split("/")[-1]
-            config_file_name = f"configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
+        print(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
+        if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
+            print("HF_MODEL is not provided, using default model.")
+            self.INTERPRETER_MODEL = self.INTERPRETER_MODEL
+            hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
+            config_file_name = os.path.join(self.base_dir, 'configs', 'gpt-3.5-turbo.config')  # Setting default model to GPT 3.5 Turbo.
         else:
-            config_file_name = f"configs/{self.INTERPRRETER_MODEL}.config"
-        
-        self.logger.info(f"Reading config file {config_file_name}")    
+            config_file_name = os.path.join(self.base_dir, 'configs', f"{self.INTERPRETER_MODEL}.config")
+                
+        print(f"Reading config file {config_file_name}")    
         self.config_values = self.utility_manager.read_config_file(config_file_name)
-        self.INTERPRRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRRETER_MODEL))       
-        hf_model_name = self.INTERPRRETER_MODEL.strip().split("/")[-1]
+        self.INTERPRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRETER_MODEL))       
+        hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
         
-        self.logger.info(f"Using model {hf_model_name}")
+        print(f"Using model {hf_model_name}")
         
-        if "gpt" in self.INTERPRRETER_MODEL:
+        if "gpt" in self.INTERPRETER_MODEL:
             if os.getenv("OPENAI_API_KEY") is None:
                 load_dotenv()
             if os.getenv("OPENAI_API_KEY") is None:
@@ -148,16 +149,22 @@ class Interpreter:
         }
 
         for model, api_key_name in model_api_keys.items():
-            if model in self.INTERPRRETER_MODEL:
-                self.logger.info(f"User has agreed to terms and conditions of {model}")
+            if model in self.INTERPRETER_MODEL:
+                print(f"User has agreed to terms and conditions of {model}")
 
                 if os.getenv(api_key_name) is None:
+                    print(f"{api_key_name} loading from .env file.")
                     load_dotenv()
+
                 if os.getenv(api_key_name) is None:
                     # if there is no .env file, try to load from the current working directory
                     load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+                    print(f"{api_key_name} loading from current working directory.")
 
                 api_key = os.getenv(api_key_name)
+                if api_key:
+                    print(f"{api_key_name} loaded successfully from global environment.")
+
                 # Validate the token
                 if not api_key:
                     raise Exception(f"{api_key_name} not found in .env file.")
@@ -166,12 +173,17 @@ class Interpreter:
         else:
             if os.getenv("HUGGINGFACE_API_KEY") is None:
                 load_dotenv()
+                print(f"HUGGINGFACE_API_KEY loading from .env file.")
+
             if os.getenv("HUGGINGFACE_API_KEY") is None:
                 # if there is no .env file, try to load from the current working directory
                 load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+                print(f"HUGGINGFACE_API_KEY loading from current working directory.")
                 
             # Read the token from the .env file
             hf_key = os.getenv('HUGGINGFACE_API_KEY')
+            print(f"HUGGINGFACE_API_KEY loaded successfully from global environment.")
+            
             if not hf_key:
                 raise Exception("HuggingFace token not found in .env file.")
             elif not hf_key.startswith('hf_'):
@@ -213,18 +225,18 @@ class Interpreter:
             # Execute the code if the user has selected.
             code_output, code_error = self.execute_code(latest_code, os_name)
             if code_output:
-                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+                print(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
                 display_code(code_output)
-                self.logger.info(f"Output: {code_output[:100]}")
+                print(f"Output: {code_output[:100]}")
             elif code_error:
-                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+                print(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
                 display_markdown_message(f"Error: {code_error}")
         except Exception as exception:
             self.logger.error(f"Error in processing command run code: {str(exception)}")
             raise
 
     def generate_text(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
-        self.logger.info(f"Generating code with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
+        print(f"Generating code with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
 
         # Use the values from the config file if they are provided
         if config_values:
@@ -236,27 +248,27 @@ class Interpreter:
         messages = self.get_prompt(message, chat_history)
         
         # Check if the model is GPT 3.5/4
-        if 'gpt' in self.INTERPRRETER_MODEL:
-            self.logger.info("Model is GPT 3.5/4.")
+        if 'gpt' in self.INTERPRETER_MODEL:
+            print("Model is GPT 3.5/4.")
             if api_base != 'None':
                 # Set the custom language model provider
                 custom_llm_provider = "openai"
-                self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
-                response = completion(self.INTERPRRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+                print(f"Custom API mode selected for OpenAI, api_base={api_base}")
+                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
             else:
-                self.logger.info(f"Default API mode selected for OpenAI.")
-                response = completion(self.INTERPRRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
-            self.logger.info("Response received from completion function.")
+                print(f"Default API mode selected for OpenAI.")
+                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
+            print("Response received from completion function.")
                 
         # Check if the model is PALM-2
-        elif 'palm' in self.INTERPRRETER_MODEL:
-            self.logger.info("Model is PALM-2.")
-            self.INTERPRRETER_MODEL = "palm/chat-bison"
-            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-            self.logger.info("Response received from completion function.")
+        elif 'palm' in self.INTERPRETER_MODEL:
+            print("Model is PALM-2.")
+            self.INTERPRETER_MODEL = "palm/chat-bison"
+            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            print("Response received from completion function.")
         
         # Check if the model is Gemini Pro
-        elif 'gemini' in self.INTERPRRETER_MODEL:
+        elif 'gemini' in self.INTERPRETER_MODEL:
 
             if self.INTERPRETER_MODE == 'vision':
                 # Import Gemini Vision only if the model is Gemini Pro Vision.
@@ -267,7 +279,7 @@ class Interpreter:
                     self.logger.error(f"Error importing Gemini Vision: {exception}")
                     raise
 
-                self.logger.info("Model is Gemini Pro Vision.")
+                print("Model is Gemini Pro Vision.")
                 response = None
 
                 # Check if image_file is valid.
@@ -277,34 +289,34 @@ class Interpreter:
                 
                 # Check if image contains URL.
                 if 'http' in image_file or 'https' in image_file or 'www.' in image_file:
-                    self.logger.info("Image contains URL.")
+                    print("Image contains URL.")
                     response = self.gemini_vision.gemini_vision_url(prompt=messages,image_url=image_file)
                 else:
-                    self.logger.info("Image contains file.")
+                    print("Image contains file.")
                     response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=image_file)
                 
-                self.logger.info("Response received from completion function.")
+                print("Response received from completion function.")
                 return response # Return the response from Gemini Vision because its not coding model.
             else:
-                self.logger.info("Model is Gemini Pro.")
-                self.INTERPRRETER_MODEL = "gemini/gemini-pro"
-                response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature)
-                self.logger.info("Response received from completion function.")
+                print("Model is Gemini Pro.")
+                self.INTERPRETER_MODEL = "gemini/gemini-pro"
+                response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
+                print("Response received from completion function.")
             
 
         # Check if model are from Hugging Face.
         else:
             # Add huggingface/ if not present in the model name.
-            if 'huggingface/' not in self.INTERPRRETER_MODEL:
-                self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
+            if 'huggingface/' not in self.INTERPRETER_MODEL:
+                self.INTERPRETER_MODEL = 'huggingface/' + self.INTERPRETER_MODEL
             
-            self.logger.info(f"Model is from Hugging Face. {self.INTERPRRETER_MODEL}")
-            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-            self.logger.info("Response received from completion function.")
+            print(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
+            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            print("Response received from completion function.")
         
-        self.logger.info(f"Generated text {response}")
+        print(f"Generated text {response}")
         generated_text = self._extract_content(response)
-        self.logger.info(f"Generated content {generated_text}")
+        print(f"Generated content {generated_text}")
         return generated_text
 
     def get_code_prompt(self, task, os_name):
@@ -330,16 +342,16 @@ class Interpreter:
 
     def get_mode_prompt(self, task, os_name):
         if self.CODE_MODE:
-            self.logger.info("Getting code prompt.")
+            print("Getting code prompt.")
             return self.get_code_prompt(task, os_name)
         elif self.SCRIPT_MODE:
-            self.logger.info("Getting script prompt.")
+            print("Getting script prompt.")
             return self.get_script_prompt(task, os_name)
         elif self.COMMAND_MODE:
-            self.logger.info("Getting command prompt.")
+            print("Getting command prompt.")
             return self.get_command_prompt(task, os_name)
         elif self.VISION_MODE:
-            self.logger.info("Getting vision prompt.")
+            print("Getting vision prompt.")
             return self.handle_vision_mode(task)
 
     def execute_code(self, extracted_code, os_name):
@@ -366,7 +378,7 @@ class Interpreter:
 
     def interpreter_main(self):
         
-        self.logger.info(f"Code Interpreter - v{self.interpreter_version}")
+        print(f"Code Interpreter - v{self.interpreter_version}")
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
 
@@ -382,10 +394,10 @@ class Interpreter:
         end_sep = str(self.config_values.get('end_sep', '```'))
         skip_first_line = self.config_values.get('skip_first_line', 'False') == 'True'
         
-        self.logger.info(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
+        print(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
 
         # Display system and Assistant information.
-        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}' Model: '{self.INTERPRRETER_MODEL}'")
+        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}' Model: '{self.INTERPRETER_MODEL}'")
         display_markdown_message("Welcome to the **Interpreter**. I'm here to **assist** you with your everyday tasks. "
                                   "\nPlease enter your task and I'll do my best to help you out.")
         
@@ -443,13 +455,13 @@ class Interpreter:
                 elif any(command in task.lower() for command in ['/model ', '/m ']):
                     model = task.split(' ')[1]
                     if model:
-                        model_config_file = f"configs/{model}.config"
-                        if not os.path.isfile(model_config_file):
-                            display_markdown_message(f"Model {model} does not exists. Please check the model name.")
+                        configs_file_path = os.path.join(self.base_dir, 'configs', f"{model}.config")
+                        if not os.path.isfile(configs_file_path):
+                            display_markdown_message(f"Model {model} does not exist. Please check the model name.")
                             continue
                         else:
-                            self.INTERPRRETER_MODEL = model
-                            display_markdown_message(f"Model changed to '{self.INTERPRRETER_MODEL}'")
+                            self.INTERPRETER_MODEL = model
+                            display_markdown_message(f"Model changed to '{self.INTERPRETER_MODEL}'")
                             self.initialize_client() # Reinitialize the client with new model.
                     continue
                 
@@ -471,8 +483,8 @@ class Interpreter:
                     # get the package name after the command 
                     package_name = task.split(' ')[1]
                     if package_name:
-                        self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
-                        self.package_installer.install_package(package_name, self.INTERPRETER_LANGUAGE)
+                        print(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
+                        self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
                     continue
                 
                 # Get the prompt based on the mode.
@@ -483,19 +495,19 @@ class Interpreter:
                 self._clean_responses()
                 
                 # Print Model and Mode information.
-                self.logger.info(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRRETER_MODEL}")
+                print(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRETER_MODEL}")
 
                 # Check if prompt contains any file uploaded by user.
                 extracted_file_name = self.utility_manager.extract_file_name(prompt)
-                self.logger.info(f"Input prompt extracted_name: '{extracted_file_name}'")
+                print(f"Input prompt extracted_name: '{extracted_file_name}'")
 
                 if extracted_file_name is not None:
                     full_path = self.utility_manager.get_full_file_path(extracted_file_name)
-                    self.logger.info(f"Input prompt full_path: '{full_path}'")
+                    print(f"Input prompt full_path: '{full_path}'")
                     
                     # Check if image contains URL.
                     if 'http' in extracted_file_name or 'https' in extracted_file_name or 'www.' in extracted_file_name:
-                        self.logger.info("Image contains URL Skipping the file processing.")
+                        print("Image contains URL Skipping the file processing.")
                     
                     else:
                         # Check if the file exists and is a file
@@ -503,7 +515,7 @@ class Interpreter:
                             # Check if file size is less than 50 KB
                             file_size_max = 50000
                             file_size = os.path.getsize(full_path)
-                            self.logger.info(f"Input prompt file_size: '{file_size}'")
+                            print(f"Input prompt file_size: '{file_size}'")
                             if file_size < file_size_max:
                                 try:
                                     with open(full_path, 'r', encoding='utf-8') as file:
@@ -513,22 +525,22 @@ class Interpreter:
                                         if file_extension in ['.json','.xml']:
                                             # Split by new line and read only 20 lines
                                             file_data = '\n'.join(file.readline() for _ in range(20))
-                                            self.logger.info(f"Input prompt JSON/XML file_data: '{str(file_data)}'")
+                                            print(f"Input prompt JSON/XML file_data: '{str(file_data)}'")
                                             
                                         elif file_extension == '.csv':
                                             # Read only headers of the csv file
                                             file_data = self.utility_manager.read_csv_headers(full_path)
-                                            self.logger.info(f"Input prompt CSV file_data: '{str(file_data)}'")
+                                            print(f"Input prompt CSV file_data: '{str(file_data)}'")
                                             
                                         else:
                                             file_data = file.read()
-                                            self.logger.info(f"Input prompt file_data: '{str(file_data)}'")
+                                            print(f"Input prompt file_data: '{str(file_data)}'")
                                             
                                         if any(word in prompt.lower() for word in ['graph', 'graphs', 'chart', 'charts']):
                                             prompt += "\n" + "This is file data from user input: " + str(file_data) + " use this to analyze the data."
-                                            self.logger.info(f"Input Prompt: '{prompt}'")
+                                            print(f"Input Prompt: '{prompt}'")
                                         else:
-                                            self.logger.info("The prompt does not contain both 'graph' and 'chart'.")
+                                            print("The prompt does not contain both 'graph' and 'chart'.")
                                 except Exception as exception:
                                     self.logger.error(f"Error reading file: {exception}")
                             else:
@@ -536,7 +548,7 @@ class Interpreter:
                         else:
                             self.logger.error("File does not exist or is not a file.")                         
                 else:
-                    self.logger.info("No file name found in the prompt.")
+                    print("No file name found in the prompt.")
             
                 # If graph were requested.
                 if any(word in prompt.lower() for word in ['graph', 'graphs']):
@@ -560,7 +572,7 @@ class Interpreter:
                         prompt += "\n" + "using JavaScript use DataTables save the table in file called 'table.html'"
                  
                 # Start the LLM Request.     
-                self.logger.info(f"Prompt: {prompt}")
+                print(f"Prompt: {prompt}")
                 generated_output = self.generate_text(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
                 
                 # No extra processing for Vision mode.
@@ -569,63 +581,63 @@ class Interpreter:
                     continue
 
                 # Extract the code from the generated output.
-                self.logger.info(f"Generated output type {type(generated_output)}")
+                print(f"Generated output type {type(generated_output)}")
                 extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
                 
                 # Display the extracted code.
-                self.logger.info(f"Extracted code: {extracted_code[:50]}")
+                print(f"Extracted code: {extracted_code[:50]}")
                 
                 if self.DISPLAY_CODE:
                     display_code(extracted_code)
-                    self.logger.info("Code extracted successfully.")
+                    print("Code extracted successfully.")
                 
                 if extracted_code:
                     current_time = time.strftime("%Y_%m_%d-%H_%M_%S", time.localtime())
                     
                     if self.INTERPRETER_LANGUAGE == 'javascript' and self.SAVE_CODE and self.CODE_MODE:
                         self.code_interpreter.save_code(f"output/code_{current_time}.js", extracted_code)
-                        self.logger.info(f"JavaScript code saved successfully.")
+                        print(f"JavaScript code saved successfully.")
                     
                     elif self.INTERPRETER_LANGUAGE == 'python' and self.SAVE_CODE and self.CODE_MODE:
                         self.code_interpreter.save_code(f"output/code_{current_time}.py", extracted_code)
-                        self.logger.info(f"Python code saved successfully.")
+                        print(f"Python code saved successfully.")
                     
                     elif self.SAVE_CODE and self.COMMAND_MODE:
                         self.code_interpreter.save_code(f"output/command_{current_time}.txt", extracted_code)
-                        self.logger.info(f"Command saved successfully.")
+                        print(f"Command saved successfully.")
   
                     elif self.SAVE_CODE and self.SCRIPT_MODE:
                         self.code_interpreter.save_code(f"output/script_{current_time}.txt", extracted_code)
-                        self.logger.info(f"Script saved successfully.")
+                        print(f"Script saved successfully.")
                   
                     # Execute the code if the user has selected.
                     code_output, code_error = self.execute_code(extracted_code, os_name)
                     
                     if code_output:
-                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+                        print(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
                         display_code(code_output)
-                        self.logger.info(f"Output: {code_output[:100]}")
+                        print(f"Output: {code_output[:100]}")
                     elif code_error:
-                        self.logger.info(f"Python code executed with error.")
+                        print(f"Python code executed with error.")
                         display_markdown_message(f"Error: {code_error}")
                         
                     # install Package on error.
                     error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
                     if code_error is not None and any(error_message in code_error for error_message in error_messages):
-                        package_name = self.package_installer.extract_package_name(code_error, self.INTERPRETER_LANGUAGE)
+                        package_name = self.package_manager.extract_package_name(code_error, self.INTERPRETER_LANGUAGE)
                         if package_name:
-                            self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
-                            self.package_installer.install_package(package_name, self.INTERPRETER_LANGUAGE)
+                            print(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
+                            self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
 
                             # Wait and Execute the code again.
                             time.sleep(3)
                             code_output, code_error = self.execute_code(extracted_code, os_name)
                             if code_output:
-                                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+                                print(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
                                 display_code(code_output)
-                                self.logger.info(f"Output: {code_output[:100]}")
+                                print(f"Output: {code_output[:100]}")
                             elif code_error:
-                                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+                                print(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
                                 display_markdown_message(f"Error: {code_error}")
                             
                     try:
@@ -640,7 +652,8 @@ class Interpreter:
                     except Exception as exception:
                         display_markdown_message(f"Error in opening resource files: {str(exception)}")
                 
-                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRRETER_MODEL)
+                history_file_path = os.path.join(self.base_dir, 'history', 'history.json')
+                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRETER_MODEL, history_file_path)
                 
             except Exception as exception:
                 self.logger.error(f"An error occurred: {str(exception)}")
