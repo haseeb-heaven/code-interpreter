@@ -88,7 +88,9 @@ class Interpreter:
         else:
             # Open file system_message.txt to a variable system_message
             try:
-                with open('open_code_interpreter/system/system_message.txt', 'r') as file:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                file_path = os.path.join(base_dir, 'system', 'system_message.txt')
+                with open(file_path, 'r') as file:
                     self.system_message = file.read()
                     if self.system_message != "":
                         self.logger.info(f"System message read successfully")
@@ -115,9 +117,9 @@ class Interpreter:
             self.logger.info("HF_MODEL is not provided, using default model.")
             self.INTERPRRETER_MODEL = self.INTERPRRETER_MODEL
             hf_model_name = self.INTERPRRETER_MODEL.strip().split("/")[-1]
-            config_file_name = f"open_code_interpreter/configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
+            config_file_name = f"configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
         else:
-            config_file_name = f"open_code_interpreter/configs/{self.INTERPRRETER_MODEL}.config"
+            config_file_name = f"configs/{self.INTERPRRETER_MODEL}.config"
         
         self.logger.info(f"Reading config file {config_file_name}")    
         self.config_values = self.utility_manager.read_config_file(config_file_name)
@@ -441,7 +443,7 @@ class Interpreter:
                 elif any(command in task.lower() for command in ['/model ', '/m ']):
                     model = task.split(' ')[1]
                     if model:
-                        model_config_file = f"open_code_interpreter/configs/{model}.config"
+                        model_config_file = f"configs/{model}.config"
                         if not os.path.isfile(model_config_file):
                             display_markdown_message(f"Model {model} does not exists. Please check the model name.")
                             continue
