@@ -34,7 +34,7 @@ class Interpreter:
         self.history = []
         self.utility_manager = UtilityManager()
         self.code_interpreter = CodeInterpreter()
-        self.package_installer = PackageManager()
+        self.package_manager = PackageManager()
         self.logger = initialize_logger("logs/interpreter.log")
         self.client = None
         self.config_values = None
@@ -77,9 +77,9 @@ class Interpreter:
         self.SAVE_CODE = self.args.save_code
         self.EXECUTE_CODE = self.args.exec
         self.DISPLAY_CODE = self.args.display_code
-        self.INTERPRRETER_MODEL = self.args.model if self.args.model else None
+        self.INTERPRETER_MODEL = self.args.model if self.args.model else None
         self.logger.info(f"Interpreter args model selected is '{self.args.model}")
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRRETER_MODEL}")
+        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
 
@@ -110,23 +110,23 @@ class Interpreter:
         hf_model_name = ""
         self.logger.info("Initializing Client")
         
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRRETER_MODEL}")
-        if self.INTERPRRETER_MODEL is None or self.INTERPRRETER_MODEL == "":
+        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
+        if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
             self.logger.info("HF_MODEL is not provided, using default model.")
-            self.INTERPRRETER_MODEL = self.INTERPRRETER_MODEL
-            hf_model_name = self.INTERPRRETER_MODEL.strip().split("/")[-1]
+            self.INTERPRETER_MODEL = self.INTERPRETER_MODEL
+            hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
             config_file_name = f"configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
         else:
-            config_file_name = f"configs/{self.INTERPRRETER_MODEL}.config"
+            config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
         
         self.logger.info(f"Reading config file {config_file_name}")    
         self.config_values = self.utility_manager.read_config_file(config_file_name)
-        self.INTERPRRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRRETER_MODEL))       
-        hf_model_name = self.INTERPRRETER_MODEL.strip().split("/")[-1]
+        self.INTERPRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRETER_MODEL))       
+        hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
         
         self.logger.info(f"Using model {hf_model_name}")
         
-        if "gpt" in self.INTERPRRETER_MODEL:
+        if "gpt" in self.INTERPRETER_MODEL:
             if os.getenv("OPENAI_API_KEY") is None:
                 load_dotenv()
             if os.getenv("OPENAI_API_KEY") is None:
@@ -146,7 +146,7 @@ class Interpreter:
         }
 
         for model, api_key_name in model_api_keys.items():
-            if model in self.INTERPRRETER_MODEL:
+            if model in self.INTERPRETER_MODEL:
                 self.logger.info(f"User has agreed to terms and conditions of {model}")
 
                 if os.getenv(api_key_name) is None:
@@ -234,27 +234,27 @@ class Interpreter:
         messages = self.get_prompt(message, chat_history)
         
         # Check if the model is GPT 3.5/4
-        if 'gpt' in self.INTERPRRETER_MODEL:
+        if 'gpt' in self.INTERPRETER_MODEL:
             self.logger.info("Model is GPT 3.5/4.")
             if api_base != 'None':
                 # Set the custom language model provider
                 custom_llm_provider = "openai"
                 self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
-                response = completion(self.INTERPRRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
             else:
                 self.logger.info(f"Default API mode selected for OpenAI.")
-                response = completion(self.INTERPRRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
+                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
                 
         # Check if the model is PALM-2
-        elif 'palm' in self.INTERPRRETER_MODEL:
+        elif 'palm' in self.INTERPRETER_MODEL:
             self.logger.info("Model is PALM-2.")
-            self.INTERPRRETER_MODEL = "palm/chat-bison"
-            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            self.INTERPRETER_MODEL = "palm/chat-bison"
+            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         # Check if the model is Gemini Pro
-        elif 'gemini' in self.INTERPRRETER_MODEL:
+        elif 'gemini' in self.INTERPRETER_MODEL:
 
             if self.INTERPRETER_MODE == 'vision':
                 # Import Gemini Vision only if the model is Gemini Pro Vision.
@@ -285,19 +285,19 @@ class Interpreter:
                 return response # Return the response from Gemini Vision because its not coding model.
             else:
                 self.logger.info("Model is Gemini Pro.")
-                self.INTERPRRETER_MODEL = "gemini/gemini-pro"
-                response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature)
+                self.INTERPRETER_MODEL = "gemini/gemini-pro"
+                response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
                 self.logger.info("Response received from completion function.")
             
 
         # Check if model are from Hugging Face.
         else:
             # Add huggingface/ if not present in the model name.
-            if 'huggingface/' not in self.INTERPRRETER_MODEL:
-                self.INTERPRRETER_MODEL = 'huggingface/' + self.INTERPRRETER_MODEL
+            if 'huggingface/' not in self.INTERPRETER_MODEL:
+                self.INTERPRETER_MODEL = 'huggingface/' + self.INTERPRETER_MODEL
             
-            self.logger.info(f"Model is from Hugging Face. {self.INTERPRRETER_MODEL}")
-            response = completion(self.INTERPRRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            self.logger.info(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
+            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         self.logger.info(f"Generated text {response}")
@@ -383,7 +383,7 @@ class Interpreter:
         self.logger.info(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
 
         # Display system and Assistant information.
-        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}' Model: '{self.INTERPRRETER_MODEL}'")
+        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}' Model: '{self.INTERPRETER_MODEL}'")
         display_markdown_message("Welcome to the **Interpreter**. I'm here to **assist** you with your everyday tasks. "
                                   "\nPlease enter your task and I'll do my best to help you out.")
         
@@ -446,8 +446,8 @@ class Interpreter:
                             display_markdown_message(f"Model {model} does not exists. Please check the model name.")
                             continue
                         else:
-                            self.INTERPRRETER_MODEL = model
-                            display_markdown_message(f"Model changed to '{self.INTERPRRETER_MODEL}'")
+                            self.INTERPRETER_MODEL = model
+                            display_markdown_message(f"Model changed to '{self.INTERPRETER_MODEL}'")
                             self.initialize_client() # Reinitialize the client with new model.
                     continue
                 
@@ -470,7 +470,7 @@ class Interpreter:
                     package_name = task.split(' ')[1]
                     if package_name:
                         self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
-                        self.package_installer.install_package(package_name, self.INTERPRETER_LANGUAGE)
+                        self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
                     continue
                 
                 # Get the prompt based on the mode.
@@ -481,7 +481,7 @@ class Interpreter:
                 self._clean_responses()
                 
                 # Print Model and Mode information.
-                self.logger.info(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRRETER_MODEL}")
+                self.logger.info(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRETER_MODEL}")
 
                 # Check if prompt contains any file uploaded by user.
                 extracted_file_name = self.utility_manager.extract_file_name(prompt)
@@ -610,10 +610,10 @@ class Interpreter:
                     # install Package on error.
                     error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
                     if code_error is not None and any(error_message in code_error for error_message in error_messages):
-                        package_name = self.package_installer.extract_package_name(code_error, self.INTERPRETER_LANGUAGE)
+                        package_name = self.package_manager.extract_package_name(code_error, self.INTERPRETER_LANGUAGE)
                         if package_name:
                             self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
-                            self.package_installer.install_package(package_name, self.INTERPRETER_LANGUAGE)
+                            self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
 
                             # Wait and Execute the code again.
                             time.sleep(3)
@@ -638,7 +638,7 @@ class Interpreter:
                     except Exception as exception:
                         display_markdown_message(f"Error in opening resource files: {str(exception)}")
                 
-                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRRETER_MODEL)
+                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRETER_MODEL)
                 
             except Exception as exception:
                 self.logger.error(f"An error occurred: {str(exception)}")

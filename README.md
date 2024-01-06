@@ -1,8 +1,10 @@
 ![Interpreter](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/movie.gif?raw=true)
 
 ### **Hosting and Spaces:**
-[![Plugin](https://img.shields.io/badge/Google-Colab-blue)](https://colab.research.google.com/drive/1jGg-NavH8t4W2UVs8MyVMv8bs49qggfA?usp=sharing)
-[![Plugin](https://img.shields.io/badge/Replit-Replit-blue)](https://replit.com/@HaseebMir/open-code-interpreter)
+[![Colab](https://img.shields.io/badge/Google-Colab-blue)](https://colab.research.google.com/drive/1jGg-NavH8t4W2UVs8MyVMv8bs49qggfA?usp=sharing)
+[![Replit](https://img.shields.io/badge/Replit-IDE-blue)](https://replit.com/@HaseebMir/open-code-interpreter)
+[![PyPi](https://img.shields.io/badge/PyPi-Package-blue)](https://pypi.org/project/open-code-interpreter/)
+
 
 ### **Support Project:**
 <a href="https://www.buymeacoffee.com/haseebheaven">
@@ -49,6 +51,20 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 
 ## 📥 **Installation**
 
+## Installtion with Python package manager.
+To install Open-Code-Interpreter, run the following command:</br>
+
+```bash
+pip install open-code-interpreter
+```
+- To run the interpreter with Python:</br>
+```bash
+interpreter -m 'gemini-pro' -md 'code' -dc
+```
+- Make sure you install required packages before running the interpreter.</br>
+- And you have API keys setup in the `.env` file.</br>
+
+## Installtion with Git
 To get started with Open-Code-Interpreter, follow these steps:</br>
 
 1. Clone the repository:</br>

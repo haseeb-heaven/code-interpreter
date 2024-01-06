@@ -2,14 +2,11 @@ import json
 import os
 import re
 from libs.logger import initialize_logger
-import traceback
 import csv
-import pandas as pd
-from xml.etree import ElementTree as ET
 import glob
 from datetime import datetime
 
-from libs.markdown_code import display_code, display_markdown_message
+from libs.markdown_code import display_markdown_message
 
 class UtilityManager:
     def __init__(self):
