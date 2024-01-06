@@ -16,7 +16,7 @@ Author: HeavenHM
 Date: 2023/12/01
 """
 
-from libs.interpreter_lib import Interpreter
+from open_code_interpreter.libs.interpreter_lib import Interpreter
 import argparse
 import sys
 import traceback

@@ -15,7 +15,7 @@ Author: HeavenHM
 Date: 2023/12/01
 """
 
-from libs.interpreter_lib import Interpreter
+from open_code_interpreter.libs.interpreter_lib import Interpreter
 import argparse
 import sys
 import traceback
@@ -39,6 +39,7 @@ def main():
         # Create an instance of the Interpreter class and call the main method.
         interpreter = Interpreter(args)
         interpreter.interpreter_main()
+        
 if __name__ == "__main__":
     try:
         main()

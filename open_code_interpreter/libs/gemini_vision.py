@@ -1,7 +1,7 @@
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
-from libs.logger import initialize_logger
+from open_code_interpreter.libs.logger import initialize_logger
 from PIL import Image
 import io
 import requests

@@ -11,12 +11,12 @@ It includes features like:
 import os
 import subprocess
 import traceback
-from libs.logger import initialize_logger
+from open_code_interpreter.libs.logger import initialize_logger
 
 class CodeInterpreter:
 
     def __init__(self):
-        self.logger = initialize_logger("logs/code-interpreter.log")
+        self.logger = initialize_logger("open_code_interpreter/logs/code-interpreter.log")
     
     def _execute_script(self, script: str, shell: str):
         stdout = stderr = None

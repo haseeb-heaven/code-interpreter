@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from libs.logger import initialize_logger
+from open_code_interpreter.libs.logger import initialize_logger
 import traceback
 import csv
 import pandas as pd
@@ -9,19 +9,19 @@ from xml.etree import ElementTree as ET
 import glob
 from datetime import datetime
 
-from libs.markdown_code import display_code, display_markdown_message
+from open_code_interpreter.libs.markdown_code import display_code, display_markdown_message
 
 class UtilityManager:
     def __init__(self):
         try:
             if not os.path.exists('logs'):
                 os.makedirs('logs')
-            if not os.path.isfile('logs/interpreter.log'):
-                open('logs/interpreter.log', 'w').close()
+            if not os.path.isfile('open_code_interpreter/logs/interpreter.log'):
+                open('open_code_interpreter/logs/interpreter.log', 'w').close()
         except Exception as exception:
             self.logger.error(f"Error in UtilityManager initialization: {str(exception)}")
             raise
-        self.logger = initialize_logger("logs/interpreter.log")
+        self.logger = initialize_logger("open_code_interpreter/logs/interpreter.log")
 
     def get_os_platform(self):
         try:
