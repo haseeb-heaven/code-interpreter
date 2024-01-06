@@ -16,12 +16,12 @@ class UtilityManager:
         try:
             if not os.path.exists('logs'):
                 os.makedirs('logs')
-            if not os.path.isfile('logs/interpreter.log'):
-                open('logs/interpreter.log', 'w').close()
+            self.logger = initialize_logger("open_code_interpreter/logs/interpreter.log")
+            if not os.path.isfile('open_code_interpreter/logs/interpreter.log'):
+                open('open_code_interpreter/logs/interpreter.log', 'w').close()
         except Exception as exception:
             self.logger.error(f"Error in UtilityManager initialization: {str(exception)}")
             raise
-        self.logger = initialize_logger("open_code_interpreter/logs/interpreter.log")
 
     def get_os_platform(self):
         try:
