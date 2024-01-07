@@ -49,5 +49,17 @@ class TestInterpreter(unittest.TestCase):
         interpreter = Interpreter(args)
         self.assertEqual(interpreter.args.model, 'gpt-4')
 
+def setup_fake_keys():
+    keys = {
+        "HUGGINGFACE_API_KEY": "hf_BPubw...",
+        "PALM_API_KEY": "AIzaSyDlvk....",
+        "GEMINI_API_KEY": "AIzaSyCl...",
+        "OPENAI_API_KEY": "sk-ZUZjBz...."
+    }
+
+    with open('.env', 'w') as f:
+        for key, value in keys.items():
+            f.write(f'{key}={value}\n')
+
 if __name__ == '__main__':
     unittest.main()
