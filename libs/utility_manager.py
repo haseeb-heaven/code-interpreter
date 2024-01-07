@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from libs.logger import initialize_logger
+from libs.logger import Logger
 import csv
 import glob
 from datetime import datetime
@@ -18,7 +18,7 @@ class UtilityManager:
         except Exception as exception:
             self.logger.error(f"Error in UtilityManager initialization: {str(exception)}")
             raise
-        self.logger = initialize_logger("logs/interpreter.log")
+        self.logger = Logger.initialize_logger("logs/interpreter.log")
 
     def get_os_platform(self):
         try:
@@ -168,7 +168,7 @@ class UtilityManager:
             if latest_file:
                 with open(latest_file, "r") as code_file:
                     code = code_file.read()
-                    return code
+                    return latest_file,code
 
         except Exception as exception:
             self.logger.error(f"Error in reading last code history: {str(exception)}")
@@ -182,6 +182,7 @@ class UtilityManager:
                 /exit - Exit the interpreter.\n\
                 /execute - Execute the last code generated.\n\
                 /install - Install a package from npm or pip.\n\
+                /save - Save the last code generated.\n\
                 /mode - Change the mode of interpreter.\n\
                 /model - Change the model for interpreter.\n\
                 /language - Change the language of the interpreter.\n\

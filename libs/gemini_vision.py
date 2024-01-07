@@ -1,14 +1,14 @@
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
-from libs.logger import initialize_logger
+from libs.logger import Logger
 from PIL import Image
 import io
 import requests
 
 class GeminiVision:
     def __init__(self,api_key=None,temperature=0.1,top_p=1,top_k=32,max_output_tokens=4096) -> None:
-        self.logger = initialize_logger('logs/vision_interpreter.log')
+        self.logger = Logger.initialize_logger('logs/vision_interpreter.log')
         self.logger.info(f"Initializing Gemini Vision")
         self.model = None
         self.api_key = api_key

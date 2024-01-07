@@ -213,6 +213,8 @@ Here are the available commands:
 
 - 🚪 `/exit` - Exit the interpreter.
 - ▶️ `/execute` - Execute the last code generated.
+- 📝 `/save` - Save the last code generated.
+- ✏️ `/edit` - Edit the last code generated.
 - 📦 `/install` - Install a package from npm or pip.
 - 🔄 `/mode` - Change the mode of interpreter.
 - 🔄 `/model` - Change the model for interpreter.
