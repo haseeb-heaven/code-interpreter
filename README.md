@@ -160,6 +160,23 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 To use Open-Code-Interpreter, use the following command options:
 
+- List of all **modes** are: </br>
+    - `code` - Generates code from your instructions.
+    - `script` - Generates shell scripts from your instructions.
+    - `command` - Generates single line commands from your instructions.
+    -  `vision` - Generates description of image or video.
+
+- List of all **models** are (**Contribute - MORE**): </br>
+    - `gpt-3.5-turbo` - Generates code using the GPT 3.5 Turbo model.
+    - `gpt-4` - Generates code using the GPT 4 model.
+    - `gemini-pro` - Generates code using the Gemini Pro model.
+    - `palm-2` - Generates code using the PALM 2 model.
+    - `code-llama` - Generates code using the Code-llama model.
+    - `code-llama-phind` - Generates code using the Code-llama Phind model.
+    - `mistral-7b` - Generates code using the Mistral 7b model.
+    - `wizard-coder` - Generates code using the Wizard Coder model.
+    - `star-chat` - Generates code using the Star Chat model.
+
 - Basic usage (with least options)</br>
 ```python
 python interpreter.py -dc
