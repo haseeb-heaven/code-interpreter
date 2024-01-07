@@ -88,7 +88,7 @@ pip install -r requirements.txt
 echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 ```
 
-## Google PALM-2 API Key setup.
+## Google GEMINI and PALM-2 API Key setup.
 
 *Step 1:* **Obtain the Google Palm API key.**
 
@@ -99,6 +99,7 @@ echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 *Step 4:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
 ```bash
 echo "PALM_API_KEY=Your API Key" > .env
+echo "GEMINI_API_KEY=Your API Key" > .env
 ```
 
 ## OpenAI API Key setup.
