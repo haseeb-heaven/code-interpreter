@@ -164,14 +164,14 @@ class UtilityManager:
             self.logger.info("Files sorted by date.")
 
             # Return the latest file
-            latest_file = files[0] if files else None
-            self.logger.info(f"Latest file: {latest_file}")
+            code_file = files[0] if files else None
+            self.logger.info(f"Latest file: {code_file}")
 
             # Read the file and return the code
-            if latest_file:
-                with open(latest_file, "r") as code_file:
-                    code = code_file.read()
-                    return code
+            if code_file:
+                with open(code_file, "r") as code_file:
+                    code_snippet = code_file.read()
+                    return code_file,code_snippet
 
         except Exception as exception:
             self.logger.error(f"Error in reading last code history: {str(exception)}")

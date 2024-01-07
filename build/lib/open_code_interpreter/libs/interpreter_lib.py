@@ -217,13 +217,13 @@ class Interpreter:
         ]
         return messages
     
-    def process_command_run_code(self,os_name,language='python'):
+    def execute_last_code(self,os_name,language='python'):
         try:
-            latest_code = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
+            code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
                 
-            display_code(latest_code)
+            display_code(code_snippet)
             # Execute the code if the user has selected.
-            code_output, code_error = self.execute_code(latest_code, os_name)
+            code_output, code_error = self.execute_code(code_snippet, os_name)
             if code_output:
                 self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
                 display_code(code_output)
@@ -428,9 +428,43 @@ class Interpreter:
                 
                 # EXECUTE - Command section.
                 elif task.lower() in ['/execute','/e']:
-                    self.process_command_run_code(os_name,self.INTERPRETER_LANGUAGE)
+                    self.execute_last_code(os_name,self.INTERPRETER_LANGUAGE)
                     continue
                 
+                # SAVE - Command section.
+                elif task.lower() in ['/save','/s']:
+                    latest_code_extension = 'py' if self.INTERPRETER_LANGUAGE == 'python' else 'js'
+                    latest_code_name = f"output/code_{time.strftime('%Y_%m_%d-%H_%M_%S', time.localtime())}." + latest_code_extension
+                    latest_code = extracted_code
+                    self.code_interpreter.save_code(latest_code_name, latest_code)
+                    display_markdown_message(f"Code saved successfully to {latest_code_name}.")
+                    continue
+
+                # EDIT - Command section.
+                elif task.lower() in ['/edit','/ed']:
+                    code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
+                    
+                    # Get the OS platform.
+                    os_platform = self.utility_manager.get_os_platform()
+
+                    # Check if user wants to open in vim?
+                    display_markdown_message(f"Open code in **vim** editor (Y/N):")
+                    vim_open = input()
+                    if vim_open.lower() == 'y':
+                        self.logger.info(f"Opening code in **vim** editor {code_file.name}")
+                        subprocess.call(['vim', code_file.name])
+                        continue
+                    else:
+                        # Open the code in default editor.
+                        if os_platform[0].lower() == 'macos':
+                            self.logger.info(f"Opening code in default editor {code_file}")
+                            subprocess.call(('open', code_file))
+                        elif os_platform[0].lower() == 'linux':
+                            subprocess.call(('xdg-open', code_file))
+                        elif os_platform[0].lower() == 'windows':
+                            os.startfile(code_file)
+                        continue
+                                    
                 # MODE - Command section.
                 elif any(command in task.lower() for command in ['/mode ', '/md ']):
                     mode = task.split(' ')[1]
@@ -455,9 +489,9 @@ class Interpreter:
                 elif any(command in task.lower() for command in ['/model ', '/m ']):
                     model = task.split(' ')[1]
                     if model:
-                        configs_file_path = os.path.join(self.base_dir, 'configs', f"{model}.config")
-                        if not os.path.isfile(configs_file_path):
-                            display_markdown_message(f"Model {model} does not exist. Please check the model name.")
+                        model_config_file = f"configs/{model}.config"
+                        if not os.path.isfile(model_config_file):
+                            display_markdown_message(f"Model {model} does not exists. Please check the model name.")
                             continue
                         else:
                             self.INTERPRETER_MODEL = model
@@ -490,6 +524,7 @@ class Interpreter:
                 # Get the prompt based on the mode.
                 else:
                     prompt = self.get_mode_prompt(task, os_name)
+
 
                 # Clean the responses
                 self._clean_responses()
