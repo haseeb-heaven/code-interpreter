@@ -1,8 +1,10 @@
 ![Interpreter](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/movie.gif?raw=true)
 
 ### **Hosting and Spaces:**
-[![Plugin](https://img.shields.io/badge/Google-Colab-blue)](https://colab.research.google.com/drive/1jGg-NavH8t4W2UVs8MyVMv8bs49qggfA?usp=sharing)
-[![Plugin](https://img.shields.io/badge/Replit-Replit-blue)](https://replit.com/@HaseebMir/open-code-interpreter)
+[![Colab](https://img.shields.io/badge/Google-Colab-blue)](https://colab.research.google.com/drive/1jGg-NavH8t4W2UVs8MyVMv8bs49qggfA?usp=sharing)
+[![Replit](https://img.shields.io/badge/Replit-IDE-blue)](https://replit.com/@HaseebMir/open-code-interpreter)
+[![PyPi](https://img.shields.io/badge/PyPi-Package-blue)](https://pypi.org/project/open-code-interpreter/)
+[![Building](https://github.com/haseeb-heaven/Open-Code-Interpreter/actions/workflows/python-app.yml/badge.svg)](https://github.com/haseeb-heaven/Open-Code-Interpreter/actions/workflows/python-app.yml)
 
 ### **Support Project:**
 <a href="https://www.buymeacoffee.com/haseebheaven">
@@ -41,7 +43,6 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - [Usage](#️🛠️-usage)
 - [Examples](#📖-examples)
 - [Settings](#️⚙️-settings)
-- [Structure](#🏗️-structure)
 - [Contributing](#🤝-contributing)
 - [Versioning](#📌-versioning)
 - [License](#📜-license)
@@ -49,6 +50,20 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 
 ## 📥 **Installation**
 
+## Installtion with Python package manager.
+To install Open-Code-Interpreter, run the following command:</br>
+
+```bash
+pip install open-code-interpreter
+```
+- To run the interpreter with Python:</br>
+```bash
+interpreter -m 'gemini-pro' -md 'code' -dc
+```
+- Make sure you install required packages before running the interpreter.</br>
+- And you have API keys setup in the `.env` file.</br>
+
+## Installtion with Git
 To get started with Open-Code-Interpreter, follow these steps:</br>
 
 1. Clone the repository:</br>
@@ -73,7 +88,7 @@ pip install -r requirements.txt
 echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 ```
 
-## Google PALM-2 API Key setup.
+## Google GEMINI and PALM-2 API Key setup.
 
 *Step 1:* **Obtain the Google Palm API key.**
 
@@ -84,6 +99,7 @@ echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 *Step 4:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
 ```bash
 echo "PALM_API_KEY=Your API Key" > .env
+echo "GEMINI_API_KEY=Your API Key" > .env
 ```
 
 ## OpenAI API Key setup.
@@ -119,11 +135,12 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 - 🚀 Code Execution: Open-Code-Interpreter can execute the code generated from your instructions.
 
-- 💾 Code Saving: It has the ability to save the generated code for future use or reference.
+- 💾 Code Save/Update: It has the ability to save the generated code for future use and 
+ edit the code if needed on the fly using **advanced editor**.
 
 - 📜 Command History: It has the ability to save all the commands as history.
 
-- 📜 Command Mode: Commands entered with '/' are executed as commands like `/execute` or `/clear`.
+- 📜 Command Mode: Commands entered with '/' are executed as commands like `/execute` or `/edit`.
 
 - 🔄 Mode Selection: It allows you to select the mode of operation. You can choose from `code` for generating code, `script` for generating shell scripts, or `command` for generating single line commands.
 
@@ -143,67 +160,69 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 To use Open-Code-Interpreter, use the following command options:
 
-- Code interpreter with least options.
+- List of all **modes** are: </br>
+    - `code` - Generates code from your instructions.
+    - `script` - Generates shell scripts from your instructions.
+    - `command` - Generates single line commands from your instructions.
+    -  `vision` - Generates description of image or video.
+
+- List of all **models** are (**Contribute - MORE**): </br>
+    - `gpt-3.5-turbo` - Generates code using the GPT 3.5 Turbo model.
+    - `gpt-4` - Generates code using the GPT 4 model.
+    - `gemini-pro` - Generates code using the Gemini Pro model.
+    - `palm-2` - Generates code using the PALM 2 model.
+    - `code-llama` - Generates code using the Code-llama model.
+    - `code-llama-phind` - Generates code using the Code-llama Phind model.
+    - `mistral-7b` - Generates code using the Mistral 7b model.
+    - `wizard-coder` - Generates code using the Wizard Coder model.
+    - `star-chat` - Generates code using the Star Chat model.
+
+- Basic usage (with least options)</br>
 ```python
 python interpreter.py -dc
 ```
-- Code interpreter with GPT 3.5.
+
+- Using different models (replace 'model-name' with your chosen model) </br>
 ```python
-python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
+python interpreter.py -md 'code' -m 'model-name' -dc
 ```
-- Code interpreter with PALM-2.
+
+- Using different modes (replace 'mode-name' with your chosen mode) </br>
 ```python
-python interpreter.py -md 'code' -m 'palm-2' -dc 
+python interpreter.py -m 'model-name' -md 'mode-name'
 ```
-- Code Llama with code mode selected.
-```python
-python interpreter.py -m 'code-llama' -md 'code'
-```
-- Code Llama with command mode selected.
-```python
-python interpreter.py -m 'code-llama' -md 'command'
-```
-- Mistral with script selected
-```python
-python interpreter.py -m 'mistral-7b' -md 'script'
-```
-- Wizard Coder with code selected and display code.
-```python
-python interpreter.py -m 'wizard-coder' -md 'code' -dc
-```
-- Wizard Coder with code selected and display code and auto execution.
+
+- Using auto execution </br>
 ```python
 python interpreter.py -m 'wizard-coder' -md 'code' -dc -e
 ```
-- Code Llama with code mode selected and save code
+
+- Saving the code </br>
 ```python
 python interpreter.py -m 'code-llama' -md 'code' -s
 ```
-- Code Llama with code mode selected and javascript selected langauge.
+
+- Selecting a language (replace 'language-name' with your chosen language) </br>
 ```python
-python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
+python interpreter.py -m 'gemini-pro' -md 'code' -s -l 'language-name'
 ```
-- Example of **Vision model* with Google **Gemini Pro**:
-```python
-python interpreter.py -m 'gemini-pro' -md 'code'
-```
-- Example of **Vision model* with Google **Gemini Pro** Vision:
-```python
-python interpreter.py -m 'gemini-pro' -md 'vision'
-```
+
+
 # Interpreter Commands 🖥️
 
 Here are the available commands:
 
-- 🚪 `/exit` - Exit the interpreter.
+- 📝 `/save` - Save the last code generated.
+- ✏️ `/edit` - Edit the last code generated.
 - ▶️ `/execute` - Execute the last code generated.
-- 📦 `/install` - Install a package from npm or pip.
 - 🔄 `/mode` - Change the mode of interpreter.
 - 🔄 `/model` - Change the model for interpreter.
+- 📦 `/install` - Install a package from npm or pip.
 - 🌐 `/language` - Change the language of the interpreter.
 - 🧹 `/clear` - Clear the screen.
 - 🆘 `/help` - Display this help message.
 - 📝 `/version` - Display the version of the interpreter.
+- 🚪 `/exit` - Exit the interpreter.
 
 
 ## 📖 **Examples**
@@ -249,36 +268,6 @@ Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will a
 4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
 5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
 
-# 🏗️ **Structure**
-```markdown
-This is the directory strcuture of this repo.
-.
-|____.config: Configuration file for the project.
-|____resources: Directory containing various resource files used in the project.
-|____libs: Directory containing various Python modules used in the project.
-| |____package_installer.py: Module for installing necessary packages.
-| |____code_interpreter.py: Module for code execution and management.
-| |____markdown_code.py: Handles markdown messages and code snippets.
-| |____logger.py: Logs interpreter activities.
-| |____utility_manager.py: Provides utility functions like reading configs and getting OS platform.
-|____README.md: Project's main documentation.
-|____interpreter.py: Handles command-line arguments, manages code generation, and executes code.
-|____logs: Directory containing log files.
-| |____interpreter.log: Log file for the interpreter activities.
-| |____code-interpreter.log: Log file for the code interpreter activities.
-|____.gitignore: Specifies intentionally untracked files that Git should ignore.
-|____.env: Environment variables for the project.
-|____configs: Directory containing configuration files for different models.
-| |____mistral-7b.config: Configuration file for the Mistral-7b model.
-| |____wizard-coder.config: Configuration file for the Wizard Coder model.
-| |____star-chat.config: Configuration file for the Star Chat model.
-| |____code-llama.config: Configuration file for the Code Llama model.
-| |____code-llama-phind.config: Configuration file for the Code Llama Phind model.
-|____history: Directory containing history files.
-| |____history.json: JSON file storing the history of commands.
-|____LICENSE.txt: Text file containing the license details for the project.
-```
-
 ## 🤝 **Contributing**
 
 If you're interested in contributing to **Open-Code-Interpreter**, we'd love to have you! Please fork the repository and submit a pull request. We welcome all contributions and are always eager to hear your feedback and suggestions for improvements.
@@ -311,3 +300,6 @@ Please note the following additional licensing details:
 
 - We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI** for providing the models.
 - A special shout-out to the open-source community. Your continuous support and contributions are invaluable to us.
+
+## **📝 Author**
+This project is created and maintained by [Haseeb-Heaven](www.github.com/haseeb-heaven).
