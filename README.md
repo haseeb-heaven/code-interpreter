@@ -161,39 +161,51 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 To use Open-Code-Interpreter, use the following command options:
 
 - Basic usage (with least options)</br>
-```python interpreter.py -dc```
+```python
+python interpreter.py -dc
+```
 
 - Using different models (replace 'model-name' with your chosen model) </br>
-```python interpreter.py -md 'code' -m 'model-name' -dc```
+```python
+python interpreter.py -md 'code' -m 'model-name' -dc
+```
 
 - Using different modes (replace 'mode-name' with your chosen mode) </br>
-```python interpreter.py -m 'model-name' -md 'mode-name'```
+```python
+python interpreter.py -m 'model-name' -md 'mode-name'
+```
 
 - Using auto execution </br>
-```python interpreter.py -m 'wizard-coder' -md 'code' -dc -e```
+```python
+python interpreter.py -m 'wizard-coder' -md 'code' -dc -e
+```
 
 - Saving the code </br>
-```python interpreter.py -m 'code-llama' -md 'code' -s```
+```python
+python interpreter.py -m 'code-llama' -md 'code' -s
+```
 
 - Selecting a language (replace 'language-name' with your chosen language) </br>
-```python interpreter.py -m 'gemini-pro' -md 'code' -s -l 'language-name'```
+```python
+python interpreter.py -m 'gemini-pro' -md 'code' -s -l 'language-name'
+```
 
 
 # Interpreter Commands 🖥️
 
 Here are the available commands:
 
-- 🚪 `/exit` - Exit the interpreter.
-- ▶️ `/execute` - Execute the last code generated.
 - 📝 `/save` - Save the last code generated.
 - ✏️ `/edit` - Edit the last code generated.
-- 📦 `/install` - Install a package from npm or pip.
+- ▶️ `/execute` - Execute the last code generated.
 - 🔄 `/mode` - Change the mode of interpreter.
 - 🔄 `/model` - Change the model for interpreter.
+- 📦 `/install` - Install a package from npm or pip.
 - 🌐 `/language` - Change the language of the interpreter.
 - 🧹 `/clear` - Clear the screen.
 - 🆘 `/help` - Display this help message.
 - 📝 `/version` - Display the version of the interpreter.
+- 🚪 `/exit` - Exit the interpreter.
 
 
 ## 📖 **Examples**
