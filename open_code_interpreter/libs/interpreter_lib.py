@@ -27,7 +27,7 @@ from dotenv import load_dotenv
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.8"
+    interpreter_version = "1.8.1"
     
     def __init__(self, args):
         self.args = args
@@ -235,7 +235,7 @@ class Interpreter:
             self.logger.error(f"Error in processing command run code: {str(exception)}")
             raise
 
-    def generate_text(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
+    def generate_code(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
         self.logger.info(f"Generating code with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
 
         # Use the values from the config file if they are provided
@@ -381,6 +381,10 @@ class Interpreter:
         self.logger.info(f"Code Interpreter - v{self.interpreter_version}")
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
+        generated_output = None
+        extracted_code = None
+        code_output, code_error = None, None
+        extracted_file_name = None
 
         # Seting the mode.
         if self.SCRIPT_MODE:
@@ -458,13 +462,52 @@ class Interpreter:
                         # Open the code in default editor.
                         if os_platform[0].lower() == 'macos':
                             self.logger.info(f"Opening code in default editor {code_file}")
-                            subprocess.call(('open', code_file))
+                            subprocess.call(('open', code_file.name))
                         elif os_platform[0].lower() == 'linux':
-                            subprocess.call(('xdg-open', code_file))
+                            subprocess.call(('xdg-open', code_file.name))
                         elif os_platform[0].lower() == 'windows':
-                            os.startfile(code_file)
+                            os.startfile(code_file.name)
                         continue
-                                    
+                
+                # DEBUG - Command section.
+                elif task.lower() in ['/debug','/d']:
+
+                    if not code_error:
+                        code_error = code_output
+
+                    if not code_error:
+                        display_markdown_message(f"Error: No error found in the code to fix.")
+                        continue
+
+                    debug_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{extracted_code}'\nAnd Error is \n'{code_error}'\n give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
+                    
+                    # Start the LLM Request.
+                    self.logger.info(f"Debug Prompt: {debug_prompt}")
+                    generated_output = self.generate_code(debug_prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
+
+                    # Extract the code from the generated output.
+                    self.logger.info(f"Generated output type {type(generated_output)}")
+                    extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
+                    
+                    # Display the extracted code.
+                    self.logger.info(f"Extracted code: {extracted_code[:50]}")
+                    
+                    if self.DISPLAY_CODE:
+                        display_code(extracted_code)
+                        self.logger.info("Code extracted successfully.")
+                    
+                        # Execute the code if the user has selected.
+                        code_output, code_error = self.execute_code(extracted_code, os_name)
+                        
+                        if code_output:
+                            self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+                            display_code(code_output)
+                            self.logger.info(f"Output: {code_output[:100]}")
+                        elif code_error:
+                            self.logger.info(f"Python code executed with error.")
+                            display_markdown_message(f"Error: {code_error}")
+                    continue
+
                 # MODE - Command section.
                 elif any(command in task.lower() for command in ['/mode ', '/md ']):
                     mode = task.split(' ')[1]
@@ -608,7 +651,7 @@ class Interpreter:
                  
                 # Start the LLM Request.     
                 self.logger.info(f"Prompt: {prompt}")
-                generated_output = self.generate_text(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
+                generated_output = self.generate_code(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
                 
                 # No extra processing for Vision mode.
                 if self.INTERPRETER_MODE == 'vision':

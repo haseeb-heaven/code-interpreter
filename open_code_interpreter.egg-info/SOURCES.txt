@@ -17,6 +17,7 @@ open_code_interpreter/configs/mistral-7b.config
 open_code_interpreter/configs/palm-2.config
 open_code_interpreter/configs/star-chat.config
 open_code_interpreter/configs/wizard-coder.config
+open_code_interpreter/history/history.json
 open_code_interpreter/libs/code_interpreter.py
 open_code_interpreter/libs/gemini_vision.py
 open_code_interpreter/libs/interpreter_lib.py
@@ -24,5 +25,7 @@ open_code_interpreter/libs/logger.py
 open_code_interpreter/libs/markdown_code.py
 open_code_interpreter/libs/package_manager.py
 open_code_interpreter/libs/utility_manager.py
+open_code_interpreter/logs/code-interpreter.log
+open_code_interpreter/logs/interpreter.log
 open_code_interpreter/output/test.py
 open_code_interpreter/system/system_message.txt
