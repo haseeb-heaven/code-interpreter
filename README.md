@@ -43,7 +43,6 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - [Usage](#️🛠️-usage)
 - [Examples](#📖-examples)
 - [Settings](#️⚙️-settings)
-- [Structure](#🏗️-structure)
 - [Contributing](#🤝-contributing)
 - [Versioning](#📌-versioning)
 - [License](#📜-license)
@@ -135,11 +134,12 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 - 🚀 Code Execution: Open-Code-Interpreter can execute the code generated from your instructions.
 
-- 💾 Code Saving: It has the ability to save the generated code for future use or reference.
+- 💾 Code Save/Update: It has the ability to save the generated code for future use and 
+ edit the code if needed on the fly using **advanced editor**.
 
 - 📜 Command History: It has the ability to save all the commands as history.
 
-- 📜 Command Mode: Commands entered with '/' are executed as commands like `/execute` or `/clear`.
+- 📜 Command Mode: Commands entered with '/' are executed as commands like `/execute` or `/edit`.
 
 - 🔄 Mode Selection: It allows you to select the mode of operation. You can choose from `code` for generating code, `script` for generating shell scripts, or `command` for generating single line commands.
 
@@ -159,54 +159,25 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 To use Open-Code-Interpreter, use the following command options:
 
-- Code interpreter with least options.
-```python
-python interpreter.py -dc
-```
-- Code interpreter with GPT 3.5.
-```python
-python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
-```
-- Code interpreter with PALM-2.
-```python
-python interpreter.py -md 'code' -m 'palm-2' -dc 
-```
-- Code Llama with code mode selected.
-```python
-python interpreter.py -m 'code-llama' -md 'code'
-```
-- Code Llama with command mode selected.
-```python
-python interpreter.py -m 'code-llama' -md 'command'
-```
-- Mistral with script selected
-```python
-python interpreter.py -m 'mistral-7b' -md 'script'
-```
-- Wizard Coder with code selected and display code.
-```python
-python interpreter.py -m 'wizard-coder' -md 'code' -dc
-```
-- Wizard Coder with code selected and display code and auto execution.
-```python
-python interpreter.py -m 'wizard-coder' -md 'code' -dc -e
-```
-- Code Llama with code mode selected and save code
-```python
-python interpreter.py -m 'code-llama' -md 'code' -s
-```
-- Code Llama with code mode selected and javascript selected langauge.
-```python
-python interpreter.py -m 'code-llama' -md 'code' -s -l 'javascript'
-```
-- Example of **Vision model* with Google **Gemini Pro**:
-```python
-python interpreter.py -m 'gemini-pro' -md 'code'
-```
-- Example of **Vision model* with Google **Gemini Pro** Vision:
-```python
-python interpreter.py -m 'gemini-pro' -md 'vision'
-```
+- Basic usage (with least options)</br>
+```python interpreter.py -dc```
+
+- Using different models (replace 'model-name' with your chosen model) </br>
+```python interpreter.py -md 'code' -m 'model-name' -dc```
+
+- Using different modes (replace 'mode-name' with your chosen mode) </br>
+```python interpreter.py -m 'model-name' -md 'mode-name'```
+
+- Using auto execution </br>
+```python interpreter.py -m 'wizard-coder' -md 'code' -dc -e```
+
+- Saving the code </br>
+```python interpreter.py -m 'code-llama' -md 'code' -s```
+
+- Selecting a language (replace 'language-name' with your chosen language) </br>
+```python interpreter.py -m 'gemini-pro' -md 'code' -s -l 'language-name'```
+
+
 # Interpreter Commands 🖥️
 
 Here are the available commands:
@@ -267,36 +238,6 @@ Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will a
 4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
 5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
 
-# 🏗️ **Structure**
-```markdown
-This is the directory strcuture of this repo.
-.
-|____.config: Configuration file for the project.
-|____resources: Directory containing various resource files used in the project.
-|____libs: Directory containing various Python modules used in the project.
-| |____package_installer.py: Module for installing necessary packages.
-| |____code_interpreter.py: Module for code execution and management.
-| |____markdown_code.py: Handles markdown messages and code snippets.
-| |____logger.py: Logs interpreter activities.
-| |____utility_manager.py: Provides utility functions like reading configs and getting OS platform.
-|____README.md: Project's main documentation.
-|____interpreter.py: Handles command-line arguments, manages code generation, and executes code.
-|____logs: Directory containing log files.
-| |____interpreter.log: Log file for the interpreter activities.
-| |____code-interpreter.log: Log file for the code interpreter activities.
-|____.gitignore: Specifies intentionally untracked files that Git should ignore.
-|____.env: Environment variables for the project.
-|____configs: Directory containing configuration files for different models.
-| |____mistral-7b.config: Configuration file for the Mistral-7b model.
-| |____wizard-coder.config: Configuration file for the Wizard Coder model.
-| |____star-chat.config: Configuration file for the Star Chat model.
-| |____code-llama.config: Configuration file for the Code Llama model.
-| |____code-llama-phind.config: Configuration file for the Code Llama Phind model.
-|____history: Directory containing history files.
-| |____history.json: JSON file storing the history of commands.
-|____LICENSE.txt: Text file containing the license details for the project.
-```
-
 ## 🤝 **Contributing**
 
 If you're interested in contributing to **Open-Code-Interpreter**, we'd love to have you! Please fork the repository and submit a pull request. We welcome all contributions and are always eager to hear your feedback and suggestions for improvements.
@@ -329,3 +270,6 @@ Please note the following additional licensing details:
 
 - We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI** for providing the models.
 - A special shout-out to the open-source community. Your continuous support and contributions are invaluable to us.
+
+## **📝 Author**
+This project is created and maintained by [Haseeb-Heaven](www.github.com/haseeb-heaven).
