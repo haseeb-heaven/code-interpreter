@@ -373,6 +373,7 @@ class Interpreter:
         self.logger.info(f"Code Interpreter - v{self.interpreter_version}")
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
+        extracted_code = None
 
         # Seting the mode.
         if self.SCRIPT_MODE:
@@ -446,16 +447,16 @@ class Interpreter:
                         self.logger.info(f"Opening code in **vim** editor {code_file}")
                         subprocess.call(['vim', code_file])
                         continue
-                    
-                    # Open the code in default editor.
-                    if os_platform[0].lower() == 'macos':
-                        self.logger.info(f"Opening code in default editor {code_file}")
-                        subprocess.call(('open', code_file))
-                    elif os_platform[0].lower() == 'linux':
-                        subprocess.call(('xdg-open', code_file))
-                    elif os_platform[0].lower() == 'windows':
-                        os.startfile(code_file)
-                    continue
+                    else:
+                        # Open the code in default editor.
+                        if os_platform[0].lower() == 'macos':
+                            self.logger.info(f"Opening code in default editor {code_file}")
+                            subprocess.call(('open', code_file))
+                        elif os_platform[0].lower() == 'linux':
+                            subprocess.call(('xdg-open', code_file))
+                        elif os_platform[0].lower() == 'windows':
+                            os.startfile(code_file)
+                        continue
                                     
                 # MODE - Command section.
                 elif any(command in task.lower() for command in ['/mode ', '/md ']):
