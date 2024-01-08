@@ -15,8 +15,10 @@ import os
 import platform
 import subprocess
 import time
+from typing import List
 from libs.code_interpreter import CodeInterpreter
 from litellm import completion
+from libs.history_manager import History
 from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_manager import PackageManager
@@ -27,51 +29,23 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.8.4"
+    interpreter_version = "1.9"
     
     def __init__(self, args):
         self.args = args
         self.history = []
+        self.history_count = 3
         self.history_file = "history/history.json"
         self.utility_manager = UtilityManager()
         self.code_interpreter = CodeInterpreter()
         self.package_manager = PackageManager()
+        self.history_manager = History(self.history_file)
         self.logger = Logger.initialize_logger("logs/interpreter.log")
         self.client = None
         self.config_values = None
         self.system_message = ""
         self.gemini_vision = None
         self.initialize()
-
-    def _open_resource_file(self,filename):
-        try:
-            if os.path.isfile(filename):
-                if platform.system() == "Windows":
-                    subprocess.call(['start', filename], shell=True)
-                elif platform.system() == "Darwin":
-                    subprocess.call(['open', filename])
-                elif platform.system() == "Linux":
-                    subprocess.call(['xdg-open', filename])
-                self.logger.info(f"{filename} exists and opened successfully")
-        except Exception as exception:
-            display_markdown_message(f"Error in opening files: {str(exception)}")
-
-    def _clean_responses(self):
-        files_to_remove = ['graph.png', 'chart.png', 'table.md']
-        for file in files_to_remove:
-            try:
-                if os.path.isfile(file):
-                    os.remove(file)
-                    self.logger.info(f"{file} removed successfully")
-            except Exception as e:
-                print(f"Error in removing {file}: {str(e)}")
-    
-    def _extract_content(self,output):
-        try:
-            return output['choices'][0]['message']['content']
-        except (KeyError, TypeError) as e:
-            self.logger.error(f"Error extracting content: {str(e)}")
-            raise
     
     def initialize(self):
         self.INTERPRETER_LANGUAGE = self.args.lang if self.args.lang else 'python'
@@ -83,9 +57,12 @@ class Interpreter:
         self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
+        self.INTERPRETER_HISTORY = self.args.history
 
         if self.INTERPRETER_MODE == 'vision':
             self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
+        elif self.INTERPRETER_MODE == 'chat':
+            self.system_message = "You are top tier chatbot. Please generate a well-written response that is precise, easy to understand"
         else:
             # Open file system_message.txt to a variable system_message
             try:
@@ -181,10 +158,11 @@ class Interpreter:
         self.SCRIPT_MODE = True if self.args.mode == 'script' else False
         self.COMMAND_MODE = True if self.args.mode == 'command' else False
         self.VISION_MODE = True if self.args.mode == 'vision' else False
-        if not self.SCRIPT_MODE and not self.COMMAND_MODE and not self.VISION_MODE:
+        self.CHAT_MODE = True if self.args.mode == 'chat' else False
+        if not self.SCRIPT_MODE and not self.COMMAND_MODE and not self.VISION_MODE and not self.CHAT_MODE:
             self.CODE_MODE = True
     
-    def get_prompt(self,message: str, chat_history: list[tuple[str, str]]) -> str:
+    def get_prompt(self,message: str, chat_history: List[dict]) -> str:
         system_message = None
         
         if self.CODE_MODE:
@@ -196,6 +174,12 @@ class Interpreter:
         elif self.VISION_MODE:
             system_message = "Please generate a well-written description of the image that is precise, easy to understand"
             return system_message
+        elif self.CHAT_MODE:
+            system_message = "Please generate a well-written response that is precise, easy to understand"
+            
+            # Add the chat history to the prompt
+            if chat_history or len(chat_history) > 0:
+                system_message += "\n\n" + "\n\n" + "This is user chat history for this task and make sure to use this as reference to generate the answer if user asks for 'History' or 'Chat History'.\n\n" + "\n\n" + str(chat_history) + "\n\n"
         
         messages = [
             {"role": "system", "content":system_message},
@@ -228,8 +212,8 @@ class Interpreter:
             self.logger.error(f"Error in processing command run code: {str(exception)}")
             raise
 
-    def generate_code(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
-        self.logger.info(f"Generating code with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
+    def generate_content(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
+        self.logger.info(f"Generating content with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
 
         # Use the values from the config file if they are provided
         if config_values:
@@ -308,13 +292,12 @@ class Interpreter:
             self.logger.info("Response received from completion function.")
         
         self.logger.info(f"Generated text {response}")
-        generated_text = self._extract_content(response)
+        generated_text = self.utility_manager._extract_content(response)
         self.logger.info(f"Generated content {generated_text}")
         return generated_text
 
     def get_code_prompt(self, task, os_name):
         prompt = f"Generate the code in {self.INTERPRETER_LANGUAGE} language for this task '{task} for Operating System: {os_name}'."
-        self.history.append((task, prompt))
         return prompt
 
     def get_script_prompt(self, task, os_name):
@@ -332,6 +315,10 @@ class Interpreter:
     def handle_vision_mode(self, task):
         prompt = f"Give accurate and detailed information about the image provided and be very detailed about the image '{task}'."
         return prompt
+    
+    def handle_chat_mode(self, task):
+        prompt = f"Give accurate and detailed response to the question provided and be very detailed about the question '{task}'."
+        return prompt
 
     def get_mode_prompt(self, task, os_name):
         if self.CODE_MODE:
@@ -346,10 +333,13 @@ class Interpreter:
         elif self.VISION_MODE:
             self.logger.info("Getting vision prompt.")
             return self.handle_vision_mode(task)
+        elif self.CHAT_MODE:
+            self.logger.info("Getting chat prompt.")
+            return self.handle_chat_mode(task)
 
     def execute_code(self, extracted_code, os_name):
         # If the interpreter mode is Vision, do not execute the code.
-        if self.INTERPRETER_MODE == 'vision':
+        if self.INTERPRETER_MODE in ['vision','chat']:
             return None, None
         
         execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
@@ -371,7 +361,7 @@ class Interpreter:
 
     def interpreter_main(self):
         
-        self.logger.info(f"Code Interpreter - v{self.interpreter_version}")
+        self.logger.info(f"Interpreter - v{self.interpreter_version}")
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
         generated_output = None
@@ -386,6 +376,8 @@ class Interpreter:
             self.INTERPRETER_MODE = 'command'
         elif self.VISION_MODE:
             self.INTERPRETER_MODE = 'vision'
+        elif self.CHAT_MODE:
+            self.INTERPRETER_MODE = 'chat'
 
         start_sep = str(self.config_values.get('start_sep', '```'))
         end_sep = str(self.config_values.get('end_sep', '```'))
@@ -422,7 +414,13 @@ class Interpreter:
                 elif task.lower() == '/version':
                     self.utility_manager.display_version(self.interpreter_version)
                     continue
-
+                
+                # HISTORY - Command section.
+                elif task.lower() == '/history':
+                    self.INTERPRETER_HISTORY = not self.INTERPRETER_HISTORY
+                    display_markdown_message(f"History is {'enabled' if self.INTERPRETER_HISTORY else 'disabled'}")
+                    continue
+                
                 # SHELL - Command section.
                 elif any(command in task.lower() for command in ['/shell ']):
                     shell_command = shlex.split(task)[1:]
@@ -439,16 +437,17 @@ class Interpreter:
 
                 # LOG - Command section.
                 elif task.lower() == '/log':
-                    # open the folder logs/interepreter.log in current working directory and open it in text editor based on OS type
-                    log_file = os.path.join(os.getcwd(), 'logs', 'interpreter.log')
-                    if os.path.isfile(log_file):
-                        if os_name.lower() == 'macos':
-                            self.logger.info(f"Opening log file in default editor {log_file}")
-                            subprocess.call(('open', log_file))
-                        elif os_name.lower() == 'linux':
-                            subprocess.call(('xdg-open', log_file))
-                        elif os_name.lower() == 'windows':
-                            os.startfile(log_file)
+                    # Toggle the log level to Verbose/Silent.
+                    
+                    logger_mode = Logger.get_current_level()
+                    logger_mode = logger_mode.lower()
+                    
+                    if logger_mode == 'debug':
+                        Logger.set_silent_mode()
+                        display_markdown_message(f"Logger mode changed to **Silent**.")
+                    else:
+                        Logger.set_verbose_mode()
+                        display_markdown_message(f"Logger mode changed to **Verbose**.")
                     continue
 
                 # UPGRAGE - Command section.
@@ -513,7 +512,7 @@ class Interpreter:
                     
                     # Start the LLM Request.
                     self.logger.info(f"Debug Prompt: {debug_prompt}")
-                    generated_output = self.generate_code(debug_prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
+                    generated_output = self.generate_content(debug_prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
 
                     # Extract the code from the generated output.
                     self.logger.info(f"Generated output type {type(generated_output)}")
@@ -542,11 +541,11 @@ class Interpreter:
                 elif any(command in task.lower() for command in ['/mode ']):
                     mode = task.split(' ')[1]
                     if mode:
-                        if not mode.lower() in ['code','script','command','vision']:
+                        if not mode.lower() in ['code','script','command','vision','chat']:
                             mode = 'code'
                             display_markdown_message(f"The input mode is not supported. Mode changed to {mode}")
                         else:
-                            modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE'}
+                            modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
 
                             self.INTERPRETER_MODE = mode.lower()
 
@@ -597,9 +596,15 @@ class Interpreter:
                 # Get the prompt based on the mode.
                 else:
                     prompt = self.get_mode_prompt(task, os_name)
+                    self.logger.info(f"Prompt init is '{prompt}'")
+                    
+                    # Check if the prompt is empty.
+                    if not prompt:
+                        display_markdown_message("Please **enter** a valid task.")
+                        continue
 
                 # Clean the responses
-                self._clean_responses()
+                self.utility_manager._clean_responses()
                 
                 # Print Model and Mode information.
                 self.logger.info(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRETER_MODEL}")
@@ -680,10 +685,18 @@ class Interpreter:
                  
                 # Start the LLM Request.     
                 self.logger.info(f"Prompt: {prompt}")
-                generated_output = self.generate_code(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
+                
+                # Add the history as memory.
+                if self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'chat':
+                    self.history = self.history_manager.get_chat_history(self.history_count)
+                
+                elif self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'code':
+                    self.history = self.history_manager.get_code_history(self.history_count)
+                
+                generated_output = self.generate_content(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
                 
                 # No extra processing for Vision mode.
-                if self.INTERPRETER_MODE == 'vision':
+                if self.INTERPRETER_MODE in ['vision','chat']:
                     display_markdown_message(f"{generated_output}")
                     continue
 
@@ -749,17 +762,17 @@ class Interpreter:
                             
                     try:
                         # Check if graph.png exists and open it.
-                        self._open_resource_file('graph.png')
+                        self.utility_manager._open_resource_file('graph.png')
                         
                         # Check if chart.png exists and open it.
-                        self._open_resource_file('chart.png')
+                        self.utility_manager._open_resource_file('chart.png')
                         
                         # Check if table.md exists and open it.
-                        self._open_resource_file('table.md')
+                        self.utility_manager._open_resource_file('table.md')
                     except Exception as exception:
                         display_markdown_message(f"Error in opening resource files: {str(exception)}")
                 
-                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
+                self.history_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
                 
             except Exception as exception:
                 self.logger.error(f"An error occurred: {str(exception)}")
