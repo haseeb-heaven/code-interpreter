@@ -1,6 +1,8 @@
 import json
 import os
+import platform
 import re
+import subprocess
 from libs.logger import Logger
 import csv
 import glob
@@ -20,6 +22,36 @@ class UtilityManager:
             raise
         self.logger = Logger.initialize_logger("logs/interpreter.log")
 
+    def _open_resource_file(self,filename):
+        try:
+            if os.path.isfile(filename):
+                if platform.system() == "Windows":
+                    subprocess.call(['start', filename], shell=True)
+                elif platform.system() == "Darwin":
+                    subprocess.call(['open', filename])
+                elif platform.system() == "Linux":
+                    subprocess.call(['xdg-open', filename])
+                self.logger.info(f"{filename} exists and opened successfully")
+        except Exception as exception:
+            display_markdown_message(f"Error in opening files: {str(exception)}")
+
+    def _clean_responses(self):
+        files_to_remove = ['graph.png', 'chart.png', 'table.md']
+        for file in files_to_remove:
+            try:
+                if os.path.isfile(file):
+                    os.remove(file)
+                    self.logger.info(f"{file} removed successfully")
+            except Exception as e:
+                print(f"Error in removing {file}: {str(e)}")
+    
+    def _extract_content(self,output):
+        try:
+            return output['choices'][0]['message']['content']
+        except (KeyError, TypeError) as e:
+            self.logger.error(f"Error extracting content: {str(e)}")
+            raise
+    
     def get_os_platform(self):
         try:
             import platform
@@ -160,6 +192,7 @@ class UtilityManager:
                 /mode - Change the mode of interpreter.\n\
                 /model - Change the model for interpreter.\n\
                 /language - Change the language of the interpreter.\n\
+                /history - Use history as memory.\n\
                 /clear - Clear the screen.\n\
                 /help - Display this help message.\n\
                 /version - Display the version of the interpreter.\n\

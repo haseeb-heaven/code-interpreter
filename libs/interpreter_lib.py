@@ -17,6 +17,7 @@ import subprocess
 import time
 from libs.code_interpreter import CodeInterpreter
 from litellm import completion
+from libs.history import History
 from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_manager import PackageManager
@@ -27,7 +28,7 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.8.4"
+    interpreter_version = "1.9"
     
     def __init__(self, args):
         self.args = args
@@ -36,42 +37,13 @@ class Interpreter:
         self.utility_manager = UtilityManager()
         self.code_interpreter = CodeInterpreter()
         self.package_manager = PackageManager()
+        self.history_manager = History(self.history_file)
         self.logger = Logger.initialize_logger("logs/interpreter.log")
         self.client = None
         self.config_values = None
         self.system_message = ""
         self.gemini_vision = None
         self.initialize()
-
-    def _open_resource_file(self,filename):
-        try:
-            if os.path.isfile(filename):
-                if platform.system() == "Windows":
-                    subprocess.call(['start', filename], shell=True)
-                elif platform.system() == "Darwin":
-                    subprocess.call(['open', filename])
-                elif platform.system() == "Linux":
-                    subprocess.call(['xdg-open', filename])
-                self.logger.info(f"{filename} exists and opened successfully")
-        except Exception as exception:
-            display_markdown_message(f"Error in opening files: {str(exception)}")
-
-    def _clean_responses(self):
-        files_to_remove = ['graph.png', 'chart.png', 'table.md']
-        for file in files_to_remove:
-            try:
-                if os.path.isfile(file):
-                    os.remove(file)
-                    self.logger.info(f"{file} removed successfully")
-            except Exception as e:
-                print(f"Error in removing {file}: {str(e)}")
-    
-    def _extract_content(self,output):
-        try:
-            return output['choices'][0]['message']['content']
-        except (KeyError, TypeError) as e:
-            self.logger.error(f"Error extracting content: {str(e)}")
-            raise
     
     def initialize(self):
         self.INTERPRETER_LANGUAGE = self.args.lang if self.args.lang else 'python'
@@ -83,6 +55,7 @@ class Interpreter:
         self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
+        self.INTERPRETER_HISTORY = self.args.history
 
         if self.INTERPRETER_MODE == 'vision':
             self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
@@ -184,7 +157,7 @@ class Interpreter:
         if not self.SCRIPT_MODE and not self.COMMAND_MODE and not self.VISION_MODE:
             self.CODE_MODE = True
     
-    def get_prompt(self,message: str, chat_history: list[tuple[str, str]]) -> str:
+    def get_prompt(self,message: str, chat_history: []) -> str:
         system_message = None
         
         if self.CODE_MODE:
@@ -196,6 +169,10 @@ class Interpreter:
         elif self.VISION_MODE:
             system_message = "Please generate a well-written description of the image that is precise, easy to understand"
             return system_message
+        
+        # Add the chat history to the prompt
+        if chat_history:
+            system_message += "\n\n" + "\n\n" + "This is user chat history for this task and make sure to use this as reference to generate the code.\n\n" + "\n\n" + str(chat_history) + "\n\n"
         
         messages = [
             {"role": "system", "content":system_message},
@@ -308,7 +285,7 @@ class Interpreter:
             self.logger.info("Response received from completion function.")
         
         self.logger.info(f"Generated text {response}")
-        generated_text = self._extract_content(response)
+        generated_text = self.utility_manager._extract_content(response)
         self.logger.info(f"Generated content {generated_text}")
         return generated_text
 
@@ -422,7 +399,13 @@ class Interpreter:
                 elif task.lower() == '/version':
                     self.utility_manager.display_version(self.interpreter_version)
                     continue
-
+                
+                # HISTORY - Command section.
+                elif task.lower() == '/history':
+                    self.INTERPRETER_HISTORY = not self.INTERPRETER_HISTORY
+                    display_markdown_message(f"History is {'enabled' if self.INTERPRETER_HISTORY else 'disabled'}")
+                    continue
+                
                 # SHELL - Command section.
                 elif any(command in task.lower() for command in ['/shell ']):
                     shell_command = shlex.split(task)[1:]
@@ -599,7 +582,7 @@ class Interpreter:
                     prompt = self.get_mode_prompt(task, os_name)
 
                 # Clean the responses
-                self._clean_responses()
+                self.utility_manager._clean_responses()
                 
                 # Print Model and Mode information.
                 self.logger.info(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRETER_MODEL}")
@@ -680,6 +663,11 @@ class Interpreter:
                  
                 # Start the LLM Request.     
                 self.logger.info(f"Prompt: {prompt}")
+                
+                # Add the history as memory.
+                if self.INTERPRETER_HISTORY:
+                    self.history = self.history_manager.get_last_entries_for_key('Output', 5)
+                
                 generated_output = self.generate_code(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
                 
                 # No extra processing for Vision mode.
@@ -749,17 +737,17 @@ class Interpreter:
                             
                     try:
                         # Check if graph.png exists and open it.
-                        self._open_resource_file('graph.png')
+                        self.utility_manager._open_resource_file('graph.png')
                         
                         # Check if chart.png exists and open it.
-                        self._open_resource_file('chart.png')
+                        self.utility_manager._open_resource_file('chart.png')
                         
                         # Check if table.md exists and open it.
-                        self._open_resource_file('table.md')
+                        self.utility_manager._open_resource_file('table.md')
                     except Exception as exception:
                         display_markdown_message(f"Error in opening resource files: {str(exception)}")
                 
-                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
+                self.history_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
                 
             except Exception as exception:
                 self.logger.error(f"An error occurred: {str(exception)}")

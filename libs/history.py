@@ -39,7 +39,7 @@ class History:
             self.logger.error(f"Error in saving history to JSON: {str(exception)}")
             raise
 
-    def get_specific_key(self, key: str) -> List[Any]:
+    def get_data_for_key(self, key: str) -> List[Any]:
         """Returns a list of all values for the specified key in the history data."""
         try:
             with open(self.history_file, 'r') as file:
@@ -56,26 +56,49 @@ class History:
             self.logger.error(f'Error getting {key} data from history: {exception}')
             raise
 
-    def get_last_n_entries(self, count: int) -> List[dict]:
+    def get_last_entries(self, count: int) -> List[dict]:
         """Returns the last n entries from the history data."""
         try:
             with open(self.history_file, 'r') as file:
                 history_data = json.load(file)
-            last_n_entries = history_data[-count:]
+            last_entries = history_data[-count:]
             self.logger.info(f'Successfully retrieved last {count} entries from history')
-            return last_n_entries
+            return last_entries
         except Exception as exception:
             self.logger.error(f'Error getting last {count} entries from history: {exception}')
             raise
 
-    def get_last_n_entries_for_key(self, count: int, key: str) -> List[Any]:
+    def get_last_entries_for_key(self, key: str, count: int) -> List[Any]:
         """Returns the values of the specified key for the last n entries in the history data."""
         try:
-            last_n_entries = self.get_last_n_entries(count)
-            specific_data = self.get_specific_key(key)
-            last_n_specific_data = specific_data[-count:]
+            specific_key_data = self.get_data_for_key(key)
+            last_specific_data = specific_key_data[-count:]
             self.logger.info(f'Successfully retrieved {key} data for last {count} entries from history')
-            return last_n_specific_data
+            self.logger.info(f"\n'{last_specific_data}'\n")
+            return last_specific_data
         except Exception as exception:
             self.logger.error(f'Error getting {key} data for last {count} entries from history: {exception}')
             raise
+        
+    def get_last_entries_for_keys(self, count: int, *keys: str) -> List[dict]:
+        try:
+            entries = {key: self.get_last_entries_for_key(key, count) for key in keys}
+            
+            last_entries = []
+            for index in range(count):
+                session = {key: entries[key][index] for key in keys}
+                last_entries.append(session)
+            
+            return last_entries
+        except Exception as exception:
+            self.logger.error(f'Error getting last {count} entries for keys {keys} from history: {exception}')
+            raise
+
+    def get_last_chat_sessions(self, count: int) -> List[dict]:
+        return self.get_last_entries_for_keys(count, "Task", "Output")
+
+    def get_last_code_sessions(self, count: int) -> List[dict]:
+        return self.get_last_entries_for_keys(count, "Code", "Output")
+
+    def get_last_sessions(self, count: int) -> List[dict]:
+        return self.get_last_entries_for_keys(count, "Task", "Code", "Output")
