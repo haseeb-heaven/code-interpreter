@@ -286,6 +286,9 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**,**XML**).</br>
 🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.</br>
 🌴 **v1.8** - Added **Interpreter Commands Support**.</br>
+- **1.8.1** - Added **Interpreter Commands** _Debugging Support_.</br>
+- **1.8.2** - Fixed **Interpreter Commands** </br>
+- **1.8.3** - Added **Interpreter Commands** _Upgrade and Shell Support_.</br>
 
 ## 📜 **License**
 
