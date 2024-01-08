@@ -15,7 +15,6 @@ import os
 import platform
 import subprocess
 import time
-import webbrowser
 from libs.code_interpreter import CodeInterpreter
 from litellm import completion
 from libs.logger import Logger
@@ -23,11 +22,12 @@ from libs.markdown_code import display_code, display_markdown_message
 from libs.package_manager import PackageManager
 from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
-        
+import shlex
+
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.8.1"
+    interpreter_version = "1.8.3"
     
     def __init__(self, args):
         self.args = args
@@ -421,9 +421,46 @@ class Interpreter:
                 elif task.lower() == '/version':
                     self.utility_manager.display_version(self.interpreter_version)
                     continue
+
+                # SHELL - Command section.
+                elif any(command in task.lower() for command in ['/shell ']):
+                    shell_command = shlex.split(task)[1:]
+                    shell_command = ' '.join(shell_command)
+                    shell_output, shell_error = self.code_interpreter.execute_command(shell_command)
+                    if shell_output:
+                        self.logger.info(f"Shell command executed successfully.")
+                        display_code(shell_output)
+                        self.logger.info(f"Output: {shell_output[:100]}")
+                    elif shell_error:
+                        self.logger.info(f"Shell command executed with error.")
+                        display_markdown_message(f"Error: {shell_error}")
+                    continue
+
+                # LOG - Command section.
+                elif task.lower() == '/log':
+                    # open the folder logs/interepreter.log in current working directory and open it in text editor based on OS type
+                    log_file = os.path.join(os.getcwd(), 'logs', 'interpreter.log')
+                    if os.path.isfile(log_file):
+                        if os_name.lower() == 'macos':
+                            self.logger.info(f"Opening log file in default editor {log_file}")
+                            subprocess.call(('open', log_file))
+                        elif os_name.lower() == 'linux':
+                            subprocess.call(('xdg-open', log_file))
+                        elif os_name.lower() == 'windows':
+                            os.startfile(log_file)
+                    continue
+
+                # UPGRAGE - Command section.
+                elif task.lower() == '/upgrade':
+                    command_output,_  = self.code_interpreter.execute_command('pip install open-code-interpreter --upgrade && pip install -r requirements.txt --upgrade')
+                    if command_output:
+                        self.logger.info(f"Command executed successfully.")
+                        display_code(command_output)
+                        self.logger.info(f"Output: {command_output[:100]}")
+                    continue
                 
                 # EXECUTE - Command section.
-                elif task.lower() in ['/execute','/exec']:
+                elif task.lower() == '/execute':
                     self.execute_last_code(os_name,self.INTERPRETER_LANGUAGE)
                     continue
                 
@@ -447,20 +484,20 @@ class Interpreter:
                     display_markdown_message(f"Open code in **vim** editor (Y/N):")
                     vim_open = input()
                     if vim_open.lower() == 'y':
-                        self.logger.info(f"Opening code in **vim** editor {code_file}")
-                        subprocess.call(['vim', code_file])
+                        self.logger.info(f"Opening code in **vim** editor {code_file.name}")
+                        subprocess.call(['vim', code_file.name])
                         continue
                     else:
                         # Open the code in default editor.
                         if os_platform[0].lower() == 'macos':
                             self.logger.info(f"Opening code in default editor {code_file}")
-                            subprocess.call(('open', code_file))
+                            subprocess.call(('open', code_file.name))
                         elif os_platform[0].lower() == 'linux':
-                            subprocess.call(('xdg-open', code_file))
+                            subprocess.call(('xdg-open', code_file.name))
                         elif os_platform[0].lower() == 'windows':
-                            os.startfile(code_file)
+                            os.startfile(code_file.name)
                         continue
-
+                
                 # DEBUG - Command section.
                 elif task.lower() == '/debug':
 
@@ -535,7 +572,7 @@ class Interpreter:
                     continue
                 
                 # LANGUAGE - Command section.
-                elif any(command in task.lower() for command in ['/language', '/lang']):
+                elif any(command in task.lower() for command in ['/language','/lang']):
                     split_task = task.split(' ')
                     if len(split_task) > 1:
                         language = split_task[1]

@@ -215,7 +215,6 @@ Here are the available commands:
 - 📝 `/save` - Save the last code generated.
 - ✏️ `/edit` - Edit the last code generated.
 - ▶️ `/execute` - Execute the last code generated.
-- 🐛 `/debug` - Debug the last code generated.
 - 🔄 `/mode` - Change the mode of interpreter.
 - 🔄 `/model` - Change the model for interpreter.
 - 📦 `/install` - Install a package from npm or pip.
@@ -224,6 +223,9 @@ Here are the available commands:
 - 🆘 `/help` - Display this help message.
 - 📝 `/version` - Display the version of the interpreter.
 - 🚪 `/exit` - Exit the interpreter.
+- 📜 `/log` - Display the log.
+- ⏫ `/upgrade` - Upgrade the interpreter.
+- 💻 `/shell` - Access the shell.
 
 
 ## 📖 **Examples**

@@ -189,7 +189,10 @@ class UtilityManager:
                 /language - Change the language of the interpreter.\n\
                 /clear - Clear the screen.\n\
                 /help - Display this help message.\n\
-                /version - Display the version of the interpreter.\n")
+                /version - Display the version of the interpreter.\n\
+                /log - Display the log.\n\
+                /upgrade - Upgrade the interpreter.\n\
+                /shell - Access the shell.\n")
     
     def display_version(self,version):
         display_markdown_message(f"Interpreter - {version}")
