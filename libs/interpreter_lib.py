@@ -408,7 +408,7 @@ class Interpreter:
                     break
                 
                 # HELP - Command section.
-                elif task.lower() in ['/help','/h']:
+                elif task.lower() == '/help':
                     self.utility_manager.display_help()
                     continue
                 
@@ -418,17 +418,17 @@ class Interpreter:
                     continue
 
                 # VERSION - Command section.
-                elif task.lower() in ['/version','/v']:
+                elif task.lower() == '/version':
                     self.utility_manager.display_version(self.interpreter_version)
                     continue
                 
                 # EXECUTE - Command section.
-                elif task.lower() in ['/execute','/e']:
+                elif task.lower() in ['/execute','/exec']:
                     self.execute_last_code(os_name,self.INTERPRETER_LANGUAGE)
                     continue
                 
                 # SAVE - Command section.
-                elif task.lower() in ['/save','/s']:
+                elif task.lower() == '/save':
                     latest_code_extension = 'py' if self.INTERPRETER_LANGUAGE == 'python' else 'js'
                     latest_code_name = f"output/code_{time.strftime('%Y_%m_%d-%H_%M_%S', time.localtime())}." + latest_code_extension
                     latest_code = extracted_code
@@ -437,7 +437,7 @@ class Interpreter:
                     continue
 
                 # EDIT - Command section.
-                elif task.lower() in ['/edit','/ed']:
+                elif task.lower() == '/edit':
                     code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
                     
                     # Get the OS platform.
@@ -462,7 +462,7 @@ class Interpreter:
                         continue
 
                 # DEBUG - Command section.
-                elif task.lower() in ['/debug','/d']:
+                elif task.lower() == '/debug':
 
                     if not code_error:
                         code_error = code_output
@@ -501,7 +501,7 @@ class Interpreter:
                     continue
 
                 # MODE - Command section.
-                elif any(command in task.lower() for command in ['/mode ', '/md ']):
+                elif any(command in task.lower() for command in ['/mode ']):
                     mode = task.split(' ')[1]
                     if mode:
                         if not mode.lower() in ['code','script','command','vision']:
@@ -521,7 +521,7 @@ class Interpreter:
                     continue
 
                 # MODEL - Command section.
-                elif any(command in task.lower() for command in ['/model ', '/m ']):
+                elif any(command in task.lower() for command in ['/model ']):
                     model = task.split(' ')[1]
                     if model:
                         model_config_file = f"configs/{model}.config"
@@ -535,7 +535,7 @@ class Interpreter:
                     continue
                 
                 # LANGUAGE - Command section.
-                elif any(command in task.lower() for command in ['/language', '/l']):
+                elif any(command in task.lower() for command in ['/language', '/lang']):
                     split_task = task.split(' ')
                     if len(split_task) > 1:
                         language = split_task[1]
@@ -548,7 +548,7 @@ class Interpreter:
                     continue
                 
                 # INSTALL - Command section.
-                elif any(command in task.lower() for command in ['/install', '/i']):
+                elif any(command in task.lower() for command in ['/install']):
                     # get the package name after the command 
                     package_name = task.split(' ')[1]
                     if package_name:
