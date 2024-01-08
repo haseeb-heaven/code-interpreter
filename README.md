@@ -290,8 +290,7 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 - **1.8.2** - Fixed **Interpreter Commands** </br>
 - **1.8.3** - Added **Interpreter Commands** _Upgrade and Shell Support_.</br>
 - **1.8.4** - Fixed **Interpreter Model switcher** _Bug_.</br>
-**v1.9** - Added new **Chat mode** for Chatting with your **Files**,**Data** and more.</br>
-
+🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.</br>
 
 ## 📜 **License**
 
