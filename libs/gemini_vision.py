@@ -1,16 +1,15 @@
 import os
-import google.generativeai as genai
 from dotenv import load_dotenv
 from libs.logger import Logger
 from PIL import Image
 import io
 import requests
+from litellm import litellm
 
 class GeminiVision:
-    def __init__(self,api_key=None,temperature=0.1,top_p=1,top_k=32,max_output_tokens=4096) -> None:
+    def __init__(self,api_key=None,temperature=0.1,top_p=1,top_k=32,max_output_tokens=13000) -> None:
         self.logger = Logger.initialize_logger('logs/vision_interpreter.log')
         self.logger.info(f"Initializing Gemini Vision")
-        self.model = None
         self.api_key = api_key
         self.temperature = temperature
         self.top_p = top_p
@@ -33,43 +32,46 @@ class GeminiVision:
                 raise ValueError("No API key found in the .env file")
         
         self.logger.info(f"Gemini Vision configured success")
-        genai.configure(api_key=api_key)
         
-        self.logger.info(f"Setting up model")
-        self.setup_model()
-        self.logger.info(f"Model setup success")
-
-    def setup_model(self):
-        try:
-            # Set up the model
-            generation_config = {
-                "temperature": self.temperature,
-                "top_p": self.top_p,
-                "top_k": self.top_k,
-                "max_output_tokens": self.max_output_tokens,
+    def _generate_message(self,prompt, image_url):
+        return [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": prompt
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": image_url
+                        }
+                    }
+                ]
             }
+        ]
 
-            self.model = genai.GenerativeModel(model_name="gemini-pro-vision",generation_config=generation_config)
+    def _get_content_from_response(self,response):
+        try:
+            return response['choices'][0]['message']['content']
+        except (KeyError, IndexError) as e:
+            self.logger.error(f"Invalid response structure: {e}")
+            return None
+
+    def generate_text(self,prompt, image_url):
+        try:
+            messages = self._generate_message(prompt, image_url)
+            response = litellm.completion(model="gemini/gemini-pro-vision", messages=messages,temperature=self.temperature,max_output_tokens=self.max_output_tokens,top_p=self.top_p,top_k=self.top_k)
+            content = self._get_content_from_response(response)
+            if content:
+                self.logger.info("Content found from Gemini Vision")
+                return content
+            else:
+                self.logger.warning("No content found in the response")
         except Exception as exception:
-            self.logger.error(f"Error setting up model: {exception}")
+            self.logger.error(f"An error occurred while generating text: {exception}")
             raise
-
-    def generate_content(self, contents):
-        self.logger.info(f"Generating contents")
-        
-        # Check model and contents for errors.
-        if self.model is None:
-            self.logger.error("Model is not initialized")
-            raise ValueError("Model is not initialized")
-
-        if contents is None:
-            self.logger.error("Contents is not initialized")
-            raise ValueError("Contents is not initialized")
-        
-        # Print out the contents list for debugging
-        self.logger.info(f"Contents: {contents}")
-        
-        return self.model.generate_content(contents=contents)
     
     def _get_image_from_url(self, image_url):
         self.logger.info(f"Getting image from URL: {image_url}")
@@ -85,17 +87,14 @@ class GeminiVision:
     def gemini_vision_url(self, prompt, image_url):
         self.logger.info(f"Generating text from URL: {image_url}")
         try:
-            image = self._get_image_from_url(image_url)
-            contents = [prompt, image]
-            self.logger.info(f"Contents: {contents}")
-            response = self.generate_content(contents=contents)
+            response = self.generate_text(prompt, image_url)
     
             if 'error' in response:
                 raise ValueError(f"An error occurred: {response}")
             else:
-                if response.text:
-                    self.logger.info(f"Response: {response.text}")
-                    return response.text
+                if response:
+                    self.logger.info(f"Response: {response}")
+                    return response
         except Exception as exception:
             self.logger.error(f"Error generating text from URL: {exception}")
             raise
@@ -103,6 +102,9 @@ class GeminiVision:
     def gemini_vision_path(self, prompt, image_path):
         self.logger.info(f"Generating text from image path: '{image_path}'")
         try:
+            self.logger.warning(f"LiteLLM does not support image paths yet")
+            raise NotImplementedError(f"LiteLLM does not support image paths yet")
+        
             self.logger.info(f"Checking if image path exists for: '{image_path}'")
             
             if not image_path:
@@ -117,7 +119,7 @@ class GeminiVision:
             contents = [prompt, image]
 
             self.logger.info(f"Contents: {contents}")
-            response = self.generate_content(contents=contents)
+            response = self.generate_text(prompt, image_path)
 
             if 'error' in response:
                 raise ValueError(f"An error occurred: {response}")
