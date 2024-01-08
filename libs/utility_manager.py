@@ -40,33 +40,6 @@ class UtilityManager:
             self.logger.error(f"Error in getting OS platform: {str(exception)}")
             raise
 
-    def save_history_json(self, task, mode, os_name, language, prompt, extracted_code, model_name, filename="history/history.json"):
-        try:
-            history_entry = {
-                "Assistant": {
-                    "Task": task,
-                    "Mode": mode,
-                    "OS": os_name,
-                    "Language": language,
-                    "Model": model_name
-                },
-                "User": prompt,
-                "System": extracted_code
-            }
-
-            data = []
-            if os.path.isfile(filename) and os.path.getsize(filename) > 0:
-                with open(filename, "r") as history_file:  # Open the file in read mode
-                    data = json.load(history_file)
-
-            data.append(history_entry)
-
-            with open(filename, "w") as history_file:
-                json.dump(data, history_file)
-        except Exception as exception:
-            self.logger.error(f"Error in saving history to JSON: {str(exception)}")
-            raise
-
     def initialize_readline_history(self):
         try:
             # Checking the OS type

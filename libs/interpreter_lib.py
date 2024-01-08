@@ -27,11 +27,12 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.8.3"
+    interpreter_version = "1.8.4"
     
     def __init__(self, args):
         self.args = args
         self.history = []
+        self.history_file = "history/history.json"
         self.utility_manager = UtilityManager()
         self.code_interpreter = CodeInterpreter()
         self.package_manager = PackageManager()
@@ -374,7 +375,7 @@ class Interpreter:
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
         generated_output = None
-        extracted_code = None
+        code_snippet = None
         code_output, code_error = None, None
         extracted_file_name = None 
 
@@ -468,7 +469,7 @@ class Interpreter:
                 elif task.lower() == '/save':
                     latest_code_extension = 'py' if self.INTERPRETER_LANGUAGE == 'python' else 'js'
                     latest_code_name = f"output/code_{time.strftime('%Y_%m_%d-%H_%M_%S', time.localtime())}." + latest_code_extension
-                    latest_code = extracted_code
+                    latest_code = code_snippet
                     self.code_interpreter.save_code(latest_code_name, latest_code)
                     display_markdown_message(f"Code saved successfully to {latest_code_name}.")
                     continue
@@ -508,7 +509,7 @@ class Interpreter:
                         display_markdown_message(f"Error: No error found in the code to fix.")
                         continue
 
-                    debug_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{extracted_code}'\nAnd Error is \n'{code_error}'\n give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
+                    debug_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{code_snippet}'\nAnd Error is \n'{code_error}'\n give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
                     
                     # Start the LLM Request.
                     self.logger.info(f"Debug Prompt: {debug_prompt}")
@@ -516,17 +517,17 @@ class Interpreter:
 
                     # Extract the code from the generated output.
                     self.logger.info(f"Generated output type {type(generated_output)}")
-                    extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
+                    code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
                     
                     # Display the extracted code.
-                    self.logger.info(f"Extracted code: {extracted_code[:50]}")
+                    self.logger.info(f"Extracted code: {code_snippet[:50]}")
                     
                     if self.DISPLAY_CODE:
-                        display_code(extracted_code)
+                        display_code(code_snippet)
                         self.logger.info("Code extracted successfully.")
                     
                         # Execute the code if the user has selected.
-                        code_output, code_error = self.execute_code(extracted_code, os_name)
+                        code_output, code_error = self.execute_code(code_snippet, os_name)
                         
                         if code_output:
                             self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
@@ -688,36 +689,36 @@ class Interpreter:
 
                 # Extract the code from the generated output.
                 self.logger.info(f"Generated output type {type(generated_output)}")
-                extracted_code = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
+                code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
                 
                 # Display the extracted code.
-                self.logger.info(f"Extracted code: {extracted_code[:50]}")
+                self.logger.info(f"Extracted code: {code_snippet[:50]}")
                 
                 if self.DISPLAY_CODE:
-                    display_code(extracted_code)
+                    display_code(code_snippet)
                     self.logger.info("Code extracted successfully.")
                 
-                if extracted_code:
+                if code_snippet:
                     current_time = time.strftime("%Y_%m_%d-%H_%M_%S", time.localtime())
                     
                     if self.INTERPRETER_LANGUAGE == 'javascript' and self.SAVE_CODE and self.CODE_MODE:
-                        self.code_interpreter.save_code(f"output/code_{current_time}.js", extracted_code)
+                        self.code_interpreter.save_code(f"output/code_{current_time}.js", code_snippet)
                         self.logger.info(f"JavaScript code saved successfully.")
                     
                     elif self.INTERPRETER_LANGUAGE == 'python' and self.SAVE_CODE and self.CODE_MODE:
-                        self.code_interpreter.save_code(f"output/code_{current_time}.py", extracted_code)
+                        self.code_interpreter.save_code(f"output/code_{current_time}.py", code_snippet)
                         self.logger.info(f"Python code saved successfully.")
                     
                     elif self.SAVE_CODE and self.COMMAND_MODE:
-                        self.code_interpreter.save_code(f"output/command_{current_time}.txt", extracted_code)
+                        self.code_interpreter.save_code(f"output/command_{current_time}.txt", code_snippet)
                         self.logger.info(f"Command saved successfully.")
   
                     elif self.SAVE_CODE and self.SCRIPT_MODE:
-                        self.code_interpreter.save_code(f"output/script_{current_time}.txt", extracted_code)
+                        self.code_interpreter.save_code(f"output/script_{current_time}.txt", code_snippet)
                         self.logger.info(f"Script saved successfully.")
                   
                     # Execute the code if the user has selected.
-                    code_output, code_error = self.execute_code(extracted_code, os_name)
+                    code_output, code_error = self.execute_code(code_snippet, os_name)
                     
                     if code_output:
                         self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
@@ -737,7 +738,7 @@ class Interpreter:
 
                             # Wait and Execute the code again.
                             time.sleep(3)
-                            code_output, code_error = self.execute_code(extracted_code, os_name)
+                            code_output, code_error = self.execute_code(code_snippet, os_name)
                             if code_output:
                                 self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
                                 display_code(code_output)
@@ -758,7 +759,7 @@ class Interpreter:
                     except Exception as exception:
                         display_markdown_message(f"Error in opening resource files: {str(exception)}")
                 
-                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRETER_MODEL)
+                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
                 
             except Exception as exception:
                 self.logger.error(f"An error occurred: {str(exception)}")
