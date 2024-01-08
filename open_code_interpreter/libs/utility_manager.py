@@ -190,6 +190,9 @@ class UtilityManager:
                 /mode - Change the mode of interpreter.\n\
                 /model - Change the model for interpreter.\n\
                 /language - Change the language of the interpreter.\n\
+                /shell - Open the shell of the interpreter.\n\
+                /log - Display the log of the interpreter.\n\
+                /upgrade - Upgrade the interpreter to the latest version.\n\
                 /clear - Clear the screen.\n\
                 /help - Display this help message.\n\
                 /version - Display the version of the interpreter.\n")

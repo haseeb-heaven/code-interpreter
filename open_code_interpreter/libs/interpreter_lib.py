@@ -13,6 +13,7 @@ This file contains the `Interpreter` class which is responsible for:
 
 import os
 import platform
+import shlex
 import subprocess
 import time
 import webbrowser
@@ -27,7 +28,7 @@ from dotenv import load_dotenv
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.8.2"
+    interpreter_version = "1.8.3"
     
     def __init__(self, args):
         self.args = args
@@ -428,6 +429,43 @@ class Interpreter:
                 # VERSION - Command section.
                 elif task.lower() == '/version':
                     self.utility_manager.display_version(self.interpreter_version)
+                    continue
+
+                # SHELL - Command section.
+                elif any(command in task.lower() for command in ['/shell ']):
+                    shell_command = shlex.split(task)[1:]
+                    shell_command = ' '.join(shell_command)
+                    shell_output, shell_error = self.code_interpreter.execute_command(shell_command)
+                    if shell_output:
+                        self.logger.info(f"Shell command executed successfully.")
+                        display_code(shell_output)
+                        self.logger.info(f"Output: {shell_output[:100]}")
+                    elif shell_error:
+                        self.logger.info(f"Shell command executed with error.")
+                        display_markdown_message(f"Error: {shell_error}")
+                    continue
+
+                # LOG - Command section.
+                elif task.lower() == '/log':
+                    # open the folder logs/interepreter.log in current working directory and open it in text editor based on OS type
+                    log_file = os.path.join(os.getcwd(), 'logs', 'interpreter.log')
+                    if os.path.isfile(log_file):
+                        if os_name.lower() == 'macos':
+                            self.logger.info(f"Opening log file in default editor {log_file}")
+                            subprocess.call(('open', log_file))
+                        elif os_name.lower() == 'linux':
+                            subprocess.call(('xdg-open', log_file))
+                        elif os_name.lower() == 'windows':
+                            os.startfile(log_file)
+                    continue
+
+                # UPGRAGE - Command section.
+                elif task.lower() == '/upgrade':
+                    command_output,_  = self.code_interpreter.execute_command('pip install open-code-interpreter --upgrade && pip install -r requirements.txt --upgrade')
+                    if command_output:
+                        self.logger.info(f"Command executed successfully.")
+                        display_code(command_output)
+                        self.logger.info(f"Output: {command_output[:100]}")
                     continue
                 
                 # EXECUTE - Command section.
