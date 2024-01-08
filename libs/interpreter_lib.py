@@ -18,7 +18,7 @@ import time
 from typing import List
 from libs.code_interpreter import CodeInterpreter
 from litellm import completion
-from libs.history import History
+from libs.history_manager import History
 from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_manager import PackageManager
@@ -361,7 +361,7 @@ class Interpreter:
 
     def interpreter_main(self):
         
-        self.logger.info(f"Code Interpreter - v{self.interpreter_version}")
+        self.logger.info(f"Interpreter - v{self.interpreter_version}")
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
         generated_output = None
@@ -686,11 +686,11 @@ class Interpreter:
                 self.logger.info(f"Prompt: {prompt}")
                 
                 # Add the history as memory.
-                if self.INTERPRETER_HISTORY and self.CHAT_MODE:
-                    self.history = self.history_manager.get_chat_sessions(self.history_count)
+                if self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'chat':
+                    self.history = self.history_manager.get_chat_history(self.history_count)
                 
-                elif self.INTERPRETER_HISTORY and self.CODE_MODE:
-                    self.history = self.history_manager.get_code_sessions(self.history_count)
+                elif self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'code':
+                    self.history = self.history_manager.get_code_history(self.history_count)
                 
                 generated_output = self.generate_content(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
                 

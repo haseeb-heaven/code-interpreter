@@ -12,17 +12,17 @@ class History:
     def save_history_json(self, task, mode, os_name, language, prompt, code_snippet, code_output, model_name, filename="history/history.json"):
         try:
             history_entry = {
-                "Assistant": {
-                    "Task": task,
-                    "Mode": mode,
-                    "OS": os_name,
-                    "Language": language,
-                    "Model": model_name
+                "assistant": {
+                    "task": task,
+                    "mode": mode,
+                    "os": os_name,
+                    "language": language,
+                    "model": model_name
                 },
-                "User": prompt,
-                "System": {
-                    "Code": code_snippet,
-                    "Output": code_output
+                "user": prompt,
+                "system": {
+                    "code": code_snippet,
+                    "output": code_output
                 }
             }
 
@@ -50,10 +50,10 @@ class History:
             
             specific_data = []
             for entry in history_data:
-                if key in entry['Assistant']:
-                    specific_data.append(entry['Assistant'].get(key))
-                elif key in entry['System']:
-                    specific_data.append(entry['System'].get(key))
+                if key in entry['assistant']:
+                    specific_data.append(entry['assistant'].get(key))
+                elif key in entry['system']:
+                    specific_data.append(entry['system'].get(key))
             self.logger.info(f'Successfully retrieved {key} data from history')
             return specific_data
         except Exception as exception:
@@ -77,9 +77,13 @@ class History:
         try:
             specific_key_data = self._get_data_for_key(key)
             last_specific_data = specific_key_data[-count:]
-            self.logger.info(f'Successfully retrieved {key} data for last {count} entries from history')
-            self.logger.info(f"\n'{last_specific_data}'\n")
-            return last_specific_data
+            if last_specific_data:
+                self.logger.info(f'Successfully retrieved {key} data for last {count} entries from history')
+                self.logger.info(f"\n'{last_specific_data}'\n")
+                return last_specific_data
+            else:
+                self.logger.info(f'No {key} data found in history')
+                return []
         except Exception as exception:
             self.logger.error(f'Error getting {key} data for last {count} entries from history: {exception}')
             raise
@@ -98,11 +102,11 @@ class History:
             self.logger.error(f'Error getting last {count} entries for keys {keys} from history: {exception}')
             raise
 
-    def get_chat_sessions(self, count: int) -> List[dict]:
-        return self._get_last_entries_for_keys(count, "Task", "Output")
+    def get_chat_history(self, count: int) -> List[dict]:
+        return self._get_last_entries_for_keys(count, "task", "output")
 
-    def get_code_sessions(self, count: int) -> List[dict]:
-        return self._get_last_entries_for_keys(count, "Code", "Output")
+    def get_code_history(self, count: int) -> List[dict]:
+        return self._get_last_entries_for_keys(count, "code", "output")
 
-    def get_full_sessions(self, count: int) -> List[dict]:
-        return self._get_last_entries_for_keys(count, "Task", "Code", "Output")
+    def get_full_history(self, count: int) -> List[dict]:
+        return self._get_last_entries_for_keys(count, "task", "code", "output")
