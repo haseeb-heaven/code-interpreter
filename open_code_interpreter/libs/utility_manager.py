@@ -185,6 +185,8 @@ class UtilityManager:
                 /exit - Exit the interpreter.\n\
                 /execute - Execute the last code generated.\n\
                 /install - Install a package from npm or pip.\n\
+                /save - Save the last code generated.\n\
+                /debug - Debug the last code generated.\n\
                 /mode - Change the mode of interpreter.\n\
                 /model - Change the model for interpreter.\n\
                 /language - Change the language of the interpreter.\n\
