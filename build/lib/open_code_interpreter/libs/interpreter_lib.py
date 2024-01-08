@@ -570,7 +570,7 @@ class Interpreter:
                 elif any(command in task.lower() for command in ['/model ']):
                     model = task.split(' ')[1]
                     if model:
-                        model_config_file = f"configs/{model}.config"
+                        model_config_file = os.path.join(self.base_dir, 'configs', f"{model}.config")
                         if not os.path.isfile(model_config_file):
                             display_markdown_message(f"Model {model} does not exists. Please check the model name.")
                             continue

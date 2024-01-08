@@ -237,6 +237,9 @@ Here are the available commands:
 - 🆘 `/help` - Display this help message.
 - 📝 `/version` - Display the version of the interpreter.
 - 🚪 `/exit` - Exit the interpreter.
+- 📜 `/log` - Display the log.
+- ⏫ `/upgrade` - Upgrade the interpreter.
+- 💻 `/shell` - Access the shell.
 
 
 ## 📖 **Examples**
