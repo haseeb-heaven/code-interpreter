@@ -20,6 +20,7 @@ open_code_interpreter/configs/wizard-coder.config
 open_code_interpreter/history/history.json
 open_code_interpreter/libs/code_interpreter.py
 open_code_interpreter/libs/gemini_vision.py
+open_code_interpreter/libs/history_manager.py
 open_code_interpreter/libs/interpreter_lib.py
 open_code_interpreter/libs/logger.py
 open_code_interpreter/libs/markdown_code.py
@@ -29,3 +30,5 @@ open_code_interpreter/logs/code-interpreter.log
 open_code_interpreter/logs/interpreter.log
 open_code_interpreter/output/test.py
 open_code_interpreter/system/system_message.txt
+tests/__init__.py
+tests/test_interpreter.py

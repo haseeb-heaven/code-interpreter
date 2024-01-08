@@ -16,6 +16,7 @@ import platform
 import shlex
 import subprocess
 import time
+from typing import List
 import webbrowser
 from open_code_interpreter.libs.code_interpreter import CodeInterpreter
 from litellm import completion
@@ -36,16 +37,16 @@ class Interpreter:
         self.args = args
         self.history = []
         self.history_count = 3
-        self.history_file = "history/history.json"
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.utility_manager = UtilityManager()
         self.code_interpreter = CodeInterpreter()
         self.package_manager = PackageManager()
+        self.history_file = os.path.join(self.base_dir, 'history', 'history.json')
         self.history_manager = History(self.history_file)
         self.client = None
         self.config_values = None
         self.system_message = ""
         self.gemini_vision = None
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         logs_file_path = os.path.join(self.base_dir, 'logs', 'interpreter.log')
         self.logger = Logger.initialize_logger(logs_file_path)
         self.initialize()
@@ -446,16 +447,17 @@ class Interpreter:
 
                 # LOG - Command section.
                 elif task.lower() == '/log':
-                    # open the folder logs/interepreter.log in current working directory and open it in text editor based on OS type
-                    log_file = os.path.join(os.getcwd(), 'logs', 'interpreter.log')
-                    if os.path.isfile(log_file):
-                        if os_name.lower() == 'macos':
-                            self.logger.info(f"Opening log file in default editor {log_file}")
-                            subprocess.call(('open', log_file))
-                        elif os_name.lower() == 'linux':
-                            subprocess.call(('xdg-open', log_file))
-                        elif os_name.lower() == 'windows':
-                            os.startfile(log_file)
+                    # Toggle the log level to Verbose/Silent.
+                    
+                    logger_mode = Logger.get_current_level()
+                    logger_mode = logger_mode.lower()
+                    
+                    if logger_mode == 'debug':
+                        Logger.set_silent_mode()
+                        display_markdown_message(f"Logger mode changed to **Silent**.")
+                    else:
+                        Logger.set_verbose_mode()
+                        display_markdown_message(f"Logger mode changed to **Verbose**.")
                     continue
 
                 # UPGRAGE - Command section.
@@ -525,7 +527,6 @@ class Interpreter:
                     display_markdown_message(f"Code saved successfully to {latest_code_name}.")
                     continue
 
-                # EDIT - Command section.
                 elif task.lower() == '/edit':
                     code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
                     
@@ -536,18 +537,18 @@ class Interpreter:
                     display_markdown_message(f"Open code in **vim** editor (Y/N):")
                     vim_open = input()
                     if vim_open.lower() == 'y':
-                        self.logger.info(f"Opening code in **vim** editor {code_file.name}")
-                        subprocess.call(['vim', code_file.name])
+                        self.logger.info(f"Opening code in **vim** editor {code_file.name if not isinstance(code_file, str) else code_file}")
+                        subprocess.call(['vim', code_file.name if not isinstance(code_file, str) else code_file])
                         continue
                     else:
                         # Open the code in default editor.
                         if os_platform[0].lower() == 'macos':
-                            self.logger.info(f"Opening code in default editor {code_file}")
-                            subprocess.call(('open', code_file.name))
+                            self.logger.info(f"Opening code in default editor {code_file.name if not isinstance(code_file, str) else code_file}")
+                            subprocess.call(('open', code_file.name if not isinstance(code_file, str) else code_file))
                         elif os_platform[0].lower() == 'linux':
-                            subprocess.call(('xdg-open', code_file.name))
+                            subprocess.call(('xdg-open', code_file.name if not isinstance(code_file, str) else code_file))
                         elif os_platform[0].lower() == 'windows':
-                            os.startfile(code_file.name)
+                            os.startfile(code_file.name if not isinstance(code_file, str) else code_file)
                         continue
                 
                 # DEBUG - Command section.
@@ -824,8 +825,7 @@ class Interpreter:
                     except Exception as exception:
                         display_markdown_message(f"Error in opening resource files: {str(exception)}")
                 
-                history_file_path = os.path.join(self.base_dir, 'history', 'history.json')
-                self.utility_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, extracted_code, self.INTERPRETER_MODEL, history_file_path)
+                self.history_manager.save_history_json(task,self.INTERPRETER_MODE,os_name,self.INTERPRETER_LANGUAGE,prompt,code_snippet,code_output,self.INTERPRETER_MODEL)
                 
             except Exception as exception:
                 self.logger.error(f"An error occurred: {str(exception)}")

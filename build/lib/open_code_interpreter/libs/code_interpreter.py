@@ -11,12 +11,13 @@ It includes features like:
 import os
 import subprocess
 import traceback
-from open_code_interpreter.libs.logger import initialize_logger
+from open_code_interpreter.libs.logger import Logger
+from open_code_interpreter.libs.markdown_code import display_markdown_message
 
 class CodeInterpreter:
 
     def __init__(self):
-        self.logger = initialize_logger("logs/code-interpreter.log")
+        self.logger = Logger.initialize_logger("logs/code-interpreter.log")
     
     def _execute_script(self, script: str, shell: str):
         stdout = stderr = None
@@ -74,6 +75,11 @@ class CodeInterpreter:
             directory = os.path.dirname(filename)
             if not os.path.exists(directory):
                 os.makedirs(directory)
+            
+            if not code:
+                self.logger.error("Code not provided.")
+                display_markdown_message("Error **Code not provided to save.**")
+                return
 
             with open(filename, 'w') as file:
                 file.write(code)
