@@ -31,7 +31,7 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.9"
+    interpreter_version = "1.9.1"
     
     def __init__(self, args):
         self.args = args

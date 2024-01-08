@@ -21,8 +21,6 @@ import traceback
 from open_code_interpreter.libs.interpreter_lib import Interpreter
 from open_code_interpreter.libs.markdown_code import display_markdown_message
 
-from libs.markdown_code import display_markdown_message
-
 def main():
         parser = argparse.ArgumentParser(description='Code - Interpreter')
         parser.add_argument('--exec', '-e', action='store_true', default=False, help='Execute the code')
