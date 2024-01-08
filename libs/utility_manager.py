@@ -200,12 +200,12 @@ class UtilityManager:
                 /clear - Clear the screen.\n\
                 /help - Display this help message.\n\
                 /version - Display the version of the interpreter.\n\
-                /log - Display the log.\n\
+                /log - Switch between Verbose and Silent mode.\n\
                 /upgrade - Upgrade the interpreter.\n\
                 /shell - Access the shell.\n")
     
     def display_version(self,version):
-        display_markdown_message(f"Interpreter - {version}")
+        display_markdown_message(f"Interpreter - v{version}")
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')

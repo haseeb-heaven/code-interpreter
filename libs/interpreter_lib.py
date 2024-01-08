@@ -437,16 +437,17 @@ class Interpreter:
 
                 # LOG - Command section.
                 elif task.lower() == '/log':
-                    # open the folder logs/interepreter.log in current working directory and open it in text editor based on OS type
-                    log_file = os.path.join(os.getcwd(), 'logs', 'interpreter.log')
-                    if os.path.isfile(log_file):
-                        if os_name.lower() == 'macos':
-                            self.logger.info(f"Opening log file in default editor {log_file}")
-                            subprocess.call(('open', log_file))
-                        elif os_name.lower() == 'linux':
-                            subprocess.call(('xdg-open', log_file))
-                        elif os_name.lower() == 'windows':
-                            os.startfile(log_file)
+                    # Toggle the log level to Verbose/Silent.
+                    
+                    logger_mode = Logger.get_current_level()
+                    logger_mode = logger_mode.lower()
+                    
+                    if logger_mode == 'debug':
+                        Logger.set_silent_mode()
+                        display_markdown_message(f"Logger mode changed to **Silent**.")
+                    else:
+                        Logger.set_verbose_mode()
+                        display_markdown_message(f"Logger mode changed to **Verbose**.")
                     continue
 
                 # UPGRAGE - Command section.
