@@ -1,11 +1,10 @@
 import json
 import os
+import platform
 import re
-from open_code_interpreter.libs.logger import initialize_logger
+from open_code_interpreter.libs.logger import Logger
 import traceback
 import csv
-import pandas as pd
-from xml.etree import ElementTree as ET
 import glob
 from datetime import datetime
 
@@ -15,14 +14,44 @@ class UtilityManager:
     def __init__(self):
         if not os.path.exists('logs'):
             os.makedirs('logs')
-        self.logger = initialize_logger("logs/interpreter.log")
         try:
             if not os.path.isfile('logs/interpreter.log'):
                 open('logs/interpreter.log', 'w').close()
         except Exception as exception:
             self.logger.error(f"Error in UtilityManager initialization: {str(exception)}")
             raise
+        self.logger = Logger.initialize_logger("logs/interpreter.log")
 
+    def _open_resource_file(self,filename):
+        try:
+            if os.path.isfile(filename):
+                if platform.system() == "Windows":
+                    subprocess.call(['start', filename], shell=True)
+                elif platform.system() == "Darwin":
+                    subprocess.call(['open', filename])
+                elif platform.system() == "Linux":
+                    subprocess.call(['xdg-open', filename])
+                self.logger.info(f"{filename} exists and opened successfully")
+        except Exception as exception:
+            display_markdown_message(f"Error in opening files: {str(exception)}")
+
+    def _clean_responses(self):
+        files_to_remove = ['graph.png', 'chart.png', 'table.md']
+        for file in files_to_remove:
+            try:
+                if os.path.isfile(file):
+                    os.remove(file)
+                    self.logger.info(f"{file} removed successfully")
+            except Exception as e:
+                print(f"Error in removing {file}: {str(e)}")
+    
+    def _extract_content(self,output):
+        try:
+            return output['choices'][0]['message']['content']
+        except (KeyError, TypeError) as e:
+            self.logger.error(f"Error extracting content: {str(e)}")
+            raise
+    
     def get_os_platform(self):
         try:
             import platform
@@ -41,33 +70,6 @@ class UtilityManager:
             return os_name, os_info.version
         except Exception as exception:
             self.logger.error(f"Error in getting OS platform: {str(exception)}")
-            raise
-
-    def save_history_json(self, task, mode, os_name, language, prompt, extracted_code, model_name, filename="history/history.json"):
-        try:
-            history_entry = {
-                "Assistant": {
-                    "Task": task,
-                    "Mode": mode,
-                    "OS": os_name,
-                    "Language": language,
-                    "Model": model_name
-                },
-                "User": prompt,
-                "System": extracted_code
-            }
-
-            data = []
-            if os.path.isfile(filename) and os.path.getsize(filename) > 0:
-                with open(filename, "r") as history_file:  # Open the file in read mode
-                    data = json.load(history_file)
-
-            data.append(history_entry)
-
-            with open(filename, "w") as history_file:
-                json.dump(data, history_file)
-        except Exception as exception:
-            self.logger.error(f"Error in saving history to JSON: {str(exception)}")
             raise
 
     def initialize_readline_history(self):
@@ -108,23 +110,27 @@ class UtilityManager:
             raise
 
     def extract_file_name(self, prompt):
-        # This pattern looks for typical file paths, names, and URLs, then stops at the end of the extension
-        pattern = r"((?:[a-zA-Z]:\\(?:[\w\-\.]+\\)*|/(?:[\w\-\.]+/)*|\b[\w\-\.]+\b|https?://[\w\-\.]+/[\w\-\.]+/)*[\w\-\.]+\.\w+)"
-        match = re.search(pattern, prompt)
+        try:
+            # This pattern looks for typical file paths, names, and URLs, then stops at the end of the extension
+            pattern = r"((?:[a-zA-Z]:\\(?:[\w\-\.]+\\)*|/(?:[\w\-\.]+/)*|\b[\w\-\.]+\b|https?://[\w\-\.]+/[\w\-\.]+/)*[\w\-\.]+\.\w+)"
+            match = re.search(pattern, prompt)
 
-        # Return the matched file name or path, if any match found
-        if match:
-            file_name = match.group()
-            file_extension = os.path.splitext(file_name)[1].lower()
-            self.logger.info(f"File extension: '{file_extension}'")
-            # Check if the file extension is one of the non-binary types
-            if file_extension in ['.json', '.csv', '.xml', '.xls', '.txt','.md','.html','.png','.jpg','.jpeg','.gif','.svg','.zip','.tar','.gz','.7z','.rar']:
-                self.logger.info(f"Extracted File name: '{file_name}'")
-                return file_name
+            # Return the matched file name or path, if any match found
+            if match:
+                file_name = match.group()
+                file_extension = os.path.splitext(file_name)[1].lower()
+                self.logger.info(f"File extension: '{file_extension}'")
+                # Check if the file extension is one of the non-binary types
+                if file_extension in ['.json', '.csv', '.xml', '.xls', '.txt','.md','.html','.png','.jpg','.jpeg','.gif','.svg','.zip','.tar','.gz','.7z','.rar']:
+                    self.logger.info(f"Extracted File name: '{file_name}'")
+                    return file_name
+                else:
+                    return None
             else:
                 return None
-        else:
-            return None
+        except Exception as exception:
+            self.logger.error(f"Error in extracting file name: {str(exception)}")
+            raise
 
     def get_full_file_path(self, file_name):
         if not file_name:
@@ -176,7 +182,7 @@ class UtilityManager:
         except Exception as exception:
             self.logger.error(f"Error in reading last code history: {str(exception)}")
             raise
-
+        
     def display_help(self):
         display_markdown_message("Interpreter\n\
                 \n\
@@ -190,15 +196,16 @@ class UtilityManager:
                 /mode - Change the mode of interpreter.\n\
                 /model - Change the model for interpreter.\n\
                 /language - Change the language of the interpreter.\n\
-                /shell - Open the shell of the interpreter.\n\
-                /log - Display the log of the interpreter.\n\
-                /upgrade - Upgrade the interpreter to the latest version.\n\
+                /history - Use history as memory.\n\
                 /clear - Clear the screen.\n\
                 /help - Display this help message.\n\
-                /version - Display the version of the interpreter.\n")
+                /version - Display the version of the interpreter.\n\
+                /log - Switch between Verbose and Silent mode.\n\
+                /upgrade - Upgrade the interpreter.\n\
+                /shell - Access the shell.\n")
     
     def display_version(self,version):
-        display_markdown_message(f"Interpreter - {version}")
+        display_markdown_message(f"Interpreter - v{version}")
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
