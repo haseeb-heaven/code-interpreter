@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.8.4"
+    interpreter_version = "1.9"
     
     def __init__(self, args):
         self.args = args
