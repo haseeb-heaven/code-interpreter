@@ -289,6 +289,7 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 - **1.8.1** - Added **Interpreter Commands** _Debugging Support_.</br>
 - **1.8.2** - Fixed **Interpreter Commands** </br>
 - **1.8.3** - Added **Interpreter Commands** _Upgrade and Shell Support_.</br>
+- **1.8.4** - Fixed **Interpreter Model switcher** _Bug_.</br>
 
 ## 📜 **License**
 
