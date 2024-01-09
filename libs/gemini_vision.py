@@ -10,7 +10,7 @@ class GeminiVision:
         self.api_key = api_key
         
         if self.api_key is None:
-            self.logger.error("API key is not initialized")
+            self.logger.warning("API key is not initialized")
 
             # load the key from the .env file
             load_dotenv()

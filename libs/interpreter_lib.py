@@ -661,7 +661,7 @@ class Interpreter:
                                 except Exception as exception:
                                     self.logger.error(f"Error reading file: {exception}")
                             else:
-                                self.logger.error("File size is greater.")
+                                self.logger.warning("File size is greater.")
                         else:
                             self.logger.error("File does not exist or is not a file.")                         
                 else:
