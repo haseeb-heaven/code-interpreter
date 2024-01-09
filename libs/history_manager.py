@@ -9,7 +9,7 @@ class History:
         self.history_file = history_file
         self.logger = Logger.initialize_logger("logs/interpreter.log")
 
-    def save_history_json(self, task, mode, os_name, language, prompt, code_snippet, code_output, model_name, filename="history/history.json"):
+    def save_history_json(self, task, mode, os_name, language, prompt, code_snippet, code_output, model_name):
         try:
             history_entry = {
                 "assistant": {
@@ -27,13 +27,13 @@ class History:
             }
 
             data = []
-            if os.path.isfile(filename) and os.path.getsize(filename) > 0:
-                with open(filename, "r") as history_file:  # Open the file in read mode
+            if os.path.isfile(self.history_file) and os.path.getsize(self.history_file) > 0:
+                with open(self.history_file, "r") as history_file:  # Open the file in read mode
                     data = json.load(history_file)
 
             data.append(history_entry)
 
-            with open(filename, "w") as history_file:
+            with open(self.history_file, "w") as history_file:
                 json.dump(data, history_file)
         except Exception as exception:
             self.logger.error(f"Error in saving history to JSON: {str(exception)}")

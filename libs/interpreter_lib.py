@@ -57,7 +57,12 @@ class Interpreter:
         self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
-        self.INTERPRETER_HISTORY = self.args.history
+        
+        # Set the history optional(Argparse)
+        if hasattr(self.args, 'history'):
+            self.INTERPRETER_HISTORY = self.args.history
+        else:
+            self.INTERPRETER_HISTORY = False
 
         if self.INTERPRETER_MODE == 'vision':
             self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
@@ -484,18 +489,18 @@ class Interpreter:
                     display_markdown_message(f"Open code in **vim** editor (Y/N):")
                     vim_open = input()
                     if vim_open.lower() == 'y':
-                        self.logger.info(f"Opening code in **vim** editor {code_file.name}")
-                        subprocess.call(['vim', code_file.name])
+                        self.logger.info(f"Opening code in **vim** editor {code_file.name if not isinstance(code_file, str) else code_file}")
+                        subprocess.call(['vim', code_file.name if not isinstance(code_file, str) else code_file])
                         continue
                     else:
                         # Open the code in default editor.
                         if os_platform[0].lower() == 'macos':
-                            self.logger.info(f"Opening code in default editor {code_file}")
-                            subprocess.call(('open', code_file.name))
+                            self.logger.info(f"Opening code in default editor {code_file.name if not isinstance(code_file, str) else code_file}")
+                            subprocess.call(('open', code_file.name if not isinstance(code_file, str) else code_file))
                         elif os_platform[0].lower() == 'linux':
-                            subprocess.call(('xdg-open', code_file.name))
+                            subprocess.call(('xdg-open', code_file.name if not isinstance(code_file, str) else code_file))
                         elif os_platform[0].lower() == 'windows':
-                            os.startfile(code_file.name)
+                            os.startfile(code_file.name if not isinstance(code_file, str) else code_file)
                         continue
                 
                 # DEBUG - Command section.
