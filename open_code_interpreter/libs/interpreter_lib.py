@@ -31,7 +31,7 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.9.1"
+    interpreter_version = "1.9.2"
     
     def __init__(self, args):
         self.args = args
@@ -61,7 +61,12 @@ class Interpreter:
         self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
-        self.INTERPRETER_HISTORY = self.args.history
+        
+        # Set the history optional(Argparse)
+        if hasattr(self.args, 'history'):
+            self.INTERPRETER_HISTORY = self.args.history
+        else:
+            self.INTERPRETER_HISTORY = False
 
         if self.INTERPRETER_MODE == 'vision':
             self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
