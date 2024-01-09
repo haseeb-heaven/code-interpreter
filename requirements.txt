@@ -8,9 +8,6 @@ python-dotenv
 Requests 
 rich
 
-# Libraries for image processing
-pillow  # A library for image processing in Python
-
 # Libraries for data analysis
 pandas
 matplotlib
