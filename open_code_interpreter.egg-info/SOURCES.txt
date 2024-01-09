@@ -26,8 +26,6 @@ open_code_interpreter/libs/logger.py
 open_code_interpreter/libs/markdown_code.py
 open_code_interpreter/libs/package_manager.py
 open_code_interpreter/libs/utility_manager.py
-open_code_interpreter/logs/code-interpreter.log
-open_code_interpreter/logs/interpreter.log
 open_code_interpreter/output/test.py
 open_code_interpreter/system/system_message.txt
 tests/__init__.py

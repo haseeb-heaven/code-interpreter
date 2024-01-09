@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="open_code_interpreter",
-    version="1.9.1",
+    version="1.9.2",
     packages=find_packages(),
     author="Haseeb Mir",
     author_email="haseebmir.hm@gmail.com",
