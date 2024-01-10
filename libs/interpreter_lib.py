@@ -12,7 +12,6 @@ This file contains the `Interpreter` class which is responsible for:
 """
 
 import os
-import platform
 import subprocess
 import time
 from typing import List
@@ -29,7 +28,7 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.9.2"
+    interpreter_version = "1.9.3"
     
     def __init__(self, args):
         self.args = args

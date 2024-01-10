@@ -28,7 +28,7 @@ def main():
         parser.add_argument('--save_code', '-s', action='store_true', default=False, help='Save the generated code')
         parser.add_argument('--mode', '-md', choices=['code', 'script', 'command','vision','chat'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands) `vision` for generating text from images')
         parser.add_argument('--model', '-m', type=str, default='code-llama', help='Set the model for code generation. (Defaults to gpt-3.5-turbo)')
-        parser.add_argument('--version', '-v', action='version', version='%(prog)s 1.9.2')
+        parser.add_argument('--version', '-v', action='version', version='%(prog)s 1.9.3')
         parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
         parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the code in output')
         parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
