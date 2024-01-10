@@ -285,6 +285,18 @@ class Interpreter:
                 response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
                 self.logger.info("Response received from completion function.")
             
+        # Check if the model is GPT 3.5/4
+        elif 'local' in self.INTERPRETER_MODEL:
+            self.logger.info("Model is Local model")
+            if api_base != 'None':
+                # Set the custom language model provider
+                custom_llm_provider = "openai"
+                self.logger.info(f"Custom API mode selected for Local Model, api_base={api_base}")
+                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+            else:
+                raise Exception("Exception api base not set for custom model")
+            self.logger.info("Response received from completion function.")
+
 
         # Check if model are from Hugging Face.
         else:
