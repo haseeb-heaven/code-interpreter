@@ -13,6 +13,7 @@ open_code_interpreter/configs/code-llama.config
 open_code_interpreter/configs/gemini-pro.config
 open_code_interpreter/configs/gpt-3.5-turbo.config
 open_code_interpreter/configs/gpt-4.config
+open_code_interpreter/configs/local-model.config
 open_code_interpreter/configs/mistral-7b.config
 open_code_interpreter/configs/palm-2.config
 open_code_interpreter/configs/star-chat.config

@@ -36,6 +36,7 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - 💻 Support for more **Operating Systems**.
 - 📝 Support for **Multi-Modal** for _Text_ and _Vision_.
 - 📊 Support for **Google** and **OpenAI** Vision Models.
+- Support for **Local** models via **LLM Studio**.
 
 ## **Table of Contents**
 - [Features](#🌟-features)
@@ -119,6 +120,14 @@ echo "GEMINI_API_KEY=Your API Key" > .env
 echo "OPENAI_API_KEY=Your API Key" > .env
 ```
 
+# Offline models setup.</br>
+This Interpreter supports offline models via **LLM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
+- Download any model from **LLM Studio** like _Phi-2,Code-Llama,Mistral_.
+- Then in the app go to **Local Server** option and select the model.
+- Start the server and copy the **URL**.
+- Open config file `configs/offline-model.config` and paste the **URL** in the `api_base` field.
+- Now you can use the model with the interpreter set the model name to `offline-model` and run the interpreter.</br>
+
 4. Run the interpreter with Python:</br>
 ### Running with Python.
 ```bash
@@ -137,6 +146,8 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 - 💾 Code Save/Update: It has the ability to save the generated code for future use and 
  edit the code if needed on the fly using **advanced editor**.
+
+- 📡 Offline models: It has the ability to use **offline models** for code generation using **LLM Studio**.
 
 - 📜 Command History: It has the ability to save all the commands as history.
 
@@ -176,6 +187,7 @@ To use Open-Code-Interpreter, use the following command options:
     - `mistral-7b` - Generates code using the Mistral 7b model.
     - `wizard-coder` - Generates code using the Wizard Coder model.
     - `star-chat` - Generates code using the Star Chat model.
+    - `offline-model` - Generates code using the Offline model.
 
 - Basic usage (with least options)</br>
 ```python
@@ -291,10 +303,11 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 - **1.8.1** - Added **Interpreter Commands** _Debugging Support_.</br>
 - **1.8.2** - Fixed **Interpreter Commands** </br>
 - **1.8.3** - Added **Interpreter Commands** _Upgrade and Shell Support_.</br>
-- **1.8.4** - Fixed **Interpreter Model switcher** _Bug_.</br>
+- **1.8.4** - Fixed **Interpreter Model switcher** _Bug_.</br></br>
 🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.</br>
-- 🗨️ **v1.9.1** - Fixed **Unit Tests** and **History Args** <br>
-- 🗨️ **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.<br>
+- **v1.9.1** - Fixed **Unit Tests** and **History Args** <br>
+- **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.<br>
+- **v1.9.3** - Added **Local Models** Support via **LLM Studio**.<br>
 
 ## 📜 **License**
 
