@@ -65,12 +65,6 @@ class CodeInterpreter:
             self.logger.error(f"Error occurred while checking compilers: {exception}")
             raise Exception(f"Error occurred while checking compilers: {exception}")
     
-    def translate_code(self,code):
-        code = code.replace("\\n", "\n")
-        code = code.replace("\\t", "\t")
-        code = code.replace("\\r", "\r")
-        return code
-    
     def save_code(self, filename='output/code_generated.py', code=None):
         """
         Saves the provided code to a file.
@@ -122,12 +116,6 @@ class CodeInterpreter:
                 # Remove extra words for commands present.
                 if not code_mode and 'bash' in extracted_code:
                     extracted_code = extracted_code.replace('bash', '')
-                
-                # Check if code has newline, tabs, and whitespaces
-                if any(char in extracted_code for char in ['\n', '\t', ' ']):
-                    self.logger.info("Code extracted successfully.")
-                    extracted_code = self.translate_code(extracted_code)
-                    return extracted_code
                 
                 self.logger.info("Code extracted successfully.")
                 return extracted_code
