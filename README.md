@@ -36,7 +36,7 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - 💻 Support for more **Operating Systems**.
 - 📝 Support for **Multi-Modal** for _Text_ and _Vision_.
 - 📊 Support for **Google** and **OpenAI** Vision Models.
-- Support for **Local** models via **LLM Studio**.
+- Support for **Local** models via **LM Studio**.
 
 ## **Table of Contents**
 - [Features](#🌟-features)
@@ -121,8 +121,8 @@ echo "OPENAI_API_KEY=Your API Key" > .env
 ```
 
 # Offline models setup.</br>
-This Interpreter supports offline models via **LLM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
-- Download any model from **LLM Studio** like _Phi-2,Code-Llama,Mistral_.
+This Interpreter supports offline models via **LM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
+- Download any model from **LM Studio** like _Phi-2,Code-Llama,Mistral_.
 - Then in the app go to **Local Server** option and select the model.
 - Start the server and copy the **URL**.
 - Open config file `configs/offline-model.config` and paste the **URL** in the `api_base` field.
@@ -147,7 +147,7 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 - 💾 Code Save/Update: It has the ability to save the generated code for future use and 
  edit the code if needed on the fly using **advanced editor**.
 
-- 📡 Offline models: It has the ability to use **offline models** for code generation using **LLM Studio**.
+- 📡 Offline models: It has the ability to use **offline models** for code generation using **LM Studio**.
 
 - 📜 Command History: It has the ability to save all the commands as history.
 
@@ -176,6 +176,7 @@ To use Open-Code-Interpreter, use the following command options:
     - `script` - Generates shell scripts from your instructions.
     - `command` - Generates single line commands from your instructions.
     -  `vision` - Generates description of image or video.
+    -  `chat` - Chat with your system in natural language.
 
 - List of all **models** are (**Contribute - MORE**): </br>
     - `gpt-3.5-turbo` - Generates code using the GPT 3.5 Turbo model.
@@ -305,7 +306,7 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.</br>
 - **v1.9.1** - Fixed **Unit Tests** and **History Args** <br>
 - **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.<br>
-- **v1.9.3** - Added **Local Models** Support via **LLM Studio**.<br>
+- **v1.9.3** - Added **Local Models** Support via **LM Studio**.<br>
 
 ## 📜 **License**
 
