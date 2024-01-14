@@ -14,9 +14,9 @@ This file contains the `Interpreter` class which is responsible for:
 import os
 import subprocess
 import time
+import litellm # Main libray for LLM's
 from typing import List
 from libs.code_interpreter import CodeInterpreter
-from litellm import completion
 from libs.history_manager import History
 from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
@@ -192,7 +192,7 @@ class Interpreter:
         ]
         return messages
     
-    def execute_last_code(self,os_name,language='python'):
+    def execute_last_code(self,os_name):
         try:
             code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
            
@@ -235,17 +235,17 @@ class Interpreter:
                 # Set the custom language model provider
                 custom_llm_provider = "openai"
                 self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
-                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
             else:
                 self.logger.info(f"Default API mode selected for OpenAI.")
-                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
+                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
                 
         # Check if the model is PALM-2
         elif 'palm' in self.INTERPRETER_MODEL:
             self.logger.info("Model is PALM-2.")
             self.INTERPRETER_MODEL = "palm/chat-bison"
-            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         # Check if the model is Gemini Pro
@@ -281,17 +281,17 @@ class Interpreter:
             else:
                 self.logger.info("Model is Gemini Pro.")
                 self.INTERPRETER_MODEL = "gemini/gemini-pro"
-                response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
+                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
                 self.logger.info("Response received from completion function.")
             
-        # Check if the model is GPT 3.5/4
+        # Check if the model is Local Model
         elif 'local' in self.INTERPRETER_MODEL:
             self.logger.info("Model is Local model")
             if api_base != 'None':
                 # Set the custom language model provider
                 custom_llm_provider = "openai"
                 self.logger.info(f"Custom API mode selected for Local Model, api_base={api_base}")
-                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
             else:
                 raise Exception("Exception api base not set for custom model")
             self.logger.info("Response received from completion function.")
@@ -304,7 +304,7 @@ class Interpreter:
                 self.INTERPRETER_MODEL = 'huggingface/' + self.INTERPRETER_MODEL
             
             self.logger.info(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
-            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         self.logger.info(f"Generated text {response}")
@@ -406,14 +406,16 @@ class Interpreter:
         display_markdown_message("Welcome to the **Interpreter**. I'm here to **assist** you with your everyday tasks. "
                                   "\nPlease enter your task and I'll do my best to help you out.")
         
-        while True:
+        # Main System and Assistant loop.
+        running = True
+        while running:
             try:
                 # Main input prompt - System and Assistant.
                 task = input("> ")
                 
                 # Process the task.
                 # Command without arguments.
-                if task.lower() in ['/exit', '/quit']:
+                if task.lower() == '/exit':
                     break
                 
                 # HELP - Command section.
@@ -422,7 +424,7 @@ class Interpreter:
                     continue
                 
                 # CLEAR - Command section.
-                elif task.lower() in ['/clear','/cls']:
+                elif task.lower() == '/clear':
                     self.utility_manager.clear_screen()
                     continue
 
@@ -477,7 +479,7 @@ class Interpreter:
                 
                 # EXECUTE - Command section.
                 elif task.lower() == '/execute':
-                    self.execute_last_code(os_name,self.INTERPRETER_LANGUAGE)
+                    self.execute_last_code(os_name)
                     continue
                 
                 # SAVE - Command section.
