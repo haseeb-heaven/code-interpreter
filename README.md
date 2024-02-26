@@ -243,27 +243,6 @@ Here are the available commands:
 - ⏫ `/upgrade` - Upgrade the interpreter.
 - 💻 `/shell` - Access the shell.
 
-
-## 📖 **Examples**
-Code Interpreter Demo
-[![code_interpreter_demo](https://img.youtube.com/vi/GGLNBfbN0oY/0.jpg)](https://youtube.com/shorts/GGLNBfbN0oY)
-
-Example of GPT 3.5 Turbo.
-![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/chat-gpt-command.png?raw=true "GPT 3.5 Turbo Code")</br>
-
-Example of PALM-2 based on **Google Vertex AI**.
-![chatgpt_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/palm-2-command.png?raw=true "GPT 3.5 Turbo Code")</br>
-
-Example of Code llama with code mode:
-![code_llama_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-code.png?raw=true "Code Llama Code Mode")</br>
-
-Example of Code llama with command mode:
-![code_llama_command](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/code-llama-command.png?raw=true "Code Llama Command Mode")</br>
-
-Example of Mistral with code mode:
-![mistral_code](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/mistral-code.png?raw=true "Mistral Code Mode")</br>
-
-
 ## ⚙️ **Settings**
 You can customize the settings of the current model from the `.config` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
 
