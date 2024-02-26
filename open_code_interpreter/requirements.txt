@@ -1,0 +1,14 @@
+# Libraries for code interpretation and execution
+litellm  
+Pygments 
+pyreadline 
+python-dotenv 
+
+# Libraries for making HTTP requests
+Requests 
+rich
+
+# Libraries for data analysis
+pandas
+matplotlib
+plotly
