@@ -82,7 +82,7 @@ pip install -r requirements.txt
 
 *Step 1:* **Obtain the HuggingFace API key.**
 
-*Step 2:* Visit the following URL: *https://huggingface.co/settings/tokens* and get your Access Token.
+*Step 2:* Visit the following URL: [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
 
 *Step 3:* Save the token in a `.env` file as:</br>
 ```bash
@@ -93,7 +93,7 @@ echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 
 *Step 1:* **Obtain the Google Palm API key.**
 
-*Step 2:* Visit the following URL: *https://makersuite.google.com/app/apikey*
+*Step 2:* Visit the following URL: [Google AI Studio](https://makersuite.google.com/app/apikey)
 
 *Step 3:* Click on the **Create API Key** button.
 
@@ -107,7 +107,7 @@ echo "GEMINI_API_KEY=Your API Key" > .env
 
 *Step 1:* **Obtain the OpenAI API key.**
 
-*Step 2:* Visit the following URL: *https://platform.openai.com/account/api-keys*
+*Step 2:* Visit the following URL: [OpenAI Dashboard](https://platform.openai.com/account/api-keys)
 
 *Step 3:* Sign up for an account or log in if you already have one.
 
@@ -118,6 +118,23 @@ echo "GEMINI_API_KEY=Your API Key" > .env
 *Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
 ```bash
 echo "OPENAI_API_KEY=Your API Key" > .env
+```
+
+## Groq AI API Key setup.
+
+*Step 1:* **Obtain the GroqAI API key.**
+
+*Step 2:* Visit the following URL: [Groq AI Console](https://console.groq.com/keys)
+
+*Step 3:* Sign up for an account or log in if you already have one.
+
+*Step 4:* Navigate to the API section in your account.
+
+*Step 5:* Click on the **Create API Key** button.
+
+*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
+```bash
+echo "GROQ_API_KEY=Your API Key" > .env
 ```
 
 # Offline models setup.</br>
@@ -182,6 +199,8 @@ To use Open-Code-Interpreter, use the following command options:
     - `gpt-4` - Generates code using the GPT 4 model.
     - `gemini-pro` - Generates code using the Gemini Pro model.
     - `palm-2` - Generates code using the PALM 2 model.
+    - `groq-mixtral` - Generates code using the Groq Mixtral model.
+    - `groq-llama2` - Generates code using the Groq Llama2 model.
     - `code-llama` - Generates code using the Code-llama model.
     - `code-llama-phind` - Generates code using the Code-llama Phind model.
     - `mistral-7b` - Generates code using the Mistral 7b model.
@@ -307,7 +326,8 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.</br>
 - **v1.9.1** - Fixed **Unit Tests** and **History Args** <br>
 - **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.<br>
-- **v1.9.3** - Added **Local Models** Support via **LLM Studio**.<br>
+- **v1.9.3** - Added **Local Models** Support via **LM Studio**.<br>
+- **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa,Mixtral_ models.<br>
 
 ## 📜 **License**
 
