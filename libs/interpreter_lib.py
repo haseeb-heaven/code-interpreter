@@ -28,7 +28,7 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "1.9.3"
+    interpreter_version = "2.0"
     
     def __init__(self, args):
         self.args = args
@@ -108,6 +108,7 @@ class Interpreter:
         
         self.logger.info(f"Using model {hf_model_name}")
         
+        # checking if the model is from OpenAI
         if "gpt" in self.INTERPRETER_MODEL:
             if os.getenv("OPENAI_API_KEY") is None:
                 load_dotenv()
@@ -121,7 +122,23 @@ class Interpreter:
                 raise Exception("OpenAI Key not found in .env file.")
             elif not hf_key.startswith('sk-'):
                 raise Exception("OpenAI token should start with 'sk-'. Please check your .env file.")
+                # checking if the model is from Groq.
         
+        elif "groq" in self.INTERPRETER_MODEL:
+            if os.getenv("GROQ_API_KEY") is None:
+                load_dotenv()
+            if os.getenv("GROQ_API_KEY") is None:
+                # if there is no .env file, try to load from the current working directory
+                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+                
+            # Read the token from the .env file
+            groq_key = os.getenv('GROQ_API_KEY')
+            if not groq_key:
+                raise Exception("GroqAI Key not found in .env file.")
+            elif not groq_key.startswith('gsk'):
+                raise Exception("GroqAI token should start with 'gsk'. Please check your .env file.")
+        
+        # checking if the model is from Google AI.
         model_api_keys = {
             "palm": "PALM_API_KEY",
             "gemini-pro": "GEMINI_API_KEY"
@@ -143,6 +160,7 @@ class Interpreter:
                     raise Exception(f"{api_key_name} not found in .env file.")
                 elif " " in api_key or len(api_key) <= 15:
                     raise Exception(f"{api_key_name} should have no spaces, length greater than 15. Please check your .env file.")
+                
         else:
             if os.getenv("HUGGINGFACE_API_KEY") is None:
                 load_dotenv()
@@ -283,7 +301,20 @@ class Interpreter:
                 self.INTERPRETER_MODEL = "gemini/gemini-pro"
                 response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
                 self.logger.info("Response received from completion function.")
+        
+        # Check if the model is Groq-AI
+        elif 'groq' in self.INTERPRETER_MODEL:
             
+            if 'groq-llama2' in self.INTERPRETER_MODEL:
+                self.logger.info("Model is Groq/Llama2.")
+                self.INTERPRETER_MODEL = "groq/llama2-70b-4096"
+            elif 'groq-mixtral' in self.INTERPRETER_MODEL:
+                self.logger.info("Model is Groq/Mixtral.")
+                self.INTERPRETER_MODEL = "groq/mixtral-8x7b-32768"
+                
+            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            self.logger.info("Response received from completion function.")
+        
         # Check if the model is Local Model
         elif 'local' in self.INTERPRETER_MODEL:
             self.logger.info("Model is Local model")
