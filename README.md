@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 ![Interpreter](https://github.com/haseeb-heaven/open-code-interpreter/blob/main/resources/movie.gif?raw=true)
 
 ### **Hosting and Spaces:**
@@ -82,10 +80,8 @@ pip install -r requirements.txt
 
 ## HUGGING FACE API Key setup.
 
-*Step 1:* **Obtain the HuggingFace API key.**
-
-*Step 2:* Visit the following URL: [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
-
+*Step 1:* **Obtain the HuggingFace API key.**</br>
+*Step 2:* Visit the following URL: [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
 *Step 3:* Save the token in a `.env` file as:</br>
 ```bash
 echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
@@ -93,13 +89,10 @@ echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
 
 ## Google GEMINI and PALM-2 API Key setup.
 
-*Step 1:* **Obtain the Google Palm API key.**
-
-*Step 2:* Visit the following URL: [Google AI Studio](https://makersuite.google.com/app/apikey)
-
-*Step 3:* Click on the **Create API Key** button.
-
-*Step 4:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
+*Step 1:* **Obtain the Google Palm API key.**</br>
+*Step 2:* Visit the following URL: [Google AI Studio](https://makersuite.google.com/app/apikey)</br>
+*Step 3:* Click on the **Create API Key** button.</br>
+*Step 4:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.</br>
 ```bash
 echo "PALM_API_KEY=Your API Key" > .env
 echo "GEMINI_API_KEY=Your API Key" > .env
@@ -107,17 +100,12 @@ echo "GEMINI_API_KEY=Your API Key" > .env
 
 ## OpenAI API Key setup.
 
-*Step 1:* **Obtain the OpenAI API key.**
-
-*Step 2:* Visit the following URL: [OpenAI Dashboard](https://platform.openai.com/account/api-keys)
-
-*Step 3:* Sign up for an account or log in if you already have one.
-
-*Step 4:* Navigate to the API section in your account dashboard.
-
-*Step 5:* Click on the **Create New Key** button.
-
-*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
+*Step 1:* **Obtain the OpenAI API key.**</br>
+*Step 2:* Visit the following URL: [OpenAI Dashboard](https://platform.openai.com/account/api-keys)</br>
+*Step 3:* Sign up for an account or log in if you already have one.</br>
+*Step 4:* Navigate to the API section in your account dashboard.</br>
+*Step 5:* Click on the **Create New Key** button.</br>
+*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.</br>
 ```bash
 echo "OPENAI_API_KEY=Your API Key" > .env
 ```
@@ -125,16 +113,11 @@ echo "OPENAI_API_KEY=Your API Key" > .env
 ## Groq AI API Key setup.
 
 *Step 1:* Obtain the **Groq** [Access by request](https://wow.groq.com).</br>
-
-*Step 2:* Obtain the GroqAI **API Key** [Groq AI Console](https://console.groq.com/keys)
-
-*Step 3:* Sign up for an account or log in if you already have one.
-
-*Step 4:* Navigate to the API section in your account.
-
-*Step 5:* Click on the **Create API Key** button.
-
-*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
+*Step 2:* Obtain the GroqAI **API Key** [Groq AI Console](https://console.groq.com/keys)</br>
+*Step 3:* Sign up for an account or log in if you already have one.</br>
+*Step 4:* Navigate to the API section in your account.</br>
+*Step 5:* Click on the **Create API Key** button.</br>
+*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.</br>
 ```bash
 echo "GROQ_API_KEY=Your API Key" > .env
 ```
@@ -310,8 +293,6 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 
 ## 📌 **Versioning**
 
-## 📌 **Versioning**
-
 🚀 **v1.0** - Initial release.</br>
 📊 **v1.1** - Added **Graphs** and **Charts** support.</br>
 🔥 **v1.2** - Added **LiteLLM** Support.</br>
@@ -326,10 +307,10 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 - **1.8.3** - Added **Interpreter Commands** _Upgrade and Shell Support_.</br>
 - **1.8.4** - Fixed **Interpreter Model switcher** _Bug_.</br></br>
 🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.</br>
-- **v1.9.1** - Fixed **Unit Tests** and **History Args** <br>
-- **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.<br>
-- **v1.9.3** - Added **Local Models** Support via **LM Studio**.<br>
-🔥**v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa,Mixtral_ models.<br>
+- **v1.9.1** - Fixed **Unit Tests** and **History Args** </br>
+- **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.</br>
+- **v1.9.3** - Added **Local Models** Support via **LM Studio**.</br>
+🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa,Mixtral_ models.</br>
 
 ## 📜 **License**
 
@@ -345,9 +326,8 @@ Please note the following additional licensing details:
 
 ## 🙏 **Acknowledgments**
 
-- We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI** for providing the models.
+- We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI**,**GroqAI** for providing the models.
 - A special shout-out to the open-source community. Your continuous support and contributions are invaluable to us.
 
 ## **📝 Author**
 This project is created and maintained by [Haseeb-Heaven](www.github.com/haseeb-heaven).
->>>>>>> bd9b57c (Update GroqAI models setup steps)

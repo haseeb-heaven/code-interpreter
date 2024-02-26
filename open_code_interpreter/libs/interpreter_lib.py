@@ -15,7 +15,6 @@ import os
 import subprocess
 import time
 from typing import List
-import webbrowser
 from open_code_interpreter.libs.code_interpreter import CodeInterpreter
 from litellm import completion
 from open_code_interpreter.libs.logger import Logger
