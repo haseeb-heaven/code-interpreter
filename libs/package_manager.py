@@ -1,8 +1,8 @@
 import subprocess
 import re
 import logging
-
 import requests
+import stdlib_list
 
 class PackageManager:
     def __init__(self):
@@ -68,6 +68,14 @@ class PackageManager:
             self.logger.error(exception)
             raise exception
 
+    def get_system_modules(self):
+        try:
+            # Get a list of all module names in the standard library
+            stdlib = stdlib_list.stdlib_list()
+            return stdlib
+        except Exception as exception:
+            raise ValueError("An error occurred while getting module names") from exception
+    
     def _install_package_with_pip(self, package_name):
         try:
             subprocess.check_call([self.pip_command, "install", package_name])

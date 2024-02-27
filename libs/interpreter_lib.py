@@ -637,6 +637,16 @@ class Interpreter:
                 elif any(command in task.lower() for command in ['/install']):
                     # get the package name after the command 
                     package_name = task.split(' ')[1]
+                    
+                    # check if package name is not system module.
+                    system_modules = self.package_manager.get_system_modules()
+                    
+                    # Skip installing system modules.
+                    if package_name in system_modules:
+                        self.logger.info(f"Package {package_name} is a system module.")
+                        display_markdown_message(f"Package {package_name} is a system module.")
+                        raise Exception(f"Package {package_name} is a system module.")
+                        
                     if package_name:
                         self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
                         self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
@@ -794,6 +804,16 @@ class Interpreter:
                     error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
                     if code_error is not None and any(error_message in code_error for error_message in error_messages):
                         package_name = self.package_manager.extract_package_name(code_error, self.INTERPRETER_LANGUAGE)
+                        
+                        # check if package name is not system module.
+                        system_modules = self.package_manager.get_system_modules()
+                        
+                        # Skip installing system modules.
+                        if package_name in system_modules:
+                            self.logger.info(f"Package {package_name} is a system module.")
+                            display_markdown_message(f"Package {package_name} is a system module.")
+                            raise Exception(f"Package {package_name} is a system module.")
+                        
                         if package_name:
                             self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
                             self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
