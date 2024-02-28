@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**,**Groq**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
+**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**,**Groq**,**Claude**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
 
 **Open-Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
 
@@ -122,6 +122,18 @@ echo "OPENAI_API_KEY=Your API Key" > .env
 echo "GROQ_API_KEY=Your API Key" > .env
 ```
 
+## Anthropic AI API Key setup.
+
+*Step 1:* Obtain the **Anthropic** [Access by request](https://www.anthropic.com/earlyaccess).</br>
+*Step 2:* Obtain the Anthropic **API Key** [Anthropic AI Console](https://console.anthropic.com/settings/keys)</br>
+*Step 3:* Sign up for an account or log in if you already have one.</br>
+*Step 4:* Navigate to the API Keys section in your account.</br>
+*Step 5:* Click on the **Create Key** button.</br>
+*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.</br>
+```bash
+echo "ANTHROPIC_API_KEY=Your API Key" > .env
+```
+
 # Offline models setup.</br>
 This Interpreter supports offline models via **LLM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
 - Download any model from **LLM Studio** like _Phi-2,Code-Llama,Mistral_.
@@ -184,6 +196,7 @@ To use Open-Code-Interpreter, use the following command options:
     - `gpt-4` - Generates code using the GPT 4 model.
     - `gemini-pro` - Generates code using the Gemini Pro model.
     - `palm-2` - Generates code using the PALM 2 model.
+    - `claude-2` - Generates code using the AnthropicAI Claude-2 model.
     - `groq-mixtral` - Generates code using the Groq Mixtral model.
     - `groq-llama2` - Generates code using the Groq Llama2 model.
     - `code-llama` - Generates code using the Code-llama model.
@@ -298,8 +311,9 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.</br>
 - **v1.9.1** - Fixed **Unit Tests** and **History Args** </br>
 - **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.</br>
-- **v1.9.3** - Added **Local Models** Support via **LM Studio**.</br>
+- **v1.9.3** - Added **Local Models** Support via **LM Studio**.</br></br>
 🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa,Mixtral_ models.</br>
+- **v2.0.1** - Added AnthropicAI Claude-2,Instant models.</br>
 
 ## 📜 **License**
 

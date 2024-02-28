@@ -28,7 +28,7 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "2.0"
+    interpreter_version = "2.0.1"
     
     def __init__(self, args):
         self.args = args
@@ -124,6 +124,7 @@ class Interpreter:
                 raise Exception("OpenAI token should start with 'sk-'. Please check your .env file.")
                 # checking if the model is from Groq.
         
+        # Check if model is from GroqAI.
         elif "groq" in self.INTERPRETER_MODEL:
             if os.getenv("GROQ_API_KEY") is None:
                 load_dotenv()
@@ -137,6 +138,22 @@ class Interpreter:
                 raise Exception("GroqAI Key not found in .env file.")
             elif not groq_key.startswith('gsk'):
                 raise Exception("GroqAI token should start with 'gsk'. Please check your .env file.")
+        
+        # Check if model is from AnthropicAI.
+        elif "claude" in self.INTERPRETER_MODEL:
+            if os.getenv("ANTHROPIC_API_KEY") is None:
+                load_dotenv()
+            if os.getenv("ANTHROPIC_API_KEY") is None:
+                # if there is no .env file, try to load from the current working directory
+                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+                
+            # Read the token from the .env file
+            groq_key = os.getenv('ANTHROPIC_API_KEY')
+            if not groq_key:
+                raise Exception("AnthropicAI Key not found in .env file.")
+            elif not groq_key.startswith('sk-ant-'):
+                raise Exception("AnthropicAI token should start with 'sk-ant-'. Please check your .env file.")
+        
         
         # checking if the model is from Google AI.
         model_api_keys = {
@@ -311,6 +328,19 @@ class Interpreter:
             elif 'groq-mixtral' in self.INTERPRETER_MODEL:
                 self.logger.info("Model is Groq/Mixtral.")
                 self.INTERPRETER_MODEL = "groq/mixtral-8x7b-32768"
+                
+            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            self.logger.info("Response received from completion function.")
+        
+        # Check if the model is AnthropicAI
+        elif 'claude' in self.INTERPRETER_MODEL:
+            
+            if 'claude-2' in self.INTERPRETER_MODEL:
+                self.logger.info("Model is Claude-2.")
+                self.INTERPRETER_MODEL = "claude-2"
+            elif 'claude-2.1' in self.INTERPRETER_MODEL:
+                self.logger.info("Model is claude-2.1.")
+                self.INTERPRETER_MODEL = "claude-2.1"
                 
             response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
