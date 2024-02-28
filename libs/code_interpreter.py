@@ -49,6 +49,7 @@ class CodeInterpreter:
             compilers = {
                 "python": ["python", "--version"],
                 "javascript": ["node", "--version"],
+                "cpp": ["g++", "--version"]
             }
 
             if language not in compilers:
@@ -164,6 +165,16 @@ class CodeInterpreter:
                 stdout_output = stdout.decode("utf-8")
                 stderr_output = stderr.decode("utf-8")
                 self.logger.info(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
+                return stdout_output, stderr_output
+
+            elif language == "cpp":
+                with open('temp.cpp', 'w') as file:
+                    file.write(code)
+                process = subprocess.Popen(["g++", "temp.cpp", "-o", "temp", "&&", "./temp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = process.communicate()
+                stdout_output = stdout.decode("utf-8")
+                stderr_output = stderr.decode("utf-8")
+                self.logger.info(f"C++ Output execution: {stdout_output}, Errors: {stderr_output}")
                 return stdout_output, stderr_output
             
             else:
