@@ -78,65 +78,33 @@ pip install -r requirements.txt
 ```
 3. Setup the Keys required.
 
-## HUGGING FACE API Key setup.
+## API Key setup for All models.
 
-*Step 1:* **Obtain the HuggingFace API key.**</br>
-*Step 2:* Visit the following URL: [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.</br>
-*Step 3:* Save the token in a `.env` file as:</br>
+Follow the steps below to obtain and set up the API keys for each service:
+
+1. **Obtain the API keys:**
+    - HuggingFace: Visit [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
+    - Google Palm and Gemini: Visit [Google AI Studio](https://makersuite.google.com/app/apikey) and click on the **Create API Key** button.
+    - OpenAI: Visit [OpenAI Dashboard](https://platform.openai.com/account/api-keys), sign up or log in, navigate to the API section in your account dashboard, and click on the **Create New Key** button.
+    - Groq AI: Obtain access [here](https://wow.groq.com), then visit [Groq AI Console](https://console.groq.com/keys), sign up or log in, navigate to the API section in your account, and click on the **Create API Key** button.
+    - Anthropic AI: Obtain access [here](https://www.anthropic.com/earlyaccess), then visit [Anthropic AI Console](https://console.anthropic.com/settings/keys), sign up or log in, navigate to the API Keys section in your account, and click on the **Create Key** button.
+
+2. **Save the API keys:**
+    - Create a `.env` file in your project root directory.
+    - Open the `.env` file and add the following lines, replacing `Your API Key` with the respective keys:
+
 ```bash
-echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
-```
-
-## Google GEMINI and PALM-2 API Key setup.
-
-*Step 1:* **Obtain the Google Palm API key.**</br>
-*Step 2:* Visit the following URL: [Google AI Studio](https://makersuite.google.com/app/apikey)</br>
-*Step 3:* Click on the **Create API Key** button.</br>
-*Step 4:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.</br>
-```bash
-echo "PALM_API_KEY=Your API Key" > .env
-echo "GEMINI_API_KEY=Your API Key" > .env
-```
-
-## OpenAI API Key setup.
-
-*Step 1:* **Obtain the OpenAI API key.**</br>
-*Step 2:* Visit the following URL: [OpenAI Dashboard](https://platform.openai.com/account/api-keys)</br>
-*Step 3:* Sign up for an account or log in if you already have one.</br>
-*Step 4:* Navigate to the API section in your account dashboard.</br>
-*Step 5:* Click on the **Create New Key** button.</br>
-*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.</br>
-```bash
-echo "OPENAI_API_KEY=Your API Key" > .env
-```
-
-## Groq AI API Key setup.
-
-*Step 1:* Obtain the **Groq** [Access by request](https://wow.groq.com).</br>
-*Step 2:* Obtain the GroqAI **API Key** [Groq AI Console](https://console.groq.com/keys)</br>
-*Step 3:* Sign up for an account or log in if you already have one.</br>
-*Step 4:* Navigate to the API section in your account.</br>
-*Step 5:* Click on the **Create API Key** button.</br>
-*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.</br>
-```bash
-echo "GROQ_API_KEY=Your API Key" > .env
-```
-
-## Anthropic AI API Key setup.
-
-*Step 1:* Obtain the **Anthropic** [Access by request](https://www.anthropic.com/earlyaccess).</br>
-*Step 2:* Obtain the Anthropic **API Key** [Anthropic AI Console](https://console.anthropic.com/settings/keys)</br>
-*Step 3:* Sign up for an account or log in if you already have one.</br>
-*Step 4:* Navigate to the API Keys section in your account.</br>
-*Step 5:* Click on the **Create Key** button.</br>
-*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.</br>
-```bash
-echo "ANTHROPIC_API_KEY=Your API Key" > .env
+export HUGGINGFACE_API_KEY="Your HuggingFace API Key"
+export PALM_API_KEY="Your Google Palm API Key"
+export GEMINI_API_KEY="Your Google Gemini API Key"
+export OPENAI_API_KEY="Your OpenAI API Key"
+export GROQ_API_KEY="Your Groq AI API Key"
+export ANTHROPIC_API_KEY="Your Anthropic AI API Key"
 ```
 
 # Offline models setup.</br>
-This Interpreter supports offline models via **LLM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
-- Download any model from **LLM Studio** like _Phi-2,Code-Llama,Mistral_.
+This Interpreter supports offline models via **LM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
+- Download any model from **LM Studio** like _Phi-2,Code-Llama,Mistral_.
 - Then in the app go to **Local Server** option and select the model.
 - Start the server and copy the **URL**.
 - Open config file `configs/offline-model.config` and paste the **URL** in the `api_base` field.
@@ -295,25 +263,31 @@ If you're interested in contributing to **Open-Code-Interpreter**, we'd love to 
 
 ## 📌 **Versioning**
 
-🚀 **v1.0** - Initial release.</br>
-📊 **v1.1** - Added **Graphs** and **Charts** support.</br>
-🔥 **v1.2** - Added **LiteLLM** Support.</br>
-🌟 **v1.3** - Added **GPT 3.5** Support.</br>
-🌴 **v1.4** - Added **PALM 2** Support.</br>
-🎉 **v1.5** - Added **GPT 3.5/4** models official Support.</br>
-📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**,**XML**).</br>
-🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.</br>
-🌴 **v1.8** - Added **Interpreter Commands Support**.</br>
-- **1.8.1** - Added **Interpreter Commands** _Debugging Support_.</br>
-- **1.8.2** - Fixed **Interpreter Commands** </br>
-- **1.8.3** - Added **Interpreter Commands** _Upgrade and Shell Support_.</br>
-- **1.8.4** - Fixed **Interpreter Model switcher** _Bug_.</br></br>
-🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.</br>
-- **v1.9.1** - Fixed **Unit Tests** and **History Args** </br>
-- **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.</br>
-- **v1.9.3** - Added **Local Models** Support via **LM Studio**.</br></br>
-🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa,Mixtral_ models.</br>
-- **v2.0.1** - Added AnthropicAI Claude-2,Instant models.</br>
+🚀 **v1.0** - Initial release.  
+📊 **v1.1** - Added **Graphs** and **Charts** support.  
+🔥 **v1.2** - Added **LiteLLM** Support.  
+🌟 **v1.3** - Added **GPT 3.5** Support.  
+🌴 **v1.4** - Added **PALM 2** Support.  
+🎉 **v1.5** - Added **GPT 3.5/4** models official Support.  
+📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**, **XML**).  
+🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.  
+
+🌟 **v1.8** - Added **Interpreter Commands Support**:  
+
+- 1.8.1 - Added _Interpreter Commands Debugging Support_.  
+- 1.8.2 - Fixed _Interpreter Commands_  
+- 1.8.3 - Added _Interpreter Commands Upgrade and Shell Support_.  
+- 1.8.4 - Fixed _Interpreter Model switcher Bug_.  
+
+🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.  
+
+- v1.9.1 - Fixed _Unit Tests_ and _History Args_  
+- v1.9.2 - Updated _Google Vision_ to adapt LiteLLM instead of _Google GenAI_.  
+- v1.9.3 - Added **Local Models** Support via **LM Studio**.  
+
+🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa, Mixtral_ models.  
+
+- **v2.0.1** - Added AnthropicAI Claude-2, Instant models.
 
 ## 📜 **License**
 
@@ -327,9 +301,11 @@ Please note the following additional licensing details:
 
 - The **Hugging Face models** are provided by **Hugging Face Inc.** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Hugging Face's Terms of Service](https://huggingface.co/terms-of-service).
 
+- The **Anthropic AI models** are provided by **Anthropic AI** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Anthropic AI's Terms of Service](https://www.anthropic.com/terms).
+
 ## 🙏 **Acknowledgments**
 
-- We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI**,**GroqAI** for providing the models.
+- We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI**,**GroqAI**,**AnthropicAI** for providing the models.
 - A special shout-out to the open-source community. Your continuous support and contributions are invaluable to us.
 
 ## **📝 Author**
