@@ -357,7 +357,7 @@ class Interpreter:
                 self.logger.info("Model is claude-2.1.")
                 self.INTERPRETER_MODEL = "claude-2.1"
                 
-            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         # Check if the model is Local Model

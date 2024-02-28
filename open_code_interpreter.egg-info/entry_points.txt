@@ -1,2 +1,0 @@
-[console_scripts]
-interpreter = open_code_interpreter.interpreter:main
