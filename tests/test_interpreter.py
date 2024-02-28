@@ -47,6 +47,11 @@ class TestInterpreter(unittest.TestCase):
         args = Namespace(exec=True, save_code=True, mode='code', model='gpt-4', display_code=True, lang='python')
         interpreter = Interpreter(args)
         self.assertEqual(interpreter.args.model, 'gpt-4')
+    
+    def test_interpreter_claude_2_model(self):
+        args = Namespace(exec=True, save_code=True, mode='code', model='claude-2', display_code=True, lang='python')
+        interpreter = Interpreter(args)
+        self.assertEqual(interpreter.args.model, 'claude-2')
 
 if __name__ == '__main__':
     unittest.main()
