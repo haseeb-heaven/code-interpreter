@@ -170,12 +170,15 @@ class CodeInterpreter:
             elif language == "cpp":
                 with open('temp.cpp', 'w') as file:
                     file.write(code)
+                    
                 compile_process = subprocess.Popen(["g++", "-std=c++17", "temp.cpp", "-o", "temp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = compile_process.communicate()
                 if compile_process.returncode != 0:  # Compilation failed
                     stdout_output = stdout.decode("utf-8")
                     stderr_output = stderr.decode("utf-8")
                     self.logger.info(f"C++ Compilation Errors: {stderr_output}")
+                    # remove the temp file
+                    os.remove("temp.cpp")
                     return stdout_output, stderr_output
                 else:  # Compilation succeeded, now run the program
                     run_process = subprocess.Popen(["./temp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -183,6 +186,8 @@ class CodeInterpreter:
                     stdout_output = stdout.decode("utf-8")
                     stderr_output = stderr.decode("utf-8")
                     self.logger.info(f"C++ Output execution: {stdout_output}, Errors: {stderr_output}")
+                    # remove the temp file
+                    os.remove("temp.cpp")
                     return stdout_output, stderr_output
             
             else:
