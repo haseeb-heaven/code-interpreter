@@ -170,12 +170,20 @@ class CodeInterpreter:
             elif language == "cpp":
                 with open('temp.cpp', 'w') as file:
                     file.write(code)
-                process = subprocess.Popen(["g++", "temp.cpp", "-o", "temp", "&&", "./temp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                stdout, stderr = process.communicate()
-                stdout_output = stdout.decode("utf-8")
-                stderr_output = stderr.decode("utf-8")
-                self.logger.info(f"C++ Output execution: {stdout_output}, Errors: {stderr_output}")
-                return stdout_output, stderr_output
+                compile_process = subprocess.Popen(["g++", "-std=c++17", "temp.cpp", "-o", "temp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = compile_process.communicate()
+                if compile_process.returncode != 0:  # Compilation failed
+                    stdout_output = stdout.decode("utf-8")
+                    stderr_output = stderr.decode("utf-8")
+                    self.logger.info(f"C++ Compilation Errors: {stderr_output}")
+                    return stdout_output, stderr_output
+                else:  # Compilation succeeded, now run the program
+                    run_process = subprocess.Popen(["./temp"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    stdout, stderr = run_process.communicate()
+                    stdout_output = stdout.decode("utf-8")
+                    stderr_output = stderr.decode("utf-8")
+                    self.logger.info(f"C++ Output execution: {stdout_output}, Errors: {stderr_output}")
+                    return stdout_output, stderr_output
             
             else:
                 self.logger.info("Unsupported language.")
