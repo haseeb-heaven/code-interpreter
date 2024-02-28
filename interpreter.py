@@ -1,5 +1,5 @@
 """
-This is the main file for the Open-Code-Interpreter.
+This is the main file for the Code-Interpreter.
 It handles command line arguments and initializes the Interpreter.
 
 Command line arguments:

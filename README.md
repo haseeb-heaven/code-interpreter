@@ -14,15 +14,15 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**,**Groq**,**Claude**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
+**Welcome to Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**,**Groq**,**Claude**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
 
-**Open-Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
+**Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Code-Interpreter can handle it all.
 
-After processing your instructions, **Open-Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code and now with **Vision Models** it can also process images and videos.
+After processing your instructions, **Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code and now with **Vision Models** it can also process images and videos.
 
-Designed with versatility in mind, **Open-Code-Interpreter** works seamlessly on every operating system, including _Windows, MacOS, and Linux_. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
+Designed with versatility in mind, **Code-Interpreter** works seamlessly on every operating system, including _Windows, MacOS, and Linux_. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
 
-**Experience the future of code interpretation with Open-Code-Interpreter today! 🚀**
+**Experience the future of code interpretation with Code-Interpreter today! 🚀**
 
 ## **Why this is Unique Interpreter?**
 
@@ -52,7 +52,7 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 ## 📥 **Installation**
 
 ## Installtion with Python package manager.
-To install Open-Code-Interpreter, run the following command:</br>
+To install Code-Interpreter, run the following command:</br>
 
 ```bash
 pip install open-code-interpreter
@@ -65,12 +65,12 @@ interpreter -m 'gemini-pro' -md 'code' -dc
 - And you have API keys setup in the `.env` file.</br>
 
 ## Installtion with Git
-To get started with Open-Code-Interpreter, follow these steps:</br>
+To get started with Code-Interpreter, follow these steps:</br>
 
 1. Clone the repository:</br>
 ```git
-git clone https://github.com/haseeb-heaven/open-code-interpreter.git
-cd open-code-interpreter
+git clone https://github.com/haseeb-heaven/code-interpreter.git
+cd code-interpreter
 ```
 2. Install the required packages:</br>
 ```bash
@@ -124,7 +124,7 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 ## 🌟 **Features**
 
-- 🚀 Code Execution: Open-Code-Interpreter can execute the code generated from your instructions.
+- 🚀 Code Execution: Code-Interpreter can execute the code generated from your instructions.
 
 - 💾 Code Save/Update: It has the ability to save the generated code for future use and 
  edit the code if needed on the fly using **advanced editor**.
@@ -143,15 +143,15 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 - 👀 Code Display: It can display the generated code in the output, allowing you to review the code before execution.
 
-- 💻 Cross-Platform: Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
+- 💻 Cross-Platform: Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
 
 - 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
 
-- 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
+- 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Code-Interpreter can handle it all.
 
 ## 🛠️ **Usage**
 
-To use Open-Code-Interpreter, use the following command options:
+To use Code-Interpreter, use the following command options:
 
 - List of all **modes** are: </br>
     - `code` - Generates code from your instructions.
@@ -259,7 +259,7 @@ Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will a
 
 ## 🤝 **Contributing**
 
-If you're interested in contributing to **Open-Code-Interpreter**, we'd love to have you! Please fork the repository and submit a pull request. We welcome all contributions and are always eager to hear your feedback and suggestions for improvements.
+If you're interested in contributing to **Code-Interpreter**, we'd love to have you! Please fork the repository and submit a pull request. We welcome all contributions and are always eager to hear your feedback and suggestions for improvements.
 
 ## 📌 **Versioning**
 
