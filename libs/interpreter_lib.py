@@ -549,7 +549,7 @@ class Interpreter:
                             display_code(code_output)
                             self.logger.info(f"Output: {code_output[:100]}")
                         elif code_error:
-                            self.logger.info(f"Python code executed with error.")
+                            self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
                             display_markdown_message(f"Error: {code_error}")
                     continue
 
@@ -746,7 +746,7 @@ class Interpreter:
                     
                     elif self.INTERPRETER_LANGUAGE == 'python' and self.SAVE_CODE and self.CODE_MODE:
                         self.code_interpreter.save_code(f"output/code_{current_time}.py", code_snippet)
-                        self.logger.info(f"Python code saved successfully.")
+                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} code saved successfully.")
                     
                     elif self.SAVE_CODE and self.COMMAND_MODE:
                         self.code_interpreter.save_code(f"output/command_{current_time}.txt", code_snippet)
@@ -764,7 +764,7 @@ class Interpreter:
                         display_code(code_output)
                         self.logger.info(f"Output: {code_output[:100]}")
                     elif code_error:
-                        self.logger.info(f"Python code executed with error.")
+                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
                         display_markdown_message(f"Error: {code_error}")
                         
                     # install Package on error.
