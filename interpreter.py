@@ -57,7 +57,8 @@ to setup the interpreter:\n\
 1. Create a .env file in the root directory of the project.\n\
 2. Add the following line to the .env file:\n\
 GEMINI_API_KEY=<your api key>\n\
-OPENIA_API_KEY=<your api key>\n\
+OPENAI_API_KEY=<your api key>\n\
+ANTHROPIC_API_KEY=<your api key>\n\
 3. Replace <your api key> with your OpenAI/Gemini API key.\n\
 4. Run the interpreter again.")
             

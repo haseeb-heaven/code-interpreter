@@ -89,14 +89,11 @@ class Interpreter:
 
     def initialize_client(self):
         load_dotenv()
-        hf_model_name = ""
         self.logger.info("Initializing Client")
         
         self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
         if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
             self.logger.info("HF_MODEL is not provided, using default model.")
-            self.INTERPRETER_MODEL = self.INTERPRETER_MODEL
-            hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
             config_file_name = f"configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
         else:
             config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
@@ -107,91 +104,31 @@ class Interpreter:
         hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
         
         self.logger.info(f"Using model {hf_model_name}")
-        
-        # checking if the model is from OpenAI
-        if "gpt" in self.INTERPRETER_MODEL:
-            if os.getenv("OPENAI_API_KEY") is None:
-                load_dotenv()
-            if os.getenv("OPENAI_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                
-            # Read the token from the .env file
-            hf_key = os.getenv('OPENAI_API_KEY')
-            if not hf_key:
-                raise Exception("OpenAI Key not found in .env file.")
-            elif not hf_key.startswith('sk-'):
-                raise Exception("OpenAI token should start with 'sk-'. Please check your .env file.")
-                # checking if the model is from Groq.
-        
-        # Check if model is from GroqAI.
-        elif "groq" in self.INTERPRETER_MODEL:
-            if os.getenv("GROQ_API_KEY") is None:
-                load_dotenv()
-            if os.getenv("GROQ_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                
-            # Read the token from the .env file
-            groq_key = os.getenv('GROQ_API_KEY')
-            if not groq_key:
-                raise Exception("GroqAI Key not found in .env file.")
-            elif not groq_key.startswith('gsk'):
-                raise Exception("GroqAI token should start with 'gsk'. Please check your .env file.")
-        
-        # Check if model is from AnthropicAI.
-        elif "claude" in self.INTERPRETER_MODEL:
-            if os.getenv("ANTHROPIC_API_KEY") is None:
-                load_dotenv()
-            if os.getenv("ANTHROPIC_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                
-            # Read the token from the .env file
-            groq_key = os.getenv('ANTHROPIC_API_KEY')
-            if not groq_key:
-                raise Exception("AnthropicAI Key not found in .env file.")
-            elif not groq_key.startswith('sk-ant-'):
-                raise Exception("AnthropicAI token should start with 'sk-ant-'. Please check your .env file.")
-        
-        
-        # checking if the model is from Google AI.
+
         model_api_keys = {
-            "palm": "PALM_API_KEY",
-            "gemini-pro": "GEMINI_API_KEY"
+            "gpt": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
+            "groq": {"key_name": "GROQ_API_KEY", "prefix": "gsk"},
+            "claude": {"key_name": "ANTHROPIC_API_KEY", "prefix": "sk-ant-"},
+            "palm": {"key_name": "PALM_API_KEY", "prefix": None, "length": 15},
+            "gemini": {"key_name": "GEMINI_API_KEY", "prefix": None, "length": 15},
+            "default": {"key_name": "HUGGINGFACE_API_KEY", "prefix": "hf_"}
         }
 
-        for model, api_key_name in model_api_keys.items():
-            if model in self.INTERPRETER_MODEL:
-                self.logger.info(f"User has agreed to terms and conditions of {model}")
-
-                if os.getenv(api_key_name) is None:
-                    load_dotenv()
-                if os.getenv(api_key_name) is None:
-                    # if there is no .env file, try to load from the current working directory
-                    load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-
+        for model, api_key_info in model_api_keys.items():
+            if model in self.INTERPRETER_MODEL or model == "default":
+                api_key_name = api_key_info["key_name"]
                 api_key = os.getenv(api_key_name)
-                # Validate the token
+                if api_key is None:
+                    load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+                    api_key = os.getenv(api_key_name)
                 if not api_key:
                     raise Exception(f"{api_key_name} not found in .env file.")
-                elif " " in api_key or len(api_key) <= 15:
-                    raise Exception(f"{api_key_name} should have no spaces, length greater than 15. Please check your .env file.")
-                
-        else:
-            if os.getenv("HUGGINGFACE_API_KEY") is None:
-                load_dotenv()
-            if os.getenv("HUGGINGFACE_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                
-            # Read the token from the .env file
-            hf_key = os.getenv('HUGGINGFACE_API_KEY')
-            if not hf_key:
-                raise Exception("HuggingFace token not found in .env file.")
-            elif not hf_key.startswith('hf_'):
-                raise Exception("HuggingFace token should start with 'hf_'. Please check your .env file.")
-
+                if api_key_info["prefix"] and not api_key.startswith(api_key_info["prefix"]):
+                    raise Exception(f"{api_key_name} should start with '{api_key_info['prefix']}'. Please check your .env file.")
+                if api_key_info.get("length") and len(api_key) <= api_key_info["length"]:
+                    raise Exception(f"{api_key_name} should have length greater than {api_key_info['length']}. Please check your .env file.")
+                break
+        
     def initialize_mode(self):
         self.CODE_MODE = True if self.args.mode == 'code' else False
         self.SCRIPT_MODE = True if self.args.mode == 'script' else False
