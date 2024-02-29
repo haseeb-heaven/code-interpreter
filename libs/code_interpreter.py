@@ -174,13 +174,11 @@ class CodeInterpreter:
                 # Extract the class name from code.
                 class_name_pattern = r"class ([A-Za-z0-9_]+)"
                 class_name = re.search(class_name_pattern, code).group(1)
-                print(f"Class Name: {class_name}")
                 self.logger.info(f"For Language: {language}, Class Name: {class_name}")
                 
                 # Write the code to a temp .java file
                 tmp_dir = tempfile.TemporaryDirectory()
                 java_file = os.path.join(tmp_dir.name,class_name + ".java")
-                print(f"Java File: {java_file}")
                 with open(java_file, "w") as file:
                     file.write(code)
 

@@ -482,7 +482,16 @@ class Interpreter:
                 
                 # SAVE - Command section.
                 elif task.lower() == '/save':
-                    latest_code_extension = 'py' if self.INTERPRETER_LANGUAGE == 'python' else 'js'
+                    latest_code_extension = None
+                    
+                    code_extensions = {
+                        'python': 'py',
+                        'javascript': 'js', 
+                        'cpp': 'cpp',
+                        'java': 'java'
+                    }
+
+                    latest_code_extension = code_extensions.get(self.INTERPRETER_LANGUAGE)
                     latest_code_name = f"output/code_{time.strftime('%Y_%m_%d-%H_%M_%S', time.localtime())}." + latest_code_extension
                     latest_code = code_snippet
                     self.code_interpreter.save_code(latest_code_name, latest_code)
@@ -594,7 +603,7 @@ class Interpreter:
                         language = split_task[1]
                         if language:
                             self.INTERPRETER_LANGUAGE = language
-                            if not language in ['python','javascript']:
+                            if not language in ['python','javascript','cpp','java']:
                                 self.INTERPRETER_LANGUAGE = 'python'
                                 display_markdown_message(f"The input language is not supported. Language changed to {self.INTERPRETER_LANGUAGE}")
                             display_markdown_message(f"Language changed to '{self.INTERPRETER_LANGUAGE}'")

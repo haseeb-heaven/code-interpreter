@@ -158,7 +158,16 @@ class UtilityManager:
         try:
             self.logger.info("Starting to read last code history.")
             output_folder = "output"
-            file_extension = 'py' if language == 'python' else 'js'
+            
+            code_extensions = {
+                'python': 'py',
+                'javascript': 'js', 
+                'cpp': 'cpp',
+                'java': 'java'
+            }
+
+            file_extension = code_extensions.get(language)
+            
             self.logger.info(f"Looking for files with extension: {file_extension}")
 
             # Get a list of all files in the output folder with the correct extension
