@@ -751,6 +751,10 @@ class Interpreter:
                     elif self.INTERPRETER_LANGUAGE == 'cpp' and self.SAVE_CODE and self.CODE_MODE:
                         self.code_interpreter.save_code(f"output/script_{current_time}.cpp", code_snippet)
                         self.logger.info(f"{self.INTERPRETER_LANGUAGE} script saved successfully.")
+
+                    elif self.INTERPRETER_LANGUAGE == 'java' and self.SAVE_CODE and self.CODE_MODE:
+                        self.code_interpreter.save_code(f"output/script_{current_time}.java", code_snippet)
+                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} script saved successfully.")
                     
                     elif self.SAVE_CODE and self.COMMAND_MODE:
                         self.code_interpreter.save_code(f"output/command_{current_time}.txt", code_snippet)

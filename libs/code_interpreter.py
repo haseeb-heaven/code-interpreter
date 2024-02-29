@@ -9,7 +9,9 @@ It includes features like:
 """
 
 import os
+import re
 import subprocess
+import tempfile
 import traceback
 from libs.logger import Logger
 from libs.markdown_code import display_markdown_message
@@ -49,7 +51,8 @@ class CodeInterpreter:
             compilers = {
                 "python": ["python", "--version"],
                 "javascript": ["node", "--version"],
-                "cpp": ["g++", "--version"]
+                "cpp": ["g++", "--version"],
+                "java": ["javac", "--version"],
             }
 
             if language not in compilers:
@@ -165,6 +168,39 @@ class CodeInterpreter:
                 stdout_output = stdout.decode("utf-8")
                 stderr_output = stderr.decode("utf-8")
                 self.logger.info(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
+                return stdout_output, stderr_output
+
+            elif language == "java":
+                # Extract the class name from code.
+                class_name_pattern = r"class ([A-Za-z0-9_]+)"
+                class_name = re.search(class_name_pattern, code).group(1)
+                print(f"Class Name: {class_name}")
+                self.logger.info(f"For Language: {language}, Class Name: {class_name}")
+                
+                # Write the code to a temp .java file
+                tmp_dir = tempfile.TemporaryDirectory()
+                java_file = os.path.join(tmp_dir.name,class_name + ".java")
+                print(f"Java File: {java_file}")
+                with open(java_file, "w") as file:
+                    file.write(code)
+
+                # Compile the java code 
+                subprocess.run(["javac", java_file])
+
+                # Run the compiled class
+                process = subprocess.Popen(["java", "-cp", tmp_dir.name, class_name],
+                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = process.communicate()
+
+                # Clean up the temporary directory
+                tmp_dir.cleanup()
+
+                stdout_output = stdout.decode("utf-8")
+                stderr_output = stderr.decode("utf-8")
+
+                self.logger.info(f"Java Output: {stdout_output}")
+                self.logger.info(f"Java Errors: {stderr_output}")
+
                 return stdout_output, stderr_output
 
             elif language == "cpp":
