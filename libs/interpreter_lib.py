@@ -411,8 +411,7 @@ class Interpreter:
                 # Main input prompt - System and Assistant.
                 task = input("> ")
                 
-                # Process the task.
-                # Command without arguments.
+                # EXIT - Command section.
                 if task.lower() == '/exit':
                     break
                 
@@ -465,7 +464,24 @@ class Interpreter:
                         Logger.set_verbose_mode()
                         display_markdown_message(f"Logger mode changed to **Verbose**.")
                     continue
-
+                
+                # LIST - Command section.
+                elif task.lower() == '/list':
+                    # Get the models info
+                    
+                    # Reading all the config files in the configs folder.
+                    configs_path = os.path.join(os.getcwd(), 'configs')
+                    configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
+                    
+                    # Removing all extensions from the list.
+                    configs_files = [os.path.splitext(file)[0] for file in configs_files]
+                    
+                    # Printing the models info.
+                    print('Available models:\n')
+                    print('\t'.join(configs_files))
+                    print('',end='\n')
+                    continue
+                
                 # UPGRAGE - Command section.
                 elif task.lower() == '/upgrade':
                     command_output,_  = self.code_interpreter.execute_command('pip install open-code-interpreter --upgrade && pip install -r requirements.txt --upgrade')

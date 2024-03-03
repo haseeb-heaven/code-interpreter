@@ -218,6 +218,7 @@ Here are the available commands:
 - 🌐 `/language` - Change the language of the interpreter.
 - 🧹 `/clear` - Clear the screen.
 - 🆘 `/help` - Display this help message.
+- 🚪 `/list` - List all the models available.
 - 📝 `/version` - Display the version of the interpreter.
 - 🚪 `/exit` - Exit the interpreter.
 - 📜 `/log` - Toggle different modes of logging.

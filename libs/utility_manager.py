@@ -199,6 +199,7 @@ class UtilityManager:
                 /history - Use history as memory.\n\
                 /clear - Clear the screen.\n\
                 /help - Display this help message.\n\
+                /list - List the available models.\n\
                 /version - Display the version of the interpreter.\n\
                 /log - Switch between Verbose and Silent mode.\n\
                 /upgrade - Upgrade the interpreter.\n\
