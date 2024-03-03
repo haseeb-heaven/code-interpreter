@@ -42,7 +42,8 @@ def main():
         # Create an instance of the Interpreter class and call the main method.
         interpreter = Interpreter(args)
         interpreter.interpreter_main()
-        
+
+# The main interpreter.
 if __name__ == "__main__":
     try:
         main()
@@ -61,7 +62,7 @@ OPENAI_API_KEY=<your api key>\n\
 ANTHROPIC_API_KEY=<your api key>\n\
 3. Replace <your api key> with your OpenAI/Gemini API key.\n\
 4. Run the interpreter again.")
-            
+
         else:
             display_markdown_message(f"An error occurred: {exception}")
             traceback.print_exc()

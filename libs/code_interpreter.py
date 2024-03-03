@@ -10,6 +10,7 @@ It includes features like:
 
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import traceback
@@ -171,6 +172,47 @@ class CodeInterpreter:
                 return stdout_output, stderr_output
 
             elif language == "java":
+                # Extract the class name from code
+                class_name_pattern = r"class ([A-Za-z0-9_]+)"
+                class_name = re.search(class_name_pattern, code).group(1)
+                print(f"Class name: {class_name}")
+
+                # Write code to temp Java file
+                tmp_dir = tempfile.TemporaryDirectory()
+                java_file = os.path.join(tmp_dir.name, class_name + ".java")
+                with open(java_file, "w") as file:
+                    file.write(code)
+
+                # Compile Java code
+                subprocess.run(["javac", java_file])
+
+                # Create JAR file
+                jar_file = os.path.join(tmp_dir.name, f"{class_name}.jar")
+                print(f"JAR file: {jar_file}")
+                subprocess.run(["jar", "cvfe", jar_file, class_name, "-C", tmp_dir.name, "."])
+
+                # Move JAR file to output folder
+                output_dir = "output"
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                shutil.move(jar_file, os.path.join(output_dir, f"{class_name}.jar"))
+                jar_file = os.path.join(output_dir, f"{class_name}.jar") # New path to JAR file
+
+                # Run compiled class 
+                process = subprocess.Popen(["java", "-cp", jar_file, class_name],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = process.communicate()
+
+                # Clean up temp directory
+                tmp_dir.cleanup()
+
+                # Process outputs
+                stdout_output = stdout.decode("utf-8") 
+                stderr_output = stderr.decode("utf-8")
+                self.logger.info(f"Java Output: {stdout_output}")
+                self.logger.error(f"Java Errors: {stderr_output}")
+                
+                return stdout_output, stderr_output
+            elif language == "java":
                 # Extract the class name from code.
                 class_name_pattern = r"class ([A-Za-z0-9_]+)"
                 class_name = re.search(class_name_pattern, code).group(1)
@@ -186,8 +228,7 @@ class CodeInterpreter:
                 subprocess.run(["javac", java_file])
 
                 # Run the compiled class
-                process = subprocess.Popen(["java", "-cp", tmp_dir.name, class_name],
-                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                process = subprocess.Popen(["java", "-cp", tmp_dir.name, class_name],stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 stdout, stderr = process.communicate()
 
                 # Clean up the temporary directory
