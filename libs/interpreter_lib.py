@@ -252,7 +252,7 @@ class Interpreter:
                 return response # Return the response from Gemini Vision because its not coding model.
             else:
                 self.logger.info("Model is Gemini Pro.")
-                self.INTERPRETER_MODEL = "gemini/gemini-pro"
+                self.INTERPRETER_MODEL = "gemini/" + self.INTERPRETER_MODEL
                 response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
                 self.logger.info("Response received from completion function.")
         
