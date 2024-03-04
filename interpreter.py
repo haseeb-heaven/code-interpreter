@@ -19,7 +19,7 @@ from libs.interpreter_lib import Interpreter
 import argparse
 import sys
 import traceback
-
+import warnings
 from libs.markdown_code import display_markdown_message
 
 def main():
@@ -38,6 +38,8 @@ def main():
         if len(sys.argv) <= 1:
             parser.print_help()
             return
+        
+        warnings.filterwarnings("ignore")  # To ignore all warnings
 
         # Create an instance of the Interpreter class and call the main method.
         interpreter = Interpreter(args)
