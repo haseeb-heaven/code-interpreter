@@ -219,3 +219,20 @@ class UtilityManager:
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
+    
+    # method to download file from Web and save it
+    
+    def download_file(self,url,file_name):
+        try:
+            import requests
+            self.logger.info(f"Downloading file: {url}")
+            response = requests.get(url, allow_redirects=True)
+            response.raise_for_status()
+            
+            with open(file_name, 'wb') as file:
+                file.write(response.content)
+                self.logger.info(f"Reuquirements.txt file downloaded.")
+            return True
+        except Exception as exception:
+            self.logger.error(f"Error in downloading file: {str(exception)}")
+            return False
