@@ -28,7 +28,7 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "2.0.1"
+    interpreter_version = "2.1"
     
     def __init__(self, args):
         self.args = args
@@ -157,11 +157,29 @@ class Interpreter:
             if chat_history or len(chat_history) > 0:
                 system_message += "\n\n" + "\n\n" + "This is user chat history for this task and make sure to use this as reference to generate the answer if user asks for 'History' or 'Chat History'.\n\n" + "\n\n" + str(chat_history) + "\n\n"
         
-        messages = [
-            {"role": "system", "content":system_message},
-            {"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
-            {"role": "user", "content": message}
-        ]
+        # Use the Messages API from Anthropic.
+        if 'claude-3' in self.INTERPRETER_MODEL:
+            messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": message
+                            }
+                        ]
+                    }
+                ]
+        
+        # Use the Assistants API.
+        else:
+            messages = [
+                {"role": "system", "content":system_message},
+                {"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
+                {"role": "user", "content": message}
+            ]
+        
+        
         return messages
     
     def execute_last_code(self,os_name):
@@ -278,6 +296,17 @@ class Interpreter:
             elif 'claude-2.1' in self.INTERPRETER_MODEL:
                 self.logger.info("Model is claude-2.1.")
                 self.INTERPRETER_MODEL = "claude-2.1"
+            
+            # Support for Claude-3 Models
+            elif 'claude-3' in self.INTERPRETER_MODEL:
+                
+                if 'claude-3-sonnet' in self.INTERPRETER_MODEL:
+                    self.logger.info("Model is claude-3-sonnet.")
+                    self.INTERPRETER_MODEL = "claude-3-sonnet-20240229"
+                    
+                elif 'claude-3-opus' in self.INTERPRETER_MODEL:
+                    self.logger.info("Model is claude-3-opus.")
+                    self.INTERPRETER_MODEL = "claude-3-opus-20240229"
                 
             response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
