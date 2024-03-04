@@ -83,13 +83,22 @@ class UtilityManager:
                 import pyreadline as readline
                 
             histfile = os.path.join(os.path.expanduser("~"), ".python_history")
-            readline.read_history_file(histfile)
+            
+            # Check if histfile exists before trying to read it
+            if os.path.exists(histfile):
+                readline.read_history_file(histfile)
             
             # Save history to file on exit
             import atexit
             atexit.register(readline.write_history_file, histfile)
+            
         except FileNotFoundError:
-            pass
+            raise Exception("History file not found")
+        
+        except AttributeError:
+            # Handle error on Windows where pyreadline doesn't have read_history_file
+            self.logger.info("pyreadline doesn't have read_history_file")
+            raise Exception("On Windows, pyreadline doesn't have read_history_file") 
         except Exception as exception:
             self.logger.error(f"Error in initializing readline history: {str(exception)}")
             raise
