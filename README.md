@@ -36,7 +36,8 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - 💻 Support for more **Operating Systems**.
 - 📝 Support for **Multi-Modal** for _Text_ and _Vision_.
 - 📊 Support for **Google** and **OpenAI** Vision Models.
-- Support for **Local** models via **LLM Studio**.
+- 💻 ~~Support for **Local** models via **LLM Studio**.~~
+- 🔗 Support for **Multi-Modal** models from Anthropic AI.
 
 ## **Table of Contents**
 - [Features](#🌟-features)
@@ -165,6 +166,7 @@ To use Code-Interpreter, use the following command options:
     - `gemini-pro` - Generates code using the Gemini Pro model.
     - `palm-2` - Generates code using the PALM 2 model.
     - `claude-2` - Generates code using the AnthropicAI Claude-2 model.
+    - `claude-3` - Generates code using the AnthropicAI Claude-3 model.
     - `groq-mixtral` - Generates code using the Groq Mixtral model.
     - `groq-llama2` - Generates code using the Groq Llama2 model.
     - `code-llama` - Generates code using the Code-llama model.
@@ -289,6 +291,8 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa, Mixtral_ models.  
 
 - **v2.0.1** - Added AnthropicAI Claude-2, Instant models.
+
+🔥 **v2.1** - Added AnhtorpicAI Claude-3 models powerful _Opus,Sonnet,Haiku_ models.
 
 ## 📜 **License**
 
