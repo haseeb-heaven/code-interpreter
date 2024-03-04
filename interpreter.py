@@ -22,13 +22,16 @@ import traceback
 import warnings
 from libs.markdown_code import display_markdown_message
 
+# The main version of the interpreter.
+INTERPRETER_VERSION = "2.1"
+
 def main():
         parser = argparse.ArgumentParser(description='Code - Interpreter')
         parser.add_argument('--exec', '-e', action='store_true', default=False, help='Execute the code')
         parser.add_argument('--save_code', '-s', action='store_true', default=False, help='Save the generated code')
         parser.add_argument('--mode', '-md', choices=['code', 'script', 'command','vision','chat'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands) `vision` for generating text from images')
         parser.add_argument('--model', '-m', type=str, default='code-llama', help='Set the model for code generation. (Defaults to gpt-3.5-turbo)')
-        parser.add_argument('--version', '-v', action='version', version='%(prog)s 2.1')
+        parser.add_argument('--version', '-v', action='version', version='%(prog)s '+ INTERPRETER_VERSION)
         parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
         parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the code in output')
         parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
@@ -43,7 +46,7 @@ def main():
 
         # Create an instance of the Interpreter class and call the main method.
         interpreter = Interpreter(args)
-        interpreter.interpreter_main()
+        interpreter.interpreter_main(INTERPRETER_VERSION)
         
 if __name__ == "__main__":
     try:

@@ -28,7 +28,7 @@ import shlex
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "2.1"
+    interpreter_version = None
     
     def __init__(self, args):
         self.args = args
@@ -402,9 +402,11 @@ class Interpreter:
         else:
             return None, None  # Return None, None if user chooses not to execute the code
 
-    def interpreter_main(self):
+    def interpreter_main(self,version):
         
+        self.interpreter_version = version
         self.logger.info(f"Interpreter - v{self.interpreter_version}")
+        
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
         generated_output = None
