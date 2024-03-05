@@ -206,6 +206,10 @@ python interpreter.py -m 'code-llama' -md 'code' -s
 python interpreter.py -m 'gemini-pro' -md 'code' -s -l 'language-name'
 ```
 
+- Using Upgrade interpreter </br>
+```python
+python interpreter.py --upgrade
+```
 
 # Interpreter Commands 🖥️
 
