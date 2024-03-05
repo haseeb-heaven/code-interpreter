@@ -9,3 +9,5 @@ history/history.json
 output/*
 *.env
 .env
+*build
+*dist

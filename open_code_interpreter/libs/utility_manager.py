@@ -1,9 +1,9 @@
-import json
 import os
 import platform
 import re
+import subprocess
+from open_code_interpreter.libs.code_interpreter import CodeInterpreter
 from open_code_interpreter.libs.logger import Logger
-import traceback
 import csv
 import glob
 from datetime import datetime
@@ -236,3 +236,28 @@ class UtilityManager:
         except Exception as exception:
             self.logger.error(f"Error in downloading file: {str(exception)}")
             return False
+    
+    def upgrade_interpreter(self):
+        code_interpreter = CodeInterpreter()
+        # Download the requirements file
+        requirements_file_url = 'https://raw.githubusercontent.com/haseeb-heaven/code-interpreter/main/requirements.txt'
+        requirements_file_downloaded = self.download_file(requirements_file_url,'requirements.txt')
+        
+        # Commands to execute.
+        command_pip_upgrade = 'pip install open-code-interpreter --upgrade'
+        command_pip_requirements = 'pip install -r requirements.txt --upgrade'
+        
+        # Execute the commands.
+        command_output,_  = code_interpreter.execute_command(command_pip_upgrade)
+        display_markdown_message(f"Command Upgrade executed successfully.")
+        if requirements_file_downloaded:
+            command_output,_  = code_interpreter.execute_command(command_pip_requirements)
+            display_markdown_message(f"Command Requirements executed successfully.")
+        else:
+            self.logger.warn(f"Requirements file not downloaded.")
+            display_markdown_message(f"Warning: Requirements file not downloaded.")
+        
+        if command_output:
+            self.logger.info(f"Command executed successfully.")
+            display_code(command_output)
+            self.logger.info(f"Output: {command_output[:100]}")

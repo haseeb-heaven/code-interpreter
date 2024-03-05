@@ -16,12 +16,12 @@ import subprocess
 import time
 import litellm # Main libray for LLM's
 from typing import List
-from libs.code_interpreter import CodeInterpreter
-from libs.history_manager import History
-from libs.logger import Logger
-from libs.markdown_code import display_code, display_markdown_message
-from libs.package_manager import PackageManager
-from libs.utility_manager import UtilityManager
+from open_code_interpreter.libs.code_interpreter import CodeInterpreter
+from open_code_interpreter.libs.history_manager import History
+from open_code_interpreter.libs.logger import Logger
+from open_code_interpreter.libs.markdown_code import display_code, display_markdown_message
+from open_code_interpreter.libs.package_manager import PackageManager
+from open_code_interpreter.libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
 import shlex
 
@@ -494,11 +494,8 @@ class Interpreter:
 
                 # UPGRAGE - Command section.
                 elif task.lower() == '/upgrade':
-                    command_output,_  = self.code_interpreter.execute_command('pip install open-code-interpreter --upgrade && pip install -r requirements.txt --upgrade')
-                    if command_output:
-                        self.logger.info(f"Command executed successfully.")
-                        display_code(command_output)
-                        self.logger.info(f"Output: {command_output[:100]}")
+                    
+                    self.utility_manager.upgrade_interpreter()
                     continue
                 
                 # HISTORY - Command section.
@@ -541,7 +538,12 @@ class Interpreter:
                     # Get the models info
                     
                     # Reading all the config files in the configs folder.
-                    configs_path = os.path.join(os.getcwd(), 'configs')
+                    # get the current path of python file
+                    current_py_path = os.path.dirname(os.path.abspath(__file__))
+                    # remove '/libs' path from the current path
+                    current_py_path = current_py_path.replace('/libs', '')
+                    # get the path of the configs folder
+                    configs_path = os.path.join(current_py_path, 'configs')
                     configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
                     
                     # Removing all extensions from the list.

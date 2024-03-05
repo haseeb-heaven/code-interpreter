@@ -19,8 +19,9 @@ import argparse
 import sys
 import traceback
 import warnings
-from libs.markdown_code import display_markdown_message
+from open_code_interpreter.libs.markdown_code import display_markdown_message
 from open_code_interpreter.libs.interpreter_lib import Interpreter
+from open_code_interpreter.libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
 INTERPRETER_VERSION = "2.1"
@@ -35,6 +36,7 @@ def main():
         parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
         parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the code in output')
         parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
+        parser.add_argument('--upgrade', '-u', action='store_true', default=False, help='Upgrade the interpreter')
         args = parser.parse_args()
 
         # Check if only the application name is passed
@@ -44,6 +46,12 @@ def main():
         
         warnings.filterwarnings("ignore")  # To ignore all warnings
 
+        # Upgrade the Interpreter if the --upgrade argument is passed.
+        if args.upgrade:
+            utility_manager = UtilityManager()
+            utility_manager.upgrade_interpreter()
+            return
+        
         # Create an instance of the Interpreter class and call the main method.
         interpreter = Interpreter(args)
         interpreter.interpreter_main(INTERPRETER_VERSION)
