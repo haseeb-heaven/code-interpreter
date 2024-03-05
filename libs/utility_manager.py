@@ -3,14 +3,16 @@ import os
 import platform
 import re
 import subprocess
+from libs.code_interpreter import CodeInterpreter
 from libs.logger import Logger
 import csv
 import glob
 from datetime import datetime
 
-from libs.markdown_code import display_markdown_message
+from libs.markdown_code import display_code, display_markdown_message
 
 class UtilityManager:
+    logger = None
     def __init__(self):
         try:
             if not os.path.exists('logs'):
@@ -222,17 +224,46 @@ class UtilityManager:
     
     # method to download file from Web and save it
     
-    def download_file(self,url,file_name):
+    @staticmethod
+    def _download_file(url,file_name):
         try:
+            logger = Logger.initialize_logger("logs/interpreter.log")
             import requests
-            self.logger.info(f"Downloading file: {url}")
+            logger.info(f"Downloading file: {url}")
             response = requests.get(url, allow_redirects=True)
             response.raise_for_status()
             
             with open(file_name, 'wb') as file:
                 file.write(response.content)
-                self.logger.info(f"Reuquirements.txt file downloaded.")
+                logger.info(f"Reuquirements.txt file downloaded.")
             return True
         except Exception as exception:
-            self.logger.error(f"Error in downloading file: {str(exception)}")
+            logger.error(f"Error in downloading file: {str(exception)}")
             return False
+
+    @staticmethod
+    def upgrade_interpreter():
+        code_interpreter = CodeInterpreter()
+        logger = Logger.initialize_logger("logs/interpreter.log")
+        # Download the requirements file
+        requirements_file_url = 'https://raw.githubusercontent.com/haseeb-heaven/code-interpreter/main/requirements.txt'
+        requirements_file_downloaded = UtilityManager._download_file(requirements_file_url,'requirements.txt')
+        
+        # Commands to execute.
+        command_pip_upgrade = 'pip install open-code-interpreter --upgrade'
+        command_pip_requirements = 'pip install -r requirements.txt --upgrade'
+        
+        # Execute the commands.
+        command_output,_  = code_interpreter.execute_command(command_pip_upgrade)
+        display_markdown_message(f"Command Upgrade executed successfully.")
+        if requirements_file_downloaded:
+            command_output,_  = code_interpreter.execute_command(command_pip_requirements)
+            display_markdown_message(f"Command Requirements executed successfully.")
+        else:
+            logger.warn(f"Requirements file not downloaded.")
+            display_markdown_message(f"Warning: Requirements file not downloaded.")
+        
+        if command_output:
+            logger.info(f"Command executed successfully.")
+            display_code(command_output)
+            logger.info(f"Output: {command_output[:100]}")
