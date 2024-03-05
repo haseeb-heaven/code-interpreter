@@ -47,6 +47,31 @@ class TestInterpreter(unittest.TestCase):
         args = Namespace(exec=True, save_code=True, mode='code', model='gpt-4', display_code=True, lang='python')
         interpreter = Interpreter(args)
         self.assertEqual(interpreter.args.model, 'gpt-4')
+        
+    def test_interpreter_groq_llama2_model(self):
+        args = Namespace(exec=True, save_code=True, mode='code', model='groq-llama2', display_code=True, lang='python')
+        interpreter = Interpreter(args)
+        self.assertEqual(interpreter.args.model, 'groq-llama2')
+    
+    def test_interpreter_groq_mixtral_model(self):
+        args = Namespace(exec=True, save_code=True, mode='code', model='groq-mixtral', display_code=True, lang='python')
+        interpreter = Interpreter(args)
+        self.assertEqual(interpreter.args.model, 'groq-mixtral')
+    
+    def test_interpreter_claude_2_model(self):
+        args = Namespace(exec=True, save_code=True, mode='code', model='claude-2', display_code=True, lang='python')
+        interpreter = Interpreter(args)
+        self.assertEqual(interpreter.args.model, 'claude-2')
+        
+    def test_interpreter_claude_3_opus_model(self):
+        args = Namespace(exec=True, save_code=True, mode='code', model='claude-3-opus', display_code=True, lang='python')
+        interpreter = Interpreter(args)
+        self.assertEqual(interpreter.args.model, 'claude-3-opus')
+        
+    def test_interpreter_claude_3_sonnet_model(self):
+        args = Namespace(exec=True, save_code=True, mode='code', model='claude-3-sonnet', display_code=True, lang='python')
+        interpreter = Interpreter(args)
+        self.assertEqual(interpreter.args.model, 'claude-3-sonnet')
 
 if __name__ == '__main__':
     unittest.main()

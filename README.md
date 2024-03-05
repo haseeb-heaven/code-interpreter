@@ -14,15 +14,15 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-**Welcome to Open-Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**,**Groq**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
+**Welcome to Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**,**Groq**,**Claude**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
 
-**Open-Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Open-Code-Interpreter can handle it all.
+**Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Code-Interpreter can handle it all.
 
-After processing your instructions, **Open-Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code and now with **Vision Models** it can also process images and videos.
+After processing your instructions, **Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code and now with **Vision Models** it can also process images and videos.
 
-Designed with versatility in mind, **Open-Code-Interpreter** works seamlessly on every operating system, including _Windows, MacOS, and Linux_. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
+Designed with versatility in mind, **Code-Interpreter** works seamlessly on every operating system, including _Windows, MacOS, and Linux_. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
 
-**Experience the future of code interpretation with Open-Code-Interpreter today! 🚀**
+**Experience the future of code interpretation with Code-Interpreter today! 🚀**
 
 ## **Why this is Unique Interpreter?**
 
@@ -36,7 +36,8 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - 💻 Support for more **Operating Systems**.
 - 📝 Support for **Multi-Modal** for _Text_ and _Vision_.
 - 📊 Support for **Google** and **OpenAI** Vision Models.
-- Support for **Local** models via **LLM Studio**.
+- 💻 ~~Support for **Local** models via **LLM Studio**.~~
+- 🔗 Support for **Multi-Modal** models from Anthropic AI.
 
 ## **Table of Contents**
 - [Features](#🌟-features)
@@ -52,7 +53,7 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 ## 📥 **Installation**
 
 ## Installtion with Python package manager.
-To install Open-Code-Interpreter, run the following command:</br>
+To install Code-Interpreter, run the following command:</br>
 
 ```bash
 pip install open-code-interpreter
@@ -65,12 +66,12 @@ interpreter -m 'gemini-pro' -md 'code' -dc
 - And you have API keys setup in the `.env` file.</br>
 
 ## Installtion with Git
-To get started with Open-Code-Interpreter, follow these steps:</br>
+To get started with Code-Interpreter, follow these steps:</br>
 
 1. Clone the repository:</br>
 ```git
-git clone https://github.com/haseeb-heaven/open-code-interpreter.git
-cd open-code-interpreter
+git clone https://github.com/haseeb-heaven/code-interpreter.git
+cd code-interpreter
 ```
 2. Install the required packages:</br>
 ```bash
@@ -78,46 +79,28 @@ pip install -r requirements.txt
 ```
 3. Setup the Keys required.
 
-## HUGGING FACE API Key setup.
+## API Key setup for All models.
 
-*Step 1:* **Obtain the HuggingFace API key.**
+Follow the steps below to obtain and set up the API keys for each service:
 
-*Step 2:* Visit the following URL: [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
+1. **Obtain the API keys:**
+    - HuggingFace: Visit [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
+    - Google Palm and Gemini: Visit [Google AI Studio](https://makersuite.google.com/app/apikey) and click on the **Create API Key** button.
+    - OpenAI: Visit [OpenAI Dashboard](https://platform.openai.com/account/api-keys), sign up or log in, navigate to the API section in your account dashboard, and click on the **Create New Key** button.
+    - Groq AI: Obtain access [here](https://wow.groq.com), then visit [Groq AI Console](https://console.groq.com/keys), sign up or log in, navigate to the API section in your account, and click on the **Create API Key** button.
+    - Anthropic AI: Obtain access [here](https://www.anthropic.com/earlyaccess), then visit [Anthropic AI Console](https://console.anthropic.com/settings/keys), sign up or log in, navigate to the API Keys section in your account, and click on the **Create Key** button.
 
-*Step 3:* Save the token in a `.env` file as:</br>
+2. **Save the API keys:**
+    - Create a `.env` file in your project root directory.
+    - Open the `.env` file and add the following lines, replacing `Your API Key` with the respective keys:
+
 ```bash
-echo "HUGGINGFACE_API_KEY=Your Access Token" > .env
-```
-
-## Google GEMINI and PALM-2 API Key setup.
-
-*Step 1:* **Obtain the Google Palm API key.**
-
-*Step 2:* Visit the following URL: [Google AI Studio](https://makersuite.google.com/app/apikey)
-
-*Step 3:* Click on the **Create API Key** button.
-
-*Step 4:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
-```bash
-echo "PALM_API_KEY=Your API Key" > .env
-echo "GEMINI_API_KEY=Your API Key" > .env
-```
-
-## OpenAI API Key setup.
-
-*Step 1:* **Obtain the OpenAI API key.**
-
-*Step 2:* Visit the following URL: [OpenAI Dashboard](https://platform.openai.com/account/api-keys)
-
-*Step 3:* Sign up for an account or log in if you already have one.
-
-*Step 4:* Navigate to the API section in your account dashboard.
-
-*Step 5:* Click on the **Create New Key** button.
-
-*Step 6:* The generated key is your API key. Please make sure to **copy** it and **paste** it in the required field below.
-```bash
-echo "OPENAI_API_KEY=Your API Key" > .env
+export HUGGINGFACE_API_KEY="Your HuggingFace API Key"
+export PALM_API_KEY="Your Google Palm API Key"
+export GEMINI_API_KEY="Your Google Gemini API Key"
+export OPENAI_API_KEY="Your OpenAI API Key"
+export GROQ_API_KEY="Your Groq AI API Key"
+export ANTHROPIC_API_KEY="Your Anthropic AI API Key"
 ```
 
 ## Groq AI API Key setup.
@@ -150,8 +133,8 @@ echo "ANTHROPIC_API_KEY=Your API Key" > .env
 ```
 
 # Offline models setup.</br>
-This Interpreter supports offline models via **LLM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
-- Download any model from **LLM Studio** like _Phi-2,Code-Llama,Mistral_.
+This Interpreter supports offline models via **LM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
+- Download any model from **LM Studio** like _Phi-2,Code-Llama,Mistral_.
 - Then in the app go to **Local Server** option and select the model.
 - Start the server and copy the **URL**.
 - Open config file `configs/offline-model.config` and paste the **URL** in the `api_base` field.
@@ -171,7 +154,7 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 ## 🌟 **Features**
 
-- 🚀 Code Execution: Open-Code-Interpreter can execute the code generated from your instructions.
+- 🚀 Code Execution: Code-Interpreter can execute the code generated from your instructions.
 
 - 💾 Code Save/Update: It has the ability to save the generated code for future use and 
  edit the code if needed on the fly using **advanced editor**.
@@ -190,15 +173,15 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 - 👀 Code Display: It can display the generated code in the output, allowing you to review the code before execution.
 
-- 💻 Cross-Platform: Open-Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
+- 💻 Cross-Platform: Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
 
 - 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
 
-- 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Open-Code-Interpreter can handle it all.
+- 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Code-Interpreter can handle it all.
 
 ## 🛠️ **Usage**
 
-To use Open-Code-Interpreter, use the following command options:
+To use Code-Interpreter, use the following command options:
 
 - List of all **modes** are: </br>
     - `code` - Generates code from your instructions.
@@ -212,6 +195,7 @@ To use Open-Code-Interpreter, use the following command options:
     - `gemini-pro` - Generates code using the Gemini Pro model.
     - `palm-2` - Generates code using the PALM 2 model.
     - `claude-2` - Generates code using the AnthropicAI Claude-2 model.
+    - `claude-3` - Generates code using the AnthropicAI Claude-3 model.
     - `groq-mixtral` - Generates code using the Groq Mixtral model.
     - `groq-llama2` - Generates code using the Groq Llama2 model.
     - `code-llama` - Generates code using the Code-llama model.
@@ -265,6 +249,7 @@ Here are the available commands:
 - 🌐 `/language` - Change the language of the interpreter.
 - 🧹 `/clear` - Clear the screen.
 - 🆘 `/help` - Display this help message.
+- 🚪 `/list` - List all the models available.
 - 📝 `/version` - Display the version of the interpreter.
 - 🚪 `/exit` - Exit the interpreter.
 - 📜 `/log` - Toggle different modes of logging.
@@ -294,33 +279,49 @@ Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will a
 4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
 5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
 
+## Star History
+
+<a href="https://star-history.com/#haseeb-heaven/open-code-interpreter&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=haseeb-heaven/open-code-interpreter&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=haseeb-heaven/open-code-interpreter&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=haseeb-heaven/open-code-interpreter&type=Date" />
+  </picture>
+</a>
+
 ## 🤝 **Contributing**
 
-If you're interested in contributing to **Open-Code-Interpreter**, we'd love to have you! Please fork the repository and submit a pull request. We welcome all contributions and are always eager to hear your feedback and suggestions for improvements.
+If you're interested in contributing to **Code-Interpreter**, we'd love to have you! Please fork the repository and submit a pull request. We welcome all contributions and are always eager to hear your feedback and suggestions for improvements.
 
 ## 📌 **Versioning**
 
-## 📌 **Versioning**
+🚀 **v1.0** - Initial release.  
+📊 **v1.1** - Added **Graphs** and **Charts** support.  
+🔥 **v1.2** - Added **LiteLLM** Support.  
+🌟 **v1.3** - Added **GPT 3.5** Support.  
+🌴 **v1.4** - Added **PALM 2** Support.  
+🎉 **v1.5** - Added **GPT 3.5/4** models official Support.  
+📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**, **XML**).  
+🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.  
 
-🚀 **v1.0** - Initial release.</br>
-📊 **v1.1** - Added **Graphs** and **Charts** support.</br>
-🔥 **v1.2** - Added **LiteLLM** Support.</br>
-🌟 **v1.3** - Added **GPT 3.5** Support.</br>
-🌴 **v1.4** - Added **PALM 2** Support.</br>
-🎉 **v1.5** - Added **GPT 3.5/4** models official Support.</br>
-📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**,**XML**).</br>
-🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.</br>
-🌴 **v1.8** - Added **Interpreter Commands Support**.</br>
-- **1.8.1** - Added **Interpreter Commands** _Debugging Support_.</br>
-- **1.8.2** - Fixed **Interpreter Commands** </br>
-- **1.8.3** - Added **Interpreter Commands** _Upgrade and Shell Support_.</br>
-- **1.8.4** - Fixed **Interpreter Model switcher** _Bug_.</br></br>
-🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.</br>
-- **v1.9.1** - Fixed **Unit Tests** and **History Args** </br>
-- **v1.9.2** - Updated **Google Vision** to adapt LiteLLM instead of **Google GenAI** *.</br>
-- **v1.9.3** - Added **Local Models** Support via **LM Studio**.</br></br>
-🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa,Mixtral_ models.</br>
-- **v2.0.1** - Added AnthropicAI Claude-2,Instant models.</br>
+🌟 **v1.8** - Added **Interpreter Commands Support**:  
+
+- 1.8.1 - Added _Interpreter Commands Debugging Support_.  
+- 1.8.2 - Fixed _Interpreter Commands_  
+- 1.8.3 - Added _Interpreter Commands Upgrade and Shell Support_.  
+- 1.8.4 - Fixed _Interpreter Model switcher Bug_.  
+
+🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.  
+
+- v1.9.1 - Fixed _Unit Tests_ and _History Args_  
+- v1.9.2 - Updated _Google Vision_ to adapt LiteLLM instead of _Google GenAI_.  
+- v1.9.3 - Added **Local Models** Support via **LM Studio**.  
+
+🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa, Mixtral_ models.  
+
+- **v2.0.1** - Added AnthropicAI Claude-2, Instant models.
+
+🔥 **v2.1** - Added AnhtorpicAI Claude-3 models powerful _Opus,Sonnet,Haiku_ models.
 
 ## 📜 **License**
 
@@ -334,9 +335,11 @@ Please note the following additional licensing details:
 
 - The **Hugging Face models** are provided by **Hugging Face Inc.** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Hugging Face's Terms of Service](https://huggingface.co/terms-of-service).
 
+- The **Anthropic AI models** are provided by **Anthropic AI** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Anthropic AI's Terms of Service](https://www.anthropic.com/terms).
+
 ## 🙏 **Acknowledgments**
 
-- We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI** for providing the models.
+- We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI**,**GroqAI**,**AnthropicAI** for providing the models.
 - A special shout-out to the open-source community. Your continuous support and contributions are invaluable to us.
 
 ## **📝 Author**

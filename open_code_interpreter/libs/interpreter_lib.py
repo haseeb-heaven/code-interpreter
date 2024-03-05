@@ -14,22 +14,21 @@ This file contains the `Interpreter` class which is responsible for:
 import os
 import subprocess
 import time
+import litellm # Main libray for LLM's
 from typing import List
-import webbrowser
-from open_code_interpreter.libs.code_interpreter import CodeInterpreter
-from litellm import completion
-from open_code_interpreter.libs.logger import Logger
-from open_code_interpreter.libs.markdown_code import display_code, display_markdown_message
-from open_code_interpreter.libs.package_manager import PackageManager
-from open_code_interpreter.libs.utility_manager import UtilityManager
-from open_code_interpreter.libs.history_manager import History
+from libs.code_interpreter import CodeInterpreter
+from libs.history_manager import History
+from libs.logger import Logger
+from libs.markdown_code import display_code, display_markdown_message
+from libs.package_manager import PackageManager
+from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
 import shlex
 
 class Interpreter:
     logger = None
     client = None
-    interpreter_version = "2.0.1"
+    interpreter_version = None
     
     def __init__(self, args):
         self.args = args
@@ -93,15 +92,12 @@ class Interpreter:
 
     def initialize_client(self):
         load_dotenv()
-        hf_model_name = ""
         self.logger.info("Initializing Client")
         
         self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
         if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
             self.logger.info("HF_MODEL is not provided, using default model.")
-            self.INTERPRETER_MODEL = self.INTERPRETER_MODEL
-            hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
-            config_file_name = os.path.join(self.base_dir, 'configs', 'gpt-3.5-turbo.config')  # Setting default model to GPT 3.5 Turbo.
+            config_file_name = f"configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
         else:
             config_file_name = os.path.join(self.base_dir, 'configs', f"{self.INTERPRETER_MODEL}.config")
                 
@@ -111,102 +107,30 @@ class Interpreter:
         hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
         
         self.logger.info(f"Using model {hf_model_name}")
-        
-        # checking if the model is from OpenAI
-        if "gpt" in self.INTERPRETER_MODEL:
-            if os.getenv("OPENAI_API_KEY") is None:
-                load_dotenv()
-            if os.getenv("OPENAI_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                
-            # Read the token from the .env file
-            hf_key = os.getenv('OPENAI_API_KEY')
-            if not hf_key:
-                raise Exception("OpenAI Key not found in .env file.")
-            elif not hf_key.startswith('sk-'):
-                raise Exception("OpenAI token should start with 'sk-'. Please check your .env file.")
-                # checking if the model is from Groq.
-        
-        # Check if model is from GroqAI.
-        elif "groq" in self.INTERPRETER_MODEL:
-            if os.getenv("GROQ_API_KEY") is None:
-                load_dotenv()
-            if os.getenv("GROQ_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                
-            # Read the token from the .env file
-            groq_key = os.getenv('GROQ_API_KEY')
-            if not groq_key:
-                raise Exception("GroqAI Key not found in .env file.")
-            elif not groq_key.startswith('gsk'):
-                raise Exception("GroqAI token should start with 'gsk'. Please check your .env file.")
-        
-        # Check if model is from AnthropicAI.
-        elif "claude" in self.INTERPRETER_MODEL:
-            if os.getenv("ANTHROPIC_API_KEY") is None:
-                load_dotenv()
-            if os.getenv("ANTHROPIC_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                
-            # Read the token from the .env file
-            groq_key = os.getenv('ANTHROPIC_API_KEY')
-            if not groq_key:
-                raise Exception("AnthropicAI Key not found in .env file.")
-            elif not groq_key.startswith('sk-ant-'):
-                raise Exception("AnthropicAI token should start with 'sk-ant-'. Please check your .env file.")
-        
-        
-        # checking if the model is from Google AI.
         model_api_keys = {
-            "palm": "PALM_API_KEY",
-            "gemini-pro": "GEMINI_API_KEY"
+            "gpt": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
+            "groq": {"key_name": "GROQ_API_KEY", "prefix": "gsk"},
+            "claude": {"key_name": "ANTHROPIC_API_KEY", "prefix": "sk-ant-"},
+            "palm": {"key_name": "PALM_API_KEY", "prefix": None, "length": 15},
+            "gemini": {"key_name": "GEMINI_API_KEY", "prefix": None, "length": 15},
+            "default": {"key_name": "HUGGINGFACE_API_KEY", "prefix": "hf_"}
         }
 
-        for model, api_key_name in model_api_keys.items():
-            if model in self.INTERPRETER_MODEL:
-                self.logger.info(f"User has agreed to terms and conditions of {model}")
-
-                if os.getenv(api_key_name) is None:
-                    self.logger.info(f"{api_key_name} loading from .env file.")
-                    load_dotenv()
-
-                if os.getenv(api_key_name) is None:
-                    # if there is no .env file, try to load from the current working directory
-                    load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                    self.logger.info(f"{api_key_name} loading from current working directory.")
-
+        for model, api_key_info in model_api_keys.items():
+            if model in self.INTERPRETER_MODEL or model == "default":
+                api_key_name = api_key_info["key_name"]
                 api_key = os.getenv(api_key_name)
-                if api_key:
-                    self.logger.info(f"{api_key_name} loaded successfully from global environment.")
-
-                # Validate the token
+                if api_key is None:
+                    load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+                    api_key = os.getenv(api_key_name)
                 if not api_key:
                     raise Exception(f"{api_key_name} not found in .env file.")
-                elif " " in api_key or len(api_key) <= 15:
-                    raise Exception(f"{api_key_name} should have no spaces, length greater than 15. Please check your .env file.")
-                
-        else:
-            if os.getenv("HUGGINGFACE_API_KEY") is None:
-                load_dotenv()
-                self.logger.info(f"HUGGINGFACE_API_KEY loading from .env file.")
-
-            if os.getenv("HUGGINGFACE_API_KEY") is None:
-                # if there is no .env file, try to load from the current working directory
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                self.logger.info(f"HUGGINGFACE_API_KEY loading from current working directory.")
-                
-            # Read the token from the .env file
-            hf_key = os.getenv('HUGGINGFACE_API_KEY')
-            self.logger.info(f"HUGGINGFACE_API_KEY loaded successfully from global environment.")
-            
-            if not hf_key:
-                raise Exception("HuggingFace token not found in .env file.")
-            elif not hf_key.startswith('hf_'):
-                raise Exception("HuggingFace token should start with 'hf_'. Please check your .env file.")
-
+                if api_key_info["prefix"] and not api_key.startswith(api_key_info["prefix"]):
+                    raise Exception(f"{api_key_name} should start with '{api_key_info['prefix']}'. Please check your .env file.")
+                if api_key_info.get("length") and len(api_key) <= api_key_info["length"]:
+                    raise Exception(f"{api_key_name} should have length greater than {api_key_info['length']}. Please check your .env file.")
+                break
+        
     def initialize_mode(self):
         self.CODE_MODE = True if self.args.mode == 'code' else False
         self.SCRIPT_MODE = True if self.args.mode == 'script' else False
@@ -235,14 +159,32 @@ class Interpreter:
             if chat_history or len(chat_history) > 0:
                 system_message += "\n\n" + "\n\n" + "This is user chat history for this task and make sure to use this as reference to generate the answer if user asks for 'History' or 'Chat History'.\n\n" + "\n\n" + str(chat_history) + "\n\n"
         
-        messages = [
-            {"role": "system", "content":system_message},
-            {"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
-            {"role": "user", "content": message}
-        ]
+        # Use the Messages API from Anthropic.
+        if 'claude-3' in self.INTERPRETER_MODEL:
+            messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": message
+                            }
+                        ]
+                    }
+                ]
+        
+        # Use the Assistants API.
+        else:
+            messages = [
+                {"role": "system", "content":system_message},
+                {"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
+                {"role": "user", "content": message}
+            ]
+        
+        
         return messages
     
-    def execute_last_code(self,os_name,language='python'):
+    def execute_last_code(self,os_name):
         try:
             code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
            
@@ -285,17 +227,17 @@ class Interpreter:
                 # Set the custom language model provider
                 custom_llm_provider = "openai"
                 self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
-                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
             else:
                 self.logger.info(f"Default API mode selected for OpenAI.")
-                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
+                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
                 
         # Check if the model is PALM-2
         elif 'palm' in self.INTERPRETER_MODEL:
             self.logger.info("Model is PALM-2.")
             self.INTERPRETER_MODEL = "palm/chat-bison"
-            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         # Check if the model is Gemini Pro
@@ -331,7 +273,7 @@ class Interpreter:
             else:
                 self.logger.info("Model is Gemini Pro.")
                 self.INTERPRETER_MODEL = "gemini/gemini-pro"
-                response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
+                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
                 self.logger.info("Response received from completion function.")
         
         # Check if the model is Groq-AI
@@ -344,7 +286,7 @@ class Interpreter:
                 self.logger.info("Model is Groq/Mixtral.")
                 self.INTERPRETER_MODEL = "groq/mixtral-8x7b-32768"
                 
-            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         # Check if the model is AnthropicAI
@@ -356,8 +298,19 @@ class Interpreter:
             elif 'claude-2.1' in self.INTERPRETER_MODEL:
                 self.logger.info("Model is claude-2.1.")
                 self.INTERPRETER_MODEL = "claude-2.1"
+            
+            # Support for Claude-3 Models
+            elif 'claude-3' in self.INTERPRETER_MODEL:
                 
-            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+                if 'claude-3-sonnet' in self.INTERPRETER_MODEL:
+                    self.logger.info("Model is claude-3-sonnet.")
+                    self.INTERPRETER_MODEL = "claude-3-sonnet-20240229"
+                    
+                elif 'claude-3-opus' in self.INTERPRETER_MODEL:
+                    self.logger.info("Model is claude-3-opus.")
+                    self.INTERPRETER_MODEL = "claude-3-opus-20240229"
+                
+            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         # Check if the model is Local Model
@@ -367,7 +320,7 @@ class Interpreter:
                 # Set the custom language model provider
                 custom_llm_provider = "openai"
                 self.logger.info(f"Custom API mode selected for Local Model, api_base={api_base}")
-                response = completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
             else:
                 raise Exception("Exception api base not set for custom model")
             self.logger.info("Response received from completion function.")
@@ -380,7 +333,7 @@ class Interpreter:
                 self.INTERPRETER_MODEL = 'huggingface/' + self.INTERPRETER_MODEL
             
             self.logger.info(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
-            response = completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
         
         self.logger.info(f"Generated text {response}")
@@ -451,9 +404,11 @@ class Interpreter:
         else:
             return None, None  # Return None, None if user chooses not to execute the code
 
-    def interpreter_main(self):
+    def interpreter_main(self,version):
         
+        self.interpreter_version = version
         self.logger.info(f"Interpreter - v{self.interpreter_version}")
+        
         os_platform = self.utility_manager.get_os_platform()
         os_name = os_platform[0]
         generated_output = None
@@ -482,14 +437,15 @@ class Interpreter:
         display_markdown_message("Welcome to the **Interpreter**. I'm here to **assist** you with your everyday tasks. "
                                   "\nPlease enter your task and I'll do my best to help you out.")
         
-        while True:
+        # Main System and Assistant loop.
+        running = True
+        while running:
             try:
                 # Main input prompt - System and Assistant.
                 task = input("> ")
                 
-                # Process the task.
-                # Command without arguments.
-                if task.lower() in ['/exit', '/quit']:
+                # EXIT - Command section.
+                if task.lower() == '/exit':
                     break
                 
                 # HELP - Command section.
@@ -498,7 +454,7 @@ class Interpreter:
                     continue
                 
                 # CLEAR - Command section.
-                elif task.lower() in ['/clear','/cls']:
+                elif task.lower() == '/clear':
                     self.utility_manager.clear_screen()
                     continue
 
@@ -579,10 +535,45 @@ class Interpreter:
                         Logger.set_verbose_mode()
                         display_markdown_message(f"Logger mode changed to **Verbose**.")
                     continue
-
+                
+                # LIST - Command section.
+                elif task.lower() == '/list':
+                    # Get the models info
+                    
+                    # Reading all the config files in the configs folder.
+                    configs_path = os.path.join(os.getcwd(), 'configs')
+                    configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
+                    
+                    # Removing all extensions from the list.
+                    configs_files = [os.path.splitext(file)[0] for file in configs_files]
+                    
+                    # Printing the models info.
+                    print('Available models:\n')
+                    print('\t'.join(configs_files))
+                    print('',end='\n')
+                    continue
+                
                 # UPGRAGE - Command section.
                 elif task.lower() == '/upgrade':
-                    command_output,_  = self.code_interpreter.execute_command('pip install open-code-interpreter --upgrade && pip install -r requirements.txt --upgrade')
+                    
+                    # Download the requirements file
+                    requirements_file_url = 'https://raw.githubusercontent.com/haseeb-heaven/code-interpreter/main/requirements.txt'
+                    requirements_file_downloaded = self.utility_manager.download_file(requirements_file_url,'requirements.txt')
+                    
+                    # Commands to execute.
+                    command_pip_upgrade = 'pip install open-code-interpreter --upgrade'
+                    command_pip_requirements = 'pip install -r requirements.txt --upgrade'
+                    
+                    # Execute the commands.
+                    command_output,_  = self.code_interpreter.execute_command(command_pip_upgrade)
+                    display_markdown_message(f"Command Upgrade executed successfully.")
+                    if requirements_file_downloaded:
+                        command_output,_  = self.code_interpreter.execute_command(command_pip_requirements)
+                        display_markdown_message(f"Command Requirements executed successfully.")
+                    else:
+                        self.logger.warn(f"Requirements file not downloaded.")
+                        display_markdown_message(f"Warning: Requirements file not downloaded.")
+                    
                     if command_output:
                         self.logger.info(f"Command executed successfully.")
                         display_code(command_output)
@@ -591,7 +582,7 @@ class Interpreter:
                 
                 # EXECUTE - Command section.
                 elif task.lower() == '/execute':
-                    self.execute_last_code(os_name,self.INTERPRETER_LANGUAGE)
+                    self.execute_last_code(os_name)
                     continue
                 
                 # SAVE - Command section.
@@ -662,7 +653,7 @@ class Interpreter:
                             display_code(code_output)
                             self.logger.info(f"Output: {code_output[:100]}")
                         elif code_error:
-                            self.logger.info(f"Python code executed with error.")
+                            self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
                             display_markdown_message(f"Error: {code_error}")
                     continue
 
@@ -717,6 +708,16 @@ class Interpreter:
                 elif any(command in task.lower() for command in ['/install']):
                     # get the package name after the command 
                     package_name = task.split(' ')[1]
+                    
+                    # check if package name is not system module.
+                    system_modules = self.package_manager.get_system_modules()
+                    
+                    # Skip installing system modules.
+                    if package_name in system_modules:
+                        self.logger.info(f"Package {package_name} is a system module.")
+                        display_markdown_message(f"Package {package_name} is a system module.")
+                        raise Exception(f"Package {package_name} is a system module.")
+                        
                     if package_name:
                         self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
                         self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
@@ -849,7 +850,7 @@ class Interpreter:
                     
                     elif self.INTERPRETER_LANGUAGE == 'python' and self.SAVE_CODE and self.CODE_MODE:
                         self.code_interpreter.save_code(f"output/code_{current_time}.py", code_snippet)
-                        self.logger.info(f"Python code saved successfully.")
+                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} code saved successfully.")
                     
                     elif self.SAVE_CODE and self.COMMAND_MODE:
                         self.code_interpreter.save_code(f"output/command_{current_time}.txt", code_snippet)
@@ -867,13 +868,23 @@ class Interpreter:
                         display_code(code_output)
                         self.logger.info(f"Output: {code_output[:100]}")
                     elif code_error:
-                        self.logger.info(f"Python code executed with error.")
+                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
                         display_markdown_message(f"Error: {code_error}")
                         
                     # install Package on error.
                     error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
                     if code_error is not None and any(error_message in code_error for error_message in error_messages):
                         package_name = self.package_manager.extract_package_name(code_error, self.INTERPRETER_LANGUAGE)
+                        
+                        # check if package name is not system module.
+                        system_modules = self.package_manager.get_system_modules()
+                        
+                        # Skip installing system modules.
+                        if package_name in system_modules:
+                            self.logger.info(f"Package {package_name} is a system module.")
+                            display_markdown_message(f"Package {package_name} is a system module.")
+                            raise Exception(f"Package {package_name} is a system module.")
+                        
                         if package_name:
                             self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
                             self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)

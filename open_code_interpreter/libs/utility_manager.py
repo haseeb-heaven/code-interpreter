@@ -83,13 +83,22 @@ class UtilityManager:
                 import pyreadline as readline
                 
             histfile = os.path.join(os.path.expanduser("~"), ".python_history")
-            readline.read_history_file(histfile)
+            
+            # Check if histfile exists before trying to read it
+            if os.path.exists(histfile):
+                readline.read_history_file(histfile)
             
             # Save history to file on exit
             import atexit
             atexit.register(readline.write_history_file, histfile)
+            
         except FileNotFoundError:
-            pass
+            raise Exception("History file not found")
+        
+        except AttributeError:
+            # Handle error on Windows where pyreadline doesn't have read_history_file
+            self.logger.info("pyreadline doesn't have read_history_file")
+            raise Exception("On Windows, pyreadline doesn't have read_history_file") 
         except Exception as exception:
             self.logger.error(f"Error in initializing readline history: {str(exception)}")
             raise
@@ -199,6 +208,7 @@ class UtilityManager:
                 /history - Use history as memory.\n\
                 /clear - Clear the screen.\n\
                 /help - Display this help message.\n\
+                /list - List the available models.\n\
                 /version - Display the version of the interpreter.\n\
                 /log - Switch between Verbose and Silent mode.\n\
                 /upgrade - Upgrade the interpreter.\n\
@@ -209,3 +219,20 @@ class UtilityManager:
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
+    
+    # method to download file from Web and save it
+    
+    def download_file(self,url,file_name):
+        try:
+            import requests
+            self.logger.info(f"Downloading file: {url}")
+            response = requests.get(url, allow_redirects=True)
+            response.raise_for_status()
+            
+            with open(file_name, 'wb') as file:
+                file.write(response.content)
+                self.logger.info(f"Reuquirements.txt file downloaded.")
+            return True
+        except Exception as exception:
+            self.logger.error(f"Error in downloading file: {str(exception)}")
+            return False

@@ -12,3 +12,6 @@ rich
 pandas
 matplotlib
 plotly
+
+# Libraries for standard libries 
+stdlib_list

@@ -1,5 +1,5 @@
 """
-This is the main file for the Open-Code-Interpreter.
+This is the main file for the Code-Interpreter.
 It handles command line arguments and initializes the Interpreter.
 
 Command line arguments:
@@ -18,8 +18,12 @@ Date: 2023/12/01
 import argparse
 import sys
 import traceback
+import warnings
+from libs.markdown_code import display_markdown_message
 from open_code_interpreter.libs.interpreter_lib import Interpreter
-from open_code_interpreter.libs.markdown_code import display_markdown_message
+
+# The main version of the interpreter.
+INTERPRETER_VERSION = "2.1"
 
 def main():
         parser = argparse.ArgumentParser(description='Code - Interpreter')
@@ -27,7 +31,7 @@ def main():
         parser.add_argument('--save_code', '-s', action='store_true', default=False, help='Save the generated code')
         parser.add_argument('--mode', '-md', choices=['code', 'script', 'command','vision','chat'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands) `vision` for generating text from images')
         parser.add_argument('--model', '-m', type=str, default='code-llama', help='Set the model for code generation. (Defaults to gpt-3.5-turbo)')
-        parser.add_argument('--version', '-v', action='version', version='%(prog)s 2.0')
+        parser.add_argument('--version', '-v', action='version', version='%(prog)s '+ INTERPRETER_VERSION)
         parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
         parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the code in output')
         parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
@@ -37,10 +41,12 @@ def main():
         if len(sys.argv) <= 1:
             parser.print_help()
             return
+        
+        warnings.filterwarnings("ignore")  # To ignore all warnings
 
         # Create an instance of the Interpreter class and call the main method.
         interpreter = Interpreter(args)
-        interpreter.interpreter_main()
+        interpreter.interpreter_main(INTERPRETER_VERSION)
         
 if __name__ == "__main__":
     try:
@@ -56,7 +62,8 @@ to setup the interpreter:\n\
 1. Create a .env file in the root directory of the project.\n\
 2. Add the following line to the .env file:\n\
 GEMINI_API_KEY=<your api key>\n\
-OPENIA_API_KEY=<your api key>\n\
+OPENAI_API_KEY=<your api key>\n\
+ANTHROPIC_API_KEY=<your api key>\n\
 3. Replace <your api key> with your OpenAI/Gemini API key.\n\
 4. Run the interpreter again.")
             
