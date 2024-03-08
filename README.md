@@ -108,8 +108,8 @@ This Interpreter supports offline models via **LM Studio** so to download it fro
 - Download any model from **LM Studio** like _Phi-2,Code-Llama,Mistral_.
 - Then in the app go to **Local Server** option and select the model.
 - Start the server and copy the **URL**.
-- Open config file `configs/offline-model.config` and paste the **URL** in the `api_base` field.
-- Now you can use the model with the interpreter set the model name to `offline-model` and run the interpreter.</br>
+- Open config file `configs/local-model.config` and paste the **URL** in the `api_base` field.
+- Now you can use the model with the interpreter set the model name to `local-model` and run the interpreter.</br>
 
 4. Run the interpreter with Python:</br>
 ### Running with Python.

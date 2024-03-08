@@ -103,6 +103,11 @@ class Interpreter:
         self.INTERPRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRETER_MODEL))       
         hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
         
+        # skip init client for local models.(Bug#10 https://github.com/haseeb-heaven/code-interpreter/issues/10)
+        if 'local' in self.INTERPRETER_MODEL:
+            self.logger.info(f"Skipping client initialization for local model.")
+            return
+        
         self.logger.info(f"Using model {hf_model_name}")
 
         model_api_keys = {
