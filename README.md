@@ -36,7 +36,7 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - 💻 Support for more **Operating Systems**.
 - 📝 Support for **Multi-Modal** for _Text_ and _Vision_.
 - 📊 Support for **Google** and **OpenAI** Vision Models.
-- 💻 ~~Support for **Local** models via **LLM Studio**.~~
+- 💻 ~~Support for **Local** models via **LM Studio**.~~
 - 🔗 Support for **Multi-Modal** models from Anthropic AI.
 
 ## **Table of Contents**
@@ -104,10 +104,11 @@ export ANTHROPIC_API_KEY="Your Anthropic AI API Key"
 ```
 
 # Offline models setup.</br>
-This Interpreter supports offline models via **LM Studio** so to download it from [here](https://lmstudio.ai/) and follow the steps below.
+This Interpreter supports offline models via **LM Studio** and **OLlaMa** so to download it from [LM-Studio](https://lmstudio.ai/) and [Ollama](https://ollama.com/) follow the steps below.
 - Download any model from **LM Studio** like _Phi-2,Code-Llama,Mistral_.
 - Then in the app go to **Local Server** option and select the model.
-- Start the server and copy the **URL**.
+- Start the server and copy the **URL**. (LM-Studio will provide you with the URL).
+- Run command `ollama serve` and copy the **URL**. (OLlaMa will provide you with the URL).
 - Open config file `configs/local-model.config` and paste the **URL** in the `api_base` field.
 - Now you can use the model with the interpreter set the model name to `local-model` and run the interpreter.</br>
 
@@ -174,7 +175,7 @@ To use Code-Interpreter, use the following command options:
     - `mistral-7b` - Generates code using the Mistral 7b model.
     - `wizard-coder` - Generates code using the Wizard Coder model.
     - `star-chat` - Generates code using the Star Chat model.
-    - `offline-model` - Generates code using the Offline model.
+    - `local-model` - Generates code using the Offline model.
 
 - Basic usage (with least options)</br>
 ```python
