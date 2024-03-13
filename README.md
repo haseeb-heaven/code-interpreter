@@ -298,6 +298,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 - **v2.0.1** - Added AnthropicAI Claude-2, Instant models.
 
 🔥 **v2.1** - Added AnhtorpicAI Claude-3 models powerful _Opus,Sonnet,Haiku_ models.
+- **v2.1.1** - Added **Groq-AI** Model _Gemma-7B_ with **700 Tokens/Sec**.
 
 ## 📜 **License**
 

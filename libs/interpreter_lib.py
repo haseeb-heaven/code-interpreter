@@ -53,7 +53,7 @@ class Interpreter:
         self.DISPLAY_CODE = self.args.display_code
         self.INTERPRETER_MODEL = self.args.model if self.args.model else None
         self.logger.info(f"Interpreter args model selected is '{self.args.model}")
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
+        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
         
@@ -300,6 +300,9 @@ class Interpreter:
             elif 'groq-mixtral' in self.INTERPRETER_MODEL:
                 self.logger.info("Model is Groq/Mixtral.")
                 self.INTERPRETER_MODEL = "groq/mixtral-8x7b-32768"
+            elif 'groq-gemma' in self.INTERPRETER_MODEL:
+                self.logger.info("Model is Groq/Gemma.")
+                self.INTERPRETER_MODEL = "groq/gemma-7b" # Yet to confirm the model name from LiteLLM.
                 
             response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
