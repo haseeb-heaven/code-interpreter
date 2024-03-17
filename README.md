@@ -168,8 +168,9 @@ To use Code-Interpreter, use the following command options:
     - `palm-2` - Generates code using the PALM 2 model.
     - `claude-2` - Generates code using the AnthropicAI Claude-2 model.
     - `claude-3` - Generates code using the AnthropicAI Claude-3 model.
-    - `groq-mixtral` - Generates code using the Groq Mixtral model.
+    - `groq-mixtral` - Generates code using the Mixtral model using Groq LPU.
     - `groq-llama2` - Generates code using the Groq Llama2 model.
+    - `groq-gemma` - Generates code using the Groq Gemma model.
     - `code-llama` - Generates code using the Code-llama model.
     - `code-llama-phind` - Generates code using the Code-llama Phind model.
     - `mistral-7b` - Generates code using the Mistral 7b model.

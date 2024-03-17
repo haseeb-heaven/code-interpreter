@@ -58,6 +58,11 @@ class TestInterpreter(unittest.TestCase):
         interpreter = Interpreter(args)
         self.assertEqual(interpreter.args.model, 'groq-mixtral')
     
+    def test_interpreter_groq_gemma_model(self):
+        args = Namespace(exec=True, save_code=True, mode='code', model='groq-gemma', display_code=True, lang='python')
+        interpreter = Interpreter(args)
+        self.assertEqual(interpreter.args.model, 'groq-gemma')
+    
     def test_interpreter_claude_2_model(self):
         args = Namespace(exec=True, save_code=True, mode='code', model='claude-2', display_code=True, lang='python')
         interpreter = Interpreter(args)
