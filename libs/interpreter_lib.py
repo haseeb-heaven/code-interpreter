@@ -91,7 +91,7 @@ class Interpreter:
         load_dotenv()
         self.logger.info("Initializing Client")
         
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}")
+        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
         if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
             self.logger.info("HF_MODEL is not provided, using default model.")
             config_file_name = f"configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
@@ -225,7 +225,8 @@ class Interpreter:
 
     def generate_content(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
         self.logger.info(f"Generating content with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
-
+        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
+        
         # Use the values from the config file if they are provided
         if config_values:
             temperature = float(config_values.get('temperature', temperature))
@@ -302,7 +303,7 @@ class Interpreter:
                 self.INTERPRETER_MODEL = "groq/mixtral-8x7b-32768"
             elif 'groq-gemma' in self.INTERPRETER_MODEL:
                 self.logger.info("Model is Groq/Gemma.")
-                self.INTERPRETER_MODEL = "groq/gemma-7b" # Yet to confirm the model name from LiteLLM.
+                self.INTERPRETER_MODEL = "groq/gemma-7b-it"
                 
             response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
             self.logger.info("Response received from completion function.")
@@ -700,7 +701,7 @@ class Interpreter:
 
                 # Check if prompt contains any file uploaded by user.
                 extracted_file_name = self.utility_manager.extract_file_name(prompt)
-                self.logger.info(f"Input prompt extracted_name: '{extracted_file_name}'")
+                self.logger.info(f"Input prompt file name: '{extracted_file_name}'")
 
                 if extracted_file_name is not None:
                     full_path = self.utility_manager.get_full_file_path(extracted_file_name)
