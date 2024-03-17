@@ -248,13 +248,20 @@ To integrate your own API server for OpenAI instead of the default server, follo
 4. Save and close the file.
 Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will automatically use your custom server.
 
-### **Steps to add new Hugging Face model**
+## **Steps to add new Hugging Face model**
 
+### **Manual Method**
 1. 📋 Copy the `.config` file and rename it to `configs/hf-model-new.config`.
 2. 🛠️ Modify the parameters of the model like `start_sep`, `end_sep`, `skip_first_line`.
 3. 📝 Set the model name from Hugging Face to `HF_MODEL = 'Model name here'`.
 4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
 5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
+
+### **Automatic Method**
+1. 🚀 Go to the `scripts` directory and run the `config_builder` script .
+2. 🔧 For Linux/MacOS, run `config_builder.sh` and for Windows, run `config_builder.bat` .
+3. 📝 Follow the instructions and enter the model name and parameters.
+4. 📋 The script will automatically create the `.config` file for you.
 
 ## Star History
 
