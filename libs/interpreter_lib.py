@@ -474,6 +474,7 @@ class Interpreter:
         while running:
             try:
                 task = None
+                
                 if self.INTERPRETER_PROMPT_INPUT:
                     self.logger.info(f"Reading prompt from input.")
                     # Main input prompt - System and Assistant.
@@ -481,13 +482,15 @@ class Interpreter:
                 elif self.INTERPRETER_PROMPT_FILE:
                     prompt_file_name = self.args.file
                     
-                    # Read the task from the file append 'system' path to the file.
+                    # Setting the prompt file path.
                     if not prompt_file_name:
                         prompt_file_name = 'prompt.txt'
-                        
+                    
                     prompt_file_path = os.path.join(os.getcwd(),'system',prompt_file_name)
                     display_markdown_message(f"\nEnter your task in the file **'{prompt_file_path}'**")
-                    prompt_confirmation = input(f"Execute the prompt? (Y/N/P) (P = Switch Prompt Mode): ")
+                    
+                    # File mode command section.
+                    prompt_confirmation = input(f"Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ")
                     if prompt_confirmation.lower() == 'y':
                         self.logger.info(f"Executing prompt from file.")
  
@@ -504,11 +507,14 @@ class Interpreter:
                         self.logger.info(f"Changing input mode to prompt from file.")
                         self.utility_manager.clear_screen()
                         continue
-                else:
-                    # Invalid input mode (0x000022)
-                    self.logger.error("Invalid input mode.")
-                    raise ValueError("Invalid input mode.")
-                    break
+                    elif prompt_confirmation.lower() == 'c':
+                        self.logger.info(f"Changing input mode to command from file.")
+                        task = input("> ")
+                    else:
+                        # Invalid input mode (0x000022)
+                        self.logger.error("Invalid input mode.")
+                        self.utility_manager.clear_screen()
+                        continue
                 
                 # EXIT - Command section.
                 if task.lower() == '/exit':
