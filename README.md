@@ -313,7 +313,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 🔥 **v2.1** - Added AnhtorpicAI Claude-3 models powerful _Opus,Sonnet,Haiku_ models.
 - **v2.1.1** - Added **Groq-AI** Model _Gemma-7B_ with **700 Tokens/Sec**.
-- **v2.1.2** - Added **Prompt input Mode** now you can input prompt from file as well.
+- **v2.1.2** - Added **Prompt input Mode** now you can set prompt from file as well just place your prompt in `prompt.txt` file inside `system` directory.
 
 ## 📜 **License**
 

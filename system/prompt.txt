@@ -1,1 +1,4 @@
-Enter your prompt in plain text here for Code Interpreter to execute.
+Create chart of AAPL and MSFT stock prices and plot the data on the same chart.
+and then create a scatter plot of the two stocks.
+then create a spreadsheet in table form that shows the stock prices for the two stocks.
+and then save them to a file and open the chart and the spreadsheet file.
