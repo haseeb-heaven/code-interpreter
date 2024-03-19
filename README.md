@@ -155,11 +155,16 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 
 To use Code-Interpreter, use the following command options:
 
+- List of all **programming languages** are: </br>
+    - `python` - Python programming language.
+    - `javascript` - JavaScript programming language.
+
 - List of all **modes** are: </br>
     - `code` - Generates code from your instructions.
     - `script` - Generates shell scripts from your instructions.
     - `command` - Generates single line commands from your instructions.
     -  `vision` - Generates description of image or video.
+    - `chat` - Chat with your files and data.
 
 - List of all **models** are (**Contribute - MORE**): </br>
     - `gpt-3.5-turbo` - Generates code using the GPT 3.5 Turbo model.
@@ -208,9 +213,9 @@ python interpreter.py -m 'code-llama' -md 'code' -s
 python interpreter.py -m 'gemini-pro' -md 'code' -s -l 'language-name'
 ```
 
-- Switching to File mode for prompt input </br>
+- Switching to File mode for prompt input (Here providing filename is optional) </br>
 ```python
-python interpreter.py -m 'gemini-pro' -md 'code' --file
+python interpreter.py -m 'gemini-pro' -md 'code' --file 'my_prompt_file.txt'
 ```
 
 - Using Upgrade interpreter </br>
@@ -231,7 +236,7 @@ Here are the available commands:
 - 🌐 `/language` - Change the language of the interpreter.
 - 🧹 `/clear` - Clear the screen.
 - 🆘 `/help` - Display this help message.
-- 🚪 `/list` - List all the models available.
+- 🚪 `/list` - List all the _models/modes/language_ available.
 - 📝 `/version` - Display the version of the interpreter.
 - 🚪 `/exit` - Exit the interpreter.
 - 📜 `/log` - Toggle different modes of logging.

@@ -487,6 +487,25 @@ class Interpreter:
                         prompt_file_name = 'prompt.txt'
                     
                     prompt_file_path = os.path.join(os.getcwd(),'system',prompt_file_name)
+                    
+                    # check if the file exists.
+                    if not os.path.exists(prompt_file_path):
+                        self.logger.error(f"Prompt file not found: {prompt_file_path}")
+                        user_confirmation = input(f"Create a new prompt file (Y/N)?: ")
+                        if user_confirmation.lower() == 'y':
+                            self.logger.info(f"Creating new prompt file.")
+                            self.utility_manager.create_file(prompt_file_path)
+                            display_markdown_message(f"New prompt file created **successfully** ")
+                        else:
+                            self.logger.info(f"User declined to create new prompt file.")
+                            display_markdown_message(f"User declined to create new prompt file.\nSwitching to input mode.")
+                            # Switch to input mode.
+                            self.INTERPRETER_PROMPT_INPUT = True
+                            self.INTERPRETER_PROMPT_FILE = False
+                            
+                            continue
+                        continue
+                    
                     display_markdown_message(f"\nEnter your task in the file **'{prompt_file_path}'**")
                     
                     # File mode command section.
@@ -595,8 +614,20 @@ class Interpreter:
                     
                     # Printing the models info.
                     print('Available models:\n')
-                    print('\t'.join(configs_files))
+                    for index, model in enumerate(configs_files, 1):
+                        print(f'{index}. {model}')
                     print('',end='\n')
+
+                    # Print all the available modes.
+                    print('Available modes:\n')
+                    for index, mode in enumerate(['code','script','command','vision','chat'], 1):
+                        print(f'{index}. {mode}',end='\n')
+                    
+                    # Print all the available languages.
+                    print('\nAvailable languages:\n')
+                    for index, language in enumerate(['python','javascript'], 1):
+                        print(f'{index}. {language}')
+                    
                     continue
                 
                 # UPGRAGE - Command section.
@@ -688,7 +719,8 @@ class Interpreter:
                     if mode:
                         if not mode.lower() in ['code','script','command','vision','chat']:
                             mode = 'code'
-                            display_markdown_message(f"The input mode is not supported. Mode changed to {mode}")
+                            display_markdown_message(f"The input mode is not supported. Mode changed to {mode},"
+                                                     "\nUse '/list' command to get the list of supported modes.")
                         else:
                             modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
 

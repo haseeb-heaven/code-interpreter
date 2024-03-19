@@ -222,6 +222,14 @@ class UtilityManager:
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
+    
+    def create_file(self, file_path):
+        try:
+            with open(file_path, "w") as file:
+                file.write("")
+        except Exception as exception:
+            self.logger.error(f"Error in creating file: {str(exception)}")
+            raise
         
     def read_file(self, file_path):
         try:
