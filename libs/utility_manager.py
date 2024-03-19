@@ -213,6 +213,7 @@ class UtilityManager:
                 /list - List the available models.\n\
                 /version - Display the version of the interpreter.\n\
                 /log - Switch between Verbose and Silent mode.\n\
+                /prompt - Switch input prompt mode between file and prompt.\n\
                 /upgrade - Upgrade the interpreter.\n\
                 /shell - Access the shell.\n")
     
@@ -221,6 +222,22 @@ class UtilityManager:
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
+        
+    def read_file(self, file_path):
+        try:
+            with open(file_path, "r") as file:
+                return file.read()
+        except Exception as exception:
+            self.logger.error(f"Error in reading file: {str(exception)}")
+            raise
+    
+    def write_file(self, file_path, content):
+        try:
+            with open(file_path, "w") as file:
+                file.write(content)
+        except Exception as exception:
+            self.logger.error(f"Error in writing file: {str(exception)}")
+            raise
     
     # method to download file from Web and save it
     

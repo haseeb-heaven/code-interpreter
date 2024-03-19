@@ -57,6 +57,16 @@ class Interpreter:
         self.system_message = ""
         self.INTERPRETER_MODE = 'code'
         
+        if self.args.file is None:
+            self.INTERPRETER_PROMPT_FILE = False
+            self.INTERPRETER_PROMPT_INPUT = True
+        else:
+            self.INTERPRETER_PROMPT_FILE = True
+            self.INTERPRETER_PROMPT_INPUT = False
+            # If the user didn't provide a file name, use the default one
+            if self.args.file == '':
+                self.args.file = 'prompt.txt'
+                
         # Set the history optional(Argparse)
         if hasattr(self.args, 'history'):
             self.INTERPRETER_HISTORY = self.args.history
@@ -452,16 +462,59 @@ class Interpreter:
         self.logger.info(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
 
         # Display system and Assistant information.
-        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}' Model: '{self.INTERPRETER_MODEL}'")
-        display_markdown_message("Welcome to the **Interpreter**. I'm here to **assist** you with your everyday tasks. "
-                                  "\nPlease enter your task and I'll do my best to help you out.")
+        input_prompt_mode = "File" if self.INTERPRETER_PROMPT_FILE else "Input"
+        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}', Prompt: '{input_prompt_mode}', Model: '{self.INTERPRETER_MODEL}'")
+        
+        # Display the welcome message.
+        display_markdown_message("Welcome to the **Interpreter**, I'm here to **assist** you with your everyday tasks. "
+                                  "\nEnter your task and I'll do my best to help you out.")
         
         # Main System and Assistant loop.
         running = True
         while running:
             try:
-                # Main input prompt - System and Assistant.
-                task = input("> ")
+                task = None
+                
+                if self.INTERPRETER_PROMPT_INPUT:
+                    self.logger.info(f"Reading prompt from input.")
+                    # Main input prompt - System and Assistant.
+                    task = input("> ")
+                elif self.INTERPRETER_PROMPT_FILE:
+                    prompt_file_name = self.args.file
+                    
+                    # Setting the prompt file path.
+                    if not prompt_file_name:
+                        prompt_file_name = 'prompt.txt'
+                    
+                    prompt_file_path = os.path.join(os.getcwd(),'system',prompt_file_name)
+                    display_markdown_message(f"\nEnter your task in the file **'{prompt_file_path}'**")
+                    
+                    # File mode command section.
+                    prompt_confirmation = input(f"Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ")
+                    if prompt_confirmation.lower() == 'y':
+                        self.logger.info(f"Executing prompt from file.")
+ 
+                        self.logger.info(f"Executing prompt from file {prompt_file_path}")
+                        task = self.utility_manager.read_file(prompt_file_path)
+                    elif prompt_confirmation.lower() == 'n':
+                        self.logger.info(f"Waiting for user confirmation to execute prompt from file.")
+                        print("Waiting for user confirmation to execute prompt from file.")
+                        self.utility_manager.clear_screen()
+                        continue
+                    elif prompt_confirmation.lower() == 'p':
+                        self.INTERPRETER_PROMPT_INPUT = True
+                        self.INTERPRETER_PROMPT_FILE = False
+                        self.logger.info(f"Changing input mode to prompt from file.")
+                        self.utility_manager.clear_screen()
+                        continue
+                    elif prompt_confirmation.lower() == 'c':
+                        self.logger.info(f"Changing input mode to command from file.")
+                        task = input("> ")
+                    else:
+                        # Invalid input mode (0x000022)
+                        self.logger.error("Invalid input mode.")
+                        self.utility_manager.clear_screen()
+                        continue
                 
                 # EXIT - Command section.
                 if task.lower() == '/exit':
@@ -480,6 +533,18 @@ class Interpreter:
                 # VERSION - Command section.
                 elif task.lower() == '/version':
                     self.utility_manager.display_version(self.interpreter_version)
+                    continue
+                
+                # PROMPT - Command section.
+                elif task.lower() == '/prompt':
+                    if self.INTERPRETER_PROMPT_INPUT:
+                        self.INTERPRETER_PROMPT_INPUT = False
+                        self.INTERPRETER_PROMPT_FILE = True
+                        self.logger.info(f"Input mode changed to File.")
+                    else:
+                        self.INTERPRETER_PROMPT_INPUT = True
+                        self.INTERPRETER_PROMPT_FILE = False
+                        self.logger.info(f"Input mode changed to Prompt.")
                     continue
                 
                 # HISTORY - Command section.
@@ -643,7 +708,7 @@ class Interpreter:
                     if model:
                         model_config_file = f"configs/{model}.config"
                         if not os.path.isfile(model_config_file):
-                            display_markdown_message(f"Model {model} does not exists. Please check the model name.")
+                            display_markdown_message(f"Model {model} does not exists. Please check the model name using '/list' command.")
                             continue
                         else:
                             self.INTERPRETER_MODEL = model

@@ -24,7 +24,7 @@ from libs.markdown_code import display_markdown_message
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "2.1.1"
+INTERPRETER_VERSION = "2.1.2"
 
 def main():
         parser = argparse.ArgumentParser(description='Code - Interpreter')
@@ -37,6 +37,7 @@ def main():
         parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the code in output')
         parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
         parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
+        parser.add_argument('--file', '-f', type=str, nargs='?', const='prompt.txt', default=None, help='Sets the file to read the input prompt from')
         args = parser.parse_args()
 
         # Check if only the application name is passed
