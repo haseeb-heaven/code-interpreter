@@ -129,9 +129,9 @@ python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc
 - 🚀 Code Execution: Code-Interpreter can execute the code generated from your instructions.
 
 - 💾 Code Save/Update: It has the ability to save the generated code for future use and 
- edit the code if needed on the fly using **advanced editor**.
+ edit the code if needed on the go using **advanced editor**.
 
-- 📡 Offline models: It has the ability to use **offline models** for code generation using **LLM Studio**.
+- 📡 Offline models: It has the ability to use **offline models** for code generation using **LM Studio**.
 
 - 📜 Command History: It has the ability to save all the commands as history.
 
@@ -181,7 +181,7 @@ To use Code-Interpreter, use the following command options:
     - `mistral-7b` - Generates code using the Mistral 7b model.
     - `wizard-coder` - Generates code using the Wizard Coder model.
     - `star-chat` - Generates code using the Star Chat model.
-    - `local-model` - Generates code using the Offline model.
+    - `local-model` - Generates code using the local offline model.
 
 - Basic usage (with least options)</br>
 ```python
@@ -231,7 +231,7 @@ Here are the available commands:
 - ✏️ `/edit` - Edit the last code generated.
 - ▶️ `/execute` - Execute the last code generated.
 - 🔄 `/mode` - Change the mode of interpreter.
-- 🔄 `/model` - Change the model for interpreter.
+- 🔄 `/model` - Change the model of interpreter.
 - 📦 `/install` - Install a package from npm or pip.
 - 🌐 `/language` - Change the language of the interpreter.
 - 🧹 `/clear` - Clear the screen.
@@ -239,9 +239,10 @@ Here are the available commands:
 - 🚪 `/list` - List all the _models/modes/language_ available.
 - 📝 `/version` - Display the version of the interpreter.
 - 🚪 `/exit` - Exit the interpreter.
+- 🐞 `/debug` - Debug the generated code for errors.
 - 📜 `/log` - Toggle different modes of logging.
 - ⏫ `/upgrade` - Upgrade the interpreter.
-- 📁 `/prompt` - Switch the prompt mode.
+- 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
 - 💻 `/shell` - Access the shell.
 
 ## ⚙️ **Settings**
@@ -318,7 +319,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 🔥 **v2.1** - Added AnhtorpicAI Claude-3 models powerful _Opus,Sonnet,Haiku_ models.
 - **v2.1.1** - Added **Groq-AI** Model _Gemma-7B_ with **700 Tokens/Sec**.
-- **v2.1.2** - Added **Prompt input Mode** now you can set prompt from file as well just place your prompt in `prompt.txt` file inside `system` directory.
+- **v2.1.2** - Added **Prompt Modes** now you can set prompt from file as well just place your prompt in `prompt.txt` file inside `system` directory.
 
 ## 📜 **License**
 

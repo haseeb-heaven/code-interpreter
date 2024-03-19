@@ -657,8 +657,7 @@ class Interpreter:
                     os_platform = self.utility_manager.get_os_platform()
 
                     # Check if user wants to open in vim?
-                    display_markdown_message(f"Open code in **vim** editor (Y/N):")
-                    vim_open = input()
+                    vim_open = input("Open the code in vim editor (Y/N):")
                     if vim_open.lower() == 'y':
                         self.logger.info(f"Opening code in **vim** editor {code_file.name if not isinstance(code_file, str) else code_file}")
                         subprocess.call(['vim', code_file.name if not isinstance(code_file, str) else code_file])

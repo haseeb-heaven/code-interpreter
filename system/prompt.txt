@@ -1,4 +1,12 @@
-Create chart of AAPL and MSFT stock prices and plot the data on the same chart.
-and then create a scatter plot of the two stocks.
-then create a spreadsheet in table form that shows the stock prices for the two stocks.
-and then save them to a file and open the chart and the spreadsheet file.
+Stock Price Data Extraction and Visualization task:
+
+1. Import the necessary libraries for web scraping, data manipulation, and plotting.
+2. Define the URLs for web search to retrieve the stock prices of Amazon and Walmart.
+3. Use web scraping techniques to extract the stock price data from the web pages Url = 'https://mocki.io/v1/a2491222-4058-40c5-8b1b-3f8f2e3df42a'
+4. Store the extracted data it has 'company','description','initial_price','price_2002','price_2007','symbol' fields in JSON response in a suitable data structure, such as a list or a pandas DataFrame.
+5. Plot the stock prices of Amazon and Walmart on the same chart using a plotting library like Matplotlib.
+6. Create a spreadsheet in table form using a library like pandas.
+7. Populate the spreadsheet with the stock price data for the two stocks.
+8. Save the chart and the spreadsheet to files using appropriate file formats.
+9. Check if the file exists in the current working directory. If not, create the file.
+10. Open the saved chart and spreadsheet files using the default applications on the system.
