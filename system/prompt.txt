@@ -1,12 +1,59 @@
-Stock Price Data Extraction and Visualization task:
+Stock Price Data Extraction and Visualization application with GUI:
 
-1. Import the necessary libraries for web scraping, data manipulation, and plotting.
-2. Define the URLs for web search to retrieve the stock prices of Amazon and Walmart.
-3. Use web scraping techniques to extract the stock price data from the web pages Url = 'https://mocki.io/v1/a2491222-4058-40c5-8b1b-3f8f2e3df42a'
-4. Store the extracted data it has 'company','description','initial_price','price_2002','price_2007','symbol' fields in JSON response in a suitable data structure, such as a list or a pandas DataFrame.
-5. Plot the stock prices of Amazon and Walmart on the same chart using a plotting library like Matplotlib.
-6. Create a spreadsheet in table form using a library like pandas.
-7. Populate the spreadsheet with the stock price data for the two stocks.
-8. Save the chart and the spreadsheet to files using appropriate file formats.
-9. Check if the file exists in the current working directory. If not, create the file.
-10. Open the saved chart and spreadsheet files using the default applications on the system.
+1. **Define the requirements:**
+   - The application should allow the user to enter a company name.
+   - The application should fetch stock data for the entered company from a specified URL.
+   - The application should display the fetched data in a table.
+   - The application should plot the initial price, price in 2002, and price in 2007 for the entered company.
+   - The application should display messages in a text box.
+
+2. **Design the UI:**
+   - The UI should have a vertical layout.
+   - The top of the UI should have a label instructing the user to enter a company name.
+   - Below the label, there should be a text input field for the user to enter the company name.
+   - Below the text input field, there should be a button that the user can click to start fetching and processing the data.
+   - Below the button, there should be a text box to display messages. The text box should be read-only.
+   - Below the text box, there should be a table to display the fetched data.
+   - Below the table, there should be a plot to display the stock prices.
+
+3. **Fetch and process the data:**
+   - Use a separate thread to fetch and process the data to avoid blocking the UI.
+   - Use web scraping techniques to extract the stock price data from the web pages Url = 'https://mocki.io/v1/a2491222-4058-40c5-8b1b-3f8f2e3df42a'
+   - Fetch the data from the URL using a library like requests.
+   - Convert the fetched data into a format that can be displayed in the table and the plot. A library like pandas can be used for this.
+   - The JSON response looks like this.
+   ```json
+    [
+    {
+        "company": "3M",
+        "description": "3M, based in Minnesota",
+        "initial_price": 44.28,
+        "price_2002": 56.27,
+        "price_2007": 95.85,
+        "symbol": "MMM"
+    },
+    {
+        "company": "Amazon.com",
+        "description": "Amazon.com, Inc. is an online retailer in North America",
+        "initial_price": 89.38,
+        "price_2002": 17.01,
+        "price_2007": 93.43,
+        "symbol": "AMZN"
+    },
+    ....
+    ....
+    ]
+    ```
+
+4. **Update the UI with the fetched data:**
+   - When the data is ready, update the table and the plot in the UI.
+   - If there's an error while fetching or processing the data, display an error message in the text box.
+
+5. **Handle user interaction:**
+   - When the user clicks the button, start the thread to fetch and process the data.
+   - When the user enters a company name in the text input field, use this name to fetch the data.
+
+6. **Test the application:**
+   - Test the application with different company names to make sure the data is fetched and displayed correctly.
+   - Test the application with invalid input to make sure errors are handled correctly.
+   - Test the application with slow or no internet connection to make sure it doesn't crash or hang.
