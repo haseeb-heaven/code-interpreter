@@ -56,19 +56,26 @@ class UtilityManager:
     
     def get_os_platform(self):
         try:
-            import platform
             os_info = platform.uname()
             os_name = os_info.system
+            os_version = os_info.release
 
-            os_name_mapping = {
-                'Darwin': 'MacOS',
-                'Linux': 'Linux',
-                'Windows': 'Windows'
-            }
+            if os_name == 'Linux':
+                # Attempt to get distribution info
+                try:
+                    import distro
+                    distro_info = distro.info()
+                    os_name = f"{os_name} ({distro_info['id']} {distro_info['version_parts']['major']})" # e.g., "Linux (ubuntu 22)"
+                except ImportError:
+                    self.logger.warning("distro package not found.  Linux distribution details will be less specific.")
+                    # Fallback if distro is not installed
+                    os_name = f"{os_name} ({os_version})"
+            elif os_name == 'Windows':
+                os_name = f"{os_name} {platform.version()}"
+            elif os_name == 'Darwin':  # macOS
+                os_name = f"{os_name} {platform.mac_ver()[0]}"
 
-            os_name = os_name_mapping.get(os_name, 'Other')
-
-            self.logger.info(f"Operating System: {os_name} Version: {os_info.version}")
+            self.logger.info(f"Operating System: {os_name}")
             return os_name, os_info.version
         except Exception as exception:
             self.logger.error(f"Error in getting OS platform: {str(exception)}")

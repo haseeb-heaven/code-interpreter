@@ -371,7 +371,8 @@ class Interpreter:
         return generated_text
 
     def get_code_prompt(self, task, os_name):
-        prompt = f"Generate the code in {self.INTERPRETER_LANGUAGE} language for this task '{task} for Operating System: {os_name}'."
+        prompt = f"Generate the code in {self.INTERPRETER_LANGUAGE} language for this task '{task} \
+        for Operating System: {os_name}'. Ensure the script is compatible with the specified OS and its version."
         return prompt
 
     def get_script_prompt(self, task, os_name):
@@ -379,7 +380,8 @@ class Interpreter:
         self.INTERPRETER_LANGUAGE = language_map.get(os_name.lower(), 'python')
         
         script_type = 'Apple script' if os_name.lower() == 'macos' else 'Bash Shell script' if os_name.lower() == 'linux' else 'Powershell script' if os_name.lower() == 'windows' else 'script'
-        prompt = f"\nGenerate {script_type} for this prompt and make this script easy to read and understand for this task '{task} for Operating System is {os_name}'."
+        prompt = f"\nGenerate {script_type} for this prompt and make this script easy to read and understand for this task \
+        '{task} for Operating System is {os_name}' Ensure the script is compatible with the specified OS and its version."
         return prompt
 
     def get_command_prompt(self, task, os_name):
