@@ -104,7 +104,7 @@ class Interpreter:
         self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
         if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
             self.logger.info("HF_MODEL is not provided, using default model.")
-            config_file_name = f"configs/gpt-3.5-turbo.config" # Setting default model to GPT 3.5 Turbo.
+            config_file_name = f"configs/gpt-4o.config" # Setting default model to GPT 4o.
         else:
             config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
         
@@ -246,9 +246,9 @@ class Interpreter:
         # Get the system prompt
         messages = self.get_prompt(message, chat_history)
         
-        # Check if the model is GPT 3.5/4
+        # Check if the model is GPT 3.5/4/4o
         if 'gpt' in self.INTERPRETER_MODEL:
-            self.logger.info("Model is GPT 3.5/4.")
+            self.logger.info("Model is GPT 3.5/4/4o")
             if api_base != 'None':
                 # Set the custom language model provider
                 custom_llm_provider = "openai"
@@ -618,7 +618,7 @@ class Interpreter:
                     print('Available models:\n')
                     for index, model in enumerate(configs_files, 1):
                         print(f'{index}. {model}')
-                    print('',end='\n')
+                    print('', end='\n')
 
                     # Print all the available modes.
                     print('Available modes:\n')

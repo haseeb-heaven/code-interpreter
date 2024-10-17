@@ -24,37 +24,37 @@ from libs.markdown_code import display_markdown_message
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "2.1.3"
+INTERPRETER_VERSION = "2.1.4"
 
 def main():
-        parser = argparse.ArgumentParser(description='Code - Interpreter')
-        parser.add_argument('--exec', '-e', action='store_true', default=False, help='Execute the code')
-        parser.add_argument('--save_code', '-s', action='store_true', default=False, help='Save the generated code')
-        parser.add_argument('--mode', '-md', choices=['code', 'script', 'command','vision','chat'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands) `vision` for generating text from images')
-        parser.add_argument('--model', '-m', type=str, default='code-llama', help='Set the model for code generation. (Defaults to gpt-3.5-turbo)')
-        parser.add_argument('--version', '-v', action='version', version='%(prog)s '+ INTERPRETER_VERSION)
-        parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
-        parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the code in output')
-        parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
-        parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
-        parser.add_argument('--file', '-f', type=str, nargs='?', const='prompt.txt', default=None, help='Sets the file to read the input prompt from')
-        args = parser.parse_args()
+	parser = argparse.ArgumentParser(description='Code - Interpreter')
+	parser.add_argument('--exec', '-e', action='store_true', default=False, help='Execute the code')
+	parser.add_argument('--save_code', '-s', action='store_true', default=False, help='Save the generated code')
+	parser.add_argument('--mode', '-md', choices=['code', 'script', 'command','vision','chat'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands) `vision` for generating text from images')
+	parser.add_argument('--model', '-m', type=str, default='code-llama', help='Set the model for code generation. (Defaults to gpt-3.5-turbo)')
+	parser.add_argument('--version', '-v', action='version', version='%(prog)s '+ INTERPRETER_VERSION)
+	parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
+	parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the code in output')
+	parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
+	parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
+	parser.add_argument('--file', '-f', type=str, nargs='?', const='prompt.txt', default=None, help='Sets the file to read the input prompt from')
+	args = parser.parse_args()
 
-        # Check if only the application name is passed
-        if len(sys.argv) <= 1:
-            parser.print_help()
-            return
-        
-        warnings.filterwarnings("ignore")  # To ignore all warnings
+	# Check if only the application name is passed
+	if len(sys.argv) <= 1:
+		parser.print_help()
+		return
+	
+	warnings.filterwarnings("ignore")  # To ignore all warnings
 
-        # Upgrade the interpreter if the --upgrade flag is passed.
-        if args.upgrade:
-            UtilityManager.upgrade_interpreter()
-            return
-        
-        # Create an instance of the Interpreter class and call the main method.
-        interpreter = Interpreter(args)
-        interpreter.interpreter_main(INTERPRETER_VERSION)
+	# Upgrade the interpreter if the --upgrade flag is passed.
+	if args.upgrade:
+		UtilityManager.upgrade_interpreter()
+		return
+	
+	# Create an instance of the Interpreter class and call the main method.
+	interpreter = Interpreter(args)
+	interpreter.interpreter_main(INTERPRETER_VERSION)
         
 if __name__ == "__main__":
     try:

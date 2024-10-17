@@ -260,7 +260,7 @@ To integrate your own API server for OpenAI instead of the default server, follo
 4. Save and close the file.
 Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will automatically use your custom server.
 
-## **Steps to add new Hugging Face model**
+## **Steps to add new models**
 
 ### **Manual Method**
 1. 📋 Copy the `.config` file and rename it to `configs/hf-model-new.config`.
@@ -321,6 +321,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 - **v2.1.1** - Added **Groq-AI** Model _Gemma-7B_ with **700 Tokens/Sec**.
 - **v2.1.2** - Added **Prompt Modes** now you can set prompt from file as well just place your prompt in `prompt.txt` file inside `system` directory.
 - **v2.1.3** - Updated **OS Type detection** now for Linux **Arch & Debian** and generate accurate commands for all OS types.
+- **v2.1.4** - Added **GPT-4o** models they are most effecient and cost effective models from **OpenAI**
 
 ## 📜 **License**
 
