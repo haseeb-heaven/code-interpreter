@@ -1,4 +1,3 @@
-import json
 import os
 import platform
 import re
@@ -11,8 +10,10 @@ from datetime import datetime
 
 from libs.markdown_code import display_code, display_markdown_message
 
+
 class UtilityManager:
     logger = None
+
     def __init__(self):
         try:
             if not os.path.exists('logs'):
@@ -24,7 +25,7 @@ class UtilityManager:
             raise
         self.logger = Logger.initialize_logger("logs/interpreter.log")
 
-    def _open_resource_file(self,filename):
+    def _open_resource_file(self,  filename):
         try:
             if os.path.isfile(filename):
                 if platform.system() == "Windows":
@@ -47,7 +48,7 @@ class UtilityManager:
             except Exception as e:
                 print(f"Error in removing {file}: {str(e)}")
     
-    def _extract_content(self,output):
+    def _extract_content(self, output):
         try:
             return output['choices'][0]['message']['content']
         except (KeyError, TypeError) as e:
@@ -112,7 +113,7 @@ class UtilityManager:
             self.logger.error(f"Error in initializing readline history: {str(exception)}")
             raise
 
-    def read_config_file(self, filename=".config"):
+    def read_config_file(self,  filename=".config"):
         try:
             config_data = {}
             with open(filename, "r") as config_file:
@@ -127,7 +128,7 @@ class UtilityManager:
             self.logger.error(f"Error in reading config file: {str(exception)}")
             raise
 
-    def extract_file_name(self, prompt):
+    def extract_file_name(self,  prompt):
         try:
             # This pattern looks for typical file paths, names, and URLs, then stops at the end of the extension
             pattern = r"((?:[a-zA-Z]:\\(?:[\w\-\.]+\\)*|/(?:[\w\-\.]+/)*|\b[\w\-\.]+\b|https?://[\w\-\.]+/[\w\-\.]+/)*[\w\-\.]+\.\w+)"
@@ -150,7 +151,7 @@ class UtilityManager:
             self.logger.error(f"Error in extracting file name: {str(exception)}")
             raise
 
-    def get_full_file_path(self, file_name):
+    def get_full_file_path(self,  file_name):
         if not file_name:
             return None
 
@@ -159,7 +160,7 @@ class UtilityManager:
             return os.path.join(os.getcwd(), file_name)
         return file_name
     
-    def read_csv_headers(self,file_path):
+    def read_csv_headers(self, file_path):
         try:
             with open(file_path, newline='') as csvfile:
                 reader = csv.reader(csvfile)
@@ -172,7 +173,7 @@ class UtilityManager:
             self.logger.error("CSV file is empty.")
             return []
 
-    def get_code_history(self, language='python'):
+    def get_code_history(self,  language='python'):
         try:
             self.logger.info("Starting to read last code history.")
             output_folder = "output"
@@ -195,7 +196,7 @@ class UtilityManager:
             if latest_file:
                 with open(latest_file, "r") as code_file:
                     code = code_file.read()
-                    return latest_file,code
+                    return latest_file, code
 
         except Exception as exception:
             self.logger.error(f"Error in reading last code history: {str(exception)}")
@@ -210,6 +211,7 @@ class UtilityManager:
                 /execute - Execute the last code generated.\n\
                 /install - Install a package from npm or pip.\n\
                 /save - Save the last code generated.\n\
+                /edit - Edit the last code generated.\n\
                 /debug - Debug the last code generated.\n\
                 /mode - Change the mode of interpreter.\n\
                 /model - Change the model for interpreter.\n\
@@ -219,18 +221,18 @@ class UtilityManager:
                 /help - Display this help message.\n\
                 /list - List the available models.\n\
                 /version - Display the version of the interpreter.\n\
-                /log - Switch between Verbose and Silent mode.\n\
+                /log - Switch between verbose and silent mode.\n\
                 /prompt - Switch input prompt mode between file and prompt.\n\
                 /upgrade - Upgrade the interpreter.\n\
                 /shell - Access the shell.\n")
     
-    def display_version(self,version):
+    def display_version(self,  version):
         display_markdown_message(f"Interpreter - v{version}")
 
     def clear_screen(self):
         os.system('cls' if os.name == 'nt' else 'clear')
     
-    def create_file(self, file_path):
+    def create_file(self,  file_path):
         try:
             with open(file_path, "w") as file:
                 file.write("")
@@ -238,7 +240,7 @@ class UtilityManager:
             self.logger.error(f"Error in creating file: {str(exception)}")
             raise
         
-    def read_file(self, file_path):
+    def read_file(self,  file_path):
         try:
             with open(file_path, "r") as file:
                 return file.read()
@@ -246,7 +248,7 @@ class UtilityManager:
             self.logger.error(f"Error in reading file: {str(exception)}")
             raise
     
-    def write_file(self, file_path, content):
+    def write_file(self,  file_path, content):
         try:
             with open(file_path, "w") as file:
                 file.write(content)
@@ -257,7 +259,7 @@ class UtilityManager:
     # method to download file from Web and save it
     
     @staticmethod
-    def _download_file(url,file_name):
+    def _download_file(url, file_name):
         try:
             logger = Logger.initialize_logger("logs/interpreter.log")
             import requests
@@ -267,7 +269,7 @@ class UtilityManager:
             
             with open(file_name, 'wb') as file:
                 file.write(response.content)
-                logger.info(f"Reuquirements.txt file downloaded.")
+                logger.info("Reuquirements.txt file downloaded.")
             return True
         except Exception as exception:
             logger.error(f"Error in downloading file: {str(exception)}")
@@ -278,18 +280,18 @@ class UtilityManager:
         code_interpreter = CodeInterpreter()
         logger = Logger.initialize_logger("logs/interpreter.log")
         # Download the requirements file
-        requirements_file_url = 'https://raw.githubusercontent.com/haseeb-heaven/code-interpreter/main/requirements.txt'
-        requirements_file_downloaded = UtilityManager._download_file(requirements_file_url,'requirements.txt')
+        file_url = 'https://raw.githubusercontent.com/haseeb-heaven/code-interpreter/main/requirements.txt'
+        requirements_file_downloaded = UtilityManager._download_file(file_url, 'requirements.txt')
         
         # Commands to execute.
         command_pip_upgrade = 'pip install open-code-interpreter --upgrade'
         command_pip_requirements = 'pip install -r requirements.txt --upgrade'
         
         # Execute the commands.
-        command_output,_  = code_interpreter.execute_command(command_pip_upgrade)
+        command_output, _ = code_interpreter.execute_command(command_pip_upgrade)
         display_markdown_message(f"Command Upgrade executed successfully.")
         if requirements_file_downloaded:
-            command_output,_  = code_interpreter.execute_command(command_pip_requirements)
+            command_output, _ = code_interpreter.execute_command(command_pip_requirements)
             display_markdown_message(f"Command Requirements executed successfully.")
         else:
             logger.warn(f"Requirements file not downloaded.")
