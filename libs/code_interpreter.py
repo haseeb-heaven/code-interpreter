@@ -22,7 +22,6 @@ class CodeInterpreter:
     def _execute_script(self, script: str, shell: str):
         stdout = stderr = None
         try:
-            self.logger.info(f"Running {shell} script")
             if shell == "bash":
                 process = subprocess.Popen(['bash', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             elif shell == "powershell":
@@ -127,16 +126,6 @@ class CodeInterpreter:
             raise Exception(f"Error occurred while extracting code: {exception}")
           
     def execute_code(self, code, language):
-        """
-        This method is used to execute the provided code in the specified language.
-
-        Parameters:
-        code (str): The code to be executed.
-        language (str): The programming language in which the code is written.
-
-        Returns:
-        str: The output of the executed code.
-        """
         try:
             language = language.lower()
             self.logger.info(f"Running code: {code[:100]} in language: {language}")
@@ -181,17 +170,17 @@ class CodeInterpreter:
                 raise ValueError("Script must be provided.")
             if not os_type:
                 raise ValueError("OS type must be provided.")
-            
+
             self.logger.info(f"Attempting to execute script: {script[:50]}")
-            if os_type.lower() == 'macos':
+            if any(os in os_type.lower() for os in ['darwin', 'macos']):
                 output, error = self._execute_script(script, shell='applescript')
-            elif os_type.lower() == 'linux':
+            elif 'linux' in os_type.lower():
                 output, error = self._execute_script(script, shell='bash')
-            elif os_type.lower() == 'windows':
+            elif 'windows' in os_type.lower():
                 output, error = self._execute_script(script, shell='powershell')
             else:
-                raise ValueError("Invalid OS type. Please provide 'macos', 'linux', or 'windows'.")
-            
+                raise ValueError(f"Invalid OS type '{os_type}'. Please provide 'macos', 'linux', or 'windows'.")
+
             if output:
                 self.logger.info(f"Script executed successfully with output: {output[:50]}...")
             if error:
@@ -206,18 +195,18 @@ class CodeInterpreter:
         try:
             if not command:
                 raise ValueError("Command must be provided.")
-            
+  
             self.logger.info(f"Attempting to execute command: {command}")
             process = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            
+
             stdout_output = process.stdout.decode("utf-8")
             stderr_output = process.stderr.decode("utf-8")
-            
+  
             if stdout_output:
                 self.logger.info(f"Command executed successfully with output: {stdout_output}")
             if stderr_output:
                 self.logger.error(f"Command executed with error: {stderr_output}")
-            
+  
             return stdout_output, stderr_output
         except Exception as exception:
             self.logger.error(f"Error in executing command: {str(exception)}")

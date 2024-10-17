@@ -369,25 +369,58 @@ class Interpreter:
         generated_text = self.utility_manager._extract_content(response)
         self.logger.info(f"Generated content {generated_text}")
         return generated_text
-
+    
     def get_code_prompt(self, task, os_name):
-        prompt = f"Generate the code in {self.INTERPRETER_LANGUAGE} language for this task '{task} \
-        for Operating System: {os_name}'. Ensure the script is compatible with the specified OS and its version."
+        
+        if self.INTERPRETER_LANGUAGE not in ['python', 'javascript']:
+            self.INTERPRETER_LANGUAGE = 'python'
+        
+        prompt = (
+            f"Generate the {self.INTERPRETER_LANGUAGE} code for the following task: '{task}'.\n"
+            f"Ensure the code is well-structured, easy to read, and follows best practices for {self.INTERPRETER_LANGUAGE}.\n"
+            f"The code should be compatible with the operating system: {os_name}, considering any platform-specific features or limitations.\n"
+            "Handle potential errors gracefully, and ensure the solution is efficient and concise.\n"
+            "If there are multiple possible solutions, choose the most optimized one."
+        )
         return prompt
 
     def get_script_prompt(self, task, os_name):
-        language_map = {'macos': 'applescript', 'linux': 'bash', 'windows': 'powershell'}
-        self.INTERPRETER_LANGUAGE = language_map.get(os_name.lower(), 'python')
-        
-        script_type = 'Apple script' if os_name.lower() == 'macos' else 'Bash Shell script' if os_name.lower() == 'linux' else 'Powershell script' if os_name.lower() == 'windows' else 'script'
-        prompt = f"\nGenerate {script_type} for this prompt and make this script easy to read and understand for this task \
-        '{task} for Operating System is {os_name}' Ensure the script is compatible with the specified OS and its version."
+        os_name_lower = os_name.lower()
+
+        # Combined dictionary for both language mapping and script type
+        language_map = {
+            'darwin': ('applescript', 'AppleScript'),
+            'linux': ('bash', 'Bash Shell script'),
+            'windows': ('powershell', 'Powershell script')
+        }
+
+        # Find matching language and script type or default to Python
+        self.INTERPRETER_LANGUAGE, script_type = next(
+            (lang, stype) for key, (lang, stype) in language_map.items() if key in os_name_lower
+        ) if any(key in os_name_lower for key in language_map) else ('python', 'script')
+
+        prompt = (
+            f"Generate only the {script_type} for this task:\n"
+            f"Task: '{task}'\n"
+            f"Operating System: {os_name}\n"
+            "NOTE: Ensure the script is compatible with the specified OS and version.\n"
+            "Output should only contain the script, with no additional text."
+        )
+
+        self.logger.info(f"Script Prompt: {prompt}")
         return prompt
 
     def get_command_prompt(self, task, os_name):
-        prompt = f"Generate the single terminal command for this task '{task} for Operating System is {os_name}'."
+        prompt = (
+            f"Generate only the single terminal command for this task:\n"
+            f"Task: '{task}'\n"
+            f"Operating System: {os_name}\n"
+            "NOTE: Ensure the command is compatible with the specified OS and version.\n"
+            "Output should only contain the command, with no additional text."
+        )
+        self.logger.info(f"Command Prompt: {prompt}")
         return prompt
-    
+
     def handle_vision_mode(self, task):
         prompt = f"Give accurate and detailed information about the image provided and be very detailed about the image '{task}'."
         return prompt
@@ -756,7 +789,7 @@ class Interpreter:
                         language = split_task[1]
                         if language:
                             self.INTERPRETER_LANGUAGE = language
-                            if not language in ['python','javascript']:
+                            if language not in ['python', 'javascript']:
                                 self.INTERPRETER_LANGUAGE = 'python'
                                 display_markdown_message(f"The input language is not supported. Language changed to {self.INTERPRETER_LANGUAGE}")
                             display_markdown_message(f"Language changed to '{self.INTERPRETER_LANGUAGE}'")
