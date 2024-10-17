@@ -197,15 +197,14 @@ class Interpreter:
                         ]
                     }
                 ]
-        
+
         # Use the Assistants API.
         else:
             messages = [
-                {"role": "system", "content":system_message},
+                {"role": "system", "content": system_message},
                 {"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
                 {"role": "user", "content": message}
             ]
-        
         
         return messages
     
@@ -424,7 +423,7 @@ class Interpreter:
     def handle_vision_mode(self, task):
         prompt = f"Give accurate and detailed information about the image provided and be very detailed about the image '{task}'."
         return prompt
-    
+
     def handle_chat_mode(self, task):
         prompt = f"Give accurate and detailed response to the question provided and be very detailed about the question '{task}'."
         return prompt
