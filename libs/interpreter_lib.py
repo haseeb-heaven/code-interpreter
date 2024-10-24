@@ -117,17 +117,18 @@ class Interpreter:
         if 'local' in self.INTERPRETER_MODEL:
             self.logger.info(f"Skipping client initialization for local model.")
             # Add OpenAI API key if not present in the environment variables. (https://github.com/haseeb-heaven/code-interpreter/issues/13)
-            api_key = os.environ['OPEN_AI_API_KEY']
+            # Fixed OpenAI API Key name (https://github.com/haseeb-heaven/code-interpreter/issues/20)
+            api_key = os.environ['OPENAI_API_KEY']
             
             if api_key:
                 self.logger.info(f"Using local API key from environment variables.")
                 
             if api_key is None:
                 load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                api_key = os.getenv('OPEN_AI_API_KEY')
+                api_key = os.getenv('OPENAI_API_KEY')
                 if api_key is None:
                     self.logger.info(f"Setting default local API key for local models.")
-                    os.environ['OPEN_AI_API_KEY'] = "sk-1234567890" # Setting default API key for local models.
+                    os.environ['OPENAI_API_KEY'] = "sk-1234567890" # Setting default API key for local models.
             return
         
         self.logger.info(f"Using model {hf_model_name}")
