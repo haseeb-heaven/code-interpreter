@@ -26,985 +26,986 @@ from dotenv import load_dotenv
 import shlex
 
 class Interpreter:
-    logger = None
-    client = None
-    interpreter_version = None
-    
-    def __init__(self, args):
-        self.args = args
-        self.history = []
-        self.history_count = 3
-        self.history_file = "history/history.json"
-        self.utility_manager = UtilityManager()
-        self.code_interpreter = CodeInterpreter()
-        self.package_manager = PackageManager()
-        self.history_manager = History(self.history_file)
-        self.logger = Logger.initialize_logger("logs/interpreter.log")
-        self.client = None
-        self.config_values = None
-        self.system_message = ""
-        self.gemini_vision = None
-        self.initialize()
-    
-    def initialize(self):
-        self.INTERPRETER_LANGUAGE = self.args.lang if self.args.lang else 'python'
-        self.SAVE_CODE = self.args.save_code
-        self.EXECUTE_CODE = self.args.exec
-        self.DISPLAY_CODE = self.args.display_code
-        self.INTERPRETER_MODEL = self.args.model if self.args.model else None
-        self.logger.info(f"Interpreter args model selected is '{self.args.model}")
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
-        self.system_message = ""
-        self.INTERPRETER_MODE = 'code'
-        
-        if self.args.file is None:
-            self.INTERPRETER_PROMPT_FILE = False
-            self.INTERPRETER_PROMPT_INPUT = True
-        else:
-            self.INTERPRETER_PROMPT_FILE = True
-            self.INTERPRETER_PROMPT_INPUT = False
-            # If the user didn't provide a file name, use the default one
-            if self.args.file == '':
-                self.args.file = 'prompt.txt'
-                
-        # Set the history optional(Argparse)
-        if hasattr(self.args, 'history'):
-            self.INTERPRETER_HISTORY = self.args.history
-        else:
-            self.INTERPRETER_HISTORY = False
+	logger = None
+	client = None
+	interpreter_version = None
+	
+	def __init__(self, args):
+		self.args = args
+		self.history = []
+		self.history_count = 3
+		self.history_file = "history/history.json"
+		self.utility_manager = UtilityManager()
+		self.code_interpreter = CodeInterpreter()
+		self.package_manager = PackageManager()
+		self.history_manager = History(self.history_file)
+		self.logger = Logger.initialize_logger("logs/interpreter.log")
+		self.client = None
+		self.config_values = None
+		self.system_message = ""
+		self.gemini_vision = None
+		self.initialize()
+	
+	def initialize(self):
+		self.INTERPRETER_LANGUAGE = self.args.lang if self.args.lang else 'python'
+		self.SAVE_CODE = self.args.save_code
+		self.EXECUTE_CODE = self.args.exec
+		self.DISPLAY_CODE = self.args.display_code
+		self.INTERPRETER_MODEL = self.args.model if self.args.model else None
+		self.logger.info(f"Interpreter args model selected is '{self.args.model}")
+		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
+		self.system_message = ""
+		self.INTERPRETER_MODE = 'code'
+		
+		if self.args.file is None:
+			self.INTERPRETER_PROMPT_FILE = False
+			self.INTERPRETER_PROMPT_INPUT = True
+		else:
+			self.INTERPRETER_PROMPT_FILE = True
+			self.INTERPRETER_PROMPT_INPUT = False
+			# If the user didn't provide a file name, use the default one
+			if self.args.file == '':
+				self.args.file = 'prompt.txt'
+				
+		# Set the history optional(Argparse)
+		if hasattr(self.args, 'history'):
+			self.INTERPRETER_HISTORY = self.args.history
+		else:
+			self.INTERPRETER_HISTORY = False
 
-        if self.INTERPRETER_MODE == 'vision':
-            self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
-        elif self.INTERPRETER_MODE == 'chat':
-            self.system_message = "You are top tier chatbot. Please generate a well-written response that is precise, easy to understand"
-        else:
-            # Open file system_message.txt to a variable system_message
-            try:
-                with open('system/system_message.txt', 'r') as file:
-                    self.system_message = file.read()
-                    if self.system_message != "":
-                        self.logger.info(f"System message read successfully")
-            except Exception as exception:
-                self.logger.error(f"Error occurred while reading system_message.txt: {str(exception)}")
-                raise
-        
-        # Initialize client and mode.
-        self.initialize_client()
-        self.initialize_mode()
-        
-        try: # Make this as optional step to have readline history.
-            self.utility_manager.initialize_readline_history()
-        except:
-            self.logger.error(f"Exception on initializing readline history")
+		if self.INTERPRETER_MODE == 'vision':
+			self.system_message = "You are top tier image captioner and image analyzer. Please generate a well-written description of the image that is precise, easy to understand"
+		elif self.INTERPRETER_MODE == 'chat':
+			self.system_message = "You are top tier chatbot. Please generate a well-written response that is precise, easy to understand"
+		else:
+			# Open file system_message.txt to a variable system_message
+			try:
+				with open('system/system_message.txt', 'r') as file:
+					self.system_message = file.read()
+					if self.system_message != "":
+						self.logger.info(f"System message read successfully")
+			except Exception as exception:
+				self.logger.error(f"Error occurred while reading system_message.txt: {str(exception)}")
+				raise
+		
+		# Initialize client and mode.
+		self.initialize_client()
+		self.initialize_mode()
+		
+		try: # Make this as optional step to have readline history.
+			self.utility_manager.initialize_readline_history()
+		except:
+			self.logger.error(f"Exception on initializing readline history")
 
-    def initialize_client(self):
-        load_dotenv()
-        self.logger.info("Initializing Client")
-        
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
-        if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
-            self.logger.info("HF_MODEL is not provided, using default model.")
-            config_file_name = f"configs/gpt-4o.config" # Setting default model to GPT 4o.
-        else:
-            config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
-        
-        self.logger.info(f"Reading config file {config_file_name}")    
-        self.config_values = self.utility_manager.read_config_file(config_file_name)
-        self.INTERPRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRETER_MODEL))       
-        hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
-        
-        # skip init client for local models.(Bug#10 https://github.com/haseeb-heaven/code-interpreter/issues/10)
-        if 'local' in self.INTERPRETER_MODEL:
-            self.logger.info(f"Skipping client initialization for local model.")
-            # Add OpenAI API key if not present in the environment variables. (https://github.com/haseeb-heaven/code-interpreter/issues/13)
-            # Fixed OpenAI API Key name (https://github.com/haseeb-heaven/code-interpreter/issues/20)
-            api_key = os.environ['OPENAI_API_KEY']
-            
-            if api_key:
-                self.logger.info(f"Using local API key from environment variables.")
-                
-            if api_key is None:
-                load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                api_key = os.getenv('OPENAI_API_KEY')
-                if api_key is None:
-                    self.logger.info(f"Setting default local API key for local models.")
-                    os.environ['OPENAI_API_KEY'] = "sk-1234567890" # Setting default API key for local models.
-            return
-        
-        self.logger.info(f"Using model {hf_model_name}")
+	def initialize_client(self):
+		load_dotenv()
+		self.logger.info("Initializing Client")
+		
+		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
+		if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
+			self.logger.info("HF_MODEL is not provided, using default model.")
+			config_file_name = f"configs/gpt-4o.config" # Setting default model to GPT 4o.
+		else:
+			config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
+		
+		self.logger.info(f"Reading config file {config_file_name}")    
+		self.config_values = self.utility_manager.read_config_file(config_file_name)
+		self.INTERPRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRETER_MODEL))       
+		hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
+		
+		# skip init client for local models.(Bug#10 https://github.com/haseeb-heaven/code-interpreter/issues/10)
+		if 'local' in self.INTERPRETER_MODEL:
+			self.logger.info("Skipping client initialization for local model.")
+			# Add OpenAI API key if not present in the environment variables. (https://github.com/haseeb-heaven/code-interpreter/issues/13)
+			# Fixed OpenAI API Key name (https://github.com/haseeb-heaven/code-interpreter/issues/20)
+			api_key = os.environ['OPENAI_API_KEY']
+			
+			if api_key:
+				self.logger.info("Using local API key from environment variables.")
+				
+			if api_key is None:
+				load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+				api_key = os.getenv('OPENAI_API_KEY')
+				if api_key is None:
+					self.logger.info("Setting default local API key for local models.")
+					os.environ['OPENAI_API_KEY'] = "sk-1234567890" # Setting default API key for local models.
+			return
+		
+		self.logger.info(f"Using model {hf_model_name}")
 
-        model_api_keys = {
-            "gpt": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
-            "groq": {"key_name": "GROQ_API_KEY", "prefix": "gsk"},
-            "claude": {"key_name": "ANTHROPIC_API_KEY", "prefix": "sk-ant-"},
-            "palm": {"key_name": "PALM_API_KEY", "prefix": None, "length": 15},
-            "gemini": {"key_name": "GEMINI_API_KEY", "prefix": None, "length": 15},
-            "default": {"key_name": "HUGGINGFACE_API_KEY", "prefix": "hf_"}
-        }
+		model_api_keys = {
+			"gpt": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
+			"groq": {"key_name": "GROQ_API_KEY", "prefix": "gsk"},
+			"claude": {"key_name": "ANTHROPIC_API_KEY", "prefix": "sk-ant-"},
+			"palm": {"key_name": "PALM_API_KEY", "prefix": None, "length": 15},
+			"gemini": {"key_name": "GEMINI_API_KEY", "prefix": None, "length": 15},
+			"default": {"key_name": "HUGGINGFACE_API_KEY", "prefix": "hf_"}
+		}
 
-        for model, api_key_info in model_api_keys.items():
-            if model in self.INTERPRETER_MODEL or model == "default":
-                api_key_name = api_key_info["key_name"]
-                api_key = os.getenv(api_key_name)
-                if api_key is None:
-                    load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
-                    api_key = os.getenv(api_key_name)
-                if not api_key:
-                    raise Exception(f"{api_key_name} not found in .env file.")
-                if api_key_info["prefix"] and not api_key.startswith(api_key_info["prefix"]):
-                    raise Exception(f"{api_key_name} should start with '{api_key_info['prefix']}'. Please check your .env file.")
-                if api_key_info.get("length") and len(api_key) <= api_key_info["length"]:
-                    raise Exception(f"{api_key_name} should have length greater than {api_key_info['length']}. Please check your .env file.")
-                break
-        
-    def initialize_mode(self):
-        self.CODE_MODE = True if self.args.mode == 'code' else False
-        self.SCRIPT_MODE = True if self.args.mode == 'script' else False
-        self.COMMAND_MODE = True if self.args.mode == 'command' else False
-        self.VISION_MODE = True if self.args.mode == 'vision' else False
-        self.CHAT_MODE = True if self.args.mode == 'chat' else False
-        if not self.SCRIPT_MODE and not self.COMMAND_MODE and not self.VISION_MODE and not self.CHAT_MODE:
-            self.CODE_MODE = True
-    
-    def get_prompt(self,message: str, chat_history: List[dict]) -> str:
-        system_message = None
-        
-        if self.CODE_MODE:
-            system_message = self.system_message
-        elif self.SCRIPT_MODE:
-            system_message = "Please generate a well-written script that is precise, easy to understand, and compatible with the current operating system."
-        elif self.COMMAND_MODE:
-            system_message = "Please generate a single line command that is precise, easy to understand, and compatible with the current operating system."
-        elif self.VISION_MODE:
-            system_message = "Please generate a well-written description of the image that is precise, easy to understand"
-            return system_message
-        elif self.CHAT_MODE:
-            system_message = "Please generate a well-written response that is precise, easy to understand"
-            
-            # Add the chat history to the prompt
-            if chat_history or len(chat_history) > 0:
-                system_message += "\n\n" + "\n\n" + "This is user chat history for this task and make sure to use this as reference to generate the answer if user asks for 'History' or 'Chat History'.\n\n" + "\n\n" + str(chat_history) + "\n\n"
-        
-        # Use the Messages API from Anthropic.
-        if 'claude-3' in self.INTERPRETER_MODEL:
-            messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": message
-                            }
-                        ]
-                    }
-                ]
+		for model, api_key_info in model_api_keys.items():
+			if model in self.INTERPRETER_MODEL or model == "default":
+				api_key_name = api_key_info["key_name"]
+				api_key = os.getenv(api_key_name)
+				if api_key is None:
+					load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+					api_key = os.getenv(api_key_name)
+				if not api_key:
+					raise Exception(f"{api_key_name} not found in .env file.")
+				if api_key_info["prefix"] and not api_key.startswith(api_key_info["prefix"]):
+					raise Exception(f"{api_key_name} should start with '{api_key_info['prefix']}'. Please check your .env file.")
+				if api_key_info.get("length") and len(api_key) <= api_key_info["length"]:
+					raise Exception(f"{api_key_name} should have length greater than {api_key_info['length']}. Please check your .env file.")
+				break
+		
+	def initialize_mode(self):
+		self.CODE_MODE = True if self.args.mode == 'code' else False
+		self.SCRIPT_MODE = True if self.args.mode == 'script' else False
+		self.COMMAND_MODE = True if self.args.mode == 'command' else False
+		self.VISION_MODE = True if self.args.mode == 'vision' else False
+		self.CHAT_MODE = True if self.args.mode == 'chat' else False
+		if not self.SCRIPT_MODE and not self.COMMAND_MODE and not self.VISION_MODE and not self.CHAT_MODE:
+			self.CODE_MODE = True
+	
+	def get_prompt(self,message: str, chat_history: List[dict]) -> str:
+		system_message = None
+		
+		if self.CODE_MODE:
+			system_message = self.system_message
+		elif self.SCRIPT_MODE:
+			system_message = "Please generate a well-written script that is precise, easy to understand, and compatible with the current operating system."
+		elif self.COMMAND_MODE:
+			system_message = "Please generate a single line command that is precise, easy to understand, and compatible with the current operating system."
+		elif self.VISION_MODE:
+			system_message = "Please generate a well-written description of the image that is precise, easy to understand"
+			return system_message
+		elif self.CHAT_MODE:
+			system_message = "Please generate a well-written response that is precise, easy to understand"
+			
+			# Add the chat history to the prompt
+			if chat_history or len(chat_history) > 0:
+				system_message += "\n\n" + "\n\n" + "This is user chat history for this task and make sure to use this as reference to generate the answer if user asks for 'History' or 'Chat History'.\n\n" + "\n\n" + str(chat_history) + "\n\n"
+		
+		# Use the Messages API from Anthropic.
+		if 'claude-3' in self.INTERPRETER_MODEL:
+			messages=[
+					{
+						"role": "user",
+						"content": [
+							{
+								"type": "text",
+								"text": message
+							}
+						]
+					}
+				]
 
-        # Use the Assistants API.
-        else:
-            messages = [
-                {"role": "system", "content": system_message},
-                {"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
-                {"role": "user", "content": message}
-            ]
-        
-        return messages
-    
-    def execute_last_code(self,os_name):
-        try:
-            code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
-           
-            # check if the code is empty
-            if code_snippet is None:
-                self.logger.error("Code history is empty.")
-                print("Code history is empty. - Please use -s or --save_code to save the code.")
-                return
-            
-            display_code(code_snippet)
-            # Execute the code if the user has selected.
-            code_output, code_error = self.execute_code(code_snippet, os_name)
-            if code_output:
-                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
-                display_code(code_output)
-                self.logger.info(f"Output: {code_output[:100]}")
-            elif code_error:
-                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
-                display_markdown_message(f"Error: {code_error}")
-        except Exception as exception:
-            self.logger.error(f"Error in processing command run code: {str(exception)}")
-            raise
+		# Use the Assistants API.
+		else:
+			messages = [
+				{"role": "system", "content": system_message},
+				{"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
+				{"role": "user", "content": message}
+			]
+		
+		return messages
+	
+	def execute_last_code(self,os_name):
+		try:
+			code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
+		   
+			# check if the code is empty
+			if code_snippet is None:
+				self.logger.error("Code history is empty.")
+				print("Code history is empty. - Please use -s or --save_code to save the code.")
+				return
+			
+			display_code(code_snippet)
+			# Execute the code if the user has selected.
+			code_output, code_error = self.execute_code(code_snippet, os_name)
+			if code_output:
+				self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+				display_code(code_output)
+				self.logger.info(f"Output: {code_output[:100]}")
+			elif code_error:
+				self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+				display_markdown_message(f"Error: {code_error}")
+		except Exception as exception:
+			self.logger.error(f"Error in processing command run code: {str(exception)}")
+			raise
 
-    def generate_content(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
-        self.logger.info(f"Generating content with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
-        self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
-        
-        # Use the values from the config file if they are provided
-        if config_values:
-            temperature = float(config_values.get('temperature', temperature))
-            max_tokens = int(config_values.get('max_tokens', max_tokens))
-            api_base = str(config_values.get('api_base', None)) # Only for OpenAI.
+	def generate_content(self,message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
+		self.logger.info(f"Generating content with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
+		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
+		
+		# Use the values from the config file if they are provided
+		if config_values:
+			temperature = float(config_values.get('temperature', temperature))
+			max_tokens = int(config_values.get('max_tokens', max_tokens))
+			api_base = str(config_values.get('api_base', None)) # Only for OpenAI.
 
-        # Get the system prompt
-        messages = self.get_prompt(message, chat_history)
-        
-        # Check if the model is GPT 3.5/4/4o
-        if 'gpt' in self.INTERPRETER_MODEL:
-            self.logger.info("Model is GPT 3.5/4/4o")
-            if api_base != 'None':
-                # Set the custom language model provider
-                custom_llm_provider = "openai"
-                self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
-                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
-            else:
-                self.logger.info(f"Default API mode selected for OpenAI.")
-                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
-            self.logger.info("Response received from completion function.")
-                
-        # Check if the model is PALM-2
-        elif 'palm' in self.INTERPRETER_MODEL:
-            self.logger.info("Model is PALM-2.")
-            self.INTERPRETER_MODEL = "palm/chat-bison"
-            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-            self.logger.info("Response received from completion function.")
-        
-        # Check if the model is Gemini Pro
-        elif 'gemini' in self.INTERPRETER_MODEL:
+		# Get the system prompt
+		messages = self.get_prompt(message, chat_history)
+		
+		# Check if the model is GPT 3.5/4/4o
+		if 'gpt' in self.INTERPRETER_MODEL:
+			self.logger.info("Model is GPT 3.5/4/4o")
+			if api_base != 'None':
+				# Set the custom language model provider
+				custom_llm_provider = "openai"
+				self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
+				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+			else:
+				self.logger.info(f"Default API mode selected for OpenAI.")
+				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
+			self.logger.info("Response received from completion function.")
+				
+		# Check if the model is PALM-2
+		elif 'palm' in self.INTERPRETER_MODEL:
+			self.logger.info("Model is PALM-2.")
+			self.INTERPRETER_MODEL = "palm/chat-bison"
+			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+			self.logger.info("Response received from completion function.")
+		
+		# Check if the model is Gemini Pro
+		elif 'gemini' in self.INTERPRETER_MODEL:
 
-            if self.INTERPRETER_MODE == 'vision':
-                # Import Gemini Vision only if the model is Gemini Pro Vision.
-                try:
-                    from libs.gemini_vision import GeminiVision
-                    self.gemini_vision = GeminiVision()
-                except Exception as exception:
-                    self.logger.error(f"Error importing Gemini Vision: {exception}")
-                    raise
+			if self.INTERPRETER_MODE == 'vision':
+				# Import Gemini Vision only if the model is Gemini Pro Vision.
+				try:
+					from libs.gemini_vision import GeminiVision
+					self.gemini_vision = GeminiVision()
+				except Exception as exception:
+					self.logger.error(f"Error importing Gemini Vision: {exception}")
+					raise
 
-                self.logger.info("Model is Gemini Pro Vision.")
-                response = None
+				self.logger.info("Model is Gemini Pro Vision.")
+				response = None
 
-                # Check if image_file is valid.
-                if not image_file:
-                    self.logger.error("Image file is not valid or Corrupted.")
-                    raise ValueError("Image file is not valid or Corrupted.")
-                
-                # Check if image contains URL.
-                if 'http' in image_file or 'https' in image_file or 'www.' in image_file:
-                    self.logger.info("Image contains URL.")
-                    response = self.gemini_vision.gemini_vision_url(prompt=messages,image_url=image_file)
-                else:
-                    self.logger.info("Image contains file.")
-                    response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=image_file)
-                
-                self.logger.info("Response received from completion function.")
-                return response # Return the response from Gemini Vision because its not coding model.
-            else:
-                self.logger.info("Model is Gemini Pro.")
-                self.INTERPRETER_MODEL = "gemini/gemini-pro"
-                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
-                self.logger.info("Response received from completion function.")
-        
-        # Check if the model is Groq-AI
-        elif 'groq' in self.INTERPRETER_MODEL:
-            
-            if 'groq-llama2' in self.INTERPRETER_MODEL:
-                self.logger.info("Model is Groq/Llama2.")
-                self.INTERPRETER_MODEL = "groq/llama2-70b-4096"
-            elif 'groq-mixtral' in self.INTERPRETER_MODEL:
-                self.logger.info("Model is Groq/Mixtral.")
-                self.INTERPRETER_MODEL = "groq/mixtral-8x7b-32768"
-            elif 'groq-gemma' in self.INTERPRETER_MODEL:
-                self.logger.info("Model is Groq/Gemma.")
-                self.INTERPRETER_MODEL = "groq/gemma-7b-it"
-                
-            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-            self.logger.info("Response received from completion function.")
-        
-        # Check if the model is AnthropicAI
-        elif 'claude' in self.INTERPRETER_MODEL:
-            
-            if 'claude-2' in self.INTERPRETER_MODEL:
-                self.logger.info("Model is Claude-2.")
-                self.INTERPRETER_MODEL = "claude-2"
-            elif 'claude-2.1' in self.INTERPRETER_MODEL:
-                self.logger.info("Model is claude-2.1.")
-                self.INTERPRETER_MODEL = "claude-2.1"
-            
-            # Support for Claude-3 Models
-            elif 'claude-3' in self.INTERPRETER_MODEL:
-                
-                if 'claude-3-sonnet' in self.INTERPRETER_MODEL:
-                    self.logger.info("Model is claude-3-sonnet.")
-                    self.INTERPRETER_MODEL = "claude-3-sonnet-20240229"
-                    
-                elif 'claude-3-opus' in self.INTERPRETER_MODEL:
-                    self.logger.info("Model is claude-3-opus.")
-                    self.INTERPRETER_MODEL = "claude-3-opus-20240229"
-                
-            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-            self.logger.info("Response received from completion function.")
-        
-        # Check if the model is Local Model
-        elif 'local' in self.INTERPRETER_MODEL:
-            self.logger.info("Model is Local model")
-            if api_base != 'None':
-                # Set the custom language model provider
-                custom_llm_provider = "openai"
-                self.logger.info(f"Custom API mode selected for Local Model, api_base={api_base}")
-                response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
-            else:
-                raise Exception("Exception api base not set for custom model")
-            self.logger.info("Response received from completion function.")
+				# Check if image_file is valid.
+				if not image_file:
+					self.logger.error("Image file is not valid or Corrupted.")
+					raise ValueError("Image file is not valid or Corrupted.")
+				
+				# Check if image contains URL.
+				if 'http' in image_file or 'https' in image_file or 'www.' in image_file:
+					self.logger.info("Image contains URL.")
+					response = self.gemini_vision.gemini_vision_url(prompt=messages,image_url=image_file)
+				else:
+					self.logger.info("Image contains file.")
+					response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=image_file)
+				
+				self.logger.info("Response received from completion function.")
+				return response # Return the response from Gemini Vision because its not coding model.
+			else:
+				self.logger.info("Model is Gemini Pro.")
+				self.INTERPRETER_MODEL = "gemini/gemini-pro"
+				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
+				self.logger.info("Response received from completion function.")
+		
+		# Check if the model is Groq-AI
+		elif 'groq' in self.INTERPRETER_MODEL:
+			
+			if 'groq-llama2' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is Groq/Llama2.")
+				self.INTERPRETER_MODEL = "groq/llama2-70b-4096"
+			elif 'groq-mixtral' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is Groq/Mixtral.")
+				self.INTERPRETER_MODEL = "groq/mixtral-8x7b-32768"
+			elif 'groq-gemma' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is Groq/Gemma.")
+				self.INTERPRETER_MODEL = "groq/gemma-7b-it"
+				
+			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+			self.logger.info("Response received from completion function.")
+		
+		# Check if the model is AnthropicAI
+		elif 'claude' in self.INTERPRETER_MODEL:
+			
+			if 'claude-2' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is Claude-2.")
+				self.INTERPRETER_MODEL = "claude-2"
+			elif 'claude-2.1' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is claude-2.1.")
+				self.INTERPRETER_MODEL = "claude-2.1"
+			
+			# Support for Claude-3 Models
+			elif 'claude-3' in self.INTERPRETER_MODEL:
+				
+				if 'claude-3-sonnet' in self.INTERPRETER_MODEL:
+					self.logger.info("Model is claude-3-sonnet.")
+					self.INTERPRETER_MODEL = "claude-3-sonnet-20240229"
+					
+				elif 'claude-3-opus' in self.INTERPRETER_MODEL:
+					self.logger.info("Model is claude-3-opus.")
+					self.INTERPRETER_MODEL = "claude-3-opus-20240229"
+				
+			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+			self.logger.info("Response received from completion function.")
+		
+		# Check if the model is Local Model
+		elif 'local' in self.INTERPRETER_MODEL:
+			self.logger.info("Model is Local model")
+			if api_base != 'None':
+				# Set the custom language model provider
+				custom_llm_provider = "openai"
+				self.logger.info(f"Custom API mode selected for Local Model, api_base={api_base}")
+				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
+			else:
+				raise Exception("Exception api base not set for custom model")
+			self.logger.info("Response received from completion function.")
 
 
-        # Check if model are from Hugging Face.
-        else:
-            # Add huggingface/ if not present in the model name.
-            if 'huggingface/' not in self.INTERPRETER_MODEL:
-                self.INTERPRETER_MODEL = 'huggingface/' + self.INTERPRETER_MODEL
-            
-            self.logger.info(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
-            response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-            self.logger.info("Response received from completion function.")
-        
-        self.logger.info(f"Generated text {response}")
-        generated_text = self.utility_manager._extract_content(response)
-        self.logger.info(f"Generated content {generated_text}")
-        return generated_text
-    
-    def get_code_prompt(self, task, os_name):
-        
-        if self.INTERPRETER_LANGUAGE not in ['python', 'javascript']:
-            self.INTERPRETER_LANGUAGE = 'python'
-        
-        prompt = (
-            f"Generate the {self.INTERPRETER_LANGUAGE} code for the following task: '{task}'.\n"
-            f"Ensure the code is well-structured, easy to read, and follows best practices for {self.INTERPRETER_LANGUAGE}.\n"
-            f"The code should be compatible with the operating system: {os_name}, considering any platform-specific features or limitations.\n"
-            "Handle potential errors gracefully, and ensure the solution is efficient and concise.\n"
-            "If there are multiple possible solutions, choose the most optimized one."
-        )
-        return prompt
+		# Check if model are from Hugging Face.
+		else:
+			# Add huggingface/ if not present in the model name.
+			if 'huggingface/' not in self.INTERPRETER_MODEL:
+				self.INTERPRETER_MODEL = 'huggingface/' + self.INTERPRETER_MODEL
+			
+			self.logger.info(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
+			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+			self.logger.info("Response received from completion function.")
+		
+		self.logger.info(f"Generated text {response}")
+		generated_text = self.utility_manager._extract_content(response)
+		self.logger.info(f"Generated content {generated_text}")
+		return generated_text
+	
+	def get_code_prompt(self, task, os_name):
+		
+		if self.INTERPRETER_LANGUAGE not in ['python', 'javascript']:
+			self.INTERPRETER_LANGUAGE = 'python'
+		
+		prompt = (
+			f"Generate the {self.INTERPRETER_LANGUAGE} code for the following task: '{task}'.\n"
+			f"Ensure the code is well-structured and there should be no comments or no extra text, easy to read, and follows best practices for {self.INTERPRETER_LANGUAGE}.\n"
+			f"The code should be compatible with the operating system: {os_name}, considering any platform-specific features or limitations.\n"
+			"Handle potential errors gracefully, and ensure the solution is efficient and concise.\n"
+			"If there are multiple possible solutions, choose the most optimized one."
+		)
+		return prompt
 
-    def get_script_prompt(self, task, os_name):
-        os_name_lower = os_name.lower()
+	def get_script_prompt(self, task, os_name):
+		os_name_lower = os_name.lower()
 
-        # Combined dictionary for both language mapping and script type
-        language_map = {
-            'darwin': ('applescript', 'AppleScript'),
-            'linux': ('bash', 'Bash Shell script'),
-            'windows': ('powershell', 'Powershell script')
-        }
+		# Combined dictionary for both language mapping and script type
+		language_map = {
+			'darwin': ('applescript', 'AppleScript'),
+			'linux': ('bash', 'Bash Shell script'),
+			'windows': ('powershell', 'Powershell script')
+		}
 
-        # Find matching language and script type or default to Python
-        self.INTERPRETER_LANGUAGE, script_type = next(
-            (lang, stype) for key, (lang, stype) in language_map.items() if key in os_name_lower
-        ) if any(key in os_name_lower for key in language_map) else ('python', 'script')
+		# Find matching language and script type or default to Python
+		self.INTERPRETER_LANGUAGE, script_type = next(
+			(lang, stype) for key, (lang, stype) in language_map.items() if key in os_name_lower
+		) if any(key in os_name_lower for key in language_map) else ('python', 'script')
 
-        prompt = (
-            f"Generate only the {script_type} for this task:\n"
-            f"Task: '{task}'\n"
-            f"Operating System: {os_name}\n"
-            "NOTE: Ensure the script is compatible with the specified OS and version.\n"
-            "Output should only contain the script, with no additional text."
-        )
+		prompt = (
+			f"Generate only the {script_type} for this task:\n"
+			f"Task: '{task}'\n"
+			f"Operating System: {os_name}\n"
+			"NOTE: Ensure the script is compatible with the specified OS and version.\n"
+			"Output should only contain the script, with no additional text."
+		)
 
-        self.logger.info(f"Script Prompt: {prompt}")
-        return prompt
+		self.logger.info(f"Script Prompt: {prompt}")
+		return prompt
 
-    def get_command_prompt(self, task, os_name):
-        prompt = (
-            f"Generate only the single terminal command for this task:\n"
-            f"Task: '{task}'\n"
-            f"Operating System: {os_name}\n"
-            "NOTE: Ensure the command is compatible with the specified OS and version.\n"
-            "Output should only contain the command, with no additional text."
-        )
-        self.logger.info(f"Command Prompt: {prompt}")
-        return prompt
+	def get_command_prompt(self, task, os_name):
+		prompt = (
+			f"Generate only the single terminal command for this task:\n"
+			f"Task: '{task}'\n"
+			f"Operating System: {os_name}\n"
+			"NOTE: Ensure the command is compatible with the specified OS and version.\n"
+			"Output should only contain the command, with no additional text."
+		)
+		self.logger.info(f"Command Prompt: {prompt}")
+		return prompt
 
-    def handle_vision_mode(self, task):
-        prompt = f"Give accurate and detailed information about the image provided and be very detailed about the image '{task}'."
-        return prompt
+	def handle_vision_mode(self, task):
+		prompt = f"Give accurate and detailed information about the image provided and be very detailed about the image '{task}'."
+		return prompt
 
-    def handle_chat_mode(self, task):
-        prompt = f"Give accurate and detailed response to the question provided and be very detailed about the question '{task}'."
-        return prompt
+	def handle_chat_mode(self, task):
+		prompt = f"Give accurate and detailed response to the question provided and be very detailed about the question '{task}'."
+		return prompt
 
-    def get_mode_prompt(self, task, os_name):
-        if self.CODE_MODE:
-            self.logger.info("Getting code prompt.")
-            return self.get_code_prompt(task, os_name)
-        elif self.SCRIPT_MODE:
-            self.logger.info("Getting script prompt.")
-            return self.get_script_prompt(task, os_name)
-        elif self.COMMAND_MODE:
-            self.logger.info("Getting command prompt.")
-            return self.get_command_prompt(task, os_name)
-        elif self.VISION_MODE:
-            self.logger.info("Getting vision prompt.")
-            return self.handle_vision_mode(task)
-        elif self.CHAT_MODE:
-            self.logger.info("Getting chat prompt.")
-            return self.handle_chat_mode(task)
+	def get_mode_prompt(self, task, os_name):
+		if self.CODE_MODE:
+			self.logger.info("Getting code prompt.")
+			return self.get_code_prompt(task, os_name)
+		elif self.SCRIPT_MODE:
+			self.logger.info("Getting script prompt.")
+			return self.get_script_prompt(task, os_name)
+		elif self.COMMAND_MODE:
+			self.logger.info("Getting command prompt.")
+			return self.get_command_prompt(task, os_name)
+		elif self.VISION_MODE:
+			self.logger.info("Getting vision prompt.")
+			return self.handle_vision_mode(task)
+		elif self.CHAT_MODE:
+			self.logger.info("Getting chat prompt.")
+			return self.handle_chat_mode(task)
 
-    def execute_code(self, extracted_code, os_name):
-        # If the interpreter mode is Vision, do not execute the code.
-        if self.INTERPRETER_MODE in ['vision','chat']:
-            return None, None
-        
-        execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
-        if execute.lower() == 'y':
-            try:
-                code_output, code_error = "", ""
-                if self.SCRIPT_MODE:
-                    code_output, code_error = self.code_interpreter.execute_script(extracted_code, os_type=os_name)
-                elif self.COMMAND_MODE:
-                    code_output, code_error = self.code_interpreter.execute_command(extracted_code)
-                elif self.CODE_MODE:
-                    code_output, code_error = self.code_interpreter.execute_code(extracted_code, language=self.INTERPRETER_LANGUAGE)
-                return code_output, code_error
-            except Exception as exception:
-                self.logger.error(f"Error occurred while executing code: {str(exception)}")
-                return None, str(exception)  # Return error message as second element of tuple
-        else:
-            return None, None  # Return None, None if user chooses not to execute the code
+	def execute_code(self, extracted_code, os_name):
+		# If the interpreter mode is Vision, do not execute the code.
+		if self.INTERPRETER_MODE in ['vision','chat']:
+			return None, None
+		
+		execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
+		if execute.lower() == 'y':
+			try:
+				code_output, code_error = "", ""
+				if self.SCRIPT_MODE:
+					code_output, code_error = self.code_interpreter.execute_script(extracted_code, os_type=os_name)
+				elif self.COMMAND_MODE:
+					code_output, code_error = self.code_interpreter.execute_command(extracted_code)
+				elif self.CODE_MODE:
+					code_output, code_error = self.code_interpreter.execute_code(extracted_code, language=self.INTERPRETER_LANGUAGE)
+				return code_output, code_error
+			except Exception as exception:
+				self.logger.error(f"Error occurred while executing code: {str(exception)}")
+				return None, str(exception)  # Return error message as second element of tuple
+		else:
+			return None, None  # Return None, None if user chooses not to execute the code
 
-    def interpreter_main(self,version):
-        
-        self.interpreter_version = version
-        self.logger.info(f"Interpreter - v{self.interpreter_version}")
-        
-        os_platform = self.utility_manager.get_os_platform()
-        os_name = os_platform[0]
-        generated_output = None
-        code_snippet = None
-        code_output, code_error = None, None
-        extracted_file_name = None 
+	def interpreter_main(self,version):
+		
+		self.interpreter_version = version
+		self.logger.info(f"Interpreter - v{self.interpreter_version}")
+		
+		os_platform = self.utility_manager.get_os_platform()
+		os_name = os_platform[0]
+		generated_output = None
+		code_snippet = None
+		code_output, code_error = None, None
+		extracted_file_name = None 
 
-        # Seting the mode.
-        if self.SCRIPT_MODE:
-            self.INTERPRETER_MODE = 'script'
-        elif self.COMMAND_MODE:
-            self.INTERPRETER_MODE = 'command'
-        elif self.VISION_MODE:
-            self.INTERPRETER_MODE = 'vision'
-        elif self.CHAT_MODE:
-            self.INTERPRETER_MODE = 'chat'
+		# Seting the mode.
+		if self.SCRIPT_MODE:
+			self.INTERPRETER_MODE = 'script'
+		elif self.COMMAND_MODE:
+			self.INTERPRETER_MODE = 'command'
+		elif self.VISION_MODE:
+			self.INTERPRETER_MODE = 'vision'
+		elif self.CHAT_MODE:
+			self.INTERPRETER_MODE = 'chat'
 
-        start_sep = str(self.config_values.get('start_sep', '```'))
-        end_sep = str(self.config_values.get('end_sep', '```'))
-        skip_first_line = self.config_values.get('skip_first_line', 'False') == 'True'
-        
-        self.logger.info(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
+		start_sep = str(self.config_values.get('start_sep', '```'))
+		end_sep = str(self.config_values.get('end_sep', '```'))
+		skip_first_line = self.config_values.get('skip_first_line', 'False') == 'True'
+		
+		self.logger.info(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
 
-        # Display system and Assistant information.
-        input_prompt_mode = "File" if self.INTERPRETER_PROMPT_FILE else "Input"
-        display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}', Prompt: '{input_prompt_mode}', Model: '{self.INTERPRETER_MODEL}'")
-        
-        # Display the welcome message.
-        display_markdown_message("Welcome to the **Interpreter**, I'm here to **assist** you with your everyday tasks. "
-                                  "\nEnter your task and I'll do my best to help you out.")
-        
-        # Main System and Assistant loop.
-        running = True
-        while running:
-            try:
-                task = None
-                
-                if self.INTERPRETER_PROMPT_INPUT:
-                    self.logger.info(f"Reading prompt from input.")
-                    # Main input prompt - System and Assistant.
-                    task = input("> ")
-                elif self.INTERPRETER_PROMPT_FILE:
-                    prompt_file_name = self.args.file
-                    
-                    # Setting the prompt file path.
-                    if not prompt_file_name:
-                        prompt_file_name = 'prompt.txt'
-                    
-                    prompt_file_path = os.path.join(os.getcwd(),'system',prompt_file_name)
-                    
-                    # check if the file exists.
-                    if not os.path.exists(prompt_file_path):
-                        self.logger.error(f"Prompt file not found: {prompt_file_path}")
-                        user_confirmation = input(f"Create a new prompt file (Y/N)?: ")
-                        if user_confirmation.lower() == 'y':
-                            self.logger.info(f"Creating new prompt file.")
-                            self.utility_manager.create_file(prompt_file_path)
-                            display_markdown_message(f"New prompt file created **successfully** ")
-                        else:
-                            self.logger.info(f"User declined to create new prompt file.")
-                            display_markdown_message(f"User declined to create new prompt file.\nSwitching to input mode.")
-                            # Switch to input mode.
-                            self.INTERPRETER_PROMPT_INPUT = True
-                            self.INTERPRETER_PROMPT_FILE = False
-                            
-                            continue
-                        continue
-                    
-                    display_markdown_message(f"\nEnter your task in the file **'{prompt_file_path}'**")
-                    
-                    # File mode command section.
-                    prompt_confirmation = input(f"Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ")
-                    if prompt_confirmation.lower() == 'y':
-                        self.logger.info(f"Executing prompt from file.")
+		# Display system and Assistant information.
+		input_prompt_mode = "File" if self.INTERPRETER_PROMPT_FILE else "Input"
+		display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}', Prompt: '{input_prompt_mode}', Model: '{self.INTERPRETER_MODEL}'")
+		
+		# Display the welcome message.
+		display_markdown_message("Welcome to the **Interpreter**, I'm here to **assist** you with your everyday tasks. "
+								  "\nEnter your task and I'll do my best to help you out.")
+		
+		# Main System and Assistant loop.
+		running = True
+		while running:
+			try:
+				task = None
+				
+				if self.INTERPRETER_PROMPT_INPUT:
+					self.logger.info(f"Reading prompt from input.")
+					# Main input prompt - System and Assistant.
+					task = input("> ")
+				elif self.INTERPRETER_PROMPT_FILE:
+					prompt_file_name = self.args.file
+					
+					# Setting the prompt file path.
+					if not prompt_file_name:
+						prompt_file_name = 'prompt.txt'
+					
+					prompt_file_path = os.path.join(os.getcwd(),'system',prompt_file_name)
+					
+					# check if the file exists.
+					if not os.path.exists(prompt_file_path):
+						self.logger.error(f"Prompt file not found: {prompt_file_path}")
+						user_confirmation = input(f"Create a new prompt file (Y/N)?: ")
+						if user_confirmation.lower() == 'y':
+							self.logger.info(f"Creating new prompt file.")
+							self.utility_manager.create_file(prompt_file_path)
+							display_markdown_message(f"New prompt file created **successfully** ")
+						else:
+							self.logger.info(f"User declined to create new prompt file.")
+							display_markdown_message(f"User declined to create new prompt file.\nSwitching to input mode.")
+							# Switch to input mode.
+							self.INTERPRETER_PROMPT_INPUT = True
+							self.INTERPRETER_PROMPT_FILE = False
+							
+							continue
+						continue
+					
+					display_markdown_message(f"\nEnter your task in the file **'{prompt_file_path}'**")
+					
+					# File mode command section.
+					prompt_confirmation = input(f"Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ")
+					if prompt_confirmation.lower() == 'y':
+						self.logger.info(f"Executing prompt from file.")
  
-                        self.logger.info(f"Executing prompt from file {prompt_file_path}")
-                        task = self.utility_manager.read_file(prompt_file_path)
-                    elif prompt_confirmation.lower() == 'n':
-                        self.logger.info(f"Waiting for user confirmation to execute prompt from file.")
-                        print("Waiting for user confirmation to execute prompt from file.")
-                        self.utility_manager.clear_screen()
-                        continue
-                    elif prompt_confirmation.lower() == 'p':
-                        self.INTERPRETER_PROMPT_INPUT = True
-                        self.INTERPRETER_PROMPT_FILE = False
-                        self.logger.info(f"Changing input mode to prompt from file.")
-                        self.utility_manager.clear_screen()
-                        continue
-                    elif prompt_confirmation.lower() == 'c':
-                        self.logger.info(f"Changing input mode to command from file.")
-                        task = input("> ")
-                    else:
-                        # Invalid input mode (0x000022)
-                        self.logger.error("Invalid input mode.")
-                        self.utility_manager.clear_screen()
-                        continue
-                
-                # EXIT - Command section.
-                if task.lower() == '/exit':
-                    break
-                
-                # HELP - Command section.
-                elif task.lower() == '/help':
-                    self.utility_manager.display_help()
-                    continue
-                
-                # CLEAR - Command section.
-                elif task.lower() == '/clear':
-                    self.utility_manager.clear_screen()
-                    continue
+						self.logger.info(f"Executing prompt from file {prompt_file_path}")
+						task = self.utility_manager.read_file(prompt_file_path)
+					elif prompt_confirmation.lower() == 'n':
+						self.logger.info(f"Waiting for user confirmation to execute prompt from file.")
+						print("Waiting for user confirmation to execute prompt from file.")
+						self.utility_manager.clear_screen()
+						continue
+					elif prompt_confirmation.lower() == 'p':
+						self.INTERPRETER_PROMPT_INPUT = True
+						self.INTERPRETER_PROMPT_FILE = False
+						self.logger.info(f"Changing input mode to prompt from file.")
+						self.utility_manager.clear_screen()
+						continue
+					elif prompt_confirmation.lower() == 'c':
+						self.logger.info(f"Changing input mode to command from file.")
+						task = input("> ")
+					else:
+						# Invalid input mode (0x000022)
+						self.logger.error("Invalid input mode.")
+						self.utility_manager.clear_screen()
+						continue
+				
+				# EXIT - Command section.
+				if task.lower() == '/exit':
+					break
+				
+				# HELP - Command section.
+				elif task.lower() == '/help':
+					self.utility_manager.display_help()
+					continue
+				
+				# CLEAR - Command section.
+				elif task.lower() == '/clear':
+					self.utility_manager.clear_screen()
+					continue
 
-                # VERSION - Command section.
-                elif task.lower() == '/version':
-                    self.utility_manager.display_version(self.interpreter_version)
-                    continue
-                
-                # PROMPT - Command section.
-                elif task.lower() == '/prompt':
-                    if self.INTERPRETER_PROMPT_INPUT:
-                        self.INTERPRETER_PROMPT_INPUT = False
-                        self.INTERPRETER_PROMPT_FILE = True
-                        self.logger.info(f"Input mode changed to File.")
-                    else:
-                        self.INTERPRETER_PROMPT_INPUT = True
-                        self.INTERPRETER_PROMPT_FILE = False
-                        self.logger.info(f"Input mode changed to Prompt.")
-                    continue
-                
-                # HISTORY - Command section.
-                elif task.lower() == '/history':
-                    self.INTERPRETER_HISTORY = not self.INTERPRETER_HISTORY
-                    display_markdown_message(f"History is {'enabled' if self.INTERPRETER_HISTORY else 'disabled'}")
-                    continue
-                
-                # SHELL - Command section.
-                elif any(command in task.lower() for command in ['/shell ']):
-                    shell_command = shlex.split(task)[1:]
-                    shell_command = ' '.join(shell_command)
-                    shell_output, shell_error = self.code_interpreter.execute_command(shell_command)
-                    if shell_output:
-                        self.logger.info(f"Shell command executed successfully.")
-                        display_code(shell_output)
-                        self.logger.info(f"Output: {shell_output[:100]}")
-                    elif shell_error:
-                        self.logger.info(f"Shell command executed with error.")
-                        display_markdown_message(f"Error: {shell_error}")
-                    continue
+				# VERSION - Command section.
+				elif task.lower() == '/version':
+					self.utility_manager.display_version(self.interpreter_version)
+					continue
+				
+				# PROMPT - Command section.
+				elif task.lower() == '/prompt':
+					if self.INTERPRETER_PROMPT_INPUT:
+						self.INTERPRETER_PROMPT_INPUT = False
+						self.INTERPRETER_PROMPT_FILE = True
+						self.logger.info(f"Input mode changed to File.")
+					else:
+						self.INTERPRETER_PROMPT_INPUT = True
+						self.INTERPRETER_PROMPT_FILE = False
+						self.logger.info(f"Input mode changed to Prompt.")
+					continue
+				
+				# HISTORY - Command section.
+				elif task.lower() == '/history':
+					self.INTERPRETER_HISTORY = not self.INTERPRETER_HISTORY
+					display_markdown_message(f"History is {'enabled' if self.INTERPRETER_HISTORY else 'disabled'}")
+					continue
+				
+				# SHELL - Command section.
+				elif any(command in task.lower() for command in ['/shell ']):
+					shell_command = shlex.split(task)[1:]
+					shell_command = ' '.join(shell_command)
+					shell_output, shell_error = self.code_interpreter.execute_command(shell_command)
+					if shell_output:
+						self.logger.info(f"Shell command executed successfully.")
+						display_code(shell_output)
+						self.logger.info(f"Output: {shell_output[:100]}")
+					elif shell_error:
+						self.logger.info(f"Shell command executed with error.")
+						display_markdown_message(f"Error: {shell_error}")
+					continue
 
-                # LOG - Command section.
-                elif task.lower() == '/log':
-                    # Toggle the log level to Verbose/Silent.
-                    
-                    logger_mode = Logger.get_current_level()
-                    logger_mode = logger_mode.lower()
-                    
-                    if logger_mode == 'debug':
-                        Logger.set_silent_mode()
-                        display_markdown_message(f"Logger mode changed to **Silent**.")
-                    else:
-                        Logger.set_verbose_mode()
-                        display_markdown_message(f"Logger mode changed to **Verbose**.")
-                    continue
-                
-                # LIST - Command section.
-                elif task.lower() == '/list':
-                    # Get the models info
-                    
-                    # Reading all the config files in the configs folder.
-                    configs_path = os.path.join(os.getcwd(), 'configs')
-                    configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
-                    
-                    # Removing all extensions from the list.
-                    configs_files = [os.path.splitext(file)[0] for file in configs_files]
-                    
-                    # Printing the models info.
-                    print('Available models:\n')
-                    for index, model in enumerate(configs_files, 1):
-                        print(f'{index}. {model}')
-                    print('', end='\n')
+				# LOG - Command section.
+				elif task.lower() == '/log':
+					# Toggle the log level to Verbose/Silent.
+					
+					logger_mode = Logger.get_current_level()
+					logger_mode = logger_mode.lower()
+					
+					if logger_mode == 'debug':
+						Logger.set_silent_mode()
+						display_markdown_message(f"Logger mode changed to **Silent**.")
+					else:
+						Logger.set_verbose_mode()
+						display_markdown_message(f"Logger mode changed to **Verbose**.")
+					continue
+				
+				# LIST - Command section.
+				elif task.lower() == '/list':
+					# Get the models info
+					
+					# Reading all the config files in the configs folder.
+					configs_path = os.path.join(os.getcwd(), 'configs')
+					configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
+					
+					# Removing all extensions from the list.
+					configs_files = [os.path.splitext(file)[0] for file in configs_files]
+					
+					# Printing the models info.
+					print('Available models:\n')
+					for index, model in enumerate(configs_files, 1):
+						print(f'{index}. {model}')
+					print('', end='\n')
 
-                    # Print all the available modes.
-                    print('Available modes:\n')
-                    for index, mode in enumerate(['code','script','command','vision','chat'], 1):
-                        print(f'{index}. {mode}',end='\n')
-                    
-                    # Print all the available languages.
-                    print('\nAvailable languages:\n')
-                    for index, language in enumerate(['python','javascript'], 1):
-                        print(f'{index}. {language}')
-                    
-                    continue
-                
-                # UPGRAGE - Command section.
-                elif task.lower() == '/upgrade':
-                    self.utility_manager.upgrade_interpreter()
-                    continue
-                
-                # EXECUTE - Command section.
-                elif task.lower() == '/execute':
-                    self.execute_last_code(os_name)
-                    continue
-                
-                # SAVE - Command section.
-                elif task.lower() == '/save':
-                    latest_code_extension = 'py' if self.INTERPRETER_LANGUAGE == 'python' else 'js'
-                    latest_code_name = f"output/code_{time.strftime('%Y_%m_%d-%H_%M_%S', time.localtime())}." + latest_code_extension
-                    latest_code = code_snippet
-                    self.code_interpreter.save_code(latest_code_name, latest_code)
-                    display_markdown_message(f"Code saved successfully to {latest_code_name}.")
-                    continue
+					# Print all the available modes.
+					print('Available modes:\n')
+					for index, mode in enumerate(['code','script','command','vision','chat'], 1):
+						print(f'{index}. {mode}',end='\n')
+					
+					# Print all the available languages.
+					print('\nAvailable languages:\n')
+					for index, language in enumerate(['python','javascript'], 1):
+						print(f'{index}. {language}')
+					
+					continue
+				
+				# UPGRAGE - Command section.
+				elif task.lower() == '/upgrade':
+					self.utility_manager.upgrade_interpreter()
+					continue
+				
+				# EXECUTE - Command section.
+				elif task.lower() == '/execute':
+					self.execute_last_code(os_name)
+					continue
+				
+				# SAVE - Command section.
+				elif task.lower() == '/save':
+					latest_code_extension = 'py' if self.INTERPRETER_LANGUAGE == 'python' else 'js'
+					latest_code_name = f"output/code_{time.strftime('%Y_%m_%d-%H_%M_%S', time.localtime())}." + latest_code_extension
+					latest_code = code_snippet
+					self.code_interpreter.save_code(latest_code_name, latest_code)
+					display_markdown_message(f"Code saved successfully to {latest_code_name}.")
+					continue
 
-                # EDIT - Command section.
-                elif task.lower() == '/edit':
-                    code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
-                    
-                    # Get the OS platform.
-                    os_platform = self.utility_manager.get_os_platform()
+				# EDIT - Command section.
+				elif task.lower() == '/edit':
+					code_file, code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
+					
+					# Get the OS platform.
+					os_platform = self.utility_manager.get_os_platform()
 
-                    # Check if user wants to open in vim?
-                    vim_open = input("Open the code in vim editor (Y/N):")
-                    if vim_open.lower() == 'y':
-                        self.logger.info(f"Opening code in **vim** editor {code_file.name if not isinstance(code_file, str) else code_file}")
-                        subprocess.call(['vim', code_file.name if not isinstance(code_file, str) else code_file])
-                        continue
-                    else:
-                        # Open the code in default editor.
-                        if os_platform[0].lower() == 'macos':
-                            self.logger.info(f"Opening code in default editor {code_file.name if not isinstance(code_file, str) else code_file}")
-                            subprocess.call(('open', code_file.name if not isinstance(code_file, str) else code_file))
-                        elif os_platform[0].lower() == 'linux':
-                            subprocess.call(('xdg-open', code_file.name if not isinstance(code_file, str) else code_file))
-                        elif os_platform[0].lower() == 'windows':
-                            os.startfile(code_file.name if not isinstance(code_file, str) else code_file)
-                        continue
-                
-                # DEBUG - Command section.
-                elif task.lower() == '/debug':
+					# Check if user wants to open in vim?
+					vim_open = input("Open the code in vim editor (Y/N):")
+					if vim_open.lower() == 'y':
+						self.logger.info(f"Opening code in **vim** editor {code_file.name if not isinstance(code_file, str) else code_file}")
+						subprocess.call(['vim', code_file.name if not isinstance(code_file, str) else code_file])
+						continue
+					else:
+						# Open the code in default editor.
+						if os_platform[0].lower() == 'macos':
+							self.logger.info(f"Opening code in default editor {code_file.name if not isinstance(code_file, str) else code_file}")
+							subprocess.call(('open', code_file.name if not isinstance(code_file, str) else code_file))
+						elif os_platform[0].lower() == 'linux':
+							subprocess.call(('xdg-open', code_file.name if not isinstance(code_file, str) else code_file))
+						elif os_platform[0].lower() == 'windows':
+							os.startfile(code_file.name if not isinstance(code_file, str) else code_file)
+						continue
+				
+				# DEBUG - Command section.
+				elif task.lower() == '/debug':
 
-                    if not code_error:
-                        code_error = code_output
+					if not code_error:
+						code_error = code_output
 
-                    if not code_error:
-                        display_markdown_message(f"Error: No error found in the code to fix.")
-                        continue
+					if not code_error:
+						display_markdown_message(f"Error: No error found in the code to fix.")
+						continue
 
-                    debug_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{code_snippet}'\nAnd Error is \n'{code_error}'\n give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
-                    
-                    # Start the LLM Request.
-                    self.logger.info(f"Debug Prompt: {debug_prompt}")
-                    generated_output = self.generate_content(debug_prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
+					debug_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{code_snippet}'\nAnd Error is \n'{code_error}'\n"
+					f"give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
+					
+					# Start the LLM Request.
+					self.logger.info(f"Debug Prompt: {debug_prompt}")
+					generated_output = self.generate_content(debug_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
 
-                    # Extract the code from the generated output.
-                    self.logger.info(f"Generated output type {type(generated_output)}")
-                    code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
-                    
-                    # Display the extracted code.
-                    self.logger.info(f"Extracted code: {code_snippet[:50]}")
-                    
-                    if self.DISPLAY_CODE:
-                        display_code(code_snippet)
-                        self.logger.info("Code extracted successfully.")
-                    
-                        # Execute the code if the user has selected.
-                        code_output, code_error = self.execute_code(code_snippet, os_name)
-                        
-                        if code_output:
-                            self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
-                            display_code(code_output)
-                            self.logger.info(f"Output: {code_output[:100]}")
-                        elif code_error:
-                            self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
-                            display_markdown_message(f"Error: {code_error}")
-                    continue
+					# Extract the code from the generated output.
+					self.logger.info(f"Generated output type {type(generated_output)}")
+					code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line, self.CODE_MODE)
+					
+					# Display the extracted code.
+					self.logger.info(f"Extracted code: {code_snippet[:50]}")
+					
+					if self.DISPLAY_CODE:
+						display_code(code_snippet)
+						self.logger.info("Code extracted successfully.")
+					
+						# Execute the code if the user has selected.
+						code_output, code_error = self.execute_code(code_snippet, os_name)
+						
+						if code_output:
+							self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+							display_code(code_output)
+							self.logger.info(f"Output: {code_output[:100]}")
+						elif code_error:
+							self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+							display_markdown_message(f"Error: {code_error}")
+					continue
 
-                # MODE - Command section.
-                elif any(command in task.lower() for command in ['/mode ']):
-                    mode = task.split(' ')[1]
-                    if mode:
-                        if not mode.lower() in ['code','script','command','vision','chat']:
-                            mode = 'code'
-                            display_markdown_message(f"The input mode is not supported. Mode changed to {mode},"
-                                                     "\nUse '/list' command to get the list of supported modes.")
-                        else:
-                            modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
+				# MODE - Command section.
+				elif any(command in task.lower() for command in ['/mode ']):
+					mode = task.split(' ')[1]
+					if mode:
+						if not mode.lower() in ['code','script','command','vision','chat']:
+							mode = 'code'
+							display_markdown_message(f"The input mode is not supported. Mode changed to {mode},"
+													 "\nUse '/list' command to get the list of supported modes.")
+						else:
+							modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
 
-                            self.INTERPRETER_MODE = mode.lower()
+							self.INTERPRETER_MODE = mode.lower()
 
-                            for key in modes:
-                                if self.INTERPRETER_MODE == key:
-                                    setattr(self, modes[key], True)
-                                else:
-                                    setattr(self, modes[key], False)
-                            display_markdown_message(f"Mode changed to '{self.INTERPRETER_MODE}'")
-                    continue
+							for key in modes:
+								if self.INTERPRETER_MODE == key:
+									setattr(self, modes[key], True)
+								else:
+									setattr(self, modes[key], False)
+							display_markdown_message(f"Mode changed to '{self.INTERPRETER_MODE}'")
+					continue
 
-                # MODEL - Command section.
-                elif any(command in task.lower() for command in ['/model ']):
-                    model = task.split(' ')[1]
-                    if model:
-                        model_config_file = f"configs/{model}.config"
-                        if not os.path.isfile(model_config_file):
-                            display_markdown_message(f"Model {model} does not exists. Please check the model name using '/list' command.")
-                            continue
-                        else:
-                            self.INTERPRETER_MODEL = model
-                            display_markdown_message(f"Model changed to '{self.INTERPRETER_MODEL}'")
-                            self.initialize_client() # Reinitialize the client with new model.
-                    continue
-                
-                # LANGUAGE - Command section.
-                elif any(command in task.lower() for command in ['/language','/lang']):
-                    split_task = task.split(' ')
-                    if len(split_task) > 1:
-                        language = split_task[1]
-                        if language:
-                            self.INTERPRETER_LANGUAGE = language
-                            if language not in ['python', 'javascript']:
-                                self.INTERPRETER_LANGUAGE = 'python'
-                                display_markdown_message(f"The input language is not supported. Language changed to {self.INTERPRETER_LANGUAGE}")
-                            display_markdown_message(f"Language changed to '{self.INTERPRETER_LANGUAGE}'")
-                    continue
-                
-                # INSTALL - Command section.
-                elif any(command in task.lower() for command in ['/install']):
-                    # get the package name after the command 
-                    package_name = task.split(' ')[1]
-                    
-                    # check if package name is not system module.
-                    system_modules = self.package_manager.get_system_modules()
-                    
-                    # Skip installing system modules.
-                    if package_name in system_modules:
-                        self.logger.info(f"Package {package_name} is a system module.")
-                        display_markdown_message(f"Package {package_name} is a system module.")
-                        raise Exception(f"Package {package_name} is a system module.")
-                        
-                    if package_name:
-                        self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
-                        self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
-                    continue
-                
-                # Get the prompt based on the mode.
-                else:
-                    prompt = self.get_mode_prompt(task, os_name)
-                    self.logger.info(f"Prompt init is '{prompt}'")
-                    
-                    # Check if the prompt is empty.
-                    if not prompt:
-                        display_markdown_message("Please **enter** a valid task.")
-                        continue
+				# MODEL - Command section.
+				elif any(command in task.lower() for command in ['/model ']):
+					model = task.split(' ')[1]
+					if model:
+						model_config_file = f"configs/{model}.config"
+						if not os.path.isfile(model_config_file):
+							display_markdown_message(f"Model {model} does not exists. Please check the model name using '/list' command.")
+							continue
+						else:
+							self.INTERPRETER_MODEL = model
+							display_markdown_message(f"Model changed to '{self.INTERPRETER_MODEL}'")
+							self.initialize_client()  # Reinitialize the client with new model.
+					continue
+				
+				# LANGUAGE - Command section.
+				elif any(command in task.lower() for command in ['/language','/lang']):
+					split_task = task.split(' ')
+					if len(split_task) > 1:
+						language = split_task[1]
+						if language:
+							self.INTERPRETER_LANGUAGE = language
+							if language not in ['python', 'javascript']:
+								self.INTERPRETER_LANGUAGE = 'python'
+								display_markdown_message(f"The input language is not supported. Language changed to {self.INTERPRETER_LANGUAGE}")
+							display_markdown_message(f"Language changed to '{self.INTERPRETER_LANGUAGE}'")
+					continue
+				
+				# INSTALL - Command section.
+				elif any(command in task.lower() for command in ['/install']):
+					# get the package name after the command 
+					package_name = task.split(' ')[1]
+					
+					# check if package name is not system module.
+					system_modules = self.package_manager.get_system_modules()
+					
+					# Skip installing system modules.
+					if package_name in system_modules:
+						self.logger.info(f"Package {package_name} is a system module.")
+						display_markdown_message(f"Package {package_name} is a system module.")
+						raise Exception(f"Package {package_name} is a system module.")
+						
+					if package_name:
+						self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
+						self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
+					continue
+				
+				# Get the prompt based on the mode.
+				else:
+					prompt = self.get_mode_prompt(task, os_name)
+					self.logger.info(f"Prompt init is '{prompt}'")
+					
+					# Check if the prompt is empty.
+					if not prompt:
+						display_markdown_message("Please **enter** a valid task.")
+						continue
 
-                # Clean the responses
-                self.utility_manager._clean_responses()
-                
-                # Print Model and Mode information.
-                self.logger.info(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRETER_MODEL}")
+				# Clean the responses
+				self.utility_manager._clean_responses()
+				
+				# Print Model and Mode information.
+				self.logger.info(f"Interpreter Mode: {self.INTERPRETER_MODE} Model: {self.INTERPRETER_MODEL}")
 
-                # Check if prompt contains any file uploaded by user.
-                extracted_file_name = self.utility_manager.extract_file_name(prompt)
-                self.logger.info(f"Input prompt file name: '{extracted_file_name}'")
+				# Check if prompt contains any file uploaded by user.
+				extracted_file_name = self.utility_manager.extract_file_name(prompt)
+				self.logger.info(f"Input prompt file name: '{extracted_file_name}'")
 
-                if extracted_file_name is not None:
-                    full_path = self.utility_manager.get_full_file_path(extracted_file_name)
-                    self.logger.info(f"Input prompt full_path: '{full_path}'")
-                    
-                    # Check if image contains URL.
-                    if 'http' in extracted_file_name or 'https' in extracted_file_name or 'www.' in extracted_file_name:
-                        self.logger.info("Image contains URL Skipping the file processing.")
-                    
-                    else:
-                        # Check if the file exists and is a file
-                        if os.path.isfile(full_path):
-                            # Check if file size is less than 50 KB
-                            file_size_max = 50000
-                            file_size = os.path.getsize(full_path)
-                            self.logger.info(f"Input prompt file_size: '{file_size}'")
-                            if file_size < file_size_max:
-                                try:
-                                    with open(full_path, 'r', encoding='utf-8') as file:
-                                        # Check if file extension is .json, .csv, or .xml
-                                        file_extension = os.path.splitext(full_path)[1].lower()
-                                        
-                                        if file_extension in ['.json','.xml']:
-                                            # Split by new line and read only 20 lines
-                                            file_data = '\n'.join(file.readline() for _ in range(20))
-                                            self.logger.info(f"Input prompt JSON/XML file_data: '{str(file_data)}'")
-                                            
-                                        elif file_extension == '.csv':
-                                            # Read only headers of the csv file
-                                            file_data = self.utility_manager.read_csv_headers(full_path)
-                                            self.logger.info(f"Input prompt CSV file_data: '{str(file_data)}'")
-                                            
-                                        else:
-                                            file_data = file.read()
-                                            self.logger.info(f"Input prompt file_data: '{str(file_data)}'")
-                                            
-                                        if any(word in prompt.lower() for word in ['graph', 'graphs', 'chart', 'charts']):
-                                            prompt += "\n" + "This is file data from user input: " + str(file_data) + " use this to analyze the data."
-                                            self.logger.info(f"Input Prompt: '{prompt}'")
-                                        else:
-                                            self.logger.info("The prompt does not contain both 'graph' and 'chart'.")
-                                except Exception as exception:
-                                    self.logger.error(f"Error reading file: {exception}")
-                            else:
-                                self.logger.warning("File size is greater.")
-                        else:
-                            self.logger.error("File does not exist or is not a file.")                         
-                else:
-                    self.logger.info("No file name found in the prompt.")
-            
-                # If graph were requested.
-                if any(word in prompt.lower() for word in ['graph', 'graphs']):
-                    if self.INTERPRETER_LANGUAGE == 'python':
-                        prompt += "\n" + "using Python use Matplotlib save the graph in file called 'graph.png'"
-                    elif self.INTERPRETER_LANGUAGE == 'javascript':
-                        prompt += "\n" + "using JavaScript use Chart.js save the graph in file called 'graph.png'"
+				if extracted_file_name is not None:
+					full_path = self.utility_manager.get_full_file_path(extracted_file_name)
+					self.logger.info(f"Input prompt full_path: '{full_path}'")
+					
+					# Check if image contains URL.
+					if 'http' in extracted_file_name or 'https' in extracted_file_name or 'www.' in extracted_file_name:
+						self.logger.info("Image contains URL Skipping the file processing.")
+					
+					else:
+						# Check if the file exists and is a file
+						if os.path.isfile(full_path):
+							# Check if file size is less than 50 KB
+							file_size_max = 50000
+							file_size = os.path.getsize(full_path)
+							self.logger.info(f"Input prompt file_size: '{file_size}'")
+							if file_size < file_size_max:
+								try:
+									with open(full_path, 'r', encoding='utf-8') as file:
+										# Check if file extension is .json, .csv, or .xml
+										file_extension = os.path.splitext(full_path)[1].lower()
+										
+										if file_extension in ['.json','.xml']:
+											# Split by new line and read only 20 lines
+											file_data = '\n'.join(file.readline() for _ in range(20))
+											self.logger.info(f"Input prompt JSON/XML file_data: '{str(file_data)}'")
+											
+										elif file_extension == '.csv':
+											# Read only headers of the csv file
+											file_data = self.utility_manager.read_csv_headers(full_path)
+											self.logger.info(f"Input prompt CSV file_data: '{str(file_data)}'")
+											
+										else:
+											file_data = file.read()
+											self.logger.info(f"Input prompt file_data: '{str(file_data)}'")
+											
+										if any(word in prompt.lower() for word in ['graph', 'graphs', 'chart', 'charts']):
+											prompt += "\n" + "This is file data from user input: " + str(file_data) + " use this to analyze the data."
+											self.logger.info(f"Input Prompt: '{prompt}'")
+										else:
+											self.logger.info("The prompt does not contain both 'graph' and 'chart'.")
+								except Exception as exception:
+									self.logger.error(f"Error reading file: {exception}")
+							else:
+								self.logger.warning("File size is greater.")
+						else:
+							self.logger.error("File does not exist or is not a file.")                         
+				else:
+					self.logger.info("No file name found in the prompt.")
+			
+				# If graph were requested.
+				if any(word in prompt.lower() for word in ['graph', 'graphs']):
+					if self.INTERPRETER_LANGUAGE == 'python':
+						prompt += "\n" + "using Python use Matplotlib save the graph in file called 'graph.png'"
+					elif self.INTERPRETER_LANGUAGE == 'javascript':
+						prompt += "\n" + "using JavaScript use Chart.js save the graph in file called 'graph.png'"
 
-                # if Chart were requested
-                if any(word in prompt.lower() for word in ['chart', 'charts', 'plot', 'plots']):    
-                    if self.INTERPRETER_LANGUAGE == 'python':
-                        prompt += "\n" + "using Python use Plotly save the chart in file called 'chart.png'"
-                    elif self.INTERPRETER_LANGUAGE == 'javascript':
-                        prompt += "\n" + "using JavaScript use Chart.js save the chart in file called 'chart.png'"
+				# if Chart were requested
+				if any(word in prompt.lower() for word in ['chart', 'charts', 'plot', 'plots']):    
+					if self.INTERPRETER_LANGUAGE == 'python':
+						prompt += "\n" + "using Python use Plotly save the chart in file called 'chart.png'"
+					elif self.INTERPRETER_LANGUAGE == 'javascript':
+						prompt += "\n" + "using JavaScript use Chart.js save the chart in file called 'chart.png'"
 
-                # if Table were requested
-                if 'table' in prompt.lower():
-                    if self.INTERPRETER_LANGUAGE == 'python':
-                        prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
-                    elif self.INTERPRETER_LANGUAGE == 'javascript':
-                        prompt += "\n" + "using JavaScript use DataTables save the table in file called 'table.html'"
-                 
-                # Start the LLM Request.     
-                self.logger.info(f"Prompt: {prompt}")
-                
-                # Add the history as memory.
-                if self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'chat':
-                    self.history = self.history_manager.get_chat_history(self.history_count)
-                
-                elif self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'code':
-                    self.history = self.history_manager.get_code_history(self.history_count)
-                
-                generated_output = self.generate_content(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
-                
-                # No extra processing for Vision mode.
-                if self.INTERPRETER_MODE in ['vision','chat']:
-                    display_markdown_message(f"{generated_output}")
-                    continue
+				# if Table were requested
+				if 'table' in prompt.lower():
+					if self.INTERPRETER_LANGUAGE == 'python':
+						prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
+					elif self.INTERPRETER_LANGUAGE == 'javascript':
+						prompt += "\n" + "using JavaScript use DataTables save the table in file called 'table.html'"
+				 
+				# Start the LLM Request.     
+				self.logger.info(f"Prompt: {prompt}")
+				
+				# Add the history as memory.
+				if self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'chat':
+					self.history = self.history_manager.get_chat_history(self.history_count)
+				
+				elif self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'code':
+					self.history = self.history_manager.get_code_history(self.history_count)
+				
+				generated_output = self.generate_content(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
+				
+				# No extra processing for Vision mode.
+				if self.INTERPRETER_MODE in ['vision','chat']:
+					display_markdown_message(f"{generated_output}")
+					continue
 
-                # Extract the code from the generated output.
-                self.logger.info(f"Generated output type {type(generated_output)}")
-                code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
-                
-                # Display the extracted code.
-                self.logger.info(f"Extracted code: {code_snippet[:50]}")
-                
-                if self.DISPLAY_CODE:
-                    display_code(code_snippet)
-                    self.logger.info("Code extracted successfully.")
-                
-                if code_snippet:
-                    current_time = time.strftime("%Y_%m_%d-%H_%M_%S", time.localtime())
-                    
-                    if self.INTERPRETER_LANGUAGE == 'javascript' and self.SAVE_CODE and self.CODE_MODE:
-                        self.code_interpreter.save_code(f"output/code_{current_time}.js", code_snippet)
-                        self.logger.info(f"JavaScript code saved successfully.")
-                    
-                    elif self.INTERPRETER_LANGUAGE == 'python' and self.SAVE_CODE and self.CODE_MODE:
-                        self.code_interpreter.save_code(f"output/code_{current_time}.py", code_snippet)
-                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} code saved successfully.")
-                    
-                    elif self.SAVE_CODE and self.COMMAND_MODE:
-                        self.code_interpreter.save_code(f"output/command_{current_time}.txt", code_snippet)
-                        self.logger.info(f"Command saved successfully.")
+				# Extract the code from the generated output.
+				self.logger.info(f"Generated output type {type(generated_output)}")
+				code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
+				
+				# Display the extracted code.
+				self.logger.info(f"Extracted code: {code_snippet[:50]}")
+				
+				if self.DISPLAY_CODE:
+					display_code(code_snippet)
+					self.logger.info("Code extracted successfully.")
+				
+				if code_snippet:
+					current_time = time.strftime("%Y_%m_%d-%H_%M_%S", time.localtime())
+					
+					if self.INTERPRETER_LANGUAGE == 'javascript' and self.SAVE_CODE and self.CODE_MODE:
+						self.code_interpreter.save_code(f"output/code_{current_time}.js", code_snippet)
+						self.logger.info(f"JavaScript code saved successfully.")
+					
+					elif self.INTERPRETER_LANGUAGE == 'python' and self.SAVE_CODE and self.CODE_MODE:
+						self.code_interpreter.save_code(f"output/code_{current_time}.py", code_snippet)
+						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code saved successfully.")
+					
+					elif self.SAVE_CODE and self.COMMAND_MODE:
+						self.code_interpreter.save_code(f"output/command_{current_time}.txt", code_snippet)
+						self.logger.info(f"Command saved successfully.")
   
-                    elif self.SAVE_CODE and self.SCRIPT_MODE:
-                        self.code_interpreter.save_code(f"output/script_{current_time}.txt", code_snippet)
-                        self.logger.info(f"Script saved successfully.")
-                  
-                    # Execute the code if the user has selected.
-                    code_output, code_error = self.execute_code(code_snippet, os_name)
-                    
-                    if code_output:
-                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
-                        display_code(code_output)
-                        self.logger.info(f"Output: {code_output[:100]}")
-                    elif code_error:
-                        self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
-                        display_markdown_message(f"Error: {code_error}")
-                        
-                    # install Package on error.
-                    error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
-                    if code_error is not None and any(error_message in code_error for error_message in error_messages):
-                        package_name = self.package_manager.extract_package_name(code_error, self.INTERPRETER_LANGUAGE)
-                        
-                        # check if package name is not system module.
-                        system_modules = self.package_manager.get_system_modules()
-                        
-                        # Skip installing system modules.
-                        if package_name in system_modules:
-                            self.logger.info(f"Package {package_name} is a system module.")
-                            display_markdown_message(f"Package {package_name} is a system module.")
-                            raise Exception(f"Package {package_name} is a system module.")
-                        
-                        if package_name:
-                            self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
-                            self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
+					elif self.SAVE_CODE and self.SCRIPT_MODE:
+						self.code_interpreter.save_code(f"output/script_{current_time}.txt", code_snippet)
+						self.logger.info(f"Script saved successfully.")
+				  
+					# Execute the code if the user has selected.
+					code_output, code_error = self.execute_code(code_snippet, os_name)
+					
+					if code_output:
+						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+						display_code(code_output)
+						self.logger.info(f"Output: {code_output[:100]}")
+					elif code_error:
+						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+						display_markdown_message(f"Error: {code_error}")
+						
+					# install Package on error.
+					error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
+					if code_error is not None and any(error_message in code_error for error_message in error_messages):
+						package_name = self.package_manager.extract_package_name(code_error, self.INTERPRETER_LANGUAGE)
+						
+						# check if package name is not system module.
+						system_modules = self.package_manager.get_system_modules()
+						
+						# Skip installing system modules.
+						if package_name in system_modules:
+							self.logger.info(f"Package {package_name} is a system module.")
+							display_markdown_message(f"Package {package_name} is a system module.")
+							raise Exception(f"Package {package_name} is a system module.")
+						
+						if package_name:
+							self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
+							self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
 
-                            # Wait and Execute the code again.
-                            time.sleep(3)
-                            code_output, code_error = self.execute_code(code_snippet, os_name)
-                            if code_output:
-                                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
-                                display_code(code_output)
-                                self.logger.info(f"Output: {code_output[:100]}")
-                            elif code_error:
-                                self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
-                                display_markdown_message(f"Error: {code_error}")
-                            
-                    try:
-                        # Check if graph.png exists and open it.
-                        self.utility_manager._open_resource_file('graph.png')
-                        
-                        # Check if chart.png exists and open it.
-                        self.utility_manager._open_resource_file('chart.png')
-                        
-                        # Check if table.md exists and open it.
-                        self.utility_manager._open_resource_file('table.md')
-                    except Exception as exception:
-                        display_markdown_message(f"Error in opening resource files: {str(exception)}")
-                
-                self.history_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
-                
-            except Exception as exception:
-                self.logger.error(f"An error occurred: {str(exception)}")
-                raise
+							# Wait and Execute the code again.
+							time.sleep(3)
+							code_output, code_error = self.execute_code(code_snippet, os_name)
+							if code_output:
+								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+								display_code(code_output)
+								self.logger.info(f"Output: {code_output[:100]}")
+							elif code_error:
+								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+								display_markdown_message(f"Error: {code_error}")
+							
+					try:
+						# Check if graph.png exists and open it.
+						self.utility_manager._open_resource_file('graph.png')
+						
+						# Check if chart.png exists and open it.
+						self.utility_manager._open_resource_file('chart.png')
+						
+						# Check if table.md exists and open it.
+						self.utility_manager._open_resource_file('table.md')
+					except Exception as exception:
+						display_markdown_message(f"Error in opening resource files: {str(exception)}")
+				
+				self.history_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
+				
+			except Exception as exception:
+				self.logger.error(f"An error occurred: {str(exception)}")
+				raise
