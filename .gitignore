@@ -1,17 +1,43 @@
-*.log
+# Byte-compiled / optimized / DLL files
 *.pyc
 *.pyo
 *.pyd
-.DS_Store
+
+# Log files
 *.log
-*.json
-history/
-output/*
+
+# macOS system files
+.DS_Store
+
+# Environment files
 *.env
 .env
-history.json
+
+# Virtual environments
+venv/
+myvenv/
+heaven_venv/
+
+# Interactive environment data
+interp/
+
+# Generated output files and directories
+output/*
+
+# JSON files
 *.json
-interp
-venv
-myvenv
-heaven_venvhistory/history.json
+history.json
+
+# History files
+history/
+history/history.json
+
+# Editor and IDE specific files
+.vscode/
+.idea/
+*.sublime-workspace
+
+# OS-specific files
+Thumbs.db
+ehthumbs.db
+desktop.ini
