@@ -322,6 +322,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 - **v2.1.2** - Added **Prompt Modes** now you can set prompt from file as well just place your prompt in `prompt.txt` file inside `system` directory.
 - **v2.1.3** - Updated **OS Type detection** now for Linux **Arch & Debian** and generate accurate commands for all OS types.
 - **v2.1.4** - Added **GPT-4o** models they are most effecient and cost effective models from **OpenAI**
+- **v2.1.5** - Fixed OS type detection **Bug** for MacOS and feautre to open file with default editor.
 
 ## 📜 **License**
 

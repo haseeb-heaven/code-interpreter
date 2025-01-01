@@ -10,3 +10,8 @@ output/*
 *.env
 .env
 history.json
+*.json
+interp
+venv
+myvenv
+heaven_venv
