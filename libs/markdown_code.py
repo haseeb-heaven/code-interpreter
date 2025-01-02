@@ -25,13 +25,16 @@ def display_markdown_message(message):
 		print("")
 		
 
-def display_code(code: list, language: str = "python"):
+def display_code(code: str, language: str = "python"):
 	try:
+		if code is None:
+			return
+			
 		syntax = Syntax(code, language, theme="monokai", line_numbers=True)
-		rich_print(syntax,end="",flush=True)
+		rich_print(syntax, end="", flush=True)
 	except Exception as exception:
-		print(f"An error occurred: {exception}")
-		
+		print(f"An error occurred in display code: {exception}")
+
 
 class CustomFormatter(TerminalFormatter):
 	def format(self, tokensource, outfile):

@@ -244,6 +244,8 @@ Here are the available commands:
 - ⏫ `/upgrade` - Upgrade the interpreter.
 - 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
 - 💻 `/shell` - Access the shell.
+- 🐞 `/debug` - Toggle Debug mode for debugging.
+
 
 ## ⚙️ **Settings**
 You can customize the settings of the current model from the `.config` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
@@ -333,6 +335,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
   - Fixed issues with logging to both **files and console** simultaneously.
 - **Dependency Management**:
   - Resolved pip package installation issues for smoother and more reliable setup.
+- **v2.2.1** - Fixed **No Content/Response from LLM** Bug, Fixed _Debug Mode_ with **Logs**.
 
 ---
 

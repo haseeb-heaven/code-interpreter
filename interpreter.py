@@ -24,7 +24,7 @@ from libs.markdown_code import display_markdown_message
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "2.2.0"
+INTERPRETER_VERSION = "2.2.1"
 
 
 def main():
@@ -78,5 +78,5 @@ ANTHROPIC_API_KEY=<your api key>\n\
 4. Run the interpreter again.")
 			
 		else:
-			display_markdown_message(f"An error occurred: {exception}")
+			display_markdown_message(f"An error occurred interpreter main: {exception}")
 			traceback.print_exc()

@@ -504,8 +504,7 @@ class Interpreter:
 		display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}', Prompt: '{input_prompt_mode}', Model: '{self.INTERPRETER_MODEL}'")
 		
 		# Display the welcome message.
-		display_markdown_message("Welcome to the **Interpreter**, I'm here to **assist** you with your everyday tasks. "
-								  "\nEnter your task and I'll do my best to help you out.")
+		display_markdown_message("Welcome to **Interpreter**, I'm here to **assist** you with your everyday tasks. ")
 		
 		# Main System and Assistant loop.
 		running = True
@@ -524,7 +523,7 @@ class Interpreter:
 					if not prompt_file_name:
 						prompt_file_name = 'prompt.txt'
 					
-					prompt_file_path = os.path.join(os.getcwd(),'system',prompt_file_name)
+					prompt_file_path = os.path.join(os.getcwd(), 'system', prompt_file_name)
 					
 					# check if the file exists.
 					if not os.path.exists(prompt_file_path):
@@ -626,14 +625,11 @@ class Interpreter:
 
 				# LOG - Command section.
 				elif task.lower() == '/debug':
-
 					# Toggle the log level to Debug/Silent.
 					logger_mode = Logger.get_current_level()
-					logger_mode = logger_mode.lower()
-					print("Logger mode: {}".format(logger_mode))
 
-					if logger_mode == 'error':
-						Logger.set_level_to_info()
+					if logger_mode.lower() == 'debug':
+						Logger.set_level_to_error()
 						display_markdown_message("**Debug** mode **disabled**")
 					else:
 						Logger.set_level_to_debug()
@@ -779,22 +775,23 @@ class Interpreter:
 					code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line, self.CODE_MODE)
 					
 					# Display the extracted code.
-					self.logger.info(f"Extracted code: {code_snippet[:50]}")
+					if code_snippet:
+						self.logger.info(f"Extracted code: {code_snippet[:50]}")
 					
-					if self.DISPLAY_CODE:
-						display_code(code_snippet)
-						self.logger.info("Code extracted successfully.")
-					
-						# Execute the code if the user has selected.
-						code_output, code_error = self.execute_code(code_snippet, os_name)
+						if self.DISPLAY_CODE:
+							display_code(code_snippet)
+							self.logger.info("Code extracted successfully.")
 						
-						if code_output:
-							self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
-							display_code(code_output)
-							self.logger.info(f"Output: {code_output[:100]}")
-						elif code_error:
-							self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
-							display_markdown_message(f"Error: {code_error}")
+							# Execute the code if the user has selected.
+							code_output, code_error = self.execute_code(code_snippet, os_name)
+							
+							if code_output:
+								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+								display_code(code_output)
+								self.logger.info(f"Output: {code_output[:100]}")
+							elif code_error:
+								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+								display_markdown_message(f"Error: {code_error}")
 					continue
 
 				# MODE - Command section.
@@ -976,7 +973,8 @@ class Interpreter:
 				code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
 				
 				# Display the extracted code.
-				self.logger.info(f"Extracted code: {code_snippet[:50]}")
+				if code_snippet:
+					self.logger.info(f"Extracted code: {code_snippet[:50]}")
 				
 				if self.DISPLAY_CODE:
 					display_code(code_snippet)
@@ -1056,5 +1054,5 @@ class Interpreter:
 				self.history_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
 				
 			except Exception as exception:
-				self.logger.error(f"An error occurred: {str(exception)}")
+				self.logger.error(f"An error occurred in interpreter_lib: {str(exception)}")
 				raise
