@@ -5,7 +5,7 @@ import litellm
 
 class GeminiVision:
 	def __init__(self, api_key=None) -> None:
-		self.logger = Logger.initialize_logger('logs/vision_interpreter.log')
+		self.logger = Logger.initialize('logs/vision_interpreter.log')
 		self.logger.info("Initializing Gemini Vision")
 		self.api_key = api_key
 		

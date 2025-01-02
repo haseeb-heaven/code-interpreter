@@ -23,9 +23,9 @@ class UtilityManager:
 		except Exception as exception:
 			self.logger.error(f"Error in UtilityManager initialization: {str(exception)}")
 			raise
-		self.logger = Logger.initialize_logger("logs/interpreter.log")
+		self.logger = Logger.initialize("logs/interpreter.log")
 
-	def _open_resource_file(self,  filename):
+	def _open_resource_file(self, filename):
 		try:
 			if os.path.isfile(filename):
 				if platform.system() == "Windows":
@@ -108,12 +108,12 @@ class UtilityManager:
 		except AttributeError:
 			# Handle error on Windows where pyreadline doesn't have read_history_file
 			self.logger.info("pyreadline doesn't have read_history_file")
-			raise Exception("On Windows, pyreadline doesn't have read_history_file") 
+			raise Exception("On Windows, pyreadline doesn't have read_history_file")
 		except Exception as exception:
 			self.logger.error(f"Error in initializing readline history: {str(exception)}")
 			raise
 
-	def read_config_file(self,  filename=".config"):
+	def read_config_file(self, filename=".config"):
 		try:
 			config_data = {}
 			with open(filename, "r") as config_file:
@@ -128,7 +128,7 @@ class UtilityManager:
 			self.logger.error(f"Error in reading config file: {str(exception)}")
 			raise
 
-	def extract_file_name(self,  prompt):
+	def extract_file_name(self, prompt):
 		try:
 			# This pattern looks for typical file paths, names, and URLs, then stops at the end of the extension
 			pattern = r"((?:[a-zA-Z]:\\(?:[\w\-\.]+\\)*|/(?:[\w\-\.]+/)*|\b[\w\-\.]+\b|https?://[\w\-\.]+/[\w\-\.]+/)*[\w\-\.]+\.\w+)"
@@ -140,7 +140,7 @@ class UtilityManager:
 				file_extension = os.path.splitext(file_name)[1].lower()
 				self.logger.info(f"File extension: '{file_extension}'")
 				# Check if the file extension is one of the non-binary types
-				if file_extension in ['.json', '.csv', '.xml', '.xls', '.txt','.md','.html','.png','.jpg','.jpeg','.gif','.svg','.zip','.tar','.gz','.7z','.rar']:
+				if file_extension in ['.json', '.csv', '.xml', '.xls', '.txt', '.md', '.html', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.zip', '.tar', '.gz', '.7z', '.rar']:
 					self.logger.info(f"Extracted File name: '{file_name}'")
 					return file_name
 				else:
@@ -151,7 +151,7 @@ class UtilityManager:
 			self.logger.error(f"Error in extracting file name: {str(exception)}")
 			raise
 
-	def get_full_file_path(self,  file_name):
+	def get_full_file_path(self, file_name):
 		if not file_name:
 			return None
 
@@ -173,30 +173,50 @@ class UtilityManager:
 			self.logger.error("CSV file is empty.")
 			return []
 
-	def get_code_history(self,  language='python'):
+	def get_output_history(self, mode='code', os_name=None, language=None):
 		try:
 			self.logger.info("Starting to read last code history.")
 			output_folder = "output"
-			file_extension = 'py' if language == 'python' else 'js'
-			self.logger.info(f"Looking for files with extension: {file_extension}")
+			
+			extensions = {
+				"code": {
+					"python": ['.py'],
+					"javascript": ['.js'],
+				},
+				"command": {
+					"darwin": ['.sh'],
+					"linux": ['.sh'],
+					"windows": ['.bat']
+				},
+				"script": {
+					"darwin": ['.applescript'],
+					"linux": ['.sh'],
+					"windows": ['.bat']
+				}
+			}
 
-			# Get a list of all files in the output folder with the correct extension
-			files = glob.glob(os.path.join(output_folder, f"*.{file_extension}"))
-			self.logger.info(f"Found {len(files)} files.")
+			name = language if mode.lower() == 'code' else re.split(r'\s+', os_name.lower())[0]
 
-			# Sort the files by date
-			files.sort(key=lambda x: datetime.strptime(x.split('_', 1)[1].rsplit('.', 1)[0], '%Y_%m_%d-%H_%M_%S'), reverse=True)
-			self.logger.info("Files sorted by date.")
+			for extension in extensions[mode][name]:
+				# Get a list of all files in the output folder with the correct extension
+				files = glob.glob(os.path.join(output_folder, f"*{extension}"))
+				self.logger.info(f"Found {len(files)} files.")
 
-			# Return the latest file
-			latest_file = files[0] if files else None
-			self.logger.info(f"Latest file: {latest_file}")
+				# Sort the files by date
+				files.sort(key=lambda x: datetime.strptime(x.split('_', 1)[1].rsplit('.', 1)[0], '%Y_%m_%d-%H_%M_%S'), reverse=True)
+				self.logger.info("Files sorted by date.")
 
-			# Read the file and return the code
-			if latest_file:
-				with open(latest_file, "r") as code_file:
-					code = code_file.read()
-					return latest_file, code
+				# Return the latest file
+				latest_file = files[0] if files else None
+				self.logger.info(f"Latest file: {latest_file}")
+
+				# Read the file and return the code
+				if latest_file:
+					with open(latest_file, "r") as code_file:
+						code = code_file.read()
+						return latest_file, code
+			
+			return None, None
 
 		except Exception as exception:
 			self.logger.error(f"Error in reading last code history: {str(exception)}")
@@ -212,7 +232,7 @@ class UtilityManager:
 				/install - Install a package from npm or pip.\n\
 				/save - Save the last code generated.\n\
 				/edit - Edit the last code generated.\n\
-				/debug - Debug the last code generated.\n\
+				/fix - Fix the last code generated.\n\
 				/mode - Change the mode of interpreter.\n\
 				/model - Change the model for interpreter.\n\
 				/language - Change the language of the interpreter.\n\
@@ -221,18 +241,18 @@ class UtilityManager:
 				/help - Display this help message.\n\
 				/list - List the available models.\n\
 				/version - Display the version of the interpreter.\n\
-				/log - Switch between verbose and silent mode.\n\
+				/debug - Switch between debug and silent mode.\n\
 				/prompt - Switch input prompt mode between file and prompt.\n\
 				/upgrade - Upgrade the interpreter.\n\
 				/shell - Access the shell.\n")
 	
-	def display_version(self,  version):
+	def display_version(self, version):
 		display_markdown_message(f"Interpreter - v{version}")
 
 	def clear_screen(self):
 		os.system('cls' if os.name == 'nt' else 'clear')
 	
-	def create_file(self,  file_path):
+	def create_file(self, file_path):
 		try:
 			with open(file_path, "w") as file:
 				file.write("")
@@ -240,7 +260,7 @@ class UtilityManager:
 			self.logger.error(f"Error in creating file: {str(exception)}")
 			raise
 		
-	def read_file(self,  file_path):
+	def read_file(self, file_path):
 		try:
 			with open(file_path, "r") as file:
 				return file.read()
@@ -248,7 +268,7 @@ class UtilityManager:
 			self.logger.error(f"Error in reading file: {str(exception)}")
 			raise
 	
-	def write_file(self,  file_path, content):
+	def write_file(self, file_path, content):
 		try:
 			with open(file_path, "w") as file:
 				file.write(content)
@@ -261,7 +281,7 @@ class UtilityManager:
 	@staticmethod
 	def _download_file(url, file_name):
 		try:
-			logger = Logger.initialize_logger("logs/interpreter.log")
+			logger = Logger.initialize("logs/interpreter.log")
 			import requests
 			logger.info(f"Downloading file: {url}")
 			response = requests.get(url, allow_redirects=True)
@@ -278,7 +298,7 @@ class UtilityManager:
 	@staticmethod
 	def upgrade_interpreter():
 		code_interpreter = CodeInterpreter()
-		logger = Logger.initialize_logger("logs/interpreter.log")
+		logger = Logger.initialize("logs/interpreter.log")
 		# Download the requirements file
 		file_url = 'https://raw.githubusercontent.com/haseeb-heaven/code-interpreter/main/requirements.txt'
 		requirements_file_downloaded = UtilityManager._download_file(file_url, 'requirements.txt')
@@ -289,15 +309,15 @@ class UtilityManager:
 		
 		# Execute the commands.
 		command_output, _ = code_interpreter.execute_command(command_pip_upgrade)
-		display_markdown_message(f"Command Upgrade executed successfully.")
+		display_markdown_message("Command Upgrade executed successfully.")
 		if requirements_file_downloaded:
 			command_output, _ = code_interpreter.execute_command(command_pip_requirements)
-			display_markdown_message(f"Command Requirements executed successfully.")
+			display_markdown_message("Command Requirements executed successfully.")
 		else:
-			logger.warn(f"Requirements file not downloaded.")
-			display_markdown_message(f"Warning: Requirements file not downloaded.")
+			logger.warn("Requirements file not downloaded.")
+			display_markdown_message("Warning: Requirements file not downloaded.")
 		
 		if command_output:
-			logger.info(f"Command executed successfully.")
+			logger.info("Command executed successfully.")
 			display_code(command_output)
 			logger.info(f"Output: {command_output[:100]}")

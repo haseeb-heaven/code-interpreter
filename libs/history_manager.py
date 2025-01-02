@@ -7,7 +7,7 @@ from libs.logger import Logger
 class History:
 	def __init__(self, history_file: str):
 		self.history_file = history_file
-		self.logger = Logger.initialize_logger("logs/interpreter.log")
+		self.logger = Logger.initialize("logs/interpreter.log")
 
 	def save_history_json(self, task, mode, os_name, language, prompt, code_snippet, code_output, model_name):
 		try:

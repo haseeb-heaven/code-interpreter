@@ -17,7 +17,7 @@ from libs.markdown_code import display_markdown_message
 class CodeInterpreter:
 
 	def __init__(self):
-		self.logger = Logger.initialize_logger("logs/code-interpreter.log")
+		self.logger = Logger.initialize("logs/code-interpreter.log")
 	
 	def _execute_script(self, script: str, shell: str):
 		stdout = stderr = None

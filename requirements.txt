@@ -15,3 +15,6 @@ plotly
 
 # Libraries for standard libries 
 stdlib_list
+
+# Beatiful Soup library
+beautifulsoup4

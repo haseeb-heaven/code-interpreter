@@ -14,7 +14,7 @@ This file contains the `Interpreter` class which is responsible for:
 import os
 import subprocess
 import time
-import litellm # Main libray for LLM's
+import litellm  # Main libray for LLM's
 from typing import List
 from libs.code_interpreter import CodeInterpreter
 from libs.history_manager import History
@@ -25,6 +25,7 @@ from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
 import shlex
 import shutil
+import logging
 
 class Interpreter:
 	logger = None
@@ -40,7 +41,7 @@ class Interpreter:
 		self.code_interpreter = CodeInterpreter()
 		self.package_manager = PackageManager()
 		self.history_manager = History(self.history_file)
-		self.logger = Logger.initialize_logger("logs/interpreter.log")
+		self.logger = Logger.initialize("logs/interpreter.log")
 		self.client = None
 		self.config_values = None
 		self.system_message = ""
@@ -188,7 +189,7 @@ class Interpreter:
 		
 		# Use the Messages API from Anthropic.
 		if 'claude-3' in self.INTERPRETER_MODEL:
-			messages=[
+			messages = [
 					{
 						"role": "user",
 						"content": [
@@ -212,15 +213,16 @@ class Interpreter:
 	
 	def execute_last_code(self, os_name):
 		try:
-			code_file,code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
-		   
+			code_file, code_snippet = self.utility_manager.get_output_history(mode=self.INTERPRETER_MODE, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
+
 			# check if the code is empty
-			if code_snippet is None:
-				self.logger.error("Code history is empty.")
-				print("Code history is empty. - Please use -s or --save_code to save the code.")
+			if code_snippet is None or code_file is None:
+				self.logger.error("Code history or file is empty.")
+				display_markdown_message("Code history or file is empty. - Please use **-s** flag or **/save** command to save the code.")
 				return
 			
-			display_code(code_snippet)
+			display_code(code_snippet)  # Display the code first.
+
 			# Execute the code if the user has selected.
 			code_output, code_error = self.execute_code(code_snippet, os_name)
 			if code_output:
@@ -449,7 +451,7 @@ class Interpreter:
 
 	def execute_code(self,  extracted_code, os_name):
 		# If the interpreter mode is Vision, do not execute the code.
-		if self.INTERPRETER_MODE in ['vision','chat']:
+		if self.INTERPRETER_MODE in ['vision', 'chat']:
 			return None, None
 		
 		execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
@@ -457,11 +459,11 @@ class Interpreter:
 			try:
 				code_output, code_error = "", ""
 				if self.SCRIPT_MODE:
-					code_output, code_error = self.code_interpreter.execute_script(extracted_code, os_type=os_name)
+					code_output, code_error = self.code_interpreter.execute_script(script=extracted_code, os_type=os_name)
 				elif self.COMMAND_MODE:
-					code_output, code_error = self.code_interpreter.execute_command(extracted_code)
+					code_output, code_error = self.code_interpreter.execute_command(command=extracted_code)
 				elif self.CODE_MODE:
-					code_output, code_error = self.code_interpreter.execute_code(extracted_code, language=self.INTERPRETER_LANGUAGE)
+					code_output, code_error = self.code_interpreter.execute_code(code=extracted_code, language=self.INTERPRETER_LANGUAGE)
 				return code_output, code_error
 			except Exception as exception:
 				self.logger.error(f"Error occurred while executing code: {str(exception)}")
@@ -623,20 +625,21 @@ class Interpreter:
 					continue
 
 				# LOG - Command section.
-				elif task.lower() == '/log':
-					# Toggle the log level to Verbose/Silent.
-					
+				elif task.lower() == '/debug':
+
+					# Toggle the log level to Debug/Silent.
 					logger_mode = Logger.get_current_level()
 					logger_mode = logger_mode.lower()
-					
-					if logger_mode == 'debug':
-						Logger.set_silent_mode()
-						display_markdown_message("Logger mode changed to **Silent**.")
+					print("Logger mode: {}".format(logger_mode))
+
+					if logger_mode == 'error':
+						Logger.set_level_to_info()
+						display_markdown_message("**Debug** mode **disabled**")
 					else:
-						Logger.set_verbose_mode()
-						display_markdown_message("Logger mode changed to **Verbose**.")
+						Logger.set_level_to_debug()
+						display_markdown_message("**Debug** mode **enabled**")
 					continue
-				
+
 				# LIST - Command section.
 				elif task.lower() == '/list':
 					# Get the models info
@@ -673,26 +676,66 @@ class Interpreter:
 				
 				# EXECUTE - Command section.
 				elif task.lower() == '/execute':
+					os_name = os_platform[0].lower()
 					self.execute_last_code(os_name)
 					continue
 				
 				# SAVE - Command section.
 				elif task.lower() == '/save':
-					latest_code_extension = 'py' if self.INTERPRETER_LANGUAGE == 'python' else 'js'
-					latest_code_name = f"output/code_{time.strftime('%Y_%m_%d-%H_%M_%S', time.localtime())}." + latest_code_extension
+					mode_type = self.INTERPRETER_MODE
+					latest_code_extension: str = ""
+					
+					# Get the OS platform.
+					os_name = os_platform[0].lower()
+
+					# Set the script or command extension based on the OS platform and mode type
+					extensions = {
+						"script": {
+							"darwin": ".applescript",
+							"linux": ".sh",
+							"windows": ".bat"
+						},
+						"command": {
+							"darwin": ".sh",
+							"linux": ".sh",
+							"windows": ".bat"
+						},
+						"code": lambda lang: '.py' if lang == 'python' else '.js'
+					}
+
+					lower_os_name = os_name.lower()
+					if mode_type.lower() in extensions:
+						if mode_type.lower() == "code":
+							latest_code_extension = extensions["code"](self.INTERPRETER_LANGUAGE)
+						else:
+							for key in extensions[mode_type.lower()]:
+								if key in lower_os_name:
+									latest_code_extension = extensions[mode_type.lower()][key]
+									break
+							else:
+								raise ValueError(f"Unsupported operating system: {os_name}")
+					else:
+						raise ValueError(f"Unsupported mode type: {mode_type}")
+
+					latest_code_name = f"output/{mode_type}_{time.strftime('%Y_%m_%d-%H_%M_%S', time.localtime())}" + latest_code_extension
 					latest_code = code_snippet
 					self.code_interpreter.save_code(latest_code_name, latest_code)
-					display_markdown_message(f"Code saved successfully to {latest_code_name}.")
+					display_markdown_message(f"{mode_type.capitalize()} saved successfully to **{latest_code_name}**")
 					continue
 
 				# EDIT - Command section.
 				elif task.lower() == '/edit':
-					code_file, code_snippet = self.utility_manager.get_code_history(self.INTERPRETER_LANGUAGE)
-					
 					# Get the OS platform.
-					os_platform = self.utility_manager.get_os_platform()
 					os_name = os_platform[0].lower()
+
+					code_file, code_snippet = self.utility_manager.get_output_history(mode=self.INTERPRETER_MODE, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
 					
+					# check if the code is empty
+					if code_snippet is None or code_file is None:
+						self.logger.error("Code history or file is empty.")
+						display_markdown_message("Code history or file is empty. - Please use **-s** flag or **/save** command to save the code.")
+						continue
+
 					# Attempt to open with default editor.
 					self.logger.info(f"Opening code in default editor for os '{os_platform}'")
 					try:
@@ -714,8 +757,8 @@ class Interpreter:
 							self.logger.error("No suitable editor found.")
 							continue
 
-				# DEBUG - Command section.
-				elif task.lower() == '/debug':
+				# FIX - Command section.
+				elif task.lower() == '/fix':
 
 					if not code_error:
 						code_error = code_output
@@ -724,12 +767,12 @@ class Interpreter:
 						display_markdown_message("Error: No error found in the code to fix.")
 						continue
 
-					debug_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{code_snippet}'\nAnd Error is \n'{code_error}'\n"
+					fix_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{code_snippet}'\nAnd Error is \n'{code_error}'\n"
 					f"give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
 					
 					# Start the LLM Request.
-					self.logger.info(f"Debug Prompt: {debug_prompt}")
-					generated_output = self.generate_content(debug_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
+					self.logger.info(f"Fix Prompt: {fix_prompt}")
+					generated_output = self.generate_content(fix_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
 
 					# Extract the code from the generated output.
 					self.logger.info(f"Generated output type {type(generated_output)}")
@@ -910,7 +953,7 @@ class Interpreter:
 						prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
 					elif self.INTERPRETER_LANGUAGE == 'javascript':
 						prompt += "\n" + "using JavaScript use DataTables save the table in file called 'table.html'"
-				 
+			
 				# Start the LLM Request.     
 				self.logger.info(f"Prompt: {prompt}")
 				
@@ -953,11 +996,11 @@ class Interpreter:
 					elif self.SAVE_CODE and self.COMMAND_MODE:
 						self.code_interpreter.save_code(f"output/command_{current_time}.txt", code_snippet)
 						self.logger.info("Command saved successfully.")
-  
+
 					elif self.SAVE_CODE and self.SCRIPT_MODE:
 						self.code_interpreter.save_code(f"output/script_{current_time}.txt", code_snippet)
 						self.logger.info("Script saved successfully.")
-				  
+				
 					# Execute the code if the user has selected.
 					code_output, code_error = self.execute_code(code_snippet, os_name)
 					

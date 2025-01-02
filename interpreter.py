@@ -24,7 +24,8 @@ from libs.markdown_code import display_markdown_message
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "2.1.5"
+INTERPRETER_VERSION = "2.2.0"
+
 
 def main():
 	parser = argparse.ArgumentParser(description='Code - Interpreter')
