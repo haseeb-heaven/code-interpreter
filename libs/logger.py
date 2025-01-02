@@ -10,7 +10,6 @@ class Logger:
 	@staticmethod
 	def initialize(filename: str):
 		if Logger._logger is None:
-			# Create the root logger
 			Logger._logger = logging.getLogger(filename)
 			Logger._logger.setLevel(logging.DEBUG)
 
@@ -18,13 +17,10 @@ class Logger:
 			Logger._logger.propagate = False
 
 			# Define the logging format
-			log_format = ("%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] "
-				"[%(funcName)s] - %(message)s")
+			log_format = ("%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] [%(funcName)s] - %(message)s")
 
 			# Create a rotating file handler to manage log file sizes and backups
-			Logger._file_handler = RotatingFileHandler(
-				filename, maxBytes=5*1024*1024, backupCount=5
-			)  # 5MB per file
+			Logger._file_handler = RotatingFileHandler(filename, maxBytes=5*1024*1024, backupCount=5)  # 5MB per file
 			Logger._file_handler.setFormatter(logging.Formatter(log_format))
 			Logger._file_handler.setLevel(logging.DEBUG)
 

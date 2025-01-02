@@ -324,7 +324,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 - **v2.1.4** - Added **GPT-4o** models they are most effecient and cost effective models from **OpenAI**
 - **v2.1.5** - Fixed OS type detection **Bug** for MacOS and feautre to open file with default editor.
 
-# 🔥 **v2.2**
+🔥 **v2.2** - Save/Execute _commands_ and _scripts_, Fixed **Logging** and **Package Manager**.
 - **Save/Execute**: Added support to **save and execute code, commands, and scripts** directly to external files.
 - **Updated Commands**: 
   - Removed the `/debug` command and replaced it with the `/fix` command.
