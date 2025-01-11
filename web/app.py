@@ -119,17 +119,18 @@ def execute():
         mode = data.get('mode', 'code')
         model = data.get('model', 'code-llama')
         language = data.get('language', 'python')
+        execute = data.get('execute', True)
         
         if not code:
             logger.error("GUI: No code provided in execute request")
             return jsonify({'error': 'No code provided'})
         
-        logger.info(f"GUI: Executing code with mode={mode}, model={model}, language={language}")
+        logger.info(f"GUI: Executing code with mode={mode}, model={model}, language={language}, execute={execute}")
 
         global interpreter
         if interpreter is None or interpreter.INTERPRETER_MODEL != model:
             logger.info(f"GUI: Initializing new interpreter with model={model}")
-            args = InterpreterArgs(model=model, mode=mode, lang=language)
+            args = InterpreterArgs(model=model, mode=mode, lang=language, exec=execute)
             interpreter = Interpreter(args)
 
         interpreter.initialize_mode()
@@ -137,19 +138,24 @@ def execute():
 
         os_platform = interpreter.utility_manager.get_os_platform()
         os_name = os_platform[0]
-        result = interpreter.execute_code(extracted_code=code, os_name=os_name)
-        logger.info("GUI: Executed code with interpreter")
         
-        if isinstance(result, tuple):
-            output, error = result
-            if error:
-                logger.error(f"GUI: Error executing code: {error}")
-                return jsonify({'error': error})
-            logger.info(f"GUI: Code execution successful, output length: {len(output) if output else 0}")
-            return jsonify({'result': output})
-        
-        logger.info("GUI: Code execution successful")
-        return jsonify({'result': str(result)})
+        if execute:
+            result = interpreter.execute_code(extracted_code=code, os_name=os_name)
+            logger.info("GUI: Executed code with interpreter")
+            
+            if isinstance(result, tuple):
+                output, error = result
+                if error:
+                    logger.error(f"GUI: Error executing code: {error}")
+                    return jsonify({'error': error})
+                logger.info(f"GUI: Code execution successful, output length: {len(output) if output else 0}")
+                return jsonify({'result': output})
+            
+            logger.info("GUI: Code execution successful")
+            return jsonify({'result': str(result)})
+        else:
+            logger.info("GUI: Code execution skipped as per request")
+            return jsonify({'result': 'Code execution skipped'})
     except Exception as error:
         logger.error(f"GUI: Error in execute endpoint: {str(error)}")
         return jsonify({'error': str(error)})

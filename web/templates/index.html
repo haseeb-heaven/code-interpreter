@@ -11,10 +11,10 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Code Interpreter Logo" class="logo">
             <h1>Code Interpreter - GUI</h1>
+            <p>Welcome to Interpreter, I'm here to assist you with your everyday tasks.</p>
             <div class="theme-toggle">
-                <select id="theme-select" class="theme-select">
+                <select id="theme-select">
                     <option value="light">Light Theme</option>
                     <option value="dark">Dark Theme</option>
                 </select>
@@ -23,16 +23,16 @@
         
         <div class="settings-panel">
             <div class="form-group">
-                <label for="model">Model:</label>
-                <select id="model" name="model">
+                <label for="model">Model</label>
+                <select id="model">
                     <option value="code-llama">Code-LLama</option>
                     <option value="gpt-4">GPT-4</option>
                 </select>
             </div>
             
             <div class="form-group">
-                <label for="mode">Mode:</label>
-                <select id="mode" name="mode">
+                <label for="mode">Mode</label>
+                <select id="mode">
                     <option value="code">Code</option>
                     <option value="script">Script</option>
                     <option value="command">Command</option>
@@ -42,42 +42,74 @@
             </div>
             
             <div class="form-group">
-                <label for="language">Language:</label>
-                <select id="language" name="language">
+                <label for="language">Language</label>
+                <select id="language">
                     <option value="python">Python</option>
                     <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
                 </select>
+            </div>
+
+            <div class="form-group">
+                <label for="package-install">Install Package</label>
+                <div class="package-controls">
+                    <input type="text" id="package-name" placeholder="Package name">
+                    <button id="install-btn" class="btn">Install</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Files</label>
+                <div class="file-controls">
+                    <input type="file" id="files" multiple style="display: none;">
+                    <button id="select-files" class="btn">Select Files</button>
+                    <input type="file" id="folder" webkitdirectory directory multiple style="display: none;">
+                    <button id="select-folder" class="btn">Select Folder</button>
+                </div>
             </div>
         </div>
         
         <div class="main-content">
             <div class="form-group">
-                <label for="prompt">Prompt:</label>
-                <textarea id="prompt" name="prompt" placeholder="Enter your prompt here..."></textarea>
+                <label for="prompt">Prompt</label>
+                <textarea id="prompt" placeholder="Enter your prompt here..."></textarea>
             </div>
             
-            <div class="form-group">
-                <label for="code">Code:</label>
-                <textarea id="code" name="code" placeholder="Generated code will appear here..."></textarea>
+            <div class="checkbox-controls">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="display-code" checked>
+                    Display Code
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="execute-code">
+                    Execute Code
+                </label>
+            </div>
+            
+            <div id="code-block" class="form-group">
+                <label for="code">Code</label>
+                <textarea id="code" placeholder="Generated code will appear here..."></textarea>
             </div>
             
             <div class="button-group">
                 <button id="generate-btn" class="btn">Generate</button>
                 <button id="execute-btn" class="btn">Execute</button>
-                <button id="fix-btn" class="btn">Fix Code</button>
-                <button id="save-btn" class="btn">Save Code</button>
+                <button id="fix-btn" class="btn">Fix</button>
                 <button id="edit-btn" class="btn">Edit</button>
+                <button id="clear-btn" class="btn">Clear</button>
+                <button id="copy-btn" class="btn">Copy</button>
             </div>
             
             <div class="form-group">
-                <label for="output">Output:</label>
-                <textarea id="output" name="output" readonly></textarea>
+                <label for="output">Output</label>
+                <textarea id="output" readonly></textarea>
             </div>
         </div>
     </div>
-    
+
     <div id="notification-container"></div>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>

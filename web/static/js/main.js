@@ -1,47 +1,44 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize CodeMirror for code input
-    const codeEditor = CodeMirror.fromTextArea(document.getElementById('code'), {
-        mode: 'python',
-        theme: 'monokai',
-        lineNumbers: true,
-        indentUnit: 4,
-        viewportMargin: Infinity,
-        extraKeys: {
-            'Tab': function(cm) {
-                cm.replaceSelection('    ', 'end');
-            }
-        }
-    });
-
-    // Elements
-    const themeSelect = document.getElementById('theme-select');
+    // Get DOM elements
+    const promptInput = document.getElementById('prompt');
+    const codeEditor = document.getElementById('code');
+    const outputArea = document.getElementById('output');
     const generateBtn = document.getElementById('generate-btn');
     const executeBtn = document.getElementById('execute-btn');
     const fixBtn = document.getElementById('fix-btn');
-    const saveBtn = document.getElementById('save-btn');
     const editBtn = document.getElementById('edit-btn');
-    const promptInput = document.getElementById('prompt');
-    const modeSelect = document.getElementById('mode');
+    const clearBtn = document.getElementById('clear-btn');
+    const copyBtn = document.getElementById('copy-btn');
     const modelSelect = document.getElementById('model');
+    const modeSelect = document.getElementById('mode');
     const languageSelect = document.getElementById('language');
-    const outputArea = document.getElementById('output');
-
+    const displayCodeCheckbox = document.getElementById('display-code');
+    const executeCodeCheckbox = document.getElementById('execute-code');
+    const codeBlock = document.getElementById('code-block');
+    const filesInput = document.getElementById('files');
+    const folderInput = document.getElementById('folder');
+    const selectFilesBtn = document.getElementById('select-files');
+    const selectFolderBtn = document.getElementById('select-folder');
+    const themeSelect = document.getElementById('theme-select');
+    const notificationContainer = document.getElementById('notification-container');
+    const installBtn = document.getElementById('install-btn');
+    const packageNameInput = document.getElementById('package-name');
+    
     // Load theme preference
     const savedTheme = localStorage.getItem('theme') || 'light';
     themeSelect.value = savedTheme;
     document.body.classList.toggle('dark-theme', savedTheme === 'dark');
 
-    // Theme toggle
+    // Theme toggle handler
     themeSelect.addEventListener('change', function() {
         const theme = this.value;
         document.body.classList.toggle('dark-theme', theme === 'dark');
         localStorage.setItem('theme', theme);
-        showNotification('Theme updated successfully', 'success');
+        showNotification('Theme updated', 'success');
     });
 
-    // Notification system
+    // Function to show notifications
     function showNotification(message, type = 'info') {
-        const notificationContainer = document.getElementById('notification-container');
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         
@@ -55,7 +52,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         notification.appendChild(messageText);
         notification.appendChild(closeBtn);
-        
         notificationContainer.appendChild(notification);
         
         setTimeout(() => {
@@ -63,6 +59,276 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => notification.remove(), 500);
         }, 5000);
     }
+
+    // Display Code checkbox handler
+    displayCodeCheckbox.addEventListener('change', function() {
+        codeBlock.style.display = this.checked ? 'block' : 'none';
+        console.log('Display code toggled:', this.checked);
+    });
+
+    // File selection handlers
+    selectFilesBtn.addEventListener('click', () => {
+        console.log('Select files button clicked');
+        filesInput.click();
+    });
+
+    selectFolderBtn.addEventListener('click', () => {
+        console.log('Select folder button clicked');
+        folderInput.click();
+    });
+
+    // Function to format code based on language
+    function formatCode(code, language) {
+        const codeArea = document.getElementById('code');
+        codeArea.className = `${language}-code`;
+        
+        // Basic syntax highlighting
+        if (language === 'python') {
+            code = code.replace(/(def|class|if|else|for|while|import|from|return|True|False|None)\b/g, '<span class="keyword">$1</span>')
+                      .replace(/(["'])(.*?)\1/g, '<span class="string">$1$2$1</span>')
+                      .replace(/\b(\d+)\b/g, '<span class="number">$1</span>')
+                      .replace(/\b([a-zA-Z_]\w*)\(/g, '<span class="function">$1</span>(')
+                      .replace(/#.*/g, '<span class="comment">$&</span>');
+        } else if (language === 'javascript') {
+            code = code.replace(/(function|const|let|var|if|else|for|while|return|true|false|null)\b/g, '<span class="keyword">$1</span>')
+                      .replace(/(["'])(.*?)\1/g, '<span class="string">$1$2$1</span>')
+                      .replace(/\b(\d+)\b/g, '<span class="number">$1</span>')
+                      .replace(/\b([a-zA-Z_]\w*)\(/g, '<span class="function">$1</span>(')
+                      .replace(/\/\/.*/g, '<span class="comment">$&</span>')
+                      .replace(/\/\*[\s\S]*?\*\//g, '<span class="comment">$&</span>');
+        }
+        
+        return code;
+    }
+
+    // Function to get absolute file path
+    function getAbsolutePath(file) {
+        if (file.path) {
+            return file.path;
+        }
+        
+        const fullPath = new URL(file.webkitRelativePath || file.name, window.location.href).pathname;
+        return fullPath.startsWith('/') ? fullPath : '/' + fullPath;
+    }
+
+    // Install package handler
+    installBtn.addEventListener('click', async () => {
+        const packageName = packageNameInput.value.trim();
+        if (!packageName) {
+            showNotification('Please enter a package name', 'error');
+            return;
+        }
+
+        try {
+            installBtn.disabled = true;
+            showNotification(`Installing package: ${packageName}...`, 'info');
+
+            const response = await fetch('/install', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ package: packageName })
+            });
+
+            if (!response.ok) throw new Error('Failed to install package');
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            showNotification(`Package ${packageName} installed successfully`, 'success');
+            packageNameInput.value = '';
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            installBtn.disabled = false;
+        }
+    });
+
+    // Modified file selection handler
+    filesInput.addEventListener('change', (event) => {
+        const files = Array.from(event.target.files);
+        if (files.length > 0) {
+            console.log('Selected files:', files);
+            const paths = files.map(file => {
+                const absolutePath = getAbsolutePath(file);
+                console.log('Absolute file path:', absolutePath);
+                return absolutePath;
+            });
+            
+            const fileList = paths.join('\n');
+            console.log('File list to append:', fileList);
+            
+            promptInput.value += (promptInput.value ? '\n\n' : '') + `Selected Files:\n${fileList}`;
+            showNotification(`Added ${files.length} file(s)`, 'success');
+        }
+    });
+
+    // Modified folder selection handler
+    folderInput.addEventListener('change', (event) => {
+        const files = Array.from(event.target.files);
+        if (files.length > 0) {
+            const folderPath = getAbsolutePath(files[0]).split('/').slice(0, -1).join('/');
+            console.log('Selected folder path:', folderPath);
+            
+            promptInput.value += (promptInput.value ? '\n\n' : '') + `Selected Folder:\n${folderPath}`;
+            showNotification('Added folder path', 'success');
+        }
+    });
+
+    // Language change handler for code formatting
+    languageSelect.addEventListener('change', function() {
+        const code = codeEditor.value;
+        if (code) {
+            codeEditor.innerHTML = formatCode(code, this.value);
+        }
+    });
+
+    // Function to get full file path
+    function getFullPath(file) {
+        if (file.path) {
+            return file.path;
+        }
+        // For web API File objects, construct path from webkitRelativePath
+        if (file.webkitRelativePath) {
+            return '/' + file.webkitRelativePath;
+        }
+        // Fallback to filename
+        return file.name;
+    }
+
+    // Fix button handler
+    fixBtn.addEventListener('click', async () => {
+        const code = codeEditor.value.trim();
+        if (!code) {
+            showNotification('Please enter code to fix', 'error');
+            return;
+        }
+
+        try {
+            fixBtn.disabled = true;
+            showNotification('Fixing code...', 'info');
+
+            const response = await fetch('/fix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+
+            if (!response.ok) throw new Error('Failed to fix code');
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            codeEditor.value = data.fixed_code;
+            showNotification('Code fixed successfully', 'success');
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            fixBtn.disabled = false;
+        }
+    });
+
+    // Edit button handler
+    editBtn.addEventListener('click', () => {
+        const codeArea = document.getElementById('code');
+        const isReadOnly = codeArea.readOnly;
+        codeArea.readOnly = !isReadOnly;
+        editBtn.textContent = isReadOnly ? 'Lock' : 'Edit';
+        showNotification(`Code editor is now ${isReadOnly ? 'editable' : 'locked'}`, 'info');
+    });
+
+    // Generate button handler
+    generateBtn.addEventListener('click', async () => {
+        if (!promptInput.value.trim()) {
+            showNotification('Please enter a prompt', 'error');
+            return;
+        }
+
+        try {
+            generateBtn.disabled = true;
+            showNotification('Generating code...', 'info');
+
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: promptInput.value,
+                    mode: modeSelect.value,
+                    model: modelSelect.value,
+                    language: languageSelect.value,
+                    execute: executeCodeCheckbox.checked
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to generate code');
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            codeEditor.value = data.response;
+            showNotification('Code generated successfully', 'success');
+
+            if (executeCodeCheckbox.checked) {
+                executeBtn.click();
+            }
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            generateBtn.disabled = false;
+        }
+    });
+
+    // Execute button handler
+    executeBtn.addEventListener('click', async () => {
+        const code = codeEditor.value.trim();
+        if (!code) {
+            showNotification('No code to execute', 'error');
+            return;
+        }
+
+        try {
+            executeBtn.disabled = true;
+            showNotification('Executing code...', 'info');
+
+            const response = await fetch('/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    code,
+                    mode: modeSelect.value,
+                    model: modelSelect.value,
+                    language: languageSelect.value
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to execute code');
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+
+            outputArea.value = data.result;
+            showNotification('Code executed successfully', 'success');
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            executeBtn.disabled = false;
+        }
+    });
+
+    // Clear button handler
+    clearBtn.addEventListener('click', () => {
+        promptInput.value = '';
+        codeEditor.value = '';
+        outputArea.value = '';
+        showNotification('All fields cleared', 'info');
+    });
+
+    // Copy button handler
+    copyBtn.addEventListener('click', () => {
+        const code = codeEditor.value;
+        if (code) {
+            navigator.clipboard.writeText(code)
+                .then(() => showNotification('Code copied to clipboard', 'success'))
+                .catch(() => showNotification('Failed to copy code', 'error'));
+        } else {
+            showNotification('No code to copy', 'error');
+        }
+    });
 
     // Load models
     async function loadModels() {
@@ -86,159 +352,11 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification(error.message, 'error');
         }
     }
+
+    // Initialize display state
+    codeBlock.style.display = displayCodeCheckbox.checked ? 'block' : 'none';
+    document.getElementById('code').readOnly = true;
     
     // Load models on page load
     loadModels();
-
-    // Generate button
-    generateBtn.addEventListener('click', async () => {
-        if (!promptInput.value.trim()) {
-            showNotification('Please enter a prompt', 'error');
-            return;
-        }
-
-        try {
-            generateBtn.disabled = true;
-            showNotification('Generating code...', 'info');
-
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: promptInput.value,
-                    mode: modeSelect.value,
-                    model: modelSelect.value,
-                    language: languageSelect.value
-                })
-            });
-
-            if (!response.ok) throw new Error('Failed to generate code');
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-
-            codeEditor.setValue(data.response);
-            showNotification('Code generated successfully', 'success');
-        } catch (error) {
-            showNotification(error.message, 'error');
-        } finally {
-            generateBtn.disabled = false;
-        }
-    });
-
-    // Execute button
-    executeBtn.addEventListener('click', async () => {
-        const code = codeEditor.getValue().trim();
-        
-        if (!code) {
-            showNotification('Please enter code to execute', 'error');
-            return;
-        }
-
-        showNotification('Executing code...', 'info');
-        try {
-            const response = await fetch('/execute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    code,
-                    mode: modeSelect.value,
-                    model: modelSelect.value,
-                    language: languageSelect.value
-                })
-            });
-
-            if (!response.ok) throw new Error('Failed to execute code');
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-
-            outputArea.value = data.result;
-            showNotification('Code executed successfully', 'success');
-        } catch (error) {
-            showNotification(error.message, 'error');
-        }
-    });
-
-    // Fix button
-    fixBtn.addEventListener('click', async () => {
-        const code = codeEditor.getValue().trim();
-        if (!code) {
-            showNotification('Please enter code to fix', 'error');
-            return;
-        }
-
-        try {
-            fixBtn.disabled = true;
-            showNotification('Fixing code...', 'info');
-
-            const response = await fetch('/fix', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code })
-            });
-
-            if (!response.ok) throw new Error('Failed to fix code');
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-
-            codeEditor.setValue(data.fixed_code);
-            showNotification('Code fixed successfully', 'success');
-        } catch (error) {
-            showNotification(error.message, 'error');
-        } finally {
-            fixBtn.disabled = false;
-        }
-    });
-
-    // Save button
-    saveBtn.addEventListener('click', async () => {
-        const code = codeEditor.getValue().trim();
-        if (!code) {
-            showNotification('Please enter code to save', 'error');
-            return;
-        }
-
-        showNotification('Saving code...', 'info');
-        try {
-            const response = await fetch('/save_code', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    code,
-                    mode: modeSelect.value,
-                    model: modelSelect.value,
-                    language: languageSelect.value
-                })
-            });
-
-            if (!response.ok) throw new Error('Failed to save code');
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-
-            showNotification(data.result, 'success');
-        } catch (error) {
-            showNotification(error.message, 'error');
-        }
-    });
-
-    // Edit button
-    editBtn.addEventListener('click', () => {
-        const isReadOnly = codeEditor.getOption('readOnly');
-        codeEditor.setOption('readOnly', !isReadOnly);
-        editBtn.textContent = isReadOnly ? 'Lock' : 'Edit';
-        showNotification(`Code editor is now ${isReadOnly ? 'editable' : 'locked'}`, 'info');
-    });
-
-    // Language change
-    languageSelect.addEventListener('change', function() {
-        const mode = this.value;
-        codeEditor.setOption('mode', mode);
-        showNotification(`Language changed to ${mode}`, 'info');
-    });
-
-    // Mode change
-    modeSelect.addEventListener('change', function() {
-        const mode = this.value;
-        promptInput.placeholder = `Enter ${mode} prompt here...`;
-        showNotification(`Mode changed to ${mode}`, 'info');
-    });
 });

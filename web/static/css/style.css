@@ -1,91 +1,37 @@
-:root {
-    /* Light theme variables */
-    --background-color-light: #ffffff;
-    --text-color-light: #2c3e50;
-    --border-color-light: #dcdde1;
-    --input-bg-light: #f5f6fa;
-    --button-bg-light: #3498db;
-    --button-hover-light: #2980b9;
-    --button-disabled-light: #cccccc;
-    
-    /* Dark theme variables */
-    --background-color-dark: #1e1e1e;
-    --text-color-dark: #ffffff;
-    --border-color-dark: #333333;
-    --input-bg-dark: #2d2d2d;
-    --button-bg-dark: #0078d4;
-    --button-hover-dark: #106ebe;
-    --button-disabled-dark: #666666;
-    
-    /* Common variables */
-    --success-color: #28a745;
-    --error-color: #dc3545;
-    --info-color: #17a2b8;
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --hover-color: #2980b9;
-}
-
-/* Default light theme */
-:root {
-    --background-color: var(--background-color-light);
-    --text-color: var(--text-color-light);
-    --border-color: var(--border-color-light);
-    --input-bg: var(--input-bg-light);
-    --button-bg: var(--button-bg-light);
-    --button-hover: var(--button-hover-light);
-    --button-disabled: var(--button-disabled-light);
-}
-
-/* Dark theme class */
-body.dark-theme {
-    --background-color: var(--background-color-dark);
-    --text-color: var(--text-color-dark);
-    --border-color: var(--border-color-dark);
-    --input-bg: var(--input-bg-dark);
-    --button-bg: var(--button-bg-dark);
-    --button-hover: var(--button-hover-dark);
-    --button-disabled: var(--button-disabled-dark);
-}
-
 /* Base styles */
 body {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     margin: 0;
     padding: 20px;
     background-color: var(--background-color);
     color: var(--text-color);
     transition: background-color 0.3s, color 0.3s;
-    line-height: 1.6;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
+    background: var(--background-color);
     padding: 20px;
-    background-color: var(--background-color);
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Header styles */
+/* Header */
 .header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
     position: relative;
 }
 
 .header h1 {
     margin: 0;
-    font-size: 24px;
     color: var(--text-color);
 }
 
-.logo {
-    width: 50px;
-    height: 50px;
-    margin-bottom: 10px;
+.header p {
+    color: var(--text-color);
+    margin: 10px 0;
 }
 
 .theme-toggle {
@@ -94,7 +40,7 @@ body {
     right: 0;
 }
 
-.theme-select {
+#theme-select {
     padding: 5px 10px;
     border-radius: 4px;
     border: 1px solid var(--border-color);
@@ -109,46 +55,40 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     margin-bottom: 20px;
+    padding: 20px;
+    background: var(--input-bg);
+    border-radius: 8px;
 }
 
-/* Form elements */
 .form-group {
     margin-bottom: 15px;
 }
 
-label {
+.form-group label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
     color: var(--text-color);
 }
 
-input[type="text"],
-select,
-textarea {
+.form-group select,
+.form-group input,
+.form-group textarea {
     width: 100%;
     padding: 8px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-size: 14px;
     background-color: var(--input-bg);
     color: var(--text-color);
-    transition: border-color 0.3s, background-color 0.3s;
+    font-size: 14px;
 }
 
-textarea {
-    min-height: 150px;
-    resize: vertical;
+.file-controls {
+    display: flex;
+    gap: 10px;
 }
 
 /* Buttons */
-.button-group {
-    display: flex;
-    gap: 10px;
-    margin: 20px 0;
-    flex-wrap: wrap;
-}
-
 .btn {
     padding: 8px 16px;
     border: none;
@@ -169,15 +109,43 @@ textarea {
     cursor: not-allowed;
 }
 
-/* Output area */
-#output {
-    margin-top: 20px;
+/* Checkbox controls */
+.checkbox-controls {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+/* Button group */
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* Code block */
+#code-block {
+    margin: 20px 0;
+}
+
+textarea {
+    width: 100%;
+    min-height: 150px;
     padding: 10px;
-    background-color: var(--input-bg);
     border: 1px solid var(--border-color);
     border-radius: 4px;
+    background-color: var(--input-bg);
     color: var(--text-color);
     font-family: monospace;
+    resize: vertical;
 }
 
 /* Notifications */
@@ -189,7 +157,7 @@ textarea {
 }
 
 .notification {
-    padding: 15px 25px;
+    padding: 15px 20px;
     margin-bottom: 10px;
     border-radius: 4px;
     color: white;
@@ -198,21 +166,20 @@ textarea {
     align-items: center;
     justify-content: space-between;
     min-width: 300px;
-    max-width: 500px;
     animation: slideIn 0.3s ease-out;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-.notification.info {
-    background-color: var(--info-color);
-}
+.notification.success { background-color: var(--success-color); }
+.notification.error { background-color: var(--error-color); }
+.notification.info { background-color: var(--info-color); }
 
-.notification.success {
-    background-color: var(--success-color);
-}
-
-.notification.error {
-    background-color: var(--error-color);
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 5px;
 }
 
 @keyframes slideIn {
@@ -226,33 +193,71 @@ textarea {
     }
 }
 
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-    }
-    to {
-        opacity: 0;
-    }
-}
-
 /* Responsive design */
 @media (max-width: 768px) {
-    .container {
-        padding: 10px;
+    .settings-panel {
+        grid-template-columns: 1fr;
     }
     
     .button-group {
-        flex-direction: column;
+        flex-wrap: wrap;
     }
     
     .btn {
-        width: 100%;
+        flex: 1 1 calc(50% - 5px);
     }
-    
-    .theme-toggle {
-        position: static;
-        margin-top: 10px;
-    }
+}
+
+/* Light theme variables */
+:root {
+    --background-color-light: #ffffff;
+    --text-color-light: #2c3e50;
+    --border-color-light: #dcdde1;
+    --input-bg-light: #f5f6fa;
+    --button-bg-light: #3498db;
+    --button-hover-light: #2980b9;
+    --button-disabled-light: #bdc3c7;
+    --success-color-light: #2ecc71;
+    --error-color-light: #e74c3c;
+    --info-color-light: #3498db;
+
+    /* Dark theme variables */
+    --background-color-dark: #2c3e50;
+    --text-color-dark: #ecf0f1;
+    --border-color-dark: #34495e;
+    --input-bg-dark: #34495e;
+    --button-bg-dark: #3498db;
+    --button-hover-dark: #2980b9;
+    --button-disabled-dark: #7f8c8d;
+    --success-color-dark: #27ae60;
+    --error-color-dark: #c0392b;
+    --info-color-dark: #2980b9;
+
+    /* Default theme (light) */
+    --background-color: var(--background-color-light);
+    --text-color: var(--text-color-light);
+    --border-color: var(--border-color-light);
+    --input-bg: var(--input-bg-light);
+    --button-bg: var(--button-bg-light);
+    --button-hover: var(--button-hover-light);
+    --button-disabled: var(--button-disabled-light);
+    --success-color: var(--success-color-light);
+    --error-color: var(--error-color-light);
+    --info-color: var(--info-color-light);
+}
+
+/* Dark theme */
+body.dark-theme {
+    --background-color: var(--background-color-dark);
+    --text-color: var(--text-color-dark);
+    --border-color: var(--border-color-dark);
+    --input-bg: var(--input-bg-dark);
+    --button-bg: var(--button-bg-dark);
+    --button-hover: var(--button-hover-dark);
+    --button-disabled: var(--button-disabled-dark);
+    --success-color: var(--success-color-dark);
+    --error-color: var(--error-color-dark);
+    --info-color: var(--info-color-dark);
 }
 
 /* Additional theme styles */
@@ -518,3 +523,46 @@ select option {
     background-color: var(--input-bg);
     color: var(--text-color);
 }
+
+.package-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.package-controls input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Code formatting */
+#code {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    tab-size: 4;
+    -moz-tab-size: 4;
+    line-height: 1.5;
+    padding: 15px;
+    white-space: pre;
+}
+
+/* Python syntax highlighting */
+.python-code {
+    color: var(--text-color);
+}
+
+.python-code .keyword { color: #ff79c6; }
+.python-code .string { color: #f1fa8c; }
+.python-code .number { color: #bd93f9; }
+.python-code .function { color: #50fa7b; }
+.python-code .comment { color: #6272a4; }
+
+/* JavaScript syntax highlighting */
+.javascript-code {
+    color: var(--text-color);
+}
+
+.javascript-code .keyword { color: #ff79c6; }
+.javascript-code .string { color: #f1fa8c; }
+.javascript-code .number { color: #bd93f9; }
+.javascript-code .function { color: #50fa7b; }
+.javascript-code .comment { color: #6272a4; }
