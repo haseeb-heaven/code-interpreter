@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Interpreter GUI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Code Interpreter GUI</h1>
+            <div class="theme-toggle">
+                <label>Theme:</label>
+                <select id="themeSelect">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="settings-panel">
+                <div class="setting-group">
+                    <label>Mode:</label>
+                    <select id="modeSelect">
+                        <option value="code">Code</option>
+                        <option value="script">Script</option>
+                        <option value="command">Command</option>
+                        <option value="vision">Vision</option>
+                        <option value="chat">Chat</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>Language:</label>
+                    <select id="languageSelect">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>Model:</label>
+                    <select id="modelSelect">
+                        <option value="code-llama">Code-LLama</option>
+                        <option value="gpt-4">GPT-4</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-section">
+                <textarea id="promptInput" placeholder="Enter your prompt here..."></textarea>
+                <div class="file-upload" id="fileUploadArea">
+                    <input type="file" id="fileInput" multiple>
+                    <div class="file-info" id="fileInfo">
+                        <p>Drop files here or click to upload</p>
+                        <p id="fileCount"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="package-section">
+                <input type="text" id="packageInput" placeholder="Enter package name">
+                <button id="installPackageBtn">Install Package</button>
+            </div>
+
+            <div class="action-buttons">
+                <button id="generateBtn">Generate</button>
+                <button id="executeBtn">Execute</button>
+                <button id="fixCodeBtn">Fix Code</button>
+                <button id="saveBtn">Save</button>
+                <button id="editBtn">Edit</button>
+            </div>
+
+            <div class="output-section">
+                <div class="output-controls">
+                    <label>
+                        <input type="checkbox" id="displayCodeCheckbox" checked>
+                        Display Code
+                    </label>
+                </div>
+                <div id="codeOutput"></div>
+                <div id="executionOutput"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
