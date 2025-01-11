@@ -13,57 +13,155 @@ import subprocess
 import traceback
 from libs.logger import Logger
 from libs.markdown_code import display_markdown_message
+import tempfile
+import logging
+import sys
 
 class CodeInterpreter:
 
 	def __init__(self):
-		self.logger = Logger.initialize("logs/code-interpreter.log")
-	
-	def _execute_script(self, script: str, shell: str):
-		stdout = stderr = None
-		try:
-			if shell == "bash":
-				process = subprocess.Popen(['bash', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			elif shell == "powershell":
-				process = subprocess.Popen(['powershell', '-Command', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			elif shell == "applescript":
-				process = subprocess.Popen(['osascript', '-'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			else:
-				self.logger.error(f"Invalid shell selected: {shell}")
-				return None, f"Invalid shell selected: {shell}"
-			stdout, stderr = process.communicate()
-			self.logger.info(f"Output is {stdout.decode()} and error is {stderr.decode()}")
-			if process.returncode != 0:
-				self.logger.error(f"Error in running {shell} script: {stderr.decode()}")
-		except Exception as exception:
-			self.logger.error(f"Exception in running {shell} script: {str(exception)}")
-			stderr = str(exception)
-		finally:
-			return stdout.decode().strip() if stdout else None, stderr.decode().strip() if stderr else None
-		
-	def _check_compilers(self, language):
-		try:
-			language = language.lower().strip()
-			
-			compilers = {
-				"python": ["python", "--version"],
-				"javascript": ["node", "--version"],
+		self.logger = logging.getLogger(__name__)
+		self.supported_languages = {
+			'python': {
+				'extension': '.py',
+				'compiler': 'python3',
+				'version_flag': '--version'
+			},
+			'javascript': {
+				'extension': '.js',
+				'compiler': 'node',
+				'version_flag': '--version'
 			}
-
-			if language not in compilers:
-				self.logger.error("Invalid language selected.")
-				return False
-
-			compiler = subprocess.run(compilers[language], capture_output=True, text=True)
-			if compiler.returncode != 0:
-				self.logger.error(f"{language.capitalize()} compiler not found.")
-				return False
-
-			return True
-		except Exception as exception:
-			self.logger.error(f"Error occurred while checking compilers: {exception}")
-			raise Exception(f"Error occurred while checking compilers: {exception}")
+		}
 	
+	def _check_compilers(self, language):
+		if language not in self.supported_languages:
+			self.logger.error(f"Language {language} not supported")
+			raise ValueError(f"Language {language} not supported. Supported languages: {list(self.supported_languages.keys())}")
+
+		compiler_info = self.supported_languages[language]
+		try:
+			subprocess.run([compiler_info['compiler'], compiler_info['version_flag']], 
+						 capture_output=True, check=True)
+			return True
+		except (subprocess.CalledProcessError, FileNotFoundError):
+			self.logger.error(f"Compiler for {language} not found")
+			raise RuntimeError(f"Compiler for {language} not found. Please install {compiler_info['compiler']}")
+
+	def execute_code(self, code, language='python'):
+		"""Execute code in the specified language."""
+		try:
+			self._check_compilers(language)
+			
+			# Create a temporary file with the appropriate extension
+			with tempfile.NamedTemporaryFile(suffix=self.supported_languages[language]['extension'], 
+										   mode='w', delete=False) as temp_file:
+				temp_file.write(code)
+				temp_file_path = temp_file.name
+
+			# Execute the code
+			compiler = self.supported_languages[language]['compiler']
+			process = subprocess.run([compiler, temp_file_path], 
+									capture_output=True, 
+									text=True)
+
+			# Clean up
+			os.unlink(temp_file_path)
+
+			return process.stdout, process.stderr
+
+		except Exception as e:
+			self.logger.error(f"Error executing code: {str(e)}")
+			return None, str(e)
+
+	def fix_code_errors(self, code, language='python'):
+		"""Attempt to fix common code errors."""
+		try:
+			# Basic syntax fixes
+			if language == 'python':
+				# Fix indentation
+				lines = code.split('\n')
+				fixed_lines = []
+				current_indent = 0
+				
+				for line in lines:
+					stripped = line.lstrip()
+					if stripped.startswith(('def ', 'class ', 'if ', 'for ', 'while ', 'try:', 'except:', 'finally:')):
+						fixed_lines.append('    ' * current_indent + stripped)
+						current_indent += 1
+					elif stripped.startswith(('else:', 'elif ')):
+						current_indent = max(0, current_indent - 1)
+						fixed_lines.append('    ' * current_indent + stripped)
+						current_indent += 1
+					else:
+						fixed_lines.append('    ' * current_indent + stripped)
+				
+				code = '\n'.join(fixed_lines)
+				
+				# Add missing colons
+				code = code.replace('else\n', 'else:\n')
+				code = code.replace('try\n', 'try:\n')
+				code = code.replace('except\n', 'except:\n')
+				code = code.replace('finally\n', 'finally:\n')
+				
+			elif language == 'javascript':
+				# Add missing semicolons
+				lines = code.split('\n')
+				fixed_lines = []
+				
+				for line in lines:
+					stripped = line.strip()
+					if stripped and not stripped.endswith(';') and \
+					   not stripped.endswith('{') and \
+					   not stripped.endswith('}') and \
+					   not stripped.startswith('//'):
+						fixed_lines.append(line + ';')
+					else:
+						fixed_lines.append(line)
+				
+				code = '\n'.join(fixed_lines)
+				
+				# Fix function declarations
+				code = code.replace('function(', 'function (')
+				
+			return code
+
+		except Exception as e:
+			self.logger.error(f"Error fixing code: {str(e)}")
+			return code
+
+	def extract_code(self, text, start_sep='```', end_sep='```', skip_first_line=True):
+		"""Extract code from text between separators."""
+		try:
+			if not text:
+				self.logger.info("No special characters found in the code. Returning the original code.")
+				return text
+
+			# Find the first occurrence of start_sep
+			start_idx = text.find(start_sep)
+			if start_idx == -1:
+				self.logger.info("No special characters found in the code. Returning the original code.")
+				return text
+
+			# Find the matching end_sep
+			end_idx = text.find(end_sep, start_idx + len(start_sep))
+			if end_idx == -1:
+				self.logger.info("No special characters found in the code. Returning the original code.")
+				return text
+
+			# Extract the code between separators
+			code = text[start_idx + len(start_sep):end_idx].strip()
+
+			# Skip the first line if it's a language specifier
+			if skip_first_line and '\n' in code:
+				code = code[code.find('\n')+1:].strip()
+
+			return code
+
+		except Exception as e:
+			self.logger.error(f"Error extracting code: {str(e)}")
+			return text
+
 	def save_code(self, filename='output/code_generated.py', code=None):
 		"""
 		Saves the provided code to a file.
@@ -87,86 +185,27 @@ class CodeInterpreter:
 			self.logger.error(f"Error occurred while saving code to file: {exception}")
 			raise Exception(f"Error occurred while saving code to file: {exception}")
 
-	def extract_code(self, code: str, start_sep='```', end_sep='```', skip_first_line=False, code_mode=False):
-		"""
-		Extracts the code from the provided string.
-		If the string contains the start and end separators, it extracts the code between them.
-		Otherwise, it returns the original string.
-		"""
+	def _execute_script(self, script: str, shell: str):
+		stdout = stderr = None
 		try:
-			if code is None:
-				self.logger.error("No content were generated by the LLM.")
-				display_markdown_message("Error: **No content were generated by the LLM.**")
-				return None
-
-			has_newline = False
-			if start_sep in code and end_sep in code:
-				start = code.find(start_sep) + len(start_sep)
-				# Skip the newline character after the start separator
-				if code[start] == '\n':
-					start += 1
-					has_newline = True
-					
-				end = code.find(end_sep, start)
-				# Skip the newline character before the end separator
-				if code[end - 1] == '\n':
-					end -= 1
-					
-				if skip_first_line and code_mode and not has_newline:
-					# Skip the first line after the start separator
-					start = code.find('\n', start) + 1
-					
-				extracted_code = code[start:end]
-				# Remove extra words for commands present.
-				if not code_mode and 'bash' in extracted_code:
-					extracted_code = extracted_code.replace('bash', '')
-				
-				self.logger.info("Code extracted successfully.")
-				return extracted_code
+			if shell == "bash":
+				process = subprocess.Popen(['bash', '-c', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			elif shell == "powershell":
+				process = subprocess.Popen(['powershell', '-Command', script], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			elif shell == "applescript":
+				process = subprocess.Popen(['osascript', '-'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 			else:
-				self.logger.info("No special characters found in the code. Returning the original code.")
-				return code
+				self.logger.error(f"Invalid shell selected: {shell}")
+				return None, f"Invalid shell selected: {shell}"
+			stdout, stderr = process.communicate()
+			self.logger.info(f"Output is {stdout.decode()} and error is {stderr.decode()}")
+			if process.returncode != 0:
+				self.logger.error(f"Error in running {shell} script: {stderr.decode()}")
 		except Exception as exception:
-			self.logger.error(f"Error occurred while extracting code: {exception}")
-			raise Exception(f"Error occurred while extracting code: {exception}")
-		  
-	def execute_code(self, code, language):
-		try:
-			language = language.lower()
-			self.logger.info(f"Running code: {code[:100]} in language: {language}")
-
-			# Check for code and language validity
-			if not code or len(code.strip()) == 0:
-				return "Code is empty. Cannot execute an empty code."
-			
-			# Check for compilers on the system
-			compilers_status = self._check_compilers(language)
-			if not compilers_status:
-				raise Exception("Compilers not found. Please install compilers on your system.")
-			
-			if language == "python":
-				process = subprocess.Popen(["python", "-c", code], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-				stdout, stderr = process.communicate()
-				stdout_output = stdout.decode("utf-8")
-				stderr_output = stderr.decode("utf-8")
-				self.logger.info(f"Python Output execution: {stdout_output}, Errors: {stderr_output}")
-				return stdout_output, stderr_output
-			
-			elif language == "javascript":
-				process = subprocess.Popen(["node", "-e", code], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-				stdout, stderr = process.communicate()
-				stdout_output = stdout.decode("utf-8")
-				stderr_output = stderr.decode("utf-8")
-				self.logger.info(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
-				return stdout_output, stderr_output
-			
-			else:
-				self.logger.info("Unsupported language.")
-				raise Exception("Unsupported language.")
-				
-		except Exception as exception:
-			self.logger.error(f"Exception in running code: {str(exception)}")
-			raise exception
+			self.logger.error(f"Exception in running {shell} script: {str(exception)}")
+			stderr = str(exception)
+		finally:
+			return stdout.decode().strip() if stdout else None, stderr.decode().strip() if stderr else None
 		
 	def execute_script(self, script:str, os_type:str='macos'):
 		output = error = None

@@ -25,7 +25,6 @@ from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
 import shlex
 import shutil
-import logging
 
 class Interpreter:
 	logger = None

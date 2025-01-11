@@ -128,6 +128,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Execute button
     executeBtn.addEventListener('click', async () => {
         const code = codeEditor.getValue().trim();
+        const language = languageSelect.value; // Get the selected language
+        
         if (!code) {
             showNotification('Please enter code to execute', 'error');
             return;
@@ -140,7 +142,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/execute', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code })
+                body: JSON.stringify({ 
+                    code,
+                    language // Send the language to the backend
+                })
             });
 
             if (!response.ok) throw new Error('Failed to execute code');
