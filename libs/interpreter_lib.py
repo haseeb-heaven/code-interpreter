@@ -364,7 +364,7 @@ class Interpreter:
 		
 		self.logger.info(f"Generated text {response}")
 		generated_text = self.utility_manager._extract_content(response)
-		self.logger.info(f"Generated content {generated_text}")
+		self.logger.info(f"Generated content '{generated_text}'")
 		return generated_text
 	
 	def get_code_prompt(self,  task, os_name):
@@ -451,6 +451,7 @@ class Interpreter:
 		execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
 		if execute.lower() == 'y':
 			try:
+				self.logger.info("Executing code with {} mode".format(self.INTERPRETER_MODE))
 				code_output, code_error = "", ""
 				if self.SCRIPT_MODE:
 					code_output, code_error = self.code_interpreter.execute_script(script=extracted_code, os_type=os_name)

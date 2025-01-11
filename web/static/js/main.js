@@ -128,23 +128,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Execute button
     executeBtn.addEventListener('click', async () => {
         const code = codeEditor.getValue().trim();
-        const language = languageSelect.value; // Get the selected language
         
         if (!code) {
             showNotification('Please enter code to execute', 'error');
             return;
         }
 
+        showNotification('Executing code...', 'info');
         try {
-            executeBtn.disabled = true;
-            showNotification('Executing code...', 'info');
-
             const response = await fetch('/execute', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     code,
-                    language // Send the language to the backend
+                    mode: modeSelect.value,
+                    model: modelSelect.value,
+                    language: languageSelect.value
                 })
             });
 
@@ -156,9 +155,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification('Code executed successfully', 'success');
         } catch (error) {
             showNotification(error.message, 'error');
-            outputArea.value = error.message;
-        } finally {
-            executeBtn.disabled = false;
         }
     });
 
@@ -201,14 +197,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        showNotification('Saving code...', 'info');
         try {
-            saveBtn.disabled = true;
-            showNotification('Saving code...', 'info');
-
             const response = await fetch('/save_code', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code })
+                body: JSON.stringify({ 
+                    code,
+                    mode: modeSelect.value,
+                    model: modelSelect.value,
+                    language: languageSelect.value
+                })
             });
 
             if (!response.ok) throw new Error('Failed to save code');
@@ -218,8 +217,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification(data.result, 'success');
         } catch (error) {
             showNotification(error.message, 'error');
-        } finally {
-            saveBtn.disabled = false;
         }
     });
 
