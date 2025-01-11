@@ -1,191 +1,242 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize CodeMirror
-    const codeOutput = CodeMirror(document.getElementById('codeOutput'), {
+    // Initialize CodeMirror for code input
+    const codeEditor = CodeMirror.fromTextArea(document.getElementById('code'), {
         mode: 'python',
         theme: 'monokai',
         lineNumbers: true,
-        readOnly: true,
-        viewportMargin: Infinity
+        indentUnit: 4,
+        viewportMargin: Infinity,
+        extraKeys: {
+            'Tab': function(cm) {
+                cm.replaceSelection('    ', 'end');
+            }
+        }
     });
 
-    // Theme handling
-    const themeSelect = document.getElementById('themeSelect');
+    // Elements
+    const themeSelect = document.getElementById('theme-select');
+    const generateBtn = document.getElementById('generate-btn');
+    const executeBtn = document.getElementById('execute-btn');
+    const fixBtn = document.getElementById('fix-btn');
+    const saveBtn = document.getElementById('save-btn');
+    const editBtn = document.getElementById('edit-btn');
+    const promptInput = document.getElementById('prompt');
+    const modeSelect = document.getElementById('mode');
+    const modelSelect = document.getElementById('model');
+    const languageSelect = document.getElementById('language');
+    const outputArea = document.getElementById('output');
+
+    // Load theme preference
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    themeSelect.value = savedTheme;
+    document.body.classList.toggle('dark-theme', savedTheme === 'dark');
+
+    // Theme toggle
     themeSelect.addEventListener('change', function() {
-        document.body.setAttribute('data-theme', this.value);
+        const theme = this.value;
+        document.body.classList.toggle('dark-theme', theme === 'dark');
+        localStorage.setItem('theme', theme);
+        showNotification('Theme updated successfully', 'success');
     });
 
-    // File upload handling
-    const fileUploadArea = document.getElementById('fileUploadArea');
-    const fileInput = document.getElementById('fileInput');
-    const fileInfo = document.getElementById('fileInfo');
-    let uploadedFiles = [];
-
-    fileUploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        fileUploadArea.classList.add('dragover');
-    });
-
-    fileUploadArea.addEventListener('dragleave', () => {
-        fileUploadArea.classList.remove('dragover');
-    });
-
-    fileUploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        fileUploadArea.classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        handleFiles(files);
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        handleFiles(e.target.files);
-    });
-
-    function handleFiles(files) {
-        uploadedFiles = Array.from(files);
-        updateFileInfo();
+    // Notification system
+    function showNotification(message, type = 'info') {
+        const notificationContainer = document.getElementById('notification-container');
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        
+        const messageText = document.createElement('span');
+        messageText.textContent = message;
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        closeBtn.className = 'close-btn';
+        closeBtn.onclick = () => notification.remove();
+        
+        notification.appendChild(messageText);
+        notification.appendChild(closeBtn);
+        
+        notificationContainer.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.5s ease-out';
+            setTimeout(() => notification.remove(), 500);
+        }, 5000);
     }
 
-    function updateFileInfo() {
-        if (uploadedFiles.length > 0) {
-            const fileNames = uploadedFiles.map(file => `${file.name} (${formatFileSize(file.size)})`).join(', ');
-            fileInfo.innerHTML = `
-                <p>Files selected: ${uploadedFiles.length}</p>
-                <p>${fileNames}</p>
-            `;
-        } else {
-            fileInfo.innerHTML = '<p>Drop files here or click to upload</p>';
+    // Load models
+    async function loadModels() {
+        try {
+            const response = await fetch('/get_models');
+            if (!response.ok) throw new Error('Failed to fetch models');
+            
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            
+            modelSelect.innerHTML = '';
+            data.models.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                modelSelect.appendChild(option);
+            });
+            
+            showNotification('Models loaded successfully', 'success');
+        } catch (error) {
+            showNotification(error.message, 'error');
         }
     }
-
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    // Mode handling
-    const modeSelect = document.getElementById('modeSelect');
-    const fileUploadSection = document.querySelector('.file-upload');
-
-    modeSelect.addEventListener('change', function() {
-        if (this.value === 'vision') {
-            fileUploadSection.style.display = 'block';
-            fileInput.accept = 'image/*';
-        } else {
-            fileUploadSection.style.display = 'none';
-            fileInput.accept = '';
-        }
-    });
-
-    // Language handling
-    const languageSelect = document.getElementById('languageSelect');
-    languageSelect.addEventListener('change', function() {
-        codeOutput.setOption('mode', this.value);
-    });
+    
+    // Load models on page load
+    loadModels();
 
     // Generate button
-    document.getElementById('generateBtn').addEventListener('click', async () => {
-        const prompt = document.getElementById('promptInput').value;
-        const mode = modeSelect.value;
-        const model = document.getElementById('modelSelect').value;
-        const language = languageSelect.value;
+    generateBtn.addEventListener('click', async () => {
+        if (!promptInput.value.trim()) {
+            showNotification('Please enter a prompt', 'error');
+            return;
+        }
 
         try {
+            generateBtn.disabled = true;
+            showNotification('Generating code...', 'info');
+
             const response = await fetch('/generate', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ prompt, mode, model, language })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: promptInput.value,
+                    mode: modeSelect.value,
+                    model: modelSelect.value,
+                    language: languageSelect.value
+                })
             });
+
+            if (!response.ok) throw new Error('Failed to generate code');
             const data = await response.json();
-            codeOutput.setValue(data.response);
+            if (data.error) throw new Error(data.error);
+
+            codeEditor.setValue(data.response);
+            showNotification('Code generated successfully', 'success');
         } catch (error) {
-            console.error('Error:', error);
+            showNotification(error.message, 'error');
+        } finally {
+            generateBtn.disabled = false;
         }
     });
 
     // Execute button
-    document.getElementById('executeBtn').addEventListener('click', async () => {
-        const code = codeOutput.getValue();
+    executeBtn.addEventListener('click', async () => {
+        const code = codeEditor.getValue().trim();
+        if (!code) {
+            showNotification('Please enter code to execute', 'error');
+            return;
+        }
+
         try {
+            executeBtn.disabled = true;
+            showNotification('Executing code...', 'info');
+
             const response = await fetch('/execute', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code })
             });
+
+            if (!response.ok) throw new Error('Failed to execute code');
             const data = await response.json();
-            document.getElementById('executionOutput').textContent = data.result;
+            if (data.error) throw new Error(data.error);
+
+            outputArea.value = data.result;
+            showNotification('Code executed successfully', 'success');
         } catch (error) {
-            console.error('Error:', error);
+            showNotification(error.message, 'error');
+            outputArea.value = error.message;
+        } finally {
+            executeBtn.disabled = false;
         }
     });
 
-    // Fix Code button
-    document.getElementById('fixCodeBtn').addEventListener('click', async () => {
-        const code = codeOutput.getValue();
+    // Fix button
+    fixBtn.addEventListener('click', async () => {
+        const code = codeEditor.getValue().trim();
+        if (!code) {
+            showNotification('Please enter code to fix', 'error');
+            return;
+        }
+
         try {
+            fixBtn.disabled = true;
+            showNotification('Fixing code...', 'info');
+
             const response = await fetch('/fix', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code })
             });
-            const data = await response.json();
-            codeOutput.setValue(data.fixed_code);
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    });
 
-    // Install Package button
-    document.getElementById('installPackageBtn').addEventListener('click', async () => {
-        const package = document.getElementById('packageInput').value;
-        try {
-            const response = await fetch('/install_package', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ package })
-            });
+            if (!response.ok) throw new Error('Failed to fix code');
             const data = await response.json();
-            document.getElementById('executionOutput').textContent = data.result;
+            if (data.error) throw new Error(data.error);
+
+            codeEditor.setValue(data.fixed_code);
+            showNotification('Code fixed successfully', 'success');
         } catch (error) {
-            console.error('Error:', error);
+            showNotification(error.message, 'error');
+        } finally {
+            fixBtn.disabled = false;
         }
     });
 
     // Save button
-    document.getElementById('saveBtn').addEventListener('click', async () => {
-        const code = codeOutput.getValue();
+    saveBtn.addEventListener('click', async () => {
+        const code = codeEditor.getValue().trim();
+        if (!code) {
+            showNotification('Please enter code to save', 'error');
+            return;
+        }
+
         try {
+            saveBtn.disabled = true;
+            showNotification('Saving code...', 'info');
+
             const response = await fetch('/save_code', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code })
             });
+
+            if (!response.ok) throw new Error('Failed to save code');
             const data = await response.json();
-            document.getElementById('executionOutput').textContent = data.result;
+            if (data.error) throw new Error(data.error);
+
+            showNotification(data.result, 'success');
         } catch (error) {
-            console.error('Error:', error);
+            showNotification(error.message, 'error');
+        } finally {
+            saveBtn.disabled = false;
         }
     });
 
     // Edit button
-    document.getElementById('editBtn').addEventListener('click', () => {
-        codeOutput.setOption('readOnly', false);
+    editBtn.addEventListener('click', () => {
+        const isReadOnly = codeEditor.getOption('readOnly');
+        codeEditor.setOption('readOnly', !isReadOnly);
+        editBtn.textContent = isReadOnly ? 'Lock' : 'Edit';
+        showNotification(`Code editor is now ${isReadOnly ? 'editable' : 'locked'}`, 'info');
     });
 
-    // Display Code checkbox
-    document.getElementById('displayCodeCheckbox').addEventListener('change', function() {
-        document.getElementById('codeOutput').style.display = this.checked ? 'block' : 'none';
+    // Language change
+    languageSelect.addEventListener('change', function() {
+        const mode = this.value;
+        codeEditor.setOption('mode', mode);
+        showNotification(`Language changed to ${mode}`, 'info');
+    });
+
+    // Mode change
+    modeSelect.addEventListener('change', function() {
+        const mode = this.value;
+        promptInput.placeholder = `Enter ${mode} prompt here...`;
+        showNotification(`Mode changed to ${mode}`, 'info');
     });
 });

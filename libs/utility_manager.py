@@ -84,34 +84,45 @@ class UtilityManager:
 
 	def initialize_readline_history(self):
 		try:
-			# Checking the OS type
-			# If it's posix (Unix-like), import readline for handling lines from input
-			# If it's not posix, import pyreadline as readline
-			if os.name == 'posix':
-				import readline
-			else:
-				import pyreadline as readline
+			# Create history directory if it doesn't exist
+			history_dir = os.path.join(os.path.expanduser("~"), ".code_interpreter")
+			if not os.path.exists(history_dir):
+				os.makedirs(history_dir, mode=0o700)  # Set proper permissions
 				
-			histfile = os.path.join(os.path.expanduser("~"), ".python_history")
+			histfile = os.path.join(history_dir, "history")
 			
-			# Check if histfile exists before trying to read it
-			if os.path.exists(histfile):
+			# Import appropriate readline module
+			try:
+				import readline
+			except ImportError:
+				try:
+					import pyreadline3 as readline
+				except ImportError:
+					self.logger.info("Readline not available - history disabled")
+					return
+			
+			# Create history file if it doesn't exist
+			if not os.path.exists(histfile):
+				with open(histfile, 'a') as f:
+					os.chmod(histfile, 0o600)  # Set proper permissions
+			
+			try:
 				readline.read_history_file(histfile)
-			
-			# Save history to file on exit
-			import atexit
-			atexit.register(readline.write_history_file, histfile)
-			
-		except FileNotFoundError:
-			raise Exception("History file not found")
-		
-		except AttributeError:
-			# Handle error on Windows where pyreadline doesn't have read_history_file
-			self.logger.info("pyreadline doesn't have read_history_file")
-			raise Exception("On Windows, pyreadline doesn't have read_history_file")
-		except Exception as exception:
-			self.logger.error(f"Error in initializing readline history: {str(exception)}")
-			raise
+				readline.set_history_length(1000)
+				
+				# Save history on exit
+				import atexit
+				atexit.register(readline.write_history_file, histfile)
+				
+				self.logger.info("Readline history initialized successfully")
+				
+			except (OSError, IOError) as e:
+				self.logger.warning(f"Could not read/write history file: {e}")
+				# Don't raise exception, just continue without history
+				
+		except Exception as e:
+			self.logger.error(f"Error in initializing readline history: {str(e)}")
+			# Don't raise the exception, just log it
 
 	def read_config_file(self, filename=".config"):
 		try:

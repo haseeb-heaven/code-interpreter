@@ -1,6 +1,7 @@
 import os
 import sys
 import platform
+import json
 
 # Add parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -10,7 +11,6 @@ from libs.interpreter_lib import Interpreter
 from libs.code_interpreter import CodeInterpreter
 from libs.package_manager import PackageManager
 import argparse
-import json
 
 app = Flask(__name__)
 
@@ -29,73 +29,124 @@ class WebArgs:
 def index():
     return render_template('index.html')
 
+@app.route('/get_models', methods=['GET'])
+def get_models():
+    try:
+        config_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'configs')
+        models = []
+        for file in os.listdir(config_dir):
+            if file.endswith('.config'):
+                models.append(file.replace('.config', ''))
+        return jsonify({'models': models})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 @app.route('/generate', methods=['POST'])
 def generate():
-    data = request.json
-    prompt = data.get('prompt')
-    mode = data.get('mode', 'code')
-    model = data.get('model', 'code-llama')
-    lang = data.get('language', 'python')
-    
-    args = WebArgs()
-    args.mode = mode
-    args.model = model
-    args.lang = lang
-    
-    interpreter = Interpreter(args)
-    # Initialize empty chat history
-    chat_history = []
-    response = interpreter.get_prompt(prompt, chat_history)
-    
-    return jsonify({'response': response})
+    try:
+        data = request.get_json()
+        prompt = data.get('prompt')
+        mode = data.get('mode', 'code')
+        model = data.get('model', 'code-llama')
+        lang = data.get('language', 'python')
+        
+        args = WebArgs()
+        args.mode = mode
+        args.model = model
+        args.lang = lang
+        
+        interpreter = Interpreter(args)
+        chat_history = []
+        
+        # Get the prompt based on mode
+        generated_text = interpreter.get_prompt(prompt, chat_history)
+        
+        # Extract code from the generated text
+        code_interpreter = CodeInterpreter()
+        code = code_interpreter.extract_code(generated_text, start_sep='```', end_sep='```', skip_first_line=True)
+        
+        if code is None:
+            return jsonify({'error': 'Failed to generate code'}), 500
+            
+        return jsonify({'response': code})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/execute', methods=['POST'])
 def execute():
-    data = request.json
-    code = data.get('code')
-    
-    args = WebArgs()
-    args.exec = True
-    
-    interpreter = Interpreter(args)
-    code_interpreter = CodeInterpreter()
-    result = code_interpreter.execute_code(code, platform.system().lower())
-    
-    return jsonify({'result': result})
+    try:
+        data = request.get_json()
+        code = data.get('code')
+        
+        if not code:
+            return jsonify({'error': 'No code provided'})
+        
+        code_interpreter = CodeInterpreter()
+        result = code_interpreter.execute_code(code, platform.system().lower())
+        
+        if result[1]:  # If there are errors
+            return jsonify({'error': result[1]}), 500
+            
+        return jsonify({'result': result[0] if result[0] else 'Code executed successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/fix', methods=['POST'])
 def fix_code():
-    data = request.json
-    code = data.get('code')
-    
-    args = WebArgs()
-    interpreter = Interpreter(args)
-    code_interpreter = CodeInterpreter()
-    fixed_code = code_interpreter.fix_code_errors(code)
-    
-    return jsonify({'fixed_code': fixed_code})
+    try:
+        data = request.get_json()
+        code = data.get('code')
+        
+        if not code:
+            return jsonify({'error': 'No code provided'})
+        
+        code_interpreter = CodeInterpreter()
+        fixed_code = code_interpreter.fix_code_errors(code)
+        
+        return jsonify({'fixed_code': fixed_code})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/install_package', methods=['POST'])
 def install_package():
-    data = request.json
-    package = data.get('package')
-    
-    args = WebArgs()
-    package_manager = PackageManager()
-    result = package_manager.install_package(package)
-    
-    return jsonify({'result': result})
+    try:
+        data = request.get_json()
+        package = data.get('package')
+        
+        if not package:
+            return jsonify({'error': 'Package name is required'}), 400
+            
+        package_manager = PackageManager()
+        result = package_manager.install_package(package)
+        
+        return jsonify({'result': result})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/save_code', methods=['POST'])
 def save_code():
-    data = request.json
-    code = data.get('code')
-    
-    args = WebArgs()
-    code_interpreter = CodeInterpreter()
-    result = code_interpreter.save_code(code)
-    
-    return jsonify({'result': result})
+    try:
+        data = request.get_json()
+        code = data.get('code')
+        
+        if not code:
+            return jsonify({'error': 'No code provided'})
+        
+        # Save code to a file in the saved_code directory
+        save_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'saved_code')
+        os.makedirs(save_dir, exist_ok=True)
+        
+        # Generate a unique filename
+        import datetime
+        filename = f"code_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.py"
+        filepath = os.path.join(save_dir, filename)
+        
+        with open(filepath, 'w') as f:
+            f.write(code)
+        
+        return jsonify({'result': f'Code saved to {filename}'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True)

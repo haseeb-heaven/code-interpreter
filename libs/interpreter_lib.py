@@ -94,11 +94,6 @@ class Interpreter:
 		self.initialize_client()
 		self.initialize_mode()
 		
-		try: # Make this as optional step to have readline history.
-			self.utility_manager.initialize_readline_history()
-		except Exception:
-			self.logger.error("Exception on initializing readline history")
-
 	def initialize_client(self):
 		load_dotenv()
 		self.logger.info("Initializing Client")
