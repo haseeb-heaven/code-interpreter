@@ -216,3 +216,4 @@ class CodeInterpreter:
 		except Exception as exception:
 			self.logger.error(f"Error in executing command: {str(exception)}")
 			raise exception
+

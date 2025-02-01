@@ -99,8 +99,9 @@ export HUGGINGFACE_API_KEY="Your HuggingFace API Key"
 export PALM_API_KEY="Your Google Palm API Key"
 export GEMINI_API_KEY="Your Google Gemini API Key"
 export OPENAI_API_KEY="Your OpenAI API Key"
-export GROQ_API_KEY="Your Groq AI API Key"
-export ANTHROPIC_API_KEY="Your Anthropic AI API Key"
+export GROQ_API_KEY="Your Groq API Key"
+export ANTHROPIC_API_KEY="Your Anthropic API Key"
+export DEEPSEEK_API_KEY="Your Deepseek API Key"
 ```
 
 # Offline models setup.</br>
@@ -169,6 +170,11 @@ To use Code-Interpreter, use the following command options:
 - List of all **models** are (**Contribute - MORE**): </br>
     - `gpt-3.5-turbo` - Generates code using the GPT 3.5 Turbo model.
     - `gpt-4` - Generates code using the GPT 4 model.
+	- `o1-mini` - Generates code using the OpenAI o1-mini model.
+	- `o1-preview` - Generates code using the OpenAI o1-preview model.
+	- `deepseek-chat` - Generates response using the Deepseek chat model.
+	- `deepseek-coder` - Generates code using the Deepseek coder model.
+	- `deepseek-reasoner` - Generates code using the Deepseek reasoner model.
     - `gemini-pro` - Generates code using the Gemini Pro model.
     - `palm-2` - Generates code using the PALM 2 model.
     - `claude-2` - Generates code using the AnthropicAI Claude-2 model.
@@ -336,6 +342,8 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 - **Dependency Management**:
   - Resolved pip package installation issues for smoother and more reliable setup.
 - **v2.2.1** - Fixed **No Content/Response from LLM** Bug, Fixed _Debug Mode_ with **Logs**.
+
+- **v2.3.0** - Added Deepseek V3 and R1 models support now. Added OpenAI o1 Models support.
 
 ---
 

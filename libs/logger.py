@@ -1,14 +1,14 @@
 import logging
 from logging.handlers import RotatingFileHandler
-
+from typing import Optional
 
 class Logger:
-	_logger = None
+	_logger: Optional[logging.Logger] = None
 	_file_handler = None
 	_console_handler = None
 
 	@staticmethod
-	def initialize(filename: str):
+	def initialize(filename: str) -> logging.Logger:
 		if Logger._logger is None:
 			Logger._logger = logging.getLogger(filename)
 			Logger._logger.setLevel(logging.DEBUG)

@@ -1,5 +1,6 @@
 # Libraries for code interpretation and execution
-litellm  
+litellm>=1.60.0
+litellm[proxy]
 Pygments 
 pyreadline 
 python-dotenv 
@@ -15,3 +16,6 @@ plotly
 
 # Libraries for standard libries 
 stdlib_list
+
+# Legacy libraries
+legacy-cgi

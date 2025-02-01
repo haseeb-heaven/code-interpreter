@@ -25,7 +25,6 @@ from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
 import shlex
 import shutil
-import logging
 
 class Interpreter:
 	logger = None
@@ -100,9 +99,10 @@ class Interpreter:
 			self.logger.error("Exception on initializing readline history")
 
 	def initialize_client(self):
-		load_dotenv()
+		load_dotenv(dotenv_path=os.path.join(os.getcwd(), "../.env"), override=True)
 		self.logger.info("Initializing Client")
-		
+		config_file_name: str = ""
+
 		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
 		if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
 			self.logger.info("HF_MODEL is not provided, using default model.")
@@ -126,7 +126,7 @@ class Interpreter:
 				self.logger.info("Using local API key from environment variables.")
 				
 			if api_key is None:
-				load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+				load_dotenv(dotenv_path=os.path.join(os.getcwd(), "../.env"), override=True)
 				api_key = os.getenv('OPENAI_API_KEY')
 				if api_key is None:
 					self.logger.info("Setting default local API key for local models.")
@@ -141,6 +141,7 @@ class Interpreter:
 			"claude": {"key_name": "ANTHROPIC_API_KEY", "prefix": "sk-ant-"},
 			"palm": {"key_name": "PALM_API_KEY", "prefix": None, "length": 15},
 			"gemini": {"key_name": "GEMINI_API_KEY", "prefix": None, "length": 15},
+			"deepseek": {"key_name": "DEEPSEEK_API_KEY", "prefix": None, "length": 10},
 			"default": {"key_name": "HUGGINGFACE_API_KEY", "prefix": "hf_"}
 		}
 
@@ -149,7 +150,7 @@ class Interpreter:
 				api_key_name = api_key_info["key_name"]
 				api_key = os.getenv(api_key_name)
 				if api_key is None:
-					load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"))
+					load_dotenv(dotenv_path=os.path.join(os.getcwd(), "../.env"), override=True)
 					api_key = os.getenv(api_key_name)
 				if not api_key:
 					raise Exception(f"{api_key_name} not found in .env file.")
@@ -168,8 +169,8 @@ class Interpreter:
 		if not self.SCRIPT_MODE and not self.COMMAND_MODE and not self.VISION_MODE and not self.CHAT_MODE:
 			self.CODE_MODE = True
 	
-	def get_prompt(self, message: str, chat_history: List[dict]) -> str:
-		system_message = None
+	def get_prompt(self, message: str, chat_history: List[dict]) -> List[dict] | str:
+		system_message: str = ""
 		
 		if self.CODE_MODE:
 			system_message = self.system_message
@@ -357,6 +358,14 @@ class Interpreter:
 				raise Exception("Exception api base not set for custom model")
 			self.logger.info("Response received from completion function.")
 
+		# Check if the model is Deepseek
+		elif 'deepseek' in self.INTERPRETER_MODEL:
+			self.logger.info("Model is Deepseek.")
+			 # Ensure the model string is prefixed with "deepseek/"
+			if not self.INTERPRETER_MODEL.startswith("deepseek/"):
+				self.INTERPRETER_MODEL = "deepseek/" + self.INTERPRETER_MODEL
+			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
+			self.logger.info("Response received from Deepseek completion.")
 
 		# Check if model are from Hugging Face.
 		else:
@@ -421,7 +430,7 @@ class Interpreter:
 			"NOTE: Ensure the command is compatible with the specified OS and version.\n"
 			"Output should only contain the command, with no additional text."
 		)
-		self.logger.info(f"Command Prompt: {prompt}")
+		self.logger.info("Command Prompt: {prompt}")
 		return prompt
 
 	def handle_vision_mode(self,  task):
@@ -764,7 +773,7 @@ class Interpreter:
 						continue
 
 					fix_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{code_snippet}'\nAnd Error is \n'{code_error}'\n"
-					f"give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
+					"give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
 					
 					# Start the LLM Request.
 					self.logger.info(f"Fix Prompt: {fix_prompt}")

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-*
 """
 This is the main file for the Code-Interpreter.
 It handles command line arguments and initializes the Interpreter.
@@ -24,7 +25,7 @@ from libs.markdown_code import display_markdown_message
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "2.2.1"
+INTERPRETER_VERSION = "2.3.0"
 
 
 def main():
@@ -64,18 +65,17 @@ if __name__ == "__main__":
 	except SystemExit:
 		pass  # Ignore the SystemExit exception caused by --version argument
 	except Exception as exception:
-
 		# Print a meaningful error message if the interpreter is not setup properly.
 		if ".env file" in str(exception):
 			display_markdown_message("Interpreter is not setup properly. Please follow these steps \
-to setup the interpreter:\n\
-1. Create a .env file in the root directory of the project.\n\
-2. Add the following line to the .env file:\n\
-GEMINI_API_KEY=<your api key>\n\
-OPENAI_API_KEY=<your api key>\n\
-ANTHROPIC_API_KEY=<your api key>\n\
-3. Replace <your api key> with your OpenAI/Gemini API key.\n\
-4. Run the interpreter again.")
+			to setup the interpreter:\n\
+			1. Create a .env file in the root directory of the project.\n\
+			2. Add the following line to the .env file:\n\
+			GEMINI_API_KEY=<your api key>\n\
+			OPENAI_API_KEY=<your api key>\n\
+			ANTHROPIC_API_KEY=<your api key>\n\
+			3. Replace <your api key> with your OpenAI/Gemini API key.\n\
+			4. Run the interpreter again.")
 			
 		else:
 			display_markdown_message(f"An error occurred interpreter main: {exception}")
