@@ -566,3 +566,39 @@ select option {
 .javascript-code .number { color: #bd93f9; }
 .javascript-code .function { color: #50fa7b; }
 .javascript-code .comment { color: #6272a4; }
+
+/* Special output styles */
+.special-output {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 20px;
+}
+
+.special-output-item {
+    margin-bottom: 20px;
+}
+
+.output-image {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+.output-table {
+    overflow-x: auto;
+    margin: 10px 0;
+}
+
+.output-table table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.output-table th,
+.output-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}

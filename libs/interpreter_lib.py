@@ -378,7 +378,21 @@ class Interpreter:
 			f"The code should be compatible with the operating system: {os_name}, considering any platform-specific features or limitations.\n"
 			"Handle potential errors gracefully, and ensure the solution is efficient and concise.\n"
 			"If there are multiple possible solutions, choose the most optimized one."
-		)
+			)
+		
+		# Add visualization instructions if needed
+		if any(word in task.lower() for word in ['graph', 'graphs']):
+			if self.INTERPRETER_LANGUAGE == 'python':
+				prompt += "\n" + "Save the visualization using: plt.savefig('output/graph.png', bbox_inches='tight', dpi=300)"
+			elif self.INTERPRETER_LANGUAGE == 'javascript':
+				prompt += "\n" + "Save the Chart.js visualization to 'output/graph.png'"
+
+		if any(word in task.lower() for word in ['chart', 'charts', 'plot', 'plots']):    
+			if self.INTERPRETER_LANGUAGE == 'python':
+				prompt += "\n" + "Save the visualization using: fig.write_image('output/chart.png', engine='kaleido')"
+			elif self.INTERPRETER_LANGUAGE == 'javascript':
+				prompt += "\n" + "Save the Chart.js visualization to 'output/chart.png'"
+
 		return prompt
 
 	def get_script_prompt(self,  task, os_name):
@@ -459,13 +473,41 @@ class Interpreter:
 					code_output, code_error = self.code_interpreter.execute_command(command=extracted_code)
 				elif self.CODE_MODE:
 					code_output, code_error = self.code_interpreter.execute_code(code=extracted_code, language=self.INTERPRETER_LANGUAGE)
+				
+				# Check for generated visualization files
+				output_dir = os.path.join(os.getcwd(), 'output')
+				special_outputs = []
+				
+				if os.path.exists(os.path.join(output_dir, 'graph.png')):
+					special_outputs.append({
+						'type': 'image',
+						'path': os.path.join(output_dir, 'graph.png'),
+						'title': 'Graph'
+					})
+					self.logger.info("Found generated graph visualization")
+					
+				if os.path.exists(os.path.join(output_dir, 'chart.png')):
+					special_outputs.append({
+						'type': 'image',
+						'path': os.path.join(output_dir, 'chart.png'),
+						'title': 'Chart'
+					})
+					self.logger.info("Found generated chart visualization")
+				
+				# Display visualizations if found
+				for output in special_outputs:
+					if output['type'] == 'image':
+						display_markdown_message(f"\n![{output['title']}]({output['path']})")
+						self.logger.info(f"Displayed {output['title']} visualization")
+				
 				return code_output, code_error
+				
 			except Exception as exception:
 				self.logger.error(f"Error occurred while executing code: {str(exception)}")
-				return None, str(exception)  # Return error message as second element of tuple
+				return None, str(exception)
 		else:
-			return None, None  # Return None, None if user chooses not to execute the code
-
+			return None, None
+	
 	def interpreter_main(self,  version):
 		
 		self.interpreter_version = version
@@ -759,7 +801,7 @@ class Interpreter:
 						continue
 
 					fix_prompt = f"Fix the errors in {self.INTERPRETER_LANGUAGE} language.\nCode is \n'{code_snippet}'\nAnd Error is \n'{code_error}'\n"
-					f"give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
+					"give me output only in code and no other text or explanation. And comment in code where you fixed the error.\n"
 					
 					# Start the LLM Request.
 					self.logger.info(f"Fix Prompt: {fix_prompt}")
@@ -841,6 +883,7 @@ class Interpreter:
 				elif any(command in task.lower() for command in ['/install']):
 					# get the package name after the command 
 					package_name = task.split(' ')[1]
+					print(f"PyPackage Name: {package_name}")
 					
 					# check if package name is not system module.
 					system_modules = self.package_manager.get_system_modules()

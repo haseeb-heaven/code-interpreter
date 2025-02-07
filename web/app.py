@@ -1,15 +1,15 @@
 import logging
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 # fix the path for libs
 import sys
 import os
 import platform
+import base64
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from libs.interpreter_lib import Interpreter
 from libs.code_interpreter import CodeInterpreter
 from libs.logger import Logger
-import json
 
 # Initialize logger
 logger = Logger.initialize("logs/interpreter.log")
@@ -149,7 +149,38 @@ def execute():
                     logger.error(f"GUI: Error executing code: {error}")
                     return jsonify({'error': error})
                 logger.info(f"GUI: Code execution successful, output length: {len(output) if output else 0}")
-                return jsonify({'result': output})
+                
+                # Check for special outputs
+                special_outputs = []
+                output_dir = os.path.join(os.getcwd(), 'output')
+                
+                # Check for generated files
+                if os.path.exists(os.path.join(output_dir, 'graph.png')):
+                    special_outputs.append({
+                        'type': 'image',
+                        'url': '/output/graph.png',
+                        'title': 'Graph'
+                    })
+                    
+                if os.path.exists(os.path.join(output_dir, 'chart.png')):
+                    special_outputs.append({
+                        'type': 'image', 
+                        'url': '/output/chart.png',
+                        'title': 'Chart'
+                    })
+                    
+                if os.path.exists(os.path.join(output_dir, 'table.html')):
+                    with open(os.path.join(output_dir, 'table.html'), 'r') as f:
+                        special_outputs.append({
+                            'type': 'html',
+                            'content': f.read(),
+                            'title': 'Table'
+                        })
+                
+                return jsonify({
+                    'result': output,
+                    'special_outputs': special_outputs
+                })
             
             logger.info("GUI: Code execution successful")
             return jsonify({'result': str(result)})
@@ -286,5 +317,63 @@ def save_code():
         logger.error(f"GUI: Error in save endpoint: {str(error)}")
         return jsonify({'error': str(error)})
 
+@app.route('/install', methods=['POST'])
+def install_package():
+    try:
+        data = request.get_json()
+        logger.info(f"GUI: Received install request with data: {data}")
+        
+        if not data:
+            logger.error("GUI: No data provided in install request")
+            return jsonify({'error': 'No data provided'})
+            
+        package_name = data.get('package')
+        mode = data.get('mode', 'code')
+        model = data.get('model', 'code-llama')
+        language = data.get('language', 'python')
+        
+        if not package_name:
+            logger.error("GUI: No package name provided in install request")
+            return jsonify({'error': 'Package name is required'})
+        
+        logger.info(f"GUI: Installing package {package_name} with mode={mode}, model={model}, language={language}")
+
+        global interpreter
+        if interpreter is None or interpreter.INTERPRETER_MODEL != model:
+            logger.info(f"GUI: Initializing new interpreter with model={model}")
+            args = InterpreterArgs(model=model, mode=mode, lang=language)
+            interpreter = Interpreter(args)
+        
+        # Skip system modules check
+        system_modules = interpreter.package_manager.get_system_modules()
+        if package_name in system_modules:
+            logger.error(f"GUI: Package {package_name} is a system module")
+            return jsonify({'error': f"Package {package_name} is a system module"})
+            
+        # Install the package
+        interpreter.package_manager.install_package(package_name, language)
+        logger.info(f"GUI: Package {package_name} installed successfully")
+        
+        return jsonify({'result': f'Package {package_name} installed successfully'})
+    except Exception as error:
+        logger.error(f"GUI: Error in install endpoint: {str(error)}")
+        return jsonify({'error': str(error)})
+
+@app.route('/output/<path:filename>')
+def serve_output(filename):
+    return send_from_directory('output', filename)
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    try:
+        # Run app without debug mode to avoid signal handler issues
+        app.run(host='0.0.0.0', port=8080)
+    except ValueError as error:
+        if "signal only works" in str(error):
+            # Run without signal handlers if we get signal error
+            logger.warning("Running without signal handlers due to threading restrictions")
+            app.run(host='0.0.0.0', port=8080, use_reloader=False)
+        else:
+            raise
+    except Exception as error:
+        logger.error(f"Error starting Flask app: {error}")
+        raise

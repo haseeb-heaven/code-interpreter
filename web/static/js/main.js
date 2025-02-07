@@ -126,16 +126,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/install', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ package: packageName })
+                body: JSON.stringify({
+                    package: packageName,
+                    mode: modeSelect.value,
+                    model: modelSelect.value,
+                    language: languageSelect.value
+                })
             });
 
-            if (!response.ok) throw new Error('Failed to install package');
             const data = await response.json();
-            if (data.error) throw new Error(data.error);
+            if (!response.ok) {
+                throw new Error(data.error || `Failed to install package: ${packageName}`);
+            }
+            if (data.error) {
+                throw new Error(data.error);
+            }
 
-            showNotification(`Package ${packageName} installed successfully`, 'success');
+            showNotification(data.result || `Package ${packageName} installed successfully`, 'success');
             packageNameInput.value = '';
         } catch (error) {
+            console.error('Install error:', error);
             showNotification(error.message, 'error');
         } finally {
             installBtn.disabled = false;
@@ -302,6 +312,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.error) throw new Error(data.error);
 
             outputArea.value = data.result;
+            
+            // Handle special outputs if present
+            if (data.special_outputs && data.special_outputs.length > 0) {
+                displaySpecialOutput(data.special_outputs);
+            }
+            
             showNotification('Code executed successfully', 'success');
         } catch (error) {
             showNotification(error.message, 'error');
@@ -351,6 +367,43 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             showNotification(error.message, 'error');
         }
+    }
+
+    // Add this function after other function declarations
+    function displaySpecialOutput(output) {
+        const outputDiv = document.getElementById('special-output');
+        
+        if (!outputDiv) {
+            const div = document.createElement('div');
+            div.id = 'special-output';
+            div.className = 'special-output';
+            document.getElementById('output-container').appendChild(div);
+        }
+        
+        outputDiv.innerHTML = ''; // Clear previous outputs
+        
+        output.forEach(item => {
+            const container = document.createElement('div');
+            container.className = 'special-output-item';
+            
+            const title = document.createElement('h4');
+            title.textContent = item.title;
+            container.appendChild(title);
+            
+            if (item.type === 'image') {
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.className = 'output-image';
+                container.appendChild(img);
+            } else if (item.type === 'html') {
+                const div = document.createElement('div');
+                div.innerHTML = item.content;
+                div.className = 'output-table';
+                container.appendChild(div);
+            }
+            
+            outputDiv.appendChild(container);
+        });
     }
 
     // Initialize display state
