@@ -56,7 +56,7 @@ class Interpreter:
 		self.logger.info(f"Interpreter args model selected is '{self.args.model}")
 		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
 		self.system_message = ""
-		self.INTERPRETER_MODE = 'code'
+		self.INTERPRETER_MODE = self.args.mode if self.args.mode else 'code'
 		
 		if self.args.file is None:
 			self.INTERPRETER_PROMPT_FILE = False
@@ -137,6 +137,9 @@ class Interpreter:
 
 		model_api_keys = {
 			"gpt": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
+			"o1": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
+			"o3": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
+			"o4": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
 			"groq": {"key_name": "GROQ_API_KEY", "prefix": "gsk"},
 			"claude": {"key_name": "ANTHROPIC_API_KEY", "prefix": "sk-ant-"},
 			"palm": {"key_name": "PALM_API_KEY", "prefix": None, "length": 15},
@@ -250,9 +253,9 @@ class Interpreter:
 		# Get the system prompt
 		messages = self.get_prompt(message, chat_history)
 		
-		# Check if the model is GPT 3.5/4/4o
-		if 'gpt' in self.INTERPRETER_MODEL:
-			self.logger.info("Model is GPT 3.5/4/4o")
+		# Check if the model is from OpenAI (GPT/o-series)
+		if self.INTERPRETER_MODEL.startswith(("gpt", "o1", "o3", "o4")):
+			self.logger.info("Model is OpenAI GPT/o-series")
 			if api_base != 'None':
 				# Set the custom language model provider
 				custom_llm_provider = "openai"
@@ -301,14 +304,21 @@ class Interpreter:
 				self.logger.info("Response received from completion function.")
 				return response # Return the response from Gemini Vision because its not coding model.
 			else:
-				self.logger.info("Model is Gemini Pro.")
-				self.INTERPRETER_MODEL = "gemini/gemini-pro"
+				self.logger.info("Model is Gemini.")
+				if self.INTERPRETER_MODEL == "gemini-pro":
+					self.INTERPRETER_MODEL = "gemini/gemini-1.5-pro-latest"
 				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
 				self.logger.info("Response received from completion function.")
 		
 		# Check if the model is Groq-AI
 		elif 'groq' in self.INTERPRETER_MODEL:
 			
+			if 'groq-llama-3.3' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is Groq/Llama-3.3.")
+				self.INTERPRETER_MODEL = "groq/llama-3.3-70b-versatile"
+			elif 'groq-llama-3.1-8b' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is Groq/Llama-3.1-8B.")
+				self.INTERPRETER_MODEL = "groq/llama-3.1-8b-instant"
 			if 'groq-llama2' in self.INTERPRETER_MODEL:
 				self.logger.info("Model is Groq/Llama2.")
 				self.INTERPRETER_MODEL = "groq/llama2-70b-4096"
@@ -325,12 +335,21 @@ class Interpreter:
 		# Check if the model is AnthropicAI
 		elif 'claude' in self.INTERPRETER_MODEL:
 			
-			if 'claude-2' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Claude-2.")
-				self.INTERPRETER_MODEL = "claude-2"
-			elif 'claude-2.1' in self.INTERPRETER_MODEL:
+			if 'claude-2.1' in self.INTERPRETER_MODEL:
 				self.logger.info("Model is claude-2.1.")
 				self.INTERPRETER_MODEL = "claude-2.1"
+			elif 'claude-2' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is Claude-2.")
+				self.INTERPRETER_MODEL = "claude-2"
+			elif 'claude-3-7-sonnet' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is claude-3-7-sonnet.")
+				self.INTERPRETER_MODEL = "claude-3-7-sonnet-latest"
+			elif 'claude-3-5-sonnet' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is claude-3-5-sonnet.")
+				self.INTERPRETER_MODEL = "claude-3-5-sonnet-latest"
+			elif 'claude-3-5-haiku' in self.INTERPRETER_MODEL:
+				self.logger.info("Model is claude-3-5-haiku.")
+				self.INTERPRETER_MODEL = "claude-3-5-haiku-latest"
 			
 			# Support for Claude-3 Models
 			elif 'claude-3' in self.INTERPRETER_MODEL:

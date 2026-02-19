@@ -1,82 +1,65 @@
 import unittest
-from interpreter import Interpreter
 from argparse import Namespace
+from unittest.mock import patch
+
+from interpreter import Interpreter
+
 
 class TestInterpreter(unittest.TestCase):
-    def test_interpreter_code_mode(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='code-llama', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.mode, 'code')
+    def _make_args(self, mode='code', model='code-llama'):
+        return Namespace(
+            exec=True,
+            save_code=True,
+            mode=mode,
+            model=model,
+            display_code=True,
+            lang='python',
+            file=None,
+            history=False,
+        )
 
-    def test_interpreter_command_mode(self):
-        args = Namespace(exec=True, save_code=True, mode='command', model='gemini-pro', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.mode, 'command')
+    @patch('libs.interpreter_lib.Interpreter.initialize_client', return_value=None)
+    @patch('libs.utility_manager.UtilityManager.initialize_readline_history', return_value=None)
+    def test_mode_is_initialized_from_args(self, _mock_history, _mock_client):
+        interpreter = Interpreter(self._make_args(mode='vision', model='gpt-4o'))
+        self.assertEqual(interpreter.INTERPRETER_MODE, 'vision')
+        self.assertTrue(interpreter.VISION_MODE)
+        self.assertFalse(interpreter.CODE_MODE)
 
-    def test_interpreter_script_mode(self):
-        args = Namespace(exec=True, save_code=True, mode='script', model='mistral-7b', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.mode, 'script')
+    @patch('libs.interpreter_lib.Interpreter.initialize_client', return_value=None)
+    @patch('libs.utility_manager.UtilityManager.initialize_readline_history', return_value=None)
+    def test_openai_o_series_uses_openai_path(self, _mock_history, _mock_client):
+        interpreter = Interpreter(self._make_args(model='o1-mini'))
+        interpreter.INTERPRETER_MODEL = 'o1-mini'
 
-    def test_interpreter_vision_mode(self):
-        args = Namespace(exec=True, save_code=True, mode='vision', model='gpt-3.5-turbo', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.mode, 'vision')
+        with patch('libs.interpreter_lib.litellm.completion', return_value={'choices': [{'message': {'content': 'ok'}}]}) as completion_mock, \
+             patch.object(interpreter.utility_manager, '_extract_content', return_value='ok'):
+            response = interpreter.generate_content(
+                message='Say hello',
+                chat_history=[],
+                config_values={'temperature': 0.1, 'max_tokens': 32, 'api_base': 'None'},
+            )
 
-    def test_interpreter_code_llama_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='code-llama', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'code-llama')
+        self.assertEqual(response, 'ok')
+        completion_mock.assert_called_once()
+        self.assertEqual(completion_mock.call_args.args[0], 'o1-mini')
 
-    def test_interpreter_gemini_pro_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='gemini-pro', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'gemini-pro')
+    @patch('libs.interpreter_lib.Interpreter.initialize_client', return_value=None)
+    @patch('libs.utility_manager.UtilityManager.initialize_readline_history', return_value=None)
+    def test_claude_21_is_not_downgraded_to_claude_2(self, _mock_history, _mock_client):
+        interpreter = Interpreter(self._make_args(model='claude-2.1'))
+        interpreter.INTERPRETER_MODEL = 'claude-2.1'
 
-    def test_interpreter_mistral_7b_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='mistral-7b', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'mistral-7b')
+        with patch('libs.interpreter_lib.litellm.completion', return_value={'choices': [{'message': {'content': 'ok'}}]}) as completion_mock, \
+             patch.object(interpreter.utility_manager, '_extract_content', return_value='ok'):
+            interpreter.generate_content(
+                message='Ping',
+                chat_history=[],
+                config_values={'temperature': 0.1, 'max_tokens': 32, 'api_base': 'None'},
+            )
 
-    def test_interpreter_gpt_3_5_turbo_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='gpt-3.5-turbo', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'gpt-3.5-turbo')
+        self.assertEqual(completion_mock.call_args.args[0], 'claude-2.1')
 
-    def test_interpreter_gpt_4_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='gpt-4', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'gpt-4')
-        
-    def test_interpreter_groq_llama2_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='groq-llama2', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'groq-llama2')
-    
-    def test_interpreter_groq_mixtral_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='groq-mixtral', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'groq-mixtral')
-    
-    def test_interpreter_groq_gemma_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='groq-gemma', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'groq-gemma')
-    
-    def test_interpreter_claude_2_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='claude-2', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'claude-2')
-        
-    def test_interpreter_claude_3_opus_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='claude-3-opus', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'claude-3-opus')
-        
-    def test_interpreter_claude_3_sonnet_model(self):
-        args = Namespace(exec=True, save_code=True, mode='code', model='claude-3-sonnet', display_code=True, lang='python', file=None)
-        interpreter = Interpreter(args)
-        self.assertEqual(interpreter.args.model, 'claude-3-sonnet')
 
 if __name__ == '__main__':
     unittest.main()

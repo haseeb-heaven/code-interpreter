@@ -168,22 +168,31 @@ To use Code-Interpreter, use the following command options:
     - `chat` - Chat with your files and data.
 
 - List of all **models** are (**Contribute - MORE**): </br>
-    - `gpt-3.5-turbo` - Generates code using the GPT 3.5 Turbo model.
-    - `gpt-4` - Generates code using the GPT 4 model.
+    - `gpt-3.5-turbo` - Alias now mapped to a modern lightweight OpenAI model (`gpt-4o-mini`).
+    - `gpt-4` - Alias now mapped to the latest GPT-4.1 model.
+    - `gpt-4o` - Generates code using the GPT-4o model.
+    - `gpt-4.1-mini` - Generates code using the GPT-4.1 mini model.
 	- `o1-mini` - Generates code using the OpenAI o1-mini model.
-	- `o1-preview` - Generates code using the OpenAI o1-preview model.
-	- `deepseek-chat` - Generates response using the Deepseek chat model.
-	- `deepseek-coder` - Generates code using the Deepseek coder model.
-	- `deepseek-reasoner` - Generates code using the Deepseek reasoner model.
-    - `gemini-pro` - Generates code using the Gemini Pro model.
-    - `palm-2` - Generates code using the PALM 2 model.
-    - `claude-2` - Generates code using the AnthropicAI Claude-2 model.
-    - `claude-3` - Generates code using the AnthropicAI Claude-3 model.
-    - `groq-mixtral` - Generates code using the Mixtral model using Groq LPU.
-    - `groq-llama2` - Generates code using the Groq Llama2 model.
-    - `groq-gemma` - Generates code using the Groq Gemma model.
-    - `code-llama` - Generates code using the Code-llama model.
-    - `code-llama-phind` - Generates code using the Code-llama Phind model.
+	- `o1-preview` - Alias now mapped to `o1`.
+	- `o3-mini` - Generates code using the OpenAI o3-mini model.
+	- `deepseek-chat` - Generates response using the DeepSeek chat model.
+	- `deepseek-coder` - Generates code using the DeepSeek coder model.
+	- `deepseek-reasoner` - Generates code using the DeepSeek reasoner model.
+    - `gemini-pro` - Alias now mapped to Gemini 1.5 Pro latest.
+    - `gemini-1.5-pro` - Generates code using Gemini 1.5 Pro latest.
+    - `gemini-1.5-flash` - Generates code using Gemini 1.5 Flash latest.
+    - `palm-2` - Legacy alias now mapped to Gemini 1.5 Flash latest.
+    - `claude-2` - Generates code using the Anthropic Claude-2 model.
+    - `claude-3-sonnet` - Alias now mapped to Claude 3.5 Sonnet latest.
+    - `claude-3-5-sonnet` - Generates code using Claude 3.5 Sonnet latest.
+    - `claude-3-5-haiku` - Generates code using Claude 3.5 Haiku latest.
+    - `claude-3-7-sonnet` - Generates code using Claude 3.7 Sonnet latest.
+    - `groq-mixtral` - Alias now mapped to Groq Llama 3.3 70B versatile.
+    - `groq-llama2` - Alias now mapped to Groq Llama 3.1 8B instant.
+    - `groq-llama-3.3` - Generates code using Groq Llama 3.3 70B versatile.
+    - `groq-gemma` - Alias now mapped to Groq Gemma2 9B IT.
+    - `code-llama` - Generates code using the Code-Llama model.
+    - `code-llama-phind` - Generates code using the Code-Llama Phind model.
     - `mistral-7b` - Generates code using the Mistral 7b model.
     - `wizard-coder` - Generates code using the Wizard Coder model.
     - `star-chat` - Generates code using the Star Chat model.
