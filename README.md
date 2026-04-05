@@ -43,9 +43,11 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 - [Installation](#📥-installation)
 - [Usage](#️🛠️-usage)
 - [Examples](#📖-examples)
+- [TUI Screenshots](#-tui-screenshots)
 - [Settings](#️⚙️-settings)
 - [Contributing](#🤝-contributing)
 - [Versioning](#📌-versioning)
+- [Changelog](CHANGELOG.md)
 - [License](#📜-license)
 - [Acknowledgments](#🙏-acknowledgments)
 
@@ -238,7 +240,7 @@ python interpreter.py
 python interpreter.py --cli -m 'z-ai-glm-5' -md 'code'
 ```
 - `python interpreter.py --cli` automatically picks the best configured model from your `.env` file if you do not pass `-m`.
-- Safe sandbox protections are enabled by default in `v3.0.0`.
+- Safe sandbox protections are enabled by default in `v3.1.0`.
 - Use `--unsafe` only when you explicitly want to bypass the execution safety policy.
 - LLM request retries are bounded to a maximum of `3` transient retry attempts before the final error is shown.
 
@@ -299,6 +301,25 @@ python interpreter.py -m 'browser-use-bu-max' -md 'chat' -dc
 ```
 
 Last verified model baseline: **April 5, 2026**.
+
+## 🖼️ **TUI Screenshots**
+
+The new TUI flow is designed for fast keyboard-first setup. Run `python interpreter.py` or `python interpreter.py --tui` to launch the selector UI, then use the arrow keys to choose the mode, model, language, and runtime options.
+
+### Mode selection
+Choose between `code`, `chat`, `script`, `command`, and `vision` before the session starts.
+
+![TUI mode selection](resources/interpreter-tui-mode-selection.png)
+
+### Model selection
+Pick your provider and model directly from the terminal without typing long aliases manually.
+
+![TUI model selection](resources/interpreter-tui-model-selection.png)
+
+### Live output
+After entering the session, generated code and execution output remain inside the terminal flow with the same safer runtime behavior used by the CLI.
+
+![TUI output](resources/interpreter-tui-output.png)
 
 # Interpreter Commands 🖥️
 
@@ -371,54 +392,15 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 ## 📌 **Versioning**
 
-🚀 **v1.0** - Initial release.  
-📊 **v1.1** - Added **Graphs** and **Charts** support.  
-🔥 **v1.2** - Added **LiteLLM** Support.  
-🌟 **v1.3** - Added **GPT 3.5** Support.  
-🌴 **v1.4** - Added **PALM 2** Support.  
-🎉 **v1.5** - Added **GPT 3.5/4** models official Support.  
-📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**, **XML**).  
-🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.  
+Current version: **3.1.0**
 
-🌟 **v1.8** - Added **Interpreter Commands Support**:  
-
-- 1.8.1 - Added _Interpreter Commands Debugging Support_.  
-- 1.8.2 - Fixed _Interpreter Commands_  
-- 1.8.3 - Added _Interpreter Commands Upgrade and Shell Support_.  
-- 1.8.4 - Fixed _Interpreter Model switcher Bug_.  
-
-🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.  
-
-- v1.9.1 - Fixed _Unit Tests_ and _History Args_  
-- v1.9.2 - Updated _Google Vision_ to adapt LiteLLM instead of _Google GenAI_.  
-- v1.9.3 - Added **Local Models** Support via **LM Studio**.  
-
-🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa, Mixtral_ models.  
-
-- **v2.0.1** - Added AnthropicAI Claude-2, Instant models.
-
-🔥 **v2.1** - Added AnhtorpicAI Claude-3 models powerful _Opus,Sonnet,Haiku_ models.
-- **v2.1.1** - Added **Groq-AI** Model _Gemma-7B_ with **700 Tokens/Sec**.
-- **v2.1.2** - Added **Prompt Modes** now you can set prompt from file as well just place your prompt in `prompt.txt` file inside `system` directory.
-- **v2.1.3** - Updated **OS Type detection** now for Linux **Arch & Debian** and generate accurate commands for all OS types.
-- **v2.1.4** - Added **GPT-4o** models they are most effecient and cost effective models from **OpenAI**
-- **v2.1.5** - Fixed OS type detection **Bug** for MacOS and feautre to open file with default editor.
-
-🔥 **v2.2** - Save/Execute _commands_ and _scripts_, Fixed **Logging** and **Package Manager**.
-- **Save/Execute**: Added support to **save and execute code, commands, and scripts** directly to external files.
-- **Updated Commands**: 
-  - Removed the `/debug` command and replaced it with the `/fix` command.
-  - `/debug` command now handles application debugging and issue resolution effectively.
-- **Improved Logger**:
-  - Fixed issues with logging to both **files and console** simultaneously.
-- **Dependency Management**:
-  - Resolved pip package installation issues for smoother and more reliable setup.
-- **v2.2.1** - Fixed **No Content/Response from LLM** Bug, Fixed _Debug Mode_ with **Logs**.
-
-- **v2.3.0** - Added Deepseek V3 and R1 models support now. Added OpenAI o1 Models support.
-- **v2.4.0** - 2026 model refresh: stable-first OpenAI/Gemini/Anthropic/Groq/DeepSeek catalog updates, legacy alias remaps, CLI smoke validator, and expanded unit tests.
-- **v2.4.1** - Removed deprecated PALM model path, added NVIDIA + Z AI + Browser Use providers, added `.env.example`, cleaned project artifacts, and introduced `--cli` / `--tui` startup flows with safer interactive error handling.
+Quick highlights:
+- **v3.1.0** - Added OpenRouter free-model aliases, made `openrouter/free` the default OpenRouter selection, improved simple-task code generation, added fresh TUI screenshots, and prepared release packaging assets.
 - **v3.0.0** - Added a default execution safety sandbox, dangerous command/code circuit breaker, bounded ReACT-style repair retries after failures, clearer execution feedback, and polished CLI/TUI runtime output.
+- **v2.4.1** - Added NVIDIA, Z AI, Browser Use, `.env.example`, and `--cli` / `--tui` startup flows.
+- **v2.4.0** - 2026 model refresh across OpenAI, Gemini, Anthropic, Groq, and DeepSeek.
+
+Full release history: [CHANGELOG.md](CHANGELOG.md)
 
 ---
 

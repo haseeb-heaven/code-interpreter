@@ -26,7 +26,7 @@ from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "2.4.1"
+INTERPRETER_VERSION = "3.1.0"
 
 
 def build_parser():
@@ -39,6 +39,7 @@ def build_parser():
     parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
     parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the generated code in output')
     parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
+    parser.add_argument('--unsafe', action='store_true', default=False, help='Disable execution safety checks and sandbox protections')
     parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
     parser.add_argument('--file', '-f', type=str, nargs='?', const='prompt.txt', default=None, help='Sets the file to read the input prompt from')
     mode_group = parser.add_mutually_exclusive_group()

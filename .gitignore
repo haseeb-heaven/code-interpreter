@@ -29,6 +29,7 @@ interp/
 # Generated output files and directories
 output/*
 logs/*
+dist/
 *.tmp
 *.bak
 
