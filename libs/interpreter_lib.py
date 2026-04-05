@@ -32,7 +32,6 @@ from dotenv import load_dotenv
 import shlex
 import shutil
 from rich.console import Console
-from rich.text import Text
 
 litellm.set_verbose = False
 litellm.suppress_debug_info = True
@@ -1242,7 +1241,7 @@ class Interpreter:
 				elif any(command in task.lower() for command in ['/mode ']):
 					mode = task.split(' ')[1]
 					if mode:
-						if not mode.lower() in ['code','script','command','vision','chat']:
+						if mode.lower() not in ['code','script','command','vision','chat']:
 							mode = 'code'
 							display_markdown_message(f"The input mode is not supported. Mode changed to {mode},"
 													 "\nUse '/list' command to get the list of supported modes.")
@@ -1290,22 +1289,46 @@ class Interpreter:
 					continue
 				
 				# INSTALL - Command section.
-				elif any(command in task.lower() for command in ['/install']):
-					# get the package name after the command 
-					package_name = task.split(' ')[1]
+				elif task.lower().startswith('/install'):
+					parts = task.split(' ')
+					if len(parts) >= 3:
+						# Case: /install <language> <package>
+						language = parts[1].lower()
+						package_name = parts[2]
+						
+						# Validate language
+						if language in ['python', 'py']:
+							language = 'python'
+						elif language in ['javascript', 'js', 'node']:
+							language = 'javascript'
+						else:
+							# If unknown language, treat as package name to be safe
+							package_name = parts[1]
+							language = self.INTERPRETER_LANGUAGE
+					elif len(parts) == 2:
+						package_name = parts[1]
+						language = self.INTERPRETER_LANGUAGE
+					else:
+						display_markdown_message("Usage: **/install [language] <package_name>**")
+						continue
 					
 					# check if package name is not system module.
 					system_modules = self.package_manager.get_system_modules()
 					
-					# Skip installing system modules.
 					if package_name in system_modules:
 						self.logger.info(f"Package {package_name} is a system module.")
 						display_markdown_message(f"Package {package_name} is a system module.")
-						raise Exception(f"Package {package_name} is a system module.")
+						continue
 						
 					if package_name:
-						self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
-						self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
+						self.logger.info(f"Installing package {package_name} for {language}")
+						display_markdown_message(f"Installing package **{package_name}** for **{language}**...")
+						try:
+							self.package_manager.install_package(package_name, language)
+							display_markdown_message(f"Successfully installed **{package_name}**")
+						except Exception as ex:
+							self.logger.error(f"Manual installation failed: {ex}")
+							display_markdown_message(f"Failed to install **{package_name}**: {ex}")
 					continue
 				
 				# Get the prompt based on the mode.
@@ -1492,21 +1515,32 @@ class Interpreter:
 							raise Exception(f"Package {package_name} is a system module.")
 						
 						if package_name:
-							self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE}")
-							self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
+							for attempt in range(1, 4):
+								try:
+									self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE} (Attempt {attempt}/3)")
+									self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)
 
-							# Wait and Execute the code again.
-							time.sleep(3)
-							code_output, code_error = self._execute_generated_output(code_snippet, os_name, force_execute=True)
-							if code_output:
-								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
-								display_code(code_output)
-								self.logger.info(f"Output: {code_output[:100]}")
-							elif code_error:
-								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
-								display_markdown_message(f"Error: {code_error}")
-							else:
-								display_markdown_message("Execution completed successfully. No stdout was produced.")
+									# Wait and Execute the code again.
+									time.sleep(3)
+									code_output, code_error = self._execute_generated_output(code_snippet, os_name, force_execute=True)
+									if code_output:
+										self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
+										display_code(code_output)
+										self.logger.info(f"Output: {code_output[:100]}")
+									elif code_error:
+										self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
+										display_markdown_message(f"Error: {code_error}")
+									else:
+										display_markdown_message("Execution completed successfully. No stdout was produced.")
+									break  # Exit retry loop on success
+								except Exception as ex:
+									if attempt < 3:
+										self.logger.warning(f"Attempt {attempt} to install package {package_name} failed: {ex}")
+										display_markdown_message(f"Attempt {attempt}/3 to install package **{package_name}** failed. Retrying in 2 seconds...")
+										time.sleep(2)
+									else:
+										self.logger.error(f"Failed to install package {package_name} after 3 attempts: {ex}")
+										display_markdown_message(f"Failed to install package **{package_name}** after 3 attempts. Error: {ex}. Proceeding with repair logic...")
 
 					if code_error and not code_error.startswith("Safety blocked:"):
 						code_snippet, repaired_output, repaired_error = self._attempt_repair_after_failure(

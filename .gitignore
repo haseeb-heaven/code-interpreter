@@ -22,6 +22,7 @@ venv/
 myvenv/
 heaven_venv/
 .venv/
+node_modules/
 
 # Interactive environment data
 interp/

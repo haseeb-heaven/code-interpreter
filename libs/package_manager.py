@@ -1,8 +1,8 @@
 import subprocess
 import re
-import logging
 import requests
 import stdlib_list
+import os
 from libs.logger import Logger
 
 
@@ -14,6 +14,15 @@ class PackageManager:
 		self.pip3_command = "pip3"
 		self.npm_command = "npm"
 		self.logger = Logger.initialize("logs/interpreter.log")
+
+	def _run_command(self, args):
+		"""Run a shell command with OS-appropriate settings."""
+		try:
+			# On Windows, shell=True is needed to resolve script-based commands like npm or pip
+			use_shell = os.name == 'nt'
+			return subprocess.check_call(args, shell=use_shell)
+		except subprocess.CalledProcessError as e:
+			raise e
 
 	def install_package(self, package_name, language):
 		if language == "python":
@@ -77,7 +86,7 @@ class PackageManager:
 	
 	def _install_package_with_pip(self,  package_name):
 		try:
-			subprocess.check_call([self.pip_command, "install", package_name])
+			self._run_command([self.pip_command, "install", package_name])
 			self.logger.info(f"Successfully installed package with pip: {package_name}")
 		except subprocess.CalledProcessError as exception:
 			self.logger.error(f"Failed to install package with pip: {package_name}")
@@ -85,7 +94,7 @@ class PackageManager:
 
 	def _install_package_with_pip3(self,  package_name):
 		try:
-			subprocess.check_call([self.pip3_command, "install", package_name])
+			self._run_command([self.pip3_command, "install", package_name])
 			self.logger.info(f"Successfully installed package with pip3: {package_name}")
 		except subprocess.CalledProcessError as exception:
 			self.logger.error(f"Failed to install package with pip3: {package_name}")
@@ -93,7 +102,7 @@ class PackageManager:
 		
 	def _install_package_with_npm(self,  package_name):
 		try:
-			subprocess.check_call([self.npm_command, "install", package_name])
+			self._run_command([self.npm_command, "install", package_name])
 			self.logger.info(f"Successfully installed package with npm: {package_name}")
 		except subprocess.CalledProcessError as exception:
 			self.logger.error(f"Failed to install package with npm: {package_name}")
@@ -102,12 +111,12 @@ class PackageManager:
 	def _is_package_installed(self,  package_name, package_manager):
 		if package_manager == "pip":
 			try:
-				subprocess.check_call([self.pip_command, "show", package_name])
+				self._run_command([self.pip_command, "show", package_name])
 				self.logger.info(f"Package {package_name} is installed")
 				return True
 			except subprocess.CalledProcessError:
 				try:
-					subprocess.check_call([self.pip3_command, "show", package_name])
+					self._run_command([self.pip3_command, "show", package_name])
 					self.logger.info(f"Package {package_name} is installed")
 					return True
 				except subprocess.CalledProcessError:
@@ -115,7 +124,7 @@ class PackageManager:
 					return False
 		elif package_manager == "npm":
 			try:
-				subprocess.check_call([self.npm_command, "list", "-g", package_name])
+				self._run_command([self.npm_command, "list", "-g", package_name])
 				self.logger.info(f"Package {package_name} is installed")
 				return True
 			except subprocess.CalledProcessError:
@@ -169,12 +178,12 @@ class PackageManager:
 		
 	def _check_package_exists_npm(self,  package_name):
 		try:
-			response = requests.get(f"https://www.npmjs.com/package/{package_name}")
+			response = requests.get(f"https://registry.npmjs.org/{package_name}")
 			if response.status_code == 200:
-				self.logger.info(f"Package {package_name} exists on npm website")
+				self.logger.info(f"Package {package_name} exists on npm registry")
 				return True
 			else:
-				self.logger.info(f"Package {package_name} does not exist on npm website")
+				self.logger.info(f"Package {package_name} does not exist on npm registry")
 				return False
 		except requests.exceptions.RequestException as exception:
 			self.logger.error(f"Failed to check package existence on npm website: {exception}")
