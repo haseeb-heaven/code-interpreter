@@ -10,6 +10,7 @@ import interpreter as interpreter_entry
 from interpreter import Interpreter
 from libs.history_manager import History
 from libs.code_interpreter import CodeInterpreter
+from libs.safety_manager import ExecutionSafetyManager, RepairCircuitBreaker
 from libs.utility_manager import UtilityManager
 
 
@@ -199,6 +200,32 @@ class TestInterpreter(unittest.TestCase):
             history_path.unlink()
             self.assertEqual(history.get_code_history(3), [])
 
+    def test_safety_manager_blocks_dangerous_command(self):
+        safety_manager = ExecutionSafetyManager()
+        decision = safety_manager.assess_execution("rm -rf /", "command")
+        self.assertFalse(decision.allowed)
+        self.assertTrue(decision.reasons)
+
+    def test_safety_manager_blocks_windows_recursive_delete_alias(self):
+        safety_manager = ExecutionSafetyManager()
+        decision = safety_manager.assess_execution('rd /s /q "C:\\Users\\hasee\\Desktop"', "command")
+        self.assertFalse(decision.allowed)
+
+    @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+    @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+    def test_simple_exact_print_task_is_simplified(self, _mock_history, _mock_client):
+        interpreter = Interpreter(self._make_args(mode="code", model="z-ai-glm-5"))
+        simplified = interpreter._maybe_simplify_generated_code(
+            "write python code that prints exactly 'Heaven Hello'",
+            "import pandas as pd\nprint('Heaven Hello')\n",
+        )
+        self.assertEqual(simplified, "print('Heaven Hello')")
+
+    def test_repair_circuit_breaker_stops_on_repeated_error(self):
+        breaker = RepairCircuitBreaker(max_attempts=2)
+        self.assertTrue(breaker.should_continue("syntax error"))
+        self.assertFalse(breaker.should_continue("syntax error"))
+
     def test_extract_code_prefers_triple_backticks_when_config_uses_single_backtick(self):
         code_interpreter = CodeInterpreter()
         extracted = code_interpreter.extract_code(
@@ -319,6 +346,20 @@ class TestInterpreter(unittest.TestCase):
         self.assertTrue(prepared_args.cli)
         self.assertEqual(prepared_args.mode, "code")
         self.assertEqual(prepared_args.model, "z-ai-glm-5")
+
+    @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+    @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+    def test_generate_content_with_retries_retries_transient_failures(self, _mock_history, _mock_client):
+        interpreter = Interpreter(self._make_args(mode="code", model="z-ai-glm-5"))
+        with patch.object(
+            interpreter,
+            "generate_content",
+            side_effect=[Exception("connection timeout"), "ok"],
+        ) as generate_mock, patch("libs.interpreter_lib.time.sleep", return_value=None):
+            result = interpreter._generate_content_with_retries("Ping", [], config_values={})
+
+        self.assertEqual(result, "ok")
+        self.assertEqual(generate_mock.call_count, 2)
 
     @patch("libs.interpreter_lib.display_markdown_message")
     @patch("libs.interpreter_lib.display_code")

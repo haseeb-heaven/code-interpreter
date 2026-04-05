@@ -24,6 +24,8 @@ from libs.history_manager import History
 from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.package_manager import PackageManager
+from libs.safety_manager import ExecutionSafetyManager, RepairCircuitBreaker
+from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
 import shlex
@@ -55,6 +57,12 @@ class Interpreter:
 		self.config_values = None
 		self.system_message = ""
 		self.gemini_vision = None
+		self.safety_manager = ExecutionSafetyManager()
+		self.UNSAFE_EXECUTION = getattr(self.args, "unsafe", False)
+		self.MAX_REPAIR_ATTEMPTS = 2
+		self.MAX_LLM_RETRIES = 3
+		self.terminal_ui = TerminalUI() if getattr(self.args, "tui", False) else None
+		self._last_execution_approved = False
 		self.initialize()
 	
 	def initialize(self):
@@ -134,6 +142,188 @@ class Interpreter:
 		message = re.sub(r"For more information on this error.*", "", message, flags=re.IGNORECASE)
 		message = re.sub(r"\s+", " ", message).strip(" .")
 		return message
+
+	def _is_retryable_request_error(self, error_text):
+		error_text = (error_text or "").lower()
+		retryable_markers = [
+			"rate limit",
+			"timeout",
+			"temporarily unavailable",
+			"connection",
+			"503",
+			"502",
+			"overloaded",
+			"try again",
+		]
+		non_retryable_markers = [
+			"quota",
+			"billing",
+			"api key",
+			"authentication",
+			"unauthorized",
+			"model_not_found",
+		]
+		if any(marker in error_text for marker in non_retryable_markers):
+			return False
+		return any(marker in error_text for marker in retryable_markers)
+
+	def _generate_content_with_retries(self, message, chat_history, config_values=None, image_file=None):
+		last_exception = None
+		for attempt in range(1, self.MAX_LLM_RETRIES + 1):
+			try:
+				return self.generate_content(message, chat_history, config_values=config_values, image_file=image_file)
+			except Exception as exception:
+				last_exception = exception
+				error_text = str(exception)
+				if attempt >= self.MAX_LLM_RETRIES or not self._is_retryable_request_error(error_text):
+					raise
+				display_markdown_message(f"LLM request retry {attempt}/{self.MAX_LLM_RETRIES} after transient failure.")
+				time.sleep(min(attempt, 3))
+		if last_exception:
+			raise last_exception
+
+	def _apply_mode(self, mode):
+		modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
+		self.INTERPRETER_MODE = mode.lower()
+		for key in modes:
+			setattr(self, modes[key], self.INTERPRETER_MODE == key)
+
+	def _open_tui_settings(self, setting_type):
+		if not self.terminal_ui:
+			return None
+		if setting_type == "mode":
+			return {"mode": self.terminal_ui.select_mode(self.INTERPRETER_MODE)}
+		if setting_type == "model":
+			return {"model": self.terminal_ui.select_model(self.INTERPRETER_MODEL_LABEL or self.INTERPRETER_MODEL)}
+		if setting_type == "language":
+			return {"language": self.terminal_ui.select_language(self.INTERPRETER_LANGUAGE)}
+		if setting_type == "settings":
+			return self.terminal_ui.interactive_settings(self)
+		return None
+
+	def _apply_runtime_settings(self, settings):
+		if not settings:
+			return
+		if "mode" in settings and settings["mode"]:
+			self._apply_mode(settings["mode"])
+		if "language" in settings and settings["language"]:
+			self.INTERPRETER_LANGUAGE = settings["language"]
+		if "display_code" in settings:
+			self.DISPLAY_CODE = settings["display_code"]
+		if "execute_code" in settings:
+			self.EXECUTE_CODE = settings["execute_code"]
+		if "save_code" in settings:
+			self.SAVE_CODE = settings["save_code"]
+		if "history" in settings:
+			self.INTERPRETER_HISTORY = settings["history"]
+		if "model" in settings and settings["model"]:
+			model = settings["model"]
+			model_config_file = f"configs/{model}.config"
+			if not os.path.isfile(model_config_file):
+				display_markdown_message(f"Model {model} does not exists. Please check the model name using '/list' command.")
+			else:
+				self.INTERPRETER_MODEL = model
+				self.INTERPRETER_MODEL_LABEL = model
+				self.initialize_client()
+
+	def _display_session_banner(self, os_name, input_prompt_mode):
+		short_lang = "python" if self.INTERPRETER_LANGUAGE == "python" else "javascript"
+		short_prompt_mode = "input" if input_prompt_mode.lower() == "input" else "file"
+		short_os_name = os_name.replace("Windows ", "Win")
+		session_line = (
+			f"OS={short_os_name} | Lang={short_lang} | "
+			f"Mode={self.INTERPRETER_MODE} | Src={short_prompt_mode} | "
+			f"Model={self.INTERPRETER_MODEL_LABEL or self.INTERPRETER_MODEL}"
+		)
+		self.console.print(f"[bold bright_blue]{session_line}[/bold bright_blue]", overflow="ignore", no_wrap=True)
+
+	def _build_repair_prompt(self, task, prompt, code_snippet, error_text, os_name):
+		if self.COMMAND_MODE:
+			target = "single terminal command"
+		elif self.SCRIPT_MODE:
+			target = "script"
+		else:
+			target = f"{self.INTERPRETER_LANGUAGE} code"
+
+		return (
+			f"You are in bounded repair mode for a failed {target} execution.\n"
+			f"Original task: {task}\n"
+			f"Resolved prompt: {prompt}\n"
+			f"Operating system: {os_name}\n"
+			f"Generated content:\n{code_snippet}\n\n"
+			f"Execution error:\n{error_text}\n\n"
+			f"Think through the failure privately, then return only the corrected {target} inside one triple-backtick block.\n"
+			"Do not include explanations, comments, or any text outside the code block."
+		)
+
+	def _maybe_simplify_generated_code(self, task, code_snippet):
+		if not self.CODE_MODE or not isinstance(task, str) or not isinstance(code_snippet, str):
+			return code_snippet
+
+		task_lower = task.lower()
+		exact_print_match = re.search(r"print(?:s)? exactly ['\"](.+?)['\"]", task, re.IGNORECASE)
+		if exact_print_match:
+			literal = exact_print_match.group(1)
+			if self.INTERPRETER_LANGUAGE == "python":
+				return f"print({literal!r})"
+			if self.INTERPRETER_LANGUAGE == "javascript":
+				return f"console.log({literal!r})"
+
+		if "current working directory" in task_lower and self.CODE_MODE:
+			if self.INTERPRETER_LANGUAGE == "python":
+				return "import os\nprint(os.getcwd())"
+			if self.INTERPRETER_LANGUAGE == "javascript":
+				return "console.log(process.cwd())"
+
+		return code_snippet
+
+	def _execute_generated_output(self, code_snippet, os_name, force_execute=False):
+		decision = self.safety_manager.assess_execution(code_snippet, self.INTERPRETER_MODE)
+		if not self.UNSAFE_EXECUTION and not decision.allowed:
+			reason_text = "; ".join(decision.reasons)
+			display_markdown_message(f"Execution blocked by safety policy: {reason_text}")
+			display_markdown_message("Use `--unsafe` only if you explicitly trust the generated output.")
+			return None, f"Safety blocked: {reason_text}"
+
+		sandbox_context = self.safety_manager.build_sandbox_context()
+		try:
+			return self.execute_code(code_snippet, os_name, sandbox_context=sandbox_context, force_execute=force_execute)
+		finally:
+			self.safety_manager.cleanup_sandbox_context(sandbox_context)
+
+	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, skip_first_line, extracted_file_name):
+		circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)
+		current_snippet = code_snippet
+		current_error = code_error
+
+		while current_error and circuit_breaker.should_continue(current_error):
+			display_markdown_message(f"Repair attempt {circuit_breaker.attempts}/{circuit_breaker.max_attempts} after execution failure.")
+			repair_prompt = self._build_repair_prompt(task, prompt, current_snippet, current_error, os_name)
+			repaired_output = self._generate_content_with_retries(repair_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
+			repaired_snippet = self.code_interpreter.extract_code(repaired_output, start_sep, end_sep, skip_first_line, self.CODE_MODE)
+
+			if not repaired_snippet or repaired_snippet.strip() == current_snippet.strip():
+				break
+
+			current_snippet = repaired_snippet
+			display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
+			display_code(current_snippet, language=display_language)
+			code_output, current_error = self._execute_generated_output(current_snippet, os_name, force_execute=True)
+
+			if code_output:
+				return current_snippet, code_output, current_error
+			if not current_error:
+				return current_snippet, code_output, None
+			if current_error.startswith("Safety blocked:"):
+				break
+
+		return current_snippet, None, current_error
+
+	def _safe_input(self, prompt_text, default=None):
+		try:
+			return input(prompt_text)
+		except EOFError:
+			return default
 
 	def initialize_client(self):
 		env_path = os.path.join(os.getcwd(), ".env")
@@ -227,10 +417,12 @@ class Interpreter:
 				self.system_message
 				+ "\nReturn exactly one executable code block."
 				+ "\nDo not include explanations, comments, docstrings, markdown headings, or text outside the code block."
+				+ "\nDo not add unrelated files, tables, charts, dataframes, package installs, subprocess calls, or network requests unless the user explicitly asks for them."
 			)
 			assistant_message = (
 				f"Return only executable {self.INTERPRETER_LANGUAGE} code wrapped in triple backticks."
 				f" No explanations. No comments. No text outside the code block."
+				f" Do not add extra libraries or side effects unless required by the task."
 			)
 		elif self.SCRIPT_MODE:
 			system_message = (
@@ -291,7 +483,7 @@ class Interpreter:
 			display_code(code_snippet)  # Display the code first.
 
 			# Execute the code if the user has selected.
-			code_output, code_error = self.execute_code(code_snippet, os_name)
+			code_output, code_error = self._execute_generated_output(code_snippet, os_name)
 			if code_output:
 				self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 				display_code(code_output)
@@ -599,6 +791,7 @@ class Interpreter:
 			"Return exactly one fenced code block and nothing else.\n"
 			"Do not include explanations, comments, docstrings, markdown prose, or usage notes.\n"
 			"Use production-ready syntax with correct indentation and imports.\n"
+			"Do not create tables, dataframes, plots, files, package installers, subprocess calls, or network requests unless the task explicitly requires them.\n"
 			"Handle common filesystem and permission errors safely when relevant.\n"
 			"If multiple solutions exist, choose the most direct working solution."
 		)
@@ -624,7 +817,8 @@ class Interpreter:
 			f"Task: '{task}'\n"
 			f"Operating System: {os_name}\n"
 			"NOTE: Ensure the script is compatible with the specified OS and version.\n"
-			"Output should only contain the script, with no additional text."
+			"Output should only contain the script, with no additional text.\n"
+			"Do not add unrelated package installs, files, or cleanup commands unless the task requires them."
 		)
 
 		self.logger.info(f"Script Prompt: {prompt}")
@@ -636,7 +830,8 @@ class Interpreter:
 			f"Task: '{task}'\n"
 			f"Operating System: {os_name}\n"
 			"NOTE: Ensure the command is compatible with the specified OS and version.\n"
-			"Output should only contain the command, with no additional text."
+			"Output should only contain the command, with no additional text.\n"
+			"Choose the simplest safe built-in command and do not add unrelated chaining or file generation."
 		)
 		self.logger.info("Command Prompt: {prompt}")
 		return prompt
@@ -666,27 +861,28 @@ class Interpreter:
 			self.logger.info("Getting chat prompt.")
 			return self.handle_chat_mode(task)
 
-	def execute_code(self,  extracted_code, os_name):
+	def execute_code(self,  extracted_code, os_name, sandbox_context=None, force_execute=False):
 		# If the interpreter mode is Vision, do not execute the code.
 		if self.INTERPRETER_MODE in ['vision', 'chat']:
 			return None, None
 		
-		if self.EXECUTE_CODE:
+		if force_execute or self.EXECUTE_CODE:
 			execute = 'y'
 		else:
 			try:
 				execute = input("Execute the code? (Y/N): ")
 			except EOFError:
 				execute = 'n'
+		self._last_execution_approved = execute.lower() == 'y'
 		if execute.lower() == 'y':
 			try:
 				code_output, code_error = "", ""
 				if self.SCRIPT_MODE:
-					code_output, code_error = self.code_interpreter.execute_script(script=extracted_code, os_type=os_name)
+					code_output, code_error = self.code_interpreter.execute_script(script=extracted_code, os_type=os_name, sandbox_context=sandbox_context)
 				elif self.COMMAND_MODE:
-					code_output, code_error = self.code_interpreter.execute_command(command=extracted_code)
+					code_output, code_error = self.code_interpreter.execute_command(command=extracted_code, sandbox_context=sandbox_context)
 				elif self.CODE_MODE:
-					code_output, code_error = self.code_interpreter.execute_code(code=extracted_code, language=self.INTERPRETER_LANGUAGE)
+					code_output, code_error = self.code_interpreter.execute_code(code=extracted_code, language=self.INTERPRETER_LANGUAGE, sandbox_context=sandbox_context)
 				return code_output, code_error
 			except Exception as exception:
 				self.logger.error(f"Error occurred while executing code: {str(exception)}")
@@ -724,15 +920,7 @@ class Interpreter:
 
 		# Display system and Assistant information.
 		input_prompt_mode = "File" if self.INTERPRETER_PROMPT_FILE else "Input"
-		short_lang = "py" if self.INTERPRETER_LANGUAGE == "python" else "js"
-		short_prompt_mode = "in" if input_prompt_mode.lower() == "input" else "file"
-		short_os_name = os_name.replace("Windows ", "Win")
-		session_line = (
-			f"OS={short_os_name} | Lang={short_lang} | "
-			f"Mode={self.INTERPRETER_MODE} | Src={short_prompt_mode} | "
-			f"Model={self.INTERPRETER_MODEL_LABEL or self.INTERPRETER_MODEL}"
-		)
-		self.console.print(Text(session_line, no_wrap=True, overflow="ignore"))
+		self._display_session_banner(os_name, input_prompt_mode)
 		
 		# Display the welcome message.
 		display_markdown_message("Welcome to **Interpreter**, I'm here to **assist** you with your everyday tasks. ")
@@ -746,7 +934,7 @@ class Interpreter:
 				if self.INTERPRETER_PROMPT_INPUT:
 					self.logger.info("Reading prompt from input.")
 					# Main input prompt - System and Assistant.
-					task = input("> ")
+					task = self._safe_input("> ", default="/exit")
 				elif self.INTERPRETER_PROMPT_FILE:
 					prompt_file_name = self.args.file
 					
@@ -759,7 +947,7 @@ class Interpreter:
 					# check if the file exists.
 					if not os.path.exists(prompt_file_path):
 						self.logger.error(f"Prompt file not found: {prompt_file_path}")
-						user_confirmation = input("Create a new prompt file (Y/N)?: ")
+						user_confirmation = self._safe_input("Create a new prompt file (Y/N)?: ", default="n")
 						if user_confirmation.lower() == 'y':
 							self.logger.info("Creating new prompt file.")
 							self.utility_manager.create_file(prompt_file_path)
@@ -777,7 +965,7 @@ class Interpreter:
 					display_markdown_message(f"\nEnter your task in the file **'{prompt_file_path}'**")
 					
 					# File mode command section.
-					prompt_confirmation = input("Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ")
+					prompt_confirmation = self._safe_input("Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ", default="n")
 					if prompt_confirmation.lower() == 'y':
 						self.logger.info("Executing prompt from file.")
  
@@ -796,7 +984,7 @@ class Interpreter:
 						continue
 					elif prompt_confirmation.lower() == 'c':
 						self.logger.info("Changing input mode to command from file.")
-						task = input("> ")
+						task = self._safe_input("> ", default="/exit")
 					else:
 						# Invalid input mode (0x000022)
 						self.logger.error("Invalid input mode.")
@@ -993,7 +1181,7 @@ class Interpreter:
 					
 					# Start the LLM Request.
 					self.logger.info(f"Fix Prompt: {fix_prompt}")
-					generated_output = self.generate_content(fix_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
+					generated_output = self._generate_content_with_retries(fix_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
 
 					# Extract the code from the generated output.
 					self.logger.info(f"Generated output type {type(generated_output)}")
@@ -1020,6 +1208,16 @@ class Interpreter:
 					continue
 
 				# MODE - Command section.
+				elif task.lower() == '/settings' and self.terminal_ui:
+					self._apply_runtime_settings(self._open_tui_settings("settings"))
+					display_markdown_message("Settings updated.")
+					continue
+
+				elif task.lower() == '/mode' and self.terminal_ui:
+					self._apply_runtime_settings(self._open_tui_settings("mode"))
+					display_markdown_message(f"Mode changed to '{self.INTERPRETER_MODE}'")
+					continue
+
 				elif any(command in task.lower() for command in ['/mode ']):
 					mode = task.split(' ')[1]
 					if mode:
@@ -1028,19 +1226,16 @@ class Interpreter:
 							display_markdown_message(f"The input mode is not supported. Mode changed to {mode},"
 													 "\nUse '/list' command to get the list of supported modes.")
 						else:
-							modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
-
-							self.INTERPRETER_MODE = mode.lower()
-
-							for key in modes:
-								if self.INTERPRETER_MODE == key:
-									setattr(self,  modes[key], True)
-								else:
-									setattr(self,  modes[key], False)
+							self._apply_mode(mode)
 							display_markdown_message(f"Mode changed to '{self.INTERPRETER_MODE}'")
 					continue
 
 				# MODEL - Command section.
+				elif task.lower() == '/model' and self.terminal_ui:
+					self._apply_runtime_settings(self._open_tui_settings("model"))
+					display_markdown_message(f"Model changed to '{self.INTERPRETER_MODEL_LABEL}'")
+					continue
+
 				elif any(command in task.lower() for command in ['/model ']):
 					model = task.split(' ')[1]
 					if model:
@@ -1056,6 +1251,11 @@ class Interpreter:
 					continue
 				
 				# LANGUAGE - Command section.
+				elif task.lower() in ['/language', '/lang'] and self.terminal_ui:
+					self._apply_runtime_settings(self._open_tui_settings("language"))
+					display_markdown_message(f"Language changed to '{self.INTERPRETER_LANGUAGE}'")
+					continue
+
 				elif any(command in task.lower() for command in ['/language','/lang']):
 					split_task = task.split(' ')
 					if len(split_task) > 1:
@@ -1187,7 +1387,7 @@ class Interpreter:
 				elif self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'code':
 					self.history = self.history_manager.get_code_history(self.history_count)
 				
-				generated_output = self.generate_content(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
+				generated_output = self._generate_content_with_retries(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
 				
 				# No extra processing for Vision mode.
 				if self.INTERPRETER_MODE in ['vision', 'chat']:
@@ -1197,6 +1397,7 @@ class Interpreter:
 				# Extract the code from the generated output.
 				self.logger.info(f"Generated output type {type(generated_output)}")
 				code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
+				code_snippet = self._maybe_simplify_generated_code(task, code_snippet)
 				display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
 				
 				# Display the extracted code.
@@ -1239,15 +1440,19 @@ class Interpreter:
 						self.logger.info("Script saved successfully.")
 				
 					# Execute the code if the user has selected.
-					code_output, code_error = self.execute_code(code_snippet, os_name)
+					code_output, code_error = self._execute_generated_output(code_snippet, os_name)
 					
 					if code_output:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 						display_code(code_output)
 						self.logger.info(f"Output: {code_output[:100]}")
+					elif code_error and code_error.startswith("Safety blocked:"):
+						self.logger.warning(code_error)
 					elif code_error:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
 						display_markdown_message(f"Error: {code_error}")
+					else:
+						display_markdown_message("Execution completed successfully. No stdout was produced.")
 						
 					# install Package on error.
 					error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
@@ -1269,7 +1474,7 @@ class Interpreter:
 
 							# Wait and Execute the code again.
 							time.sleep(3)
-							code_output, code_error = self.execute_code(code_snippet, os_name)
+							code_output, code_error = self._execute_generated_output(code_snippet, os_name, force_execute=True)
 							if code_output:
 								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 								display_code(code_output)
@@ -1277,6 +1482,28 @@ class Interpreter:
 							elif code_error:
 								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
 								display_markdown_message(f"Error: {code_error}")
+							else:
+								display_markdown_message("Execution completed successfully. No stdout was produced.")
+
+					if code_error and not code_error.startswith("Safety blocked:"):
+						code_snippet, repaired_output, repaired_error = self._attempt_repair_after_failure(
+							task,
+							prompt,
+							code_snippet,
+							code_error,
+							os_name,
+							start_sep,
+							end_sep,
+							skip_first_line,
+							extracted_file_name,
+						)
+						if repaired_output:
+							code_output = repaired_output
+							code_error = repaired_error
+							display_code(repaired_output)
+						elif repaired_error and repaired_error != code_error:
+							code_error = repaired_error
+							display_markdown_message(f"Error: {repaired_error}")
 							
 					try:
 						# Check if graph.png exists and open it.

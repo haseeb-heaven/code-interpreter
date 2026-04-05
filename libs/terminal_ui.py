@@ -113,17 +113,49 @@ class TerminalUI:
         choice = self._select_option(title, ['yes', 'no'], default_choice, 'Use Up/Down arrows and Enter to choose.')
         return choice == 'yes'
 
-    def launch(self, args):
+    def select_mode(self, default_mode='code'):
+        return self._select_option('Mode', ['code', 'chat', 'script', 'command', 'vision'], default_mode)
+
+    def select_model(self, default_model=None):
         models = self.utility_manager.list_available_models()
-        default_mode = args.mode or 'code'
-        default_model = args.model or self.utility_manager.get_default_model_name()
+        default_model = default_model or self.utility_manager.get_default_model_name()
         if default_model not in models:
             default_model = models[0]
-        default_lang = args.lang or 'python'
+        return self._select_option('Model', models, default_model, 'Use Up/Down arrows, Enter, or type the first letter to jump.')
 
-        mode = self._select_option('Mode', ['code', 'chat', 'script', 'command', 'vision'], default_mode)
-        model = self._select_option('Model', models, default_model, 'Use Up/Down arrows, Enter, or type the first letter to jump.')
-        language = self._select_option('Language', ['python', 'javascript'], default_lang)
+    def select_language(self, default_lang='python'):
+        return self._select_option('Language', ['python', 'javascript'], default_lang)
+
+    def select_boolean(self, title, default=False):
+        return self._select_boolean(title, default=default)
+
+    def interactive_settings(self, interpreter):
+        current_model = getattr(interpreter, "INTERPRETER_MODEL_LABEL", None) or getattr(interpreter, "INTERPRETER_MODEL", None)
+        current_mode = getattr(interpreter, "INTERPRETER_MODE", "code")
+        current_lang = getattr(interpreter, "INTERPRETER_LANGUAGE", "python")
+
+        mode = self.select_mode(current_mode)
+        model = self.select_model(current_model)
+        language = self.select_language(current_lang)
+        display_code = self.select_boolean('Display generated code automatically?', default=getattr(interpreter, "DISPLAY_CODE", False))
+        execute_code = self.select_boolean('Execute generated code automatically?', default=getattr(interpreter, "EXECUTE_CODE", False))
+        save_code = self.select_boolean('Save generated output automatically?', default=getattr(interpreter, "SAVE_CODE", False))
+        history = self.select_boolean('Enable history memory?', default=getattr(interpreter, "INTERPRETER_HISTORY", False))
+
+        return {
+            "mode": mode,
+            "model": model,
+            "language": language,
+            "display_code": display_code,
+            "execute_code": execute_code,
+            "save_code": save_code,
+            "history": history,
+        }
+
+    def launch(self, args):
+        mode = self.select_mode(args.mode or 'code')
+        model = self.select_model(args.model or self.utility_manager.get_default_model_name())
+        language = self.select_language(args.lang or 'python')
 
         self.utility_manager.clear_screen()
         self.console.print(
@@ -159,6 +191,7 @@ class TerminalUI:
             lang=language,
             file=args.file,
             history=history,
+            unsafe=getattr(args, "unsafe", False),
             upgrade=args.upgrade,
             cli=args.cli,
             tui=args.tui,

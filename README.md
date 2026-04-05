@@ -154,6 +154,10 @@ python interpreter.py -md 'code' -m 'gpt-4o' -dc
 
 - 👀 Code Display: It can display the generated code in the output, allowing you to review the code before execution.
 
+- 🛡️ Safe Sandbox Execution: Generated code, commands, and scripts now run inside an isolated subprocess environment with stripped secrets, a temporary working directory, execution timeout, and dangerous-operation blocking by default.
+
+- 🧠 Self-Repair Loop: Failed executions can trigger a bounded ReACT-style repair pass that regenerates a safer fix and retries with a circuit breaker.
+
 - 💻 Cross-Platform: Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
 
 - 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
@@ -213,12 +217,16 @@ python interpreter.py
 ```
 - `python interpreter.py` now opens the TUI and uses arrow-key navigation in a real terminal.
 - The TUI falls back to plain text prompts when stdin is piped or not attached to a terminal.
+- In `--tui` sessions, `/mode`, `/model`, `/language`, and `/settings` can reopen interactive selectors from inside the live chat interface.
 
 - Launch the classic prompt-based CLI directly</br>
 ```python
 python interpreter.py --cli -m 'z-ai-glm-5' -md 'code'
 ```
 - `python interpreter.py --cli` automatically picks the best configured model from your `.env` file if you do not pass `-m`.
+- Safe sandbox protections are enabled by default in `v3.0.0`.
+- Use `--unsafe` only when you explicitly want to bypass the execution safety policy.
+- LLM request retries are bounded to a maximum of `3` transient retry attempts before the final error is shown.
 
 - Launch the selector-based TUI</br>
 ```python
@@ -293,6 +301,7 @@ Here are the available commands:
 - 📝 `/version` - Display the version of the interpreter.
 - 🚪 `/exit` - Exit the interpreter.
 - 🐞 `/fix` - Fix the generated code for errors.
+- ⚙️ `/settings` - Open interactive TUI settings when running with `--tui`.
 - 📜 `/log` - Toggle different modes of logging.
 - ⏫ `/upgrade` - Upgrade the interpreter.
 - 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
@@ -393,6 +402,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 - **v2.3.0** - Added Deepseek V3 and R1 models support now. Added OpenAI o1 Models support.
 - **v2.4.0** - 2026 model refresh: stable-first OpenAI/Gemini/Anthropic/Groq/DeepSeek catalog updates, legacy alias remaps, CLI smoke validator, and expanded unit tests.
 - **v2.4.1** - Removed deprecated PALM model path, added NVIDIA + Z AI + Browser Use providers, added `.env.example`, cleaned project artifacts, and introduced `--cli` / `--tui` startup flows with safer interactive error handling.
+- **v3.0.0** - Added a default execution safety sandbox, dangerous command/code circuit breaker, bounded ReACT-style repair retries after failures, clearer execution feedback, and polished CLI/TUI runtime output.
 
 ---
 
