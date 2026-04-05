@@ -796,25 +796,25 @@ class TestNewConfigFilesFromPR(unittest.TestCase):
 
     # --- Separator changes: all new configs use single backtick ---
 
-    def test_claude_sonnet_4_6_config_uses_single_backtick_separator(self):
+    def test_claude_sonnet_4_6_config_uses_triple_backtick_separator(self):
         config = self._read_config("claude-sonnet-4-6.config")
-        self.assertEqual(config.get("start_sep"), "`")
-        self.assertEqual(config.get("end_sep"), "`")
+        self.assertEqual(config.get("start_sep"), "```")
+        self.assertEqual(config.get("end_sep"), "```")
 
-    def test_gemini_1_5_pro_config_uses_single_backtick_separator(self):
+    def test_gemini_1_5_pro_config_uses_triple_backtick_separator(self):
         config = self._read_config("gemini-1.5-pro.config")
-        self.assertEqual(config.get("start_sep"), "`")
-        self.assertEqual(config.get("end_sep"), "`")
+        self.assertEqual(config.get("start_sep"), "```")
+        self.assertEqual(config.get("end_sep"), "```")
 
-    def test_deepseek_chat_config_uses_single_backtick_separator(self):
+    def test_deepseek_chat_config_uses_triple_backtick_separator(self):
         config = self._read_config("deepseek-chat.config")
-        self.assertEqual(config.get("start_sep"), "`")
-        self.assertEqual(config.get("end_sep"), "`")
+        self.assertEqual(config.get("start_sep"), "```")
+        self.assertEqual(config.get("end_sep"), "```")
 
-    def test_deepseek_reasoner_config_uses_single_backtick_separator(self):
+    def test_deepseek_reasoner_config_uses_triple_backtick_separator(self):
         config = self._read_config("deepseek-reasoner.config")
-        self.assertEqual(config.get("start_sep"), "`")
-        self.assertEqual(config.get("end_sep"), "`")
+        self.assertEqual(config.get("start_sep"), "```")
+        self.assertEqual(config.get("end_sep"), "```")
 
     # --- max_tokens updated in deepseek configs ---
 
