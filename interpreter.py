@@ -30,6 +30,18 @@ INTERPRETER_VERSION = "3.1.0"
 
 
 def build_parser():
+    """
+    Create and return the command-line ArgumentParser configured for the Code Interpreter CLI.
+    
+    The parser includes flags for execution and output control (--exec, --save_code, --display_code),
+    mode selection (--mode with choices 'code', 'script', 'command', 'vision', 'chat'), model override (--model),
+    language selection (--lang), history memory (--history), unsafe mode (--unsafe), upgrade workflow (--upgrade),
+    and optional input file (--file, uses 'prompt.txt' when provided without a value). It also exposes a version
+    option and enforces mutual exclusion between --cli and --tui UI selection flags.
+    
+    Returns:
+        argparse.ArgumentParser: A fully configured ArgumentParser for the interpreter CLI.
+    """
     parser = argparse.ArgumentParser(description='Code - Interpreter')
     parser.add_argument('--exec', '-e', action='store_true', default=False, help='Execute the code')
     parser.add_argument('--save_code', '-s', action='store_true', default=False, help='Save the generated code')
@@ -49,10 +61,26 @@ def build_parser():
 
 
 def _get_default_model():
+    """
+    Get the default model name used when no model is specified.
+    
+    Returns:
+        str: The default model name to use for code generation.
+    """
     return UtilityManager.get_default_model_name()
 
 
 def prepare_args(args, argv):
+    """
+    Finalize CLI/TUI selection and populate missing defaults on the parsed arguments.
+    
+    Parameters:
+        args (argparse.Namespace): Parsed command-line arguments to finalize; may be modified in-place.
+        argv (Sequence[str]): Original program argv used to detect whether runtime arguments were provided.
+    
+    Returns:
+        The finalized argument namespace, or the value returned by TerminalUI().launch(args) when TUI mode is launched.
+    """
     no_runtime_args = len(argv) <= 1
     if no_runtime_args and not args.cli and not args.tui:
         args.tui = True
@@ -69,6 +97,12 @@ def prepare_args(args, argv):
 
 
 def main(argv=None):
+    """
+    Parse command-line arguments, prepare runtime settings, and start the interpreter process.
+    
+    Parameters:
+        argv (list[str] | None): Optional argument vector to parse; when `None`, `sys.argv` is used. This allows overriding CLI input for testing or embedding.
+    """
     argv = argv or sys.argv
     parser = build_parser()
     args = parser.parse_args(argv[1:])

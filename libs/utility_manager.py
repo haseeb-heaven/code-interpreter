@@ -28,6 +28,11 @@ class UtilityManager:
 	]
 
 	def __init__(self):
+		"""
+		Initialize the UtilityManager by preparing logging infrastructure and creating the logger.
+		
+		Ensures a 'logs' directory exists and creates an empty 'logs/interpreter.log' file if missing, then initializes self.logger via Logger.initialize("logs/interpreter.log"). On any exception during setup, logs an error message and re-raises the exception.
+		"""
 		try:
 			if not os.path.exists('logs'):
 				os.makedirs('logs')
@@ -96,6 +101,14 @@ class UtilityManager:
 			raise
 
 	def initialize_readline_history(self):
+		"""
+		Initialize readline-based interactive input history and register it to be saved on process exit.
+		
+		Attempts to import `readline`, falling back to `pyreadline` on platforms where that is required. If a history file `~/.python_history` exists it is loaded, and `readline.write_history_file` is registered with `atexit` to persist history on exit. If readline support is unavailable or initialization fails, no exception is raised and the function returns `False`.
+		
+		Returns:
+		    True if history support was successfully initialized and persistence was registered, False otherwise.
+		"""
 		try:
 			try:
 				import readline
@@ -130,6 +143,21 @@ class UtilityManager:
 			return False
 
 	def read_config_file(self, filename=".config"):
+		"""
+		Parse a simple key/value configuration file into a dictionary.
+		
+		The file is read line-by-line; lines starting with `#` and lines without an `=` are ignored.
+		Each remaining line is split at the first `=` into a key and value, and both are stripped of surrounding whitespace.
+		
+		Parameters:
+			filename (str): Path to the configuration file (default: ".config").
+		
+		Returns:
+			dict: Mapping of configuration keys to their corresponding string values.
+		
+		Raises:
+			Exception: Propagates any exception raised while opening or reading the file.
+		"""
 		try:
 			config_data = {}
 			with open(filename, "r") as config_file:
@@ -145,6 +173,18 @@ class UtilityManager:
 			raise
 
 	def list_available_models(self, configs_path=None):
+		"""
+		List available model names from `.config` files in a directory.
+		
+		Parameters:
+			configs_path (str): Optional path to the directory containing `.config` files. If omitted, defaults to the `configs` subdirectory of the current working directory.
+		
+		Returns:
+			models (list[str]): Sorted list of model names derived from the `.config` filenames (filename stem without extension).
+		
+		Raises:
+			Exception: Re-raises any exception encountered while accessing or listing the directory after logging the error.
+		"""
 		try:
 			configs_path = configs_path or os.path.join(os.getcwd(), 'configs')
 			configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
@@ -155,6 +195,14 @@ class UtilityManager:
 
 	@staticmethod
 	def get_default_model_name():
+		"""
+		Selects the default model name based on environment-configured API keys.
+		
+		Loads environment variables from a `.env` file in the current working directory without overriding existing environment variables, then returns the first model name from UtilityManager.DEFAULT_MODELS whose corresponding environment variable is set. If none are set, returns "gpt-4o".
+		
+		Returns:
+		    str: The chosen default model name.
+		"""
 		env_path = os.path.join(os.getcwd(), ".env")
 		load_dotenv(dotenv_path=env_path, override=False)
 
@@ -164,6 +212,20 @@ class UtilityManager:
 		return "gpt-4o"
 
 	def extract_file_name(self, prompt):
+		"""
+		Extracts the first plausible file path, filename, or URL with a recognized (non-binary) extension from the given prompt.
+		
+		Searches the prompt for a filesystem path, bare filename, or HTTP/HTTPS URL that ends with a file extension and returns the matched substring only if its extension is one of: .json, .csv, .xml, .xls, .txt, .md, .html, .png, .jpg, .jpeg, .gif, .svg, .zip, .tar, .gz, .7z, .rar.
+		
+		Parameters:
+			prompt (str): Text to scan for a filename, path, or URL.
+		
+		Returns:
+			str or None: The matched filename/path/URL when an allowed extension is found, `None` if no match or the extension is not allowed.
+		
+		Raises:
+			Exception: Re-raises any unexpected exception encountered while extracting the filename.
+		"""
 		try:
 			# This pattern looks for typical file paths, names, and URLs, then stops at the end of the extension
 			pattern = r"((?:[a-zA-Z]:\\(?:[\w\-\.]+\\)*|/(?:[\w\-\.]+/)*|\b[\w\-\.]+\b|https?://[\w\-\.]+/[\w\-\.]+/)*[\w\-\.]+\.\w+)"
@@ -258,6 +320,11 @@ class UtilityManager:
 			raise
 
 	def display_help(self):
+		"""
+		Display interpreter usage, startup flags, and available commands.
+		
+		Shows the supported startup flags (for example, `--cli` and `--tui`) and a concise list of all interpreter commands such as `/exit`, `/execute`, `/install`, `/save`, `/edit`, `/fix`, `/mode`, `/model`, `/language`, `/history`, `/clear`, `/help`, `/list`, `/version`, `/debug`, `/prompt`, `/upgrade`, and `/shell`.
+		"""
 		display_markdown_message("Interpreter\n\
 				\n\
 				Startup flags:\n\
@@ -337,6 +404,11 @@ class UtilityManager:
 
 	@staticmethod
 	def upgrade_interpreter():
+		"""
+		Upgrade the local code interpreter and optionally its Python dependencies.
+		
+		Downloads a requirements.txt from the project repository, runs pip to upgrade the open-code-interpreter package, and—if the requirements file was downloaded successfully—installs or upgrades packages from the downloaded requirements.txt. Progress is reported via markdown messages and relevant events and command output are logged; if a command produces output, the output is displayed and its first 100 characters are logged.
+		"""
 		code_interpreter = CodeInterpreter()
 		logger = Logger.initialize("logs/interpreter.log")
 		# Download the requirements file
