@@ -14,22 +14,35 @@ This file contains the `Interpreter` class which is responsible for:
 import os
 import subprocess
 import time
+import json
 import litellm  # Main libray for LLM's
 from typing import List
+import requests
+import re
 from libs.code_interpreter import CodeInterpreter
 from libs.history_manager import History
 from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
+from libs.model_utils import normalize_model_name
 from libs.package_manager import PackageManager
+from libs.safety_manager import ExecutionSafetyManager, RepairCircuitBreaker
+from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
 import shlex
 import shutil
+from rich.console import Console
+from rich.text import Text
+
+litellm.set_verbose = False
+litellm.suppress_debug_info = True
+litellm.telemetry = False
 
 class Interpreter:
 	logger = None
 	client = None
 	interpreter_version = None
+	console = Console()
 	
 	def __init__(self,  args):
 		self.args = args
@@ -45,6 +58,12 @@ class Interpreter:
 		self.config_values = None
 		self.system_message = ""
 		self.gemini_vision = None
+		self.safety_manager = ExecutionSafetyManager()
+		self.UNSAFE_EXECUTION = getattr(self.args, "unsafe", False)
+		self.MAX_REPAIR_ATTEMPTS = 3
+		self.MAX_LLM_RETRIES = 3
+		self.terminal_ui = TerminalUI() if getattr(self.args, "tui", False) else None
+		self._last_execution_approved = False
 		self.initialize()
 	
 	def initialize(self):
@@ -53,10 +72,11 @@ class Interpreter:
 		self.EXECUTE_CODE = self.args.exec
 		self.DISPLAY_CODE = self.args.display_code
 		self.INTERPRETER_MODEL = self.args.model if self.args.model else None
+		self.INTERPRETER_MODEL_LABEL = self.args.model if self.args.model else None
 		self.logger.info(f"Interpreter args model selected is '{self.args.model}")
 		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
 		self.system_message = ""
-		self.INTERPRETER_MODE = 'code'
+		self.INTERPRETER_MODE = self.args.mode if self.args.mode else 'code'
 		
 		if self.args.file is None:
 			self.INTERPRETER_PROMPT_FILE = False
@@ -98,16 +118,285 @@ class Interpreter:
 		except Exception:
 			self.logger.error("Exception on initializing readline history")
 
+	def _is_recoverable_runtime_error(self, error_text):
+		recoverable_errors = [
+			"rate limit",
+			"ratelimit",
+			"quota",
+			"credits",
+			"requires more credits",
+			"resource_exhausted",
+			"temporarily rate-limited",
+			"402",
+			"429",
+			"api key",
+			"authentication",
+			"unauthorized",
+			"model_not_found",
+			"not found",
+			"timeout",
+			"connection",
+		]
+		error_text = (error_text or "").lower()
+		return any(error in error_text for error in recoverable_errors)
+
+	def _format_runtime_error_message(self, error_text):
+		message = error_text or "Unknown error"
+		message = re.sub(r"https?://\S+", "", message)
+		message = re.sub(r"litellm\.[A-Za-z]+Error:\s*", "", message)
+		message = re.sub(r"\b[A-Za-z]+Error:\s*", "", message)
+		message = re.sub(r"\b[A-Za-z]+Exception\s*-\s*", "", message)
+		message = re.sub(r"For more information on this error.*", "", message, flags=re.IGNORECASE)
+		message = re.sub(r"\s+", " ", message).strip(" .")
+		return message
+
+	def _is_retryable_request_error(self, error_text):
+		error_text = (error_text or "").lower()
+		retryable_markers = [
+			"rate limit",
+			"ratelimit",
+			"timeout",
+			"temporarily unavailable",
+			"temporarily rate-limited",
+			"connection",
+			"503",
+			"502",
+			"429",
+			"overloaded",
+			"provider returned error",
+			"try again",
+		]
+		non_retryable_markers = [
+			"quota",
+			"credits",
+			"requires more credits",
+			"billing",
+			"api key",
+			"authentication",
+			"unauthorized",
+			"model_not_found",
+		]
+		if any(marker in error_text for marker in non_retryable_markers):
+			return False
+		return any(marker in error_text for marker in retryable_markers)
+
+	def _generate_content_with_retries(self, message, chat_history, config_values=None, image_file=None):
+		last_exception = None
+		for attempt in range(1, self.MAX_LLM_RETRIES + 1):
+			try:
+				return self.generate_content(message, chat_history, config_values=config_values, image_file=image_file)
+			except Exception as exception:
+				last_exception = exception
+				error_text = str(exception)
+				if attempt >= self.MAX_LLM_RETRIES or not self._is_retryable_request_error(error_text):
+					raise
+				display_markdown_message(f"LLM request retry {attempt}/{self.MAX_LLM_RETRIES} after transient failure.")
+				time.sleep(min(attempt, 3))
+		if last_exception:
+			raise last_exception
+
+	def _apply_mode(self, mode):
+		modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
+		self.INTERPRETER_MODE = mode.lower()
+		for key in modes:
+			setattr(self, modes[key], self.INTERPRETER_MODE == key)
+
+	def _open_tui_settings(self, setting_type):
+		if not self.terminal_ui:
+			return None
+		if setting_type == "mode":
+			return {"mode": self.terminal_ui.select_mode(self.INTERPRETER_MODE)}
+		if setting_type == "model":
+			return {"model": self.terminal_ui.select_model(self.INTERPRETER_MODEL_LABEL or self.INTERPRETER_MODEL)}
+		if setting_type == "language":
+			return {"language": self.terminal_ui.select_language(self.INTERPRETER_LANGUAGE)}
+		if setting_type == "settings":
+			return self.terminal_ui.interactive_settings(self)
+		return None
+
+	def _apply_runtime_settings(self, settings):
+		if not settings:
+			return
+		if "mode" in settings and settings["mode"]:
+			self._apply_mode(settings["mode"])
+		if "language" in settings and settings["language"]:
+			self.INTERPRETER_LANGUAGE = settings["language"]
+		if "display_code" in settings:
+			self.DISPLAY_CODE = settings["display_code"]
+		if "execute_code" in settings:
+			self.EXECUTE_CODE = settings["execute_code"]
+		if "save_code" in settings:
+			self.SAVE_CODE = settings["save_code"]
+		if "history" in settings:
+			self.INTERPRETER_HISTORY = settings["history"]
+		if "model" in settings and settings["model"]:
+			model = settings["model"]
+			model_config_file = f"configs/{model}.config"
+			if not os.path.isfile(model_config_file):
+				display_markdown_message(f"Model {model} does not exists. Please check the model name using '/list' command.")
+			else:
+				self.INTERPRETER_MODEL = model
+				self.INTERPRETER_MODEL_LABEL = model
+				self.initialize_client()
+
+	def _display_session_banner(self, os_name, input_prompt_mode):
+		short_lang = "python" if self.INTERPRETER_LANGUAGE == "python" else "javascript"
+		short_prompt_mode = "input" if input_prompt_mode.lower() == "input" else "file"
+		short_os_name = os_name.replace("Windows ", "Win")
+		session_line = (
+			f"OS={short_os_name} | Lang={short_lang} | "
+			f"Mode={self.INTERPRETER_MODE} | Src={short_prompt_mode} | "
+			f"Model={self.INTERPRETER_MODEL_LABEL or self.INTERPRETER_MODEL}"
+		)
+		self.console.print(f"[bold bright_blue]{session_line}[/bold bright_blue]", overflow="ignore", no_wrap=True)
+
+	def _build_repair_prompt(self, task, prompt, code_snippet, error_text, os_name, code_output=None):
+		if self.COMMAND_MODE:
+			target = "single terminal command"
+		elif self.SCRIPT_MODE:
+			target = "script"
+		else:
+			target = f"{self.INTERPRETER_LANGUAGE} code"
+
+		observed_output = ""
+		if code_output:
+			observed_output = f"\nObserved stdout before failure:\n{code_output}\n"
+
+		return (
+			f"You are in bounded repair mode for a failed {target} execution.\n"
+			f"Original task: {task}\n"
+			f"Resolved prompt: {prompt}\n"
+			f"Operating system: {os_name}\n"
+			f"Generated content:\n{code_snippet}\n\n"
+			f"{observed_output}"
+			f"Execution error:\n{error_text}\n\n"
+			f"Think through the failure privately, then return only the corrected {target} inside one triple-backtick block.\n"
+			"Preserve only the parts that help complete the original task, and remove unrelated extras.\n"
+			"Do not include explanations, comments, or any text outside the code block."
+		)
+
+	def _task_has_any(self, text, phrases):
+		return any(phrase in text for phrase in phrases)
+
+	def _is_simple_directory_listing_task(self, task_lower):
+		if not task_lower:
+			return False
+
+		list_phrases = (
+			"print current files",
+			"list current files",
+			"show current files",
+			"print files in directory",
+			"list files in directory",
+			"show files in directory",
+			"print files in the directory",
+			"list files in the directory",
+			"show files in the directory",
+			"print files in current directory",
+			"list files in current directory",
+			"show files in current directory",
+			"print current files in directory",
+			"list current files in directory",
+			"show current files in directory",
+		)
+		disallowed = ("chart", "graph", "plot", "table", "markdown", "html", "png", "csv", "image", "size in mb", "size")
+		return self._task_has_any(task_lower, list_phrases) and not self._task_has_any(task_lower, disallowed)
+
+	def _maybe_simplify_generated_code(self, task, code_snippet):
+		if not self.CODE_MODE or not isinstance(task, str) or not isinstance(code_snippet, str):
+			return code_snippet
+
+		task_lower = task.lower()
+		exact_print_match = re.search(r"print(?:s)? exactly ['\"](.+?)['\"]", task, re.IGNORECASE)
+		if exact_print_match:
+			literal = exact_print_match.group(1)
+			if self.INTERPRETER_LANGUAGE == "python":
+				return f"print({literal!r})"
+			if self.INTERPRETER_LANGUAGE == "javascript":
+				return f"console.log({literal!r})"
+
+		if "current working directory" in task_lower and self.CODE_MODE:
+			if self.INTERPRETER_LANGUAGE == "python":
+				return "import os\nprint(os.getcwd())"
+			if self.INTERPRETER_LANGUAGE == "javascript":
+				return "console.log(process.cwd())"
+
+		if self._is_simple_directory_listing_task(task_lower):
+			if self.INTERPRETER_LANGUAGE == "python":
+				return "import os\nfor name in os.listdir():\n    print(name)"
+			if self.INTERPRETER_LANGUAGE == "javascript":
+				return "const fs = require('fs');\nfor (const name of fs.readdirSync(process.cwd())) {\n  console.log(name);\n}"
+
+		return code_snippet
+
+	def _execute_generated_output(self, code_snippet, os_name, force_execute=False):
+		decision = self.safety_manager.assess_execution(code_snippet, self.INTERPRETER_MODE)
+		if not self.UNSAFE_EXECUTION and not decision.allowed:
+			reason_text = "; ".join(decision.reasons)
+			display_markdown_message(f"Execution blocked by safety policy: {reason_text}")
+			display_markdown_message("Use `--unsafe` only if you explicitly trust the generated output.")
+			return None, f"Safety blocked: {reason_text}"
+
+		if not self.UNSAFE_EXECUTION:
+			sandbox_context = self.safety_manager.build_sandbox_context()
+		else:
+			sandbox_context = None
+		try:
+			return self.execute_code(code_snippet, os_name, sandbox_context=sandbox_context, force_execute=force_execute)
+		finally:
+			if not self.UNSAFE_EXECUTION:
+				self.safety_manager.cleanup_sandbox_context(sandbox_context)
+
+	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, skip_first_line, extracted_file_name, code_output=None):
+		circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)
+		current_snippet = code_snippet
+		current_error = code_error
+		current_output = code_output
+
+		while current_error and circuit_breaker.should_continue(current_error):
+			display_markdown_message(f"Repair attempt {circuit_breaker.attempts}/{circuit_breaker.max_attempts} after execution failure.")
+			repair_prompt = self._build_repair_prompt(task, prompt, current_snippet, current_error, os_name, code_output=current_output)
+			repaired_output = self._generate_content_with_retries(repair_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
+			repaired_snippet = self.code_interpreter.extract_code(repaired_output, start_sep, end_sep, skip_first_line, self.CODE_MODE)
+			repaired_snippet = self._maybe_simplify_generated_code(task, repaired_snippet)
+
+			if not repaired_snippet or repaired_snippet.strip() == current_snippet.strip():
+				break
+
+			current_snippet = repaired_snippet
+			display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
+			display_code(current_snippet, language=display_language)
+			current_output, current_error = self._execute_generated_output(current_snippet, os_name, force_execute=True)
+
+			if current_output:
+				return current_snippet, current_output, current_error
+			if not current_error:
+				return current_snippet, current_output, None
+			if current_error.startswith("Safety blocked:"):
+				break
+
+		return current_snippet, current_output, current_error
+
+	def _safe_input(self, prompt_text, default=None):
+		try:
+			return input(prompt_text)
+		except EOFError:
+			return default
+
 	def initialize_client(self):
-		load_dotenv(dotenv_path=os.path.join(os.getcwd(), "../.env"), override=True)
+		env_path = os.path.join(os.getcwd(), ".env")
+		load_dotenv(dotenv_path=env_path, override=True)
 		self.logger.info("Initializing Client")
 		config_file_name: str = ""
 
 		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
 		if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
 			self.logger.info("HF_MODEL is not provided, using default model.")
-			config_file_name = "configs/gpt-4o.config" # Setting default model to GPT 4o.
+			self.INTERPRETER_MODEL = self.utility_manager.get_default_model_name()
+			self.INTERPRETER_MODEL_LABEL = self.INTERPRETER_MODEL
+			config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
 		else:
+			self.INTERPRETER_MODEL_LABEL = self.INTERPRETER_MODEL
 			config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
 		
 		self.logger.info(f"Reading config file {config_file_name}")    
@@ -120,13 +409,13 @@ class Interpreter:
 			self.logger.info("Skipping client initialization for local model.")
 			# Add OpenAI API key if not present in the environment variables. (https://github.com/haseeb-heaven/code-interpreter/issues/13)
 			# Fixed OpenAI API Key name (https://github.com/haseeb-heaven/code-interpreter/issues/20)
-			api_key = os.environ['OPENAI_API_KEY']
+			api_key = os.getenv('OPENAI_API_KEY')
 			
 			if api_key:
 				self.logger.info("Using local API key from environment variables.")
 				
 			if api_key is None:
-				load_dotenv(dotenv_path=os.path.join(os.getcwd(), "../.env"), override=True)
+				load_dotenv(dotenv_path=env_path, override=True)
 				api_key = os.getenv('OPENAI_API_KEY')
 				if api_key is None:
 					self.logger.info("Setting default local API key for local models.")
@@ -135,30 +424,40 @@ class Interpreter:
 		
 		self.logger.info(f"Using model {hf_model_name}")
 
-		model_api_keys = {
-			"gpt": {"key_name": "OPENAI_API_KEY", "prefix": "sk-"},
-			"groq": {"key_name": "GROQ_API_KEY", "prefix": "gsk"},
-			"claude": {"key_name": "ANTHROPIC_API_KEY", "prefix": "sk-ant-"},
-			"palm": {"key_name": "PALM_API_KEY", "prefix": None, "length": 15},
-			"gemini": {"key_name": "GEMINI_API_KEY", "prefix": None, "length": 15},
-			"deepseek": {"key_name": "DEEPSEEK_API_KEY", "prefix": None, "length": 10},
-			"default": {"key_name": "HUGGINGFACE_API_KEY", "prefix": "hf_"}
-		}
+		config_provider = str(self.config_values.get("provider", "")).strip().lower()
 
-		for model, api_key_info in model_api_keys.items():
-			if model in self.INTERPRETER_MODEL or model == "default":
-				api_key_name = api_key_info["key_name"]
-				api_key = os.getenv(api_key_name)
-				if api_key is None:
-					load_dotenv(dotenv_path=os.path.join(os.getcwd(), "../.env"), override=True)
-					api_key = os.getenv(api_key_name)
-				if not api_key:
-					raise Exception(f"{api_key_name} not found in .env file.")
-				if api_key_info["prefix"] and not api_key.startswith(api_key_info["prefix"]):
-					raise Exception(f"{api_key_name} should start with '{api_key_info['prefix']}'. Please check your .env file.")
-				if api_key_info.get("length") and len(api_key) <= api_key_info["length"]:
-					raise Exception(f"{api_key_name} should have length greater than {api_key_info['length']}. Please check your .env file.")
-				break
+		if config_provider == "nvidia" or self.INTERPRETER_MODEL.startswith("nvidia/"):
+			api_key_info = {"key_name": "NVIDIA_API_KEY", "prefix": "nvapi-"}
+		elif config_provider in ("z-ai", "zai") or self.INTERPRETER_MODEL.startswith(("glm-", "z-ai/", "zai/")):
+			api_key_info = {"key_name": "Z_AI_API_KEY", "prefix": None, "length": 10}
+		elif config_provider in ("browser-use", "browser_use") or self.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
+			api_key_info = {"key_name": "BROWSER_USE_API_KEY", "prefix": "bu_"}
+		elif config_provider == "openrouter":
+			api_key_info = {"key_name": "OPENROUTER_API_KEY", "prefix": "sk-or-v1-"}
+		elif self.INTERPRETER_MODEL.startswith(("gpt", "o1", "o3", "o4")):
+			api_key_info = {"key_name": "OPENAI_API_KEY", "prefix": "sk-"}
+		elif self.INTERPRETER_MODEL.startswith("groq/") or "groq" in self.INTERPRETER_MODEL:
+			api_key_info = {"key_name": "GROQ_API_KEY", "prefix": "gsk"}
+		elif "claude" in self.INTERPRETER_MODEL:
+			api_key_info = {"key_name": "ANTHROPIC_API_KEY", "prefix": "sk-ant-"}
+		elif "gemini" in self.INTERPRETER_MODEL:
+			api_key_info = {"key_name": "GEMINI_API_KEY", "prefix": None, "length": 15}
+		elif "deepseek" in self.INTERPRETER_MODEL:
+			api_key_info = {"key_name": "DEEPSEEK_API_KEY", "prefix": None, "length": 10}
+		else:
+			api_key_info = {"key_name": "HUGGINGFACE_API_KEY", "prefix": "hf_"}
+
+		api_key_name = api_key_info["key_name"]
+		api_key = os.getenv(api_key_name)
+		if api_key is None:
+			load_dotenv(dotenv_path=env_path, override=True)
+			api_key = os.getenv(api_key_name)
+		if not api_key:
+			raise Exception(f"{api_key_name} not found in .env file.")
+		if api_key_info.get("prefix") and not api_key.startswith(api_key_info["prefix"]):
+			raise Exception(f"{api_key_name} should start with '{api_key_info['prefix']}'. Please check your .env file.")
+		if api_key_info.get("length") and len(api_key) <= api_key_info["length"]:
+			raise Exception(f"{api_key_name} should have length greater than {api_key_info['length']}. Please check your .env file.")
 		
 	def initialize_mode(self):
 		self.CODE_MODE = True if self.args.mode == 'code' else False
@@ -171,13 +470,32 @@ class Interpreter:
 	
 	def get_prompt(self, message: str, chat_history: List[dict]) -> List[dict] | str:
 		system_message: str = ""
+		assistant_message = "Please generate code wrapped inside triple backticks known as codeblock."
 		
 		if self.CODE_MODE:
-			system_message = self.system_message
+			system_message = (
+				self.system_message
+				+ "\nReturn exactly one executable code block."
+				+ "\nDo not include explanations, comments, docstrings, markdown headings, or text outside the code block."
+				+ "\nDo not add unrelated files, tables, charts, dataframes, package installs, subprocess calls, or network requests unless the user explicitly asks for them."
+			)
+			assistant_message = (
+				f"Return only executable {self.INTERPRETER_LANGUAGE} code wrapped in triple backticks."
+				f" No explanations. No comments. No text outside the code block."
+				f" Do not add extra libraries or side effects unless required by the task."
+			)
 		elif self.SCRIPT_MODE:
-			system_message = "Please generate a well-written script that is precise, easy to understand, and compatible with the current operating system."
+			system_message = (
+				"Please generate a well-written script that is precise, easy to understand, and compatible with the current operating system."
+				"\nReturn exactly one executable code block with no explanations or extra text."
+			)
+			assistant_message = "Return only the script wrapped in triple backticks. No explanations or comments."
 		elif self.COMMAND_MODE:
-			system_message = "Please generate a single line command that is precise, easy to understand, and compatible with the current operating system."
+			system_message = (
+				"Please generate a single line command that is precise, easy to understand, and compatible with the current operating system."
+				"\nReturn only the command with no explanations or extra text."
+			)
+			assistant_message = "Return only the command wrapped in triple backticks. No explanations."
 		elif self.VISION_MODE:
 			system_message = "Please generate a well-written description of the image that is precise, easy to understand"
 			return system_message
@@ -189,7 +507,7 @@ class Interpreter:
 				system_message += "\n\n" + "\n\n" + "This is user chat history for this task and make sure to use this as reference to generate the answer if user asks for 'History' or 'Chat History'.\n\n" + "\n\n" + str(chat_history) + "\n\n"
 		
 		# Use the Messages API from Anthropic.
-		if 'claude-3' in self.INTERPRETER_MODEL:
+		if 'claude' in self.INTERPRETER_MODEL:
 			messages = [
 					{
 						"role": "user",
@@ -206,7 +524,7 @@ class Interpreter:
 		else:
 			messages = [
 				{"role": "system", "content": system_message},
-				{"role": "assistant", "content": "Please generate code wrapped inside triple backticks known as codeblock."},
+				{"role": "assistant", "content": assistant_message},
 				{"role": "user", "content": message}
 			]
 		
@@ -225,7 +543,7 @@ class Interpreter:
 			display_code(code_snippet)  # Display the code first.
 
 			# Execute the code if the user has selected.
-			code_output, code_error = self.execute_code(code_snippet, os_name)
+			code_output, code_error = self._execute_generated_output(code_snippet, os_name)
 			if code_output:
 				self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 				display_code(code_output)
@@ -237,37 +555,168 @@ class Interpreter:
 			self.logger.error(f"Error in processing command run code: {str(exception)}")
 			raise
 
+	def _extract_latest_user_text(self, message, messages):
+		if isinstance(message, str) and message.strip():
+			return message.strip()
+		if isinstance(messages, list):
+			for item in reversed(messages):
+				if not isinstance(item, dict) or item.get("role") != "user":
+					continue
+				content = item.get("content")
+				if isinstance(content, str) and content.strip():
+					return content.strip()
+				if isinstance(content, list):
+					text_parts = []
+					for chunk in content:
+						if isinstance(chunk, dict) and chunk.get("type") == "text":
+							text_parts.append(str(chunk.get("text", "")).strip())
+					joined = " ".join(part for part in text_parts if part)
+					if joined:
+						return joined
+		return "Help with this request."
+
+	def _run_openai_compatible_completion(self, api_key_name, messages, temperature, max_tokens, api_base, extra_headers=None):
+		api_key = os.getenv(api_key_name)
+		if not api_key:
+			raise Exception(f"{api_key_name} not found in .env file.")
+		if api_base == 'None':
+			raise Exception("Exception api base not set for custom model")
+		custom_llm_provider = "openai"
+		completion_kwargs = {
+			"messages": messages,
+			"temperature": temperature,
+			"max_tokens": max_tokens,
+			"api_base": api_base,
+			"api_key": api_key,
+			"custom_llm_provider": custom_llm_provider,
+		}
+		if extra_headers:
+			completion_kwargs["extra_headers"] = extra_headers
+		return litellm.completion(self.INTERPRETER_MODEL, **completion_kwargs)
+
+	def _generate_browser_use_content(self, message, messages, config_values):
+		api_key = os.getenv("BROWSER_USE_API_KEY")
+		if not api_key:
+			raise Exception("BROWSER_USE_API_KEY not found in .env file.")
+
+		base_url = str(config_values.get("api_base", "https://api.browser-use.com/api/v3")).rstrip("/")
+		model = self.INTERPRETER_MODEL
+		task = self._extract_latest_user_text(message, messages)
+		timeout_seconds = int(config_values.get("browser_use_timeout", 150))
+		poll_interval = int(config_values.get("browser_use_poll_interval", 3))
+
+		headers = {
+			"X-Browser-Use-API-Key": api_key,
+			"Content-Type": "application/json",
+		}
+		payload = {
+			"task": task,
+			"model": model,
+			"keepAlive": False,
+		}
+		self.logger.info(f"Starting Browser Use session with model={model}")
+		create_response = requests.post(f"{base_url}/sessions", headers=headers, json=payload, timeout=45)
+		create_response.raise_for_status()
+		create_data = create_response.json()
+		session_id = create_data.get("id")
+		if not session_id:
+			raise Exception("Browser Use session creation failed: missing session id")
+
+		end_time = time.time() + timeout_seconds
+		while time.time() < end_time:
+			status_response = requests.get(f"{base_url}/sessions/{session_id}", headers=headers, timeout=30)
+			status_response.raise_for_status()
+			status_data = status_response.json()
+			status = str(status_data.get("status", "")).lower()
+			live_url = status_data.get("liveUrl")
+
+			if status in {"finished", "completed", "stopped", "done", "success"}:
+				output = status_data.get("output")
+				if output is None:
+					output = status_data.get("result")
+				if output is None:
+					output = status_data.get("finalResult")
+				if output is None and live_url:
+					output = f"Browser Use session completed. Live URL: {live_url}"
+				if output is None:
+					output = f"Browser Use session completed. Session ID: {session_id}"
+				if isinstance(output, (dict, list)):
+					return json.dumps(output, ensure_ascii=False)
+				return str(output)
+
+			if status in {"failed", "error", "cancelled"}:
+				raise Exception(f"Browser Use session failed with status '{status}'")
+
+			time.sleep(poll_interval)
+
+		raise Exception("Browser Use session timed out.")
+	
 	def generate_content(self, message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
 		self.logger.info(f"Generating content with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
 		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
+		api_base = 'None'
+		config_provider = ""
 		
 		# Use the values from the config file if they are provided
 		if config_values:
 			temperature = float(config_values.get('temperature', temperature))
 			max_tokens = int(config_values.get('max_tokens', max_tokens))
 			api_base = str(config_values.get('api_base', None)) # Only for OpenAI.
+			config_provider = str(config_values.get("provider", "")).strip().lower()
 
 		# Get the system prompt
 		messages = self.get_prompt(message, chat_history)
 		
-		# Check if the model is GPT 3.5/4/4o
-		if 'gpt' in self.INTERPRETER_MODEL:
-			self.logger.info("Model is GPT 3.5/4/4o")
+		# Provider-specific OpenAI-compatible endpoints.
+		if config_provider == "nvidia" or self.INTERPRETER_MODEL.startswith("nvidia/"):
+			self.logger.info("Model is NVIDIA via OpenAI-compatible API.")
+			response = self._run_openai_compatible_completion("NVIDIA_API_KEY", messages, temperature, max_tokens, api_base)
+			self.logger.info("Response received from completion function.")
+
+		elif config_provider in ("z-ai", "zai") or self.INTERPRETER_MODEL.startswith(("glm-", "z-ai/", "zai/")):
+			self.logger.info("Model is Z AI via OpenAI-compatible API.")
+			response = self._run_openai_compatible_completion("Z_AI_API_KEY", messages, temperature, max_tokens, api_base)
+			self.logger.info("Response received from completion function.")
+
+		elif config_provider in ("browser-use", "browser_use") or self.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
+			self.logger.info("Model is Browser Use session model.")
+			response_text = self._generate_browser_use_content(message, messages, config_values or {})
+			self.logger.info("Response received from Browser Use session.")
+			return response_text
+
+		elif config_provider == "openrouter":
+			self.logger.info("Model is OpenRouter via OpenAI-compatible API.")
+			extra_headers = {
+				"HTTP-Referer": "https://github.com/haseeb-heaven/code-interpreter",
+				"X-OpenRouter-Title": "Code Interpreter",
+			}
+			response = self._run_openai_compatible_completion("OPENROUTER_API_KEY", messages, temperature, max_tokens, api_base, extra_headers=extra_headers)
+			self.logger.info("Response received from OpenRouter completion.")
+
+		# Check if the model is from OpenAI (GPT/o-series)
+		elif self.INTERPRETER_MODEL.startswith(("gpt", "o1", "o3", "o4")):
+			self.logger.info("Model is OpenAI GPT/o-series")
+			reasoning_model = self.INTERPRETER_MODEL.startswith(("o1", "o3", "o4", "gpt-5"))
+			completion_kwargs = {
+				"messages": messages,
+				"max_tokens": max_tokens,
+			}
+			if not reasoning_model:
+				completion_kwargs["temperature"] = temperature
+			else:
+				# O-series and GPT-5 models reject some classic params (e.g., temperature != 1)
+				completion_kwargs["drop_params"] = True
+
 			if api_base != 'None':
 				# Set the custom language model provider
-				custom_llm_provider = "openai"
+				completion_kwargs["custom_llm_provider"] = "openai"
+				completion_kwargs["api_base"] = api_base
 				self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
-				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
 			else:
+				if self.INTERPRETER_MODEL.startswith(("o1", "o3", "o4")):
+					completion_kwargs["custom_llm_provider"] = "openai"
 				self.logger.info("Default API mode selected for OpenAI.")
-				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
-			self.logger.info("Response received from completion function.")
-				
-		# Check if the model is PALM-2
-		elif 'palm' in self.INTERPRETER_MODEL:
-			self.logger.info("Model is PALM-2.")
-			self.INTERPRETER_MODEL = "palm/chat-bison"
-			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
+			response = litellm.completion(self.INTERPRETER_MODEL, **completion_kwargs)
 			self.logger.info("Response received from completion function.")
 		
 		# Check if the model is Gemini Pro
@@ -301,48 +750,22 @@ class Interpreter:
 				self.logger.info("Response received from completion function.")
 				return response # Return the response from Gemini Vision because its not coding model.
 			else:
-				self.logger.info("Model is Gemini Pro.")
-				self.INTERPRETER_MODEL = "gemini/gemini-pro"
+				self.logger.info("Model is Gemini.")
+				self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
 				self.logger.info("Response received from completion function.")
 		
 		# Check if the model is Groq-AI
 		elif 'groq' in self.INTERPRETER_MODEL:
-			
-			if 'groq-llama2' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Groq/Llama2.")
-				self.INTERPRETER_MODEL = "groq/llama2-70b-4096"
-			elif 'groq-mixtral' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Groq/Mixtral.")
-				self.INTERPRETER_MODEL = "groq/mixtral-8x7b-32768"
-			elif 'groq-gemma' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Groq/Gemma.")
-				self.INTERPRETER_MODEL = "groq/gemma-7b-it"
-				
+			self.logger.info("Model is Groq.")
+			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
 			self.logger.info("Response received from completion function.")
 		
 		# Check if the model is AnthropicAI
 		elif 'claude' in self.INTERPRETER_MODEL:
-			
-			if 'claude-2' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Claude-2.")
-				self.INTERPRETER_MODEL = "claude-2"
-			elif 'claude-2.1' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is claude-2.1.")
-				self.INTERPRETER_MODEL = "claude-2.1"
-			
-			# Support for Claude-3 Models
-			elif 'claude-3' in self.INTERPRETER_MODEL:
-				
-				if 'claude-3-sonnet' in self.INTERPRETER_MODEL:
-					self.logger.info("Model is claude-3-sonnet.")
-					self.INTERPRETER_MODEL = "claude-3-sonnet-20240229"
-					
-				elif 'claude-3-opus' in self.INTERPRETER_MODEL:
-					self.logger.info("Model is claude-3-opus.")
-					self.INTERPRETER_MODEL = "claude-3-opus-20240229"
-				
+			self.logger.info("Model is Claude.")
+			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
 			self.logger.info("Response received from completion function.")
 		
@@ -361,18 +784,13 @@ class Interpreter:
 		# Check if the model is Deepseek
 		elif 'deepseek' in self.INTERPRETER_MODEL:
 			self.logger.info("Model is Deepseek.")
-			 # Ensure the model string is prefixed with "deepseek/"
-			if not self.INTERPRETER_MODEL.startswith("deepseek/"):
-				self.INTERPRETER_MODEL = "deepseek/" + self.INTERPRETER_MODEL
+			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
 			self.logger.info("Response received from Deepseek completion.")
 
 		# Check if model are from Hugging Face.
 		else:
-			# Add huggingface/ if not present in the model name.
-			if 'huggingface/' not in self.INTERPRETER_MODEL:
-				self.INTERPRETER_MODEL = 'huggingface/' + self.INTERPRETER_MODEL
-			
+			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 			self.logger.info(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
 			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
 			self.logger.info("Response received from completion function.")
@@ -388,11 +806,15 @@ class Interpreter:
 			self.INTERPRETER_LANGUAGE = 'python'
 		
 		prompt = (
-			f"Generate the {self.INTERPRETER_LANGUAGE} code for the following task: '{task}'.\n"
-			f"Ensure the code is well-structured and there should be no comments or no extra text, easy to read, and follows best practices for {self.INTERPRETER_LANGUAGE}.\n"
-			f"The code should be compatible with the operating system: {os_name}, considering any platform-specific features or limitations.\n"
-			"Handle potential errors gracefully, and ensure the solution is efficient and concise.\n"
-			"If there are multiple possible solutions, choose the most optimized one."
+			f"Generate executable {self.INTERPRETER_LANGUAGE} code for this task: '{task}'.\n"
+			f"Target operating system: {os_name}.\n"
+			"Return exactly one fenced code block and nothing else.\n"
+			"Do not include explanations, comments, docstrings, markdown prose, or usage notes.\n"
+			"Use production-ready syntax with correct indentation and imports.\n"
+			"Do not create tables, dataframes, plots, files, package installers, subprocess calls, or network requests unless the task explicitly requires them.\n"
+			"If the task only asks to print, list, or show something, generate only the few lines needed to do that exact action.\n"
+			"Handle common filesystem and permission errors safely when relevant.\n"
+			"If multiple solutions exist, choose the most direct working solution."
 		)
 		return prompt
 
@@ -416,7 +838,8 @@ class Interpreter:
 			f"Task: '{task}'\n"
 			f"Operating System: {os_name}\n"
 			"NOTE: Ensure the script is compatible with the specified OS and version.\n"
-			"Output should only contain the script, with no additional text."
+			"Output should only contain the script, with no additional text.\n"
+			"Do not add unrelated package installs, files, or cleanup commands unless the task requires them."
 		)
 
 		self.logger.info(f"Script Prompt: {prompt}")
@@ -428,7 +851,8 @@ class Interpreter:
 			f"Task: '{task}'\n"
 			f"Operating System: {os_name}\n"
 			"NOTE: Ensure the command is compatible with the specified OS and version.\n"
-			"Output should only contain the command, with no additional text."
+			"Output should only contain the command, with no additional text.\n"
+			"Choose the simplest safe built-in command and do not add unrelated chaining or file generation."
 		)
 		self.logger.info("Command Prompt: {prompt}")
 		return prompt
@@ -458,21 +882,28 @@ class Interpreter:
 			self.logger.info("Getting chat prompt.")
 			return self.handle_chat_mode(task)
 
-	def execute_code(self,  extracted_code, os_name):
+	def execute_code(self,  extracted_code, os_name, sandbox_context=None, force_execute=False):
 		# If the interpreter mode is Vision, do not execute the code.
 		if self.INTERPRETER_MODE in ['vision', 'chat']:
 			return None, None
 		
-		execute = 'y' if self.EXECUTE_CODE else input("Execute the code? (Y/N): ")
+		if force_execute or self.EXECUTE_CODE:
+			execute = 'y'
+		else:
+			try:
+				execute = input("Execute the code? (Y/N): ")
+			except EOFError:
+				execute = 'n'
+		self._last_execution_approved = execute.lower() == 'y'
 		if execute.lower() == 'y':
 			try:
 				code_output, code_error = "", ""
 				if self.SCRIPT_MODE:
-					code_output, code_error = self.code_interpreter.execute_script(script=extracted_code, os_type=os_name)
+					code_output, code_error = self.code_interpreter.execute_script(script=extracted_code, os_type=os_name, sandbox_context=sandbox_context)
 				elif self.COMMAND_MODE:
-					code_output, code_error = self.code_interpreter.execute_command(command=extracted_code)
+					code_output, code_error = self.code_interpreter.execute_command(command=extracted_code, sandbox_context=sandbox_context)
 				elif self.CODE_MODE:
-					code_output, code_error = self.code_interpreter.execute_code(code=extracted_code, language=self.INTERPRETER_LANGUAGE)
+					code_output, code_error = self.code_interpreter.execute_code(code=extracted_code, language=self.INTERPRETER_LANGUAGE, sandbox_context=sandbox_context)
 				return code_output, code_error
 			except Exception as exception:
 				self.logger.error(f"Error occurred while executing code: {str(exception)}")
@@ -510,7 +941,7 @@ class Interpreter:
 
 		# Display system and Assistant information.
 		input_prompt_mode = "File" if self.INTERPRETER_PROMPT_FILE else "Input"
-		display_code(f"OS: '{os_name}', Language: '{self.INTERPRETER_LANGUAGE}', Mode: '{self.INTERPRETER_MODE}', Prompt: '{input_prompt_mode}', Model: '{self.INTERPRETER_MODEL}'")
+		self._display_session_banner(os_name, input_prompt_mode)
 		
 		# Display the welcome message.
 		display_markdown_message("Welcome to **Interpreter**, I'm here to **assist** you with your everyday tasks. ")
@@ -524,7 +955,7 @@ class Interpreter:
 				if self.INTERPRETER_PROMPT_INPUT:
 					self.logger.info("Reading prompt from input.")
 					# Main input prompt - System and Assistant.
-					task = input("> ")
+					task = self._safe_input("> ", default="/exit")
 				elif self.INTERPRETER_PROMPT_FILE:
 					prompt_file_name = self.args.file
 					
@@ -537,7 +968,7 @@ class Interpreter:
 					# check if the file exists.
 					if not os.path.exists(prompt_file_path):
 						self.logger.error(f"Prompt file not found: {prompt_file_path}")
-						user_confirmation = input("Create a new prompt file (Y/N)?: ")
+						user_confirmation = self._safe_input("Create a new prompt file (Y/N)?: ", default="n")
 						if user_confirmation.lower() == 'y':
 							self.logger.info("Creating new prompt file.")
 							self.utility_manager.create_file(prompt_file_path)
@@ -555,7 +986,7 @@ class Interpreter:
 					display_markdown_message(f"\nEnter your task in the file **'{prompt_file_path}'**")
 					
 					# File mode command section.
-					prompt_confirmation = input("Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ")
+					prompt_confirmation = self._safe_input("Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ", default="n")
 					if prompt_confirmation.lower() == 'y':
 						self.logger.info("Executing prompt from file.")
  
@@ -574,7 +1005,7 @@ class Interpreter:
 						continue
 					elif prompt_confirmation.lower() == 'c':
 						self.logger.info("Changing input mode to command from file.")
-						task = input("> ")
+						task = self._safe_input("> ", default="/exit")
 					else:
 						# Invalid input mode (0x000022)
 						self.logger.error("Invalid input mode.")
@@ -648,13 +1079,7 @@ class Interpreter:
 				# LIST - Command section.
 				elif task.lower() == '/list':
 					# Get the models info
-					
-					# Reading all the config files in the configs folder.
-					configs_path = os.path.join(os.getcwd(), 'configs')
-					configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
-					
-					# Removing all extensions from the list.
-					configs_files = [os.path.splitext(file)[0] for file in configs_files]
+					configs_files = self.utility_manager.list_available_models()
 					
 					# Printing the models info.
 					print('Available models:\n')
@@ -777,7 +1202,7 @@ class Interpreter:
 					
 					# Start the LLM Request.
 					self.logger.info(f"Fix Prompt: {fix_prompt}")
-					generated_output = self.generate_content(fix_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
+					generated_output = self._generate_content_with_retries(fix_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
 
 					# Extract the code from the generated output.
 					self.logger.info(f"Generated output type {type(generated_output)}")
@@ -804,6 +1229,16 @@ class Interpreter:
 					continue
 
 				# MODE - Command section.
+				elif task.lower() == '/settings' and self.terminal_ui:
+					self._apply_runtime_settings(self._open_tui_settings("settings"))
+					display_markdown_message("Settings updated.")
+					continue
+
+				elif task.lower() == '/mode' and self.terminal_ui:
+					self._apply_runtime_settings(self._open_tui_settings("mode"))
+					display_markdown_message(f"Mode changed to '{self.INTERPRETER_MODE}'")
+					continue
+
 				elif any(command in task.lower() for command in ['/mode ']):
 					mode = task.split(' ')[1]
 					if mode:
@@ -812,19 +1247,16 @@ class Interpreter:
 							display_markdown_message(f"The input mode is not supported. Mode changed to {mode},"
 													 "\nUse '/list' command to get the list of supported modes.")
 						else:
-							modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
-
-							self.INTERPRETER_MODE = mode.lower()
-
-							for key in modes:
-								if self.INTERPRETER_MODE == key:
-									setattr(self,  modes[key], True)
-								else:
-									setattr(self,  modes[key], False)
+							self._apply_mode(mode)
 							display_markdown_message(f"Mode changed to '{self.INTERPRETER_MODE}'")
 					continue
 
 				# MODEL - Command section.
+				elif task.lower() == '/model' and self.terminal_ui:
+					self._apply_runtime_settings(self._open_tui_settings("model"))
+					display_markdown_message(f"Model changed to '{self.INTERPRETER_MODEL_LABEL}'")
+					continue
+
 				elif any(command in task.lower() for command in ['/model ']):
 					model = task.split(' ')[1]
 					if model:
@@ -834,11 +1266,17 @@ class Interpreter:
 							continue
 						else:
 							self.INTERPRETER_MODEL = model
+							self.INTERPRETER_MODEL_LABEL = model
 							display_markdown_message(f"Model changed to '{self.INTERPRETER_MODEL}'")
 							self.initialize_client()  # Reinitialize the client with new model.
 					continue
 				
 				# LANGUAGE - Command section.
+				elif task.lower() in ['/language', '/lang'] and self.terminal_ui:
+					self._apply_runtime_settings(self._open_tui_settings("language"))
+					display_markdown_message(f"Language changed to '{self.INTERPRETER_LANGUAGE}'")
+					continue
+
 				elif any(command in task.lower() for command in ['/language','/lang']):
 					split_task = task.split(' ')
 					if len(split_task) > 1:
@@ -925,7 +1363,8 @@ class Interpreter:
 											file_data = file.read()
 											self.logger.info(f"Input prompt file_data: '{str(file_data)}'")
 											
-										if any(word in prompt.lower() for word in ['graph', 'graphs', 'chart', 'charts']):
+										task_lower = task.lower()
+										if any(word in task_lower for word in ['graph', 'graphs', 'chart', 'charts']):
 											prompt += "\n" + "This is file data from user input: " + str(file_data) + " use this to analyze the data."
 											self.logger.info(f"Input Prompt: '{prompt}'")
 										else:
@@ -940,21 +1379,22 @@ class Interpreter:
 					self.logger.info("No file name found in the prompt.")
 			
 				# If graph were requested.
-				if any(word in prompt.lower() for word in ['graph', 'graphs']):
+				task_lower = task.lower()
+				if any(word in task_lower for word in ['graph', 'graphs']):
 					if self.INTERPRETER_LANGUAGE == 'python':
 						prompt += "\n" + "using Python use Matplotlib save the graph in file called 'graph.png'"
 					elif self.INTERPRETER_LANGUAGE == 'javascript':
 						prompt += "\n" + "using JavaScript use Chart.js save the graph in file called 'graph.png'"
 
 				# if Chart were requested
-				if any(word in prompt.lower() for word in ['chart', 'charts', 'plot', 'plots']):    
+				if any(word in task_lower for word in ['chart', 'charts', 'plot', 'plots']):    
 					if self.INTERPRETER_LANGUAGE == 'python':
 						prompt += "\n" + "using Python use Plotly save the chart in file called 'chart.png'"
 					elif self.INTERPRETER_LANGUAGE == 'javascript':
 						prompt += "\n" + "using JavaScript use Chart.js save the chart in file called 'chart.png'"
 
 				# if Table were requested
-				if 'table' in prompt.lower():
+				if 'table' in task_lower:
 					if self.INTERPRETER_LANGUAGE == 'python':
 						prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
 					elif self.INTERPRETER_LANGUAGE == 'javascript':
@@ -970,7 +1410,7 @@ class Interpreter:
 				elif self.INTERPRETER_HISTORY and self.INTERPRETER_MODE == 'code':
 					self.history = self.history_manager.get_code_history(self.history_count)
 				
-				generated_output = self.generate_content(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
+				generated_output = self._generate_content_with_retries(prompt, self.history, config_values=self.config_values,image_file=extracted_file_name)
 				
 				# No extra processing for Vision mode.
 				if self.INTERPRETER_MODE in ['vision', 'chat']:
@@ -980,14 +1420,28 @@ class Interpreter:
 				# Extract the code from the generated output.
 				self.logger.info(f"Generated output type {type(generated_output)}")
 				code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
+				code_snippet = self._maybe_simplify_generated_code(task, code_snippet)
+				display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
 				
 				# Display the extracted code.
 				if code_snippet:
 					self.logger.info(f"Extracted code: {code_snippet[:50]}")
 				
-				if self.DISPLAY_CODE:
-					display_code(code_snippet)
+				should_display_code = bool(code_snippet) and (
+					self.DISPLAY_CODE or (self.INTERPRETER_PROMPT_INPUT and not self.SAVE_CODE and not self.EXECUTE_CODE)
+				)
+				if should_display_code:
+					display_code(code_snippet, language=display_language)
 					self.logger.info("Code extracted successfully.")
+				elif not code_snippet:
+					if generated_output:
+						if self.INTERPRETER_MODE in ['code', 'script', 'command']:
+							display_code(generated_output, language=display_language)
+						else:
+							display_markdown_message(f"{generated_output}")
+						display_markdown_message("No executable code block was returned, so the raw model response is shown above.")
+					else:
+						display_markdown_message("The model returned an empty response.")
 				
 				if code_snippet:
 					current_time = time.strftime("%Y_%m_%d-%H_%M_%S", time.localtime())
@@ -1009,15 +1463,19 @@ class Interpreter:
 						self.logger.info("Script saved successfully.")
 				
 					# Execute the code if the user has selected.
-					code_output, code_error = self.execute_code(code_snippet, os_name)
+					code_output, code_error = self._execute_generated_output(code_snippet, os_name)
 					
 					if code_output:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 						display_code(code_output)
 						self.logger.info(f"Output: {code_output[:100]}")
+					elif code_error and code_error.startswith("Safety blocked:"):
+						self.logger.warning(code_error)
 					elif code_error:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
 						display_markdown_message(f"Error: {code_error}")
+					else:
+						display_markdown_message("Execution completed successfully. No stdout was produced.")
 						
 					# install Package on error.
 					error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
@@ -1039,7 +1497,7 @@ class Interpreter:
 
 							# Wait and Execute the code again.
 							time.sleep(3)
-							code_output, code_error = self.execute_code(code_snippet, os_name)
+							code_output, code_error = self._execute_generated_output(code_snippet, os_name, force_execute=True)
 							if code_output:
 								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 								display_code(code_output)
@@ -1047,6 +1505,29 @@ class Interpreter:
 							elif code_error:
 								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
 								display_markdown_message(f"Error: {code_error}")
+							else:
+								display_markdown_message("Execution completed successfully. No stdout was produced.")
+
+					if code_error and not code_error.startswith("Safety blocked:"):
+						code_snippet, repaired_output, repaired_error = self._attempt_repair_after_failure(
+							task,
+							prompt,
+							code_snippet,
+							code_error,
+							os_name,
+							start_sep,
+							end_sep,
+							skip_first_line,
+							extracted_file_name,
+							code_output=code_output,
+						)
+						if repaired_output:
+							code_output = repaired_output
+							code_error = repaired_error
+							display_code(repaired_output)
+						elif repaired_error and repaired_error != code_error:
+							code_error = repaired_error
+							display_markdown_message(f"Error: {repaired_error}")
 							
 					try:
 						# Check if graph.png exists and open it.
@@ -1063,5 +1544,11 @@ class Interpreter:
 				self.history_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
 				
 			except Exception as exception:
-				self.logger.error(f"An error occurred in interpreter_lib: {str(exception)}")
+				error_text = str(exception)
+				if self._is_recoverable_runtime_error(error_text):
+					self.logger.warning(f"Recoverable interpreter error: {error_text}")
+					display_markdown_message(f"Request failed: {self._format_runtime_error_message(error_text)}")
+					display_markdown_message("Try `/model <name>` to switch models or `/list` to see the available options.")
+					continue
+				self.logger.error(f"An error occurred in interpreter_lib: {error_text}")
 				raise

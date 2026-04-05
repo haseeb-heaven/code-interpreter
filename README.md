@@ -14,41 +14,31 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-**Welcome to Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**,**Groq**,**Claude**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
+**Welcome to Code-Interpreter 🎉,** an open-source tool that transforms natural language instructions into executable code using **OpenAI**, **Gemini**, **Groq**, **Claude**, **DeepSeek**, **NVIDIA**, **Z AI**, **Browser Use**, and **HuggingFace** models. It executes code safely and supports vision models for image processing.
 
-**Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Code-Interpreter can handle it all.
+Supports tasks like file operations, image editing, video processing, data analysis, and more. Works on Windows, MacOS, and Linux.
 
-After processing your instructions, **Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code and now with **Vision Models** it can also process images and videos.
+## **Why Unique?**
 
-Designed with versatility in mind, **Code-Interpreter** works seamlessly on every operating system, including _Windows, MacOS, and Linux_. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
+Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, macOS.
 
-**Experience the future of code interpretation with Code-Interpreter today! 🚀**
-
-## **Why this is Unique Interpreter?**
-
-The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model to download or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users and works on all major OS **_Windows,Linux,MacOS_**
-
-## **Future Plans:**
-- ~~🎯 We plan to integrate **GPT 3.5** models.~~ *🎯 We have added support for **GPT 3.5** models*.
-- 🌐 .~~We plan to provide **Vertex AI (PALM 2)** models..~~ We have added support for **PALM-2** model using [**LiteLLM**](https://litellm.ai/)
-- 🔗 ~~We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)~~. Added Support for [**LiteLLM**](https://litellm.ai/)
-- 🤖 More **Hugging Face** models with free-tier.
-- 💻 Support for more **Operating Systems**.
-- 📝 Support for **Multi-Modal** for _Text_ and _Vision_.
-- 📊 Support for **Google** and **OpenAI** Vision Models.
-- 💻 ~~Support for **Local** models via **LM Studio**.~~
-- 🔗 Support for **Multi-Modal** models from Anthropic AI.
+## **Future Plans**
+- More free-tier Hugging Face models
+- Enhanced multi-modal support
+- Additional OS support
 
 ## **Table of Contents**
-- [Features](#🌟-features)
-- [Installation](#📥-installation)
-- [Usage](#️🛠️-usage)
-- [Examples](#📖-examples)
-- [Settings](#️⚙️-settings)
-- [Contributing](#🤝-contributing)
-- [Versioning](#📌-versioning)
-- [License](#📜-license)
-- [Acknowledgments](#🙏-acknowledgments)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Examples](#examples)
+- [TUI Screenshots](#tui-screenshots)
+- [Settings](#settings)
+- [Contributing](#contributing)
+- [Versioning](#versioning)
+- [Changelog](CHANGELOG.md)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ## 📥 **Installation**
 
@@ -60,7 +50,7 @@ pip install open-code-interpreter
 ```
 - To run the interpreter with Python:</br>
 ```bash
-interpreter -m 'gemini-pro' -md 'code' -dc
+interpreter -m 'gpt-4o' -md 'code' -dc
 ```
 - Make sure you install required packages before running the interpreter.</br>
 - And you have API keys setup in the `.env` file.</br>
@@ -78,6 +68,10 @@ cd code-interpreter
 pip install -r requirements.txt
 ```
 3. Setup the Keys required.
+4. Copy the example environment file and add the keys you plan to use:</br>
+```bash
+copy .env.example .env
+```
 
 ## API Key setup for All models.
 
@@ -85,10 +79,14 @@ Follow the steps below to obtain and set up the API keys for each service:
 
 1. **Obtain the API keys:**
     - HuggingFace: Visit [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
-    - Google Palm and Gemini: Visit [Google AI Studio](https://makersuite.google.com/app/apikey) and click on the **Create API Key** button.
+    - Google Gemini: Visit [Google AI Studio](https://makersuite.google.com/app/apikey) and click on the **Create API Key** button.
     - OpenAI: Visit [OpenAI Dashboard](https://platform.openai.com/account/api-keys), sign up or log in, navigate to the API section in your account dashboard, and click on the **Create New Key** button.
     - Groq AI: Obtain access [here](https://wow.groq.com), then visit [Groq AI Console](https://console.groq.com/keys), sign up or log in, navigate to the API section in your account, and click on the **Create API Key** button.
     - Anthropic AI: Obtain access [here](https://www.anthropic.com/earlyaccess), then visit [Anthropic AI Console](https://console.anthropic.com/settings/keys), sign up or log in, navigate to the API Keys section in your account, and click on the **Create Key** button.
+    - NVIDIA API Catalog: Visit [NVIDIA Build](https://build.nvidia.com/), create a key, and use `NVIDIA_API_KEY`.
+    - Z AI: Visit [Z AI Docs](https://docs.z.ai/) and use `Z_AI_API_KEY`.
+    - OpenRouter: Visit [OpenRouter Keys](https://openrouter.ai/settings/keys) and use `OPENROUTER_API_KEY`.
+    - Browser Use: Visit [Browser Use Docs](https://docs.browser-use.com/) and use `BROWSER_USE_API_KEY`.
 
 2. **Save the API keys:**
     - Create a `.env` file in your project root directory.
@@ -96,12 +94,15 @@ Follow the steps below to obtain and set up the API keys for each service:
 
 ```bash
 export HUGGINGFACE_API_KEY="Your HuggingFace API Key"
-export PALM_API_KEY="Your Google Palm API Key"
 export GEMINI_API_KEY="Your Google Gemini API Key"
 export OPENAI_API_KEY="Your OpenAI API Key"
 export GROQ_API_KEY="Your Groq API Key"
 export ANTHROPIC_API_KEY="Your Anthropic API Key"
 export DEEPSEEK_API_KEY="Your Deepseek API Key"
+export NVIDIA_API_KEY="Your NVIDIA API Key"
+export Z_AI_API_KEY="Your Z AI API Key"
+export OPENROUTER_API_KEY="Your OpenRouter API Key"
+export BROWSER_USE_API_KEY="Your Browser Use API Key"
 ```
 
 # Offline models setup.</br>
@@ -116,41 +117,28 @@ This Interpreter supports offline models via **LM Studio** and **OLlaMa** so to 
 4. Run the interpreter with Python:</br>
 ### Running with Python.
 ```bash
-python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
+python interpreter.py -md 'code' -m 'gpt-4o' -dc 
 ```
 
 5. Run the interpreter directly:</br>
-### Running Interpreter without Python (Executable MacOs/Linux only).
+### Running Interpreter without Python (Executable macOS/Linux only).
 ```bash
-./interpreter -md 'code' -m 'gpt-3.5-turbo' -dc 
+./interpreter -md 'code' -m 'gpt-4o' -dc 
 ```
 
 ## 🌟 **Features**
 
-- 🚀 Code Execution: Code-Interpreter can execute the code generated from your instructions.
-
-- 💾 Code Save/Update: It has the ability to save the generated code for future use and 
- edit the code if needed on the go using **advanced editor**.
-
-- 📡 Offline models: It has the ability to use **offline models** for code generation using **LM Studio**.
-
-- 📜 Command History: It has the ability to save all the commands as history.
-
-- 📜 Command Mode: Commands entered with '/' are executed as commands like `/execute` or `/edit`.
-
-- 🔄 Mode Selection: It allows you to select the mode of operation. You can choose from `code` for generating code, `script` for generating shell scripts, or `command` for generating single line commands.
-
-- 🧠 Model Selection: You can set the model for code generation. By default, it uses the `code-llama` model.
-
-- 🌐 Language Selection: You can set the interpreter language to Python or `JavaScript`. By default, it uses `Python`.
-
-- 👀 Code Display: It can display the generated code in the output, allowing you to review the code before execution.
-
-- 💻 Cross-Platform: Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
-
-- 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
-
-- 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Code-Interpreter can handle it all.
+- 🚀 Executes generated code from instructions
+- 💾 Saves and edits code with advanced editor
+- 📡 Supports offline models via LM Studio
+- 📜 Command history and mode selection
+- 🧠 Multiple models and languages (Python/JavaScript)
+- 👀 Code review before execution
+- 🛡️ Safe sandbox execution with timeout and security
+- 🧠 Self-repair for failed executions
+- 💻 Cross-platform (Windows/macOS/Linux)
+- 🤝 Integrates with HuggingFace, OpenAI, Gemini, etc.
+- 🎯 Versatile tasks: file ops, image/video editing, data analysis
 
 ## 🛠️ **Usage**
 
@@ -167,41 +155,38 @@ To use Code-Interpreter, use the following command options:
     -  `vision` - Generates description of image or video.
     - `chat` - Chat with your files and data.
 
-- List of all **models** are (**Contribute - MORE**): </br>
-    - `gpt-3.5-turbo` - Generates code using the GPT 3.5 Turbo model.
-    - `gpt-4` - Generates code using the GPT 4 model.
-	- `o1-mini` - Generates code using the OpenAI o1-mini model.
-	- `o1-preview` - Generates code using the OpenAI o1-preview model.
-	- `deepseek-chat` - Generates response using the Deepseek chat model.
-	- `deepseek-coder` - Generates code using the Deepseek coder model.
-	- `deepseek-reasoner` - Generates code using the Deepseek reasoner model.
-    - `gemini-pro` - Generates code using the Gemini Pro model.
-    - `palm-2` - Generates code using the PALM 2 model.
-    - `claude-2` - Generates code using the AnthropicAI Claude-2 model.
-    - `claude-3` - Generates code using the AnthropicAI Claude-3 model.
-    - `groq-mixtral` - Generates code using the Mixtral model using Groq LPU.
-    - `groq-llama2` - Generates code using the Groq Llama2 model.
-    - `groq-gemma` - Generates code using the Groq Gemma model.
-    - `code-llama` - Generates code using the Code-llama model.
-    - `code-llama-phind` - Generates code using the Code-llama Phind model.
-    - `mistral-7b` - Generates code using the Mistral 7b model.
-    - `wizard-coder` - Generates code using the Wizard Coder model.
-    - `star-chat` - Generates code using the Star Chat model.
-    - `local-model` - Generates code using the local offline model.
+- See [Models.MD](Models.MD) for the complete list of supported models.
 
 - Basic usage (with least options)</br>
 ```python
-python interpreter.py -dc
+python interpreter.py
+```
+- `python interpreter.py` now opens the TUI and uses arrow-key navigation in a real terminal.
+- The TUI falls back to plain text prompts when stdin is piped or not attached to a terminal.
+- In `--tui` sessions, `/mode`, `/model`, `/language`, and `/settings` can reopen interactive selectors from inside the live chat interface.
+
+- Launch the classic prompt-based CLI directly</br>
+```python
+python interpreter.py --cli -m 'z-ai-glm-5' -md 'code'
+```
+- `python interpreter.py --cli` automatically picks the best configured model from your `.env` file if you do not pass `-m`.
+- Safe sandbox protections are enabled by default in `v3.1.0`.
+- Use `--unsafe` only when you explicitly want to bypass the execution safety policy.
+- LLM request retries are bounded to a maximum of `3` transient retry attempts before the final error is shown.
+
+- Launch the selector-based TUI</br>
+```python
+python interpreter.py --tui
 ```
 
 - Using different models (replace 'model-name' with your chosen model) </br>
 ```python
-python interpreter.py -md 'code' -m 'model-name' -dc
+python interpreter.py --cli -md 'code' -m 'model-name' -dc
 ```
 
 - Using different modes (replace 'mode-name' with your chosen mode) </br>
 ```python
-python interpreter.py -m 'model-name' -md 'mode-name'
+python interpreter.py --cli -m 'model-name' -md 'mode-name'
 ```
 
 - Using auto execution </br>
@@ -229,6 +214,43 @@ python interpreter.py -m 'gemini-pro' -md 'code' --file 'my_prompt_file.txt'
 python interpreter.py --upgrade
 ```
 
+- Live CLI smoke validation (stable models only) </br>
+```bash
+python scripts/validate_models_cli.py --providers gemini,groq --tier stable --mode chat
+python scripts/validate_models_cli.py --providers openai,anthropic,deepseek,huggingface --tier stable --mode chat
+python scripts/validate_models_cli.py --providers nvidia,z-ai,browser-use,openrouter --tier stable --mode chat
+```
+
+- Direct provider examples </br>
+```bash
+python interpreter.py -m 'nvidia-nemotron' -md 'chat' -dc
+python interpreter.py -m 'z-ai-glm-5' -md 'chat' -dc
+python interpreter.py -m 'openrouter-free' -md 'chat' -dc
+python interpreter.py -m 'openrouter-qwen3-coder' -md 'chat' -dc
+python interpreter.py -m 'browser-use-bu-max' -md 'chat' -dc
+```
+
+Last verified model baseline: **April 5, 2026**.
+
+## 🖼️ **TUI Screenshots**
+
+The new TUI flow is designed for fast keyboard-first setup. Run `python interpreter.py` or `python interpreter.py --tui` to launch the selector UI, then use the arrow keys to choose the mode, model, language, and runtime options.
+
+### Mode selection
+Choose between `code`, `chat`, `script`, `command`, and `vision` before the session starts.
+
+![TUI mode selection](resources/interpreter-tui-mode-selection.png)
+
+### Model selection
+Pick your provider and model directly from the terminal without typing long aliases manually.
+
+![TUI model selection](resources/interpreter-tui-model-selection.png)
+
+### Live output
+After entering the session, generated code and execution output remain inside the terminal flow with the same safer runtime behavior used by the CLI.
+
+![TUI output](resources/interpreter-tui-output.png)
+
 # Interpreter Commands 🖥️
 
 Here are the available commands:
@@ -246,6 +268,7 @@ Here are the available commands:
 - 📝 `/version` - Display the version of the interpreter.
 - 🚪 `/exit` - Exit the interpreter.
 - 🐞 `/fix` - Fix the generated code for errors.
+- ⚙️ `/settings` - Open interactive TUI settings when running with `--tui`.
 - 📜 `/log` - Toggle different modes of logging.
 - ⏫ `/upgrade` - Upgrade the interpreter.
 - 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
@@ -299,51 +322,15 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 ## 📌 **Versioning**
 
-🚀 **v1.0** - Initial release.  
-📊 **v1.1** - Added **Graphs** and **Charts** support.  
-🔥 **v1.2** - Added **LiteLLM** Support.  
-🌟 **v1.3** - Added **GPT 3.5** Support.  
-🌴 **v1.4** - Added **PALM 2** Support.  
-🎉 **v1.5** - Added **GPT 3.5/4** models official Support.  
-📝 **v1.6** - Updated Code Interpreter for Documents files (**JSON**, **CSV**, **XML**).  
-🌴 **v1.7** - Added **Gemini Pro Vision** Support for Image Processing.  
+Current version: **3.1.0**
 
-🌟 **v1.8** - Added **Interpreter Commands Support**:  
+Quick highlights:
+- **v3.1.0** - Added OpenRouter free-model aliases, made `openrouter/free` the default OpenRouter selection, improved simple-task code generation, added fresh TUI screenshots, and prepared release packaging assets.
+- **v3.0.0** - Added a default execution safety sandbox, dangerous command/code circuit breaker, bounded ReACT-style repair retries after failures, clearer execution feedback, and polished CLI/TUI runtime output.
+- **v2.4.1** - Added NVIDIA, Z AI, Browser Use, `.env.example`, and `--cli` / `--tui` startup flows.
+- **v2.4.0** - 2026 model refresh across OpenAI, Gemini, Anthropic, Groq, and DeepSeek.
 
-- 1.8.1 - Added _Interpreter Commands Debugging Support_.  
-- 1.8.2 - Fixed _Interpreter Commands_  
-- 1.8.3 - Added _Interpreter Commands Upgrade and Shell Support_.  
-- 1.8.4 - Fixed _Interpreter Model switcher Bug_.  
-
-🗨️ **v1.9** - Added new **Chat mode** 🗨️ for Chatting with your **Files**, **Data** and more.  
-
-- v1.9.1 - Fixed _Unit Tests_ and _History Args_  
-- v1.9.2 - Updated _Google Vision_ to adapt LiteLLM instead of _Google GenAI_.  
-- v1.9.3 - Added **Local Models** Support via **LM Studio**.  
-
-🔥 **v2.0** - Added **Groq-AI** Models _Fastest LLM_ with **500 Tokens/Sec** with _Code-LLaMa, Mixtral_ models.  
-
-- **v2.0.1** - Added AnthropicAI Claude-2, Instant models.
-
-🔥 **v2.1** - Added AnhtorpicAI Claude-3 models powerful _Opus,Sonnet,Haiku_ models.
-- **v2.1.1** - Added **Groq-AI** Model _Gemma-7B_ with **700 Tokens/Sec**.
-- **v2.1.2** - Added **Prompt Modes** now you can set prompt from file as well just place your prompt in `prompt.txt` file inside `system` directory.
-- **v2.1.3** - Updated **OS Type detection** now for Linux **Arch & Debian** and generate accurate commands for all OS types.
-- **v2.1.4** - Added **GPT-4o** models they are most effecient and cost effective models from **OpenAI**
-- **v2.1.5** - Fixed OS type detection **Bug** for MacOS and feautre to open file with default editor.
-
-🔥 **v2.2** - Save/Execute _commands_ and _scripts_, Fixed **Logging** and **Package Manager**.
-- **Save/Execute**: Added support to **save and execute code, commands, and scripts** directly to external files.
-- **Updated Commands**: 
-  - Removed the `/debug` command and replaced it with the `/fix` command.
-  - `/debug` command now handles application debugging and issue resolution effectively.
-- **Improved Logger**:
-  - Fixed issues with logging to both **files and console** simultaneously.
-- **Dependency Management**:
-  - Resolved pip package installation issues for smoother and more reliable setup.
-- **v2.2.1** - Fixed **No Content/Response from LLM** Bug, Fixed _Debug Mode_ with **Logs**.
-
-- **v2.3.0** - Added Deepseek V3 and R1 models support now. Added OpenAI o1 Models support.
+Full release history: [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
@@ -354,8 +341,6 @@ This project is licensed under the **MIT License**. For more details, please ref
 Please note the following additional licensing details:
 
 - The **GPT 3.5/4 models** are provided by **OpenAI** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [OpenAI's Terms of Use](https://openai.com/policies/terms-of-use).
-
-- The **PALM models** are officially supported by the **Google PALM 2 API**. These models have their own licensing terms and support. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Google Generative AI's Terms of Service](https://developers.generativeai.google/terms).
 
 - The **Hugging Face models** are provided by **Hugging Face Inc.** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Hugging Face's Terms of Service](https://huggingface.co/terms-of-service).
 

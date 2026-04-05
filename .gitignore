@@ -2,6 +2,8 @@
 *.pyc
 *.pyo
 *.pyd
+__pycache__/
+.pytest_cache/
 
 # Log files
 *.log
@@ -12,17 +14,24 @@
 # Environment files
 *.env
 .env
+.env.local
+.env.*.local
 
 # Virtual environments
 venv/
 myvenv/
 heaven_venv/
+.venv/
 
 # Interactive environment data
 interp/
 
 # Generated output files and directories
 output/*
+logs/*
+dist/
+*.tmp
+*.bak
 
 # JSON files
 *.json
@@ -31,6 +40,13 @@ history.json
 # History files
 history/
 history/history.json
+!history/.gitkeep
+
+# Local test/diagnostic artifacts
+debug_output*.txt
+test_results*.txt
+groq_test.txt
+gemini_models.txt
 
 # Editor and IDE specific files
 .vscode/

@@ -1,9 +1,10 @@
 # Libraries for code interpretation and execution
-litellm>=1.60.0
+litellm>=1.83.0
 litellm[proxy]
 Pygments 
 pyreadline 
 python-dotenv 
+pytest
 
 # Libraries for making HTTP requests
 Requests 

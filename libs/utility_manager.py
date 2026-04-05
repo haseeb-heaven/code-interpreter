@@ -2,6 +2,7 @@ import os
 import platform
 import re
 import subprocess
+from dotenv import load_dotenv
 from libs.code_interpreter import CodeInterpreter
 from libs.logger import Logger
 import csv
@@ -13,6 +14,18 @@ from libs.markdown_code import display_code, display_markdown_message
 
 class UtilityManager:
 	logger = None
+	DEFAULT_MODELS = [
+		("OPENAI_API_KEY", "gpt-4o"),
+		("OPENROUTER_API_KEY", "openrouter-free"),
+		("GEMINI_API_KEY", "gemini-2.5-flash"),
+		("ANTHROPIC_API_KEY", "claude-sonnet-4-6"),
+		("GROQ_API_KEY", "groq-gpt-oss-20b"),
+		("Z_AI_API_KEY", "z-ai-glm-5"),
+		("NVIDIA_API_KEY", "nvidia-nemotron"),
+		("DEEPSEEK_API_KEY", "deepseek-chat"),
+		("HUGGINGFACE_API_KEY", "hf-meta-llama-3"),
+		("BROWSER_USE_API_KEY", "browser-use-bu-max"),
+	]
 
 	def __init__(self):
 		try:
@@ -84,13 +97,14 @@ class UtilityManager:
 
 	def initialize_readline_history(self):
 		try:
-			# Checking the OS type
-			# If it's posix (Unix-like), import readline for handling lines from input
-			# If it's not posix, import pyreadline as readline
-			if os.name == 'posix':
+			try:
 				import readline
-			else:
-				import pyreadline as readline
+			except ImportError:
+				try:
+					import pyreadline as readline
+				except ImportError:
+					self.logger.info("Readline support is unavailable. Continuing without input history.")
+					return False
 				
 			histfile = os.path.join(os.path.expanduser("~"), ".python_history")
 			
@@ -101,17 +115,19 @@ class UtilityManager:
 			# Save history to file on exit
 			import atexit
 			atexit.register(readline.write_history_file, histfile)
+			return True
 			
 		except FileNotFoundError:
-			raise Exception("History file not found")
+			self.logger.info("History file not found. Continuing without persisted input history.")
+			return False
 		
 		except AttributeError:
 			# Handle error on Windows where pyreadline doesn't have read_history_file
-			self.logger.info("pyreadline doesn't have read_history_file")
-			raise Exception("On Windows, pyreadline doesn't have read_history_file")
+			self.logger.info("Readline history is not supported on this platform. Continuing without input history.")
+			return False
 		except Exception as exception:
-			self.logger.error(f"Error in initializing readline history: {str(exception)}")
-			raise
+			self.logger.info(f"Skipping readline history initialization: {str(exception)}")
+			return False
 
 	def read_config_file(self, filename=".config"):
 		try:
@@ -121,12 +137,31 @@ class UtilityManager:
 					# Ignore comments and lines without an equals sign
 					if line.strip().startswith('#') or '=' not in line:
 						continue
-					key, value = line.strip().split("=")
+					key, value = line.strip().split("=", 1)
 					config_data[key.strip()] = value.strip()
 			return config_data
 		except Exception as exception:
 			self.logger.error(f"Error in reading config file: {str(exception)}")
 			raise
+
+	def list_available_models(self, configs_path=None):
+		try:
+			configs_path = configs_path or os.path.join(os.getcwd(), 'configs')
+			configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
+			return sorted(os.path.splitext(file)[0] for file in configs_files)
+		except Exception as exception:
+			self.logger.error(f"Error in listing available models: {str(exception)}")
+			raise
+
+	@staticmethod
+	def get_default_model_name():
+		env_path = os.path.join(os.getcwd(), ".env")
+		load_dotenv(dotenv_path=env_path, override=False)
+
+		for env_name, model_name in UtilityManager.DEFAULT_MODELS:
+			if os.getenv(env_name):
+				return model_name
+		return "gpt-4o"
 
 	def extract_file_name(self, prompt):
 		try:
@@ -224,6 +259,11 @@ class UtilityManager:
 
 	def display_help(self):
 		display_markdown_message("Interpreter\n\
+				\n\
+				Startup flags:\n\
+				\n\
+				--cli - Launch the classic prompt-based CLI.\n\
+				--tui - Launch the selector-based terminal UI.\n\
 				\n\
 				Commands available:\n\
 				\n\
