@@ -14,29 +14,18 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-**Welcome to Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This powerful tool leverages **OpenAI**, **Gemini**, **Groq**, **Claude**, **DeepSeek**, **NVIDIA NIM**, **Z AI**, **Browser Use**, and **HuggingFace** models to transform your instructions into executable code for **free** and **safe** use, and includes **Vision Models** for image processing.
+**Welcome to Code-Interpreter 🎉,** an open-source tool that transforms natural language instructions into executable code using **OpenAI**, **Gemini**, **Groq**, **Claude**, **DeepSeek**, **NVIDIA**, **Z AI**, **Browser Use**, and **HuggingFace** models. It executes code safely and supports vision models for image processing.
 
-**Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Code-Interpreter can handle it all.
+Supports tasks like file operations, image editing, video processing, data analysis, and more. Works on Windows, MacOS, and Linux.
 
-After processing your instructions, **Code-Interpreter** executes the generated code and provides you with the result. This makes it an invaluable tool for developers 💻, data scientists 🧪, and anyone who needs to quickly turn ideas into working code and now with **Vision Models** it can also process images and videos.
+## **Why Unique?**
 
-Designed with versatility in mind, **Code-Interpreter** works seamlessly on every operating system, including _Windows, MacOS, and Linux_. So, no matter what platform you're on, you can take advantage of this powerful tool 💪.
+Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, MacOS.
 
-**Experience the future of code interpretation with Code-Interpreter today! 🚀**
-
-## **Why this is Unique Interpreter?**
-
-The distinguishing feature of this interpreter, as compared to others, is its **commitment to remain free 🆓**. It does not require any model to download or follow to **tedious processes** or methods for execution. It is designed to be **simple** and **free** for all users and works on all major OS **_Windows,Linux,MacOS_**
-
-## **Future Plans:**
-- ~~🎯 We plan to integrate **GPT 3.5** models.~~ *🎯 We have added support for **GPT 3.5** models*.
-- 🔗 ~~We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)~~. Added Support for [**LiteLLM**](https://litellm.ai/)
-- 🤖 More **Hugging Face** models with free-tier.
-- 💻 Support for more **Operating Systems**.
-- 📝 Support for **Multi-Modal** for _Text_ and _Vision_.
-- 📊 Support for **Google** and **OpenAI** Vision Models.
-- 💻 ~~Support for **Local** models via **LM Studio**.~~
-- 🔗 Support for **Multi-Modal** models from Anthropic AI.
+## **Future Plans**
+- More free-tier Hugging Face models
+- Enhanced multi-modal support
+- Additional OS support
 
 ## **Table of Contents**
 - [Features](#🌟-features)
@@ -139,34 +128,17 @@ python interpreter.py -md 'code' -m 'gpt-4o' -dc
 
 ## 🌟 **Features**
 
-- 🚀 Code Execution: Code-Interpreter can execute the code generated from your instructions.
-
-- 💾 Code Save/Update: It has the ability to save the generated code for future use and 
- edit the code if needed on the go using **advanced editor**.
-
-- 📡 Offline models: It has the ability to use **offline models** for code generation using **LM Studio**.
-
-- 📜 Command History: It has the ability to save all the commands as history.
-
-- 📜 Command Mode: Commands entered with '/' are executed as commands like `/execute` or `/edit`.
-
-- 🔄 Mode Selection: It allows you to select the mode of operation. You can choose from `code` for generating code, `script` for generating shell scripts, or `command` for generating single line commands.
-
-- 🧠 Model Selection: You can set the model for code generation. By default, it uses the `code-llama` model.
-
-- 🌐 Language Selection: You can set the interpreter language to Python or `JavaScript`. By default, it uses `Python`.
-
-- 👀 Code Display: It can display the generated code in the output, allowing you to review the code before execution.
-
-- 🛡️ Safe Sandbox Execution: Generated code, commands, and scripts now run inside an isolated subprocess environment with stripped secrets, a temporary working directory, execution timeout, and dangerous-operation blocking by default.
-
-- 🧠 Self-Repair Loop: Failed executions can trigger a bounded ReACT-style repair pass that regenerates a safer fix and retries with a circuit breaker.
-
-- 💻 Cross-Platform: Code-Interpreter works seamlessly on every operating system, including Windows, MacOS, and Linux.
-
-- 🤝 Integration with HuggingFace: It leverages the power of HuggingFace models like Code-llama, Mistral 7b, Wizard Coder, and many more to transform your instructions into executable code.
-
-- 🎯 Versatility: Whether you need to find files in your system, save images from a website and convert them into a different format, create a GIF, edit videos, or even analyze files for data analysis and creating graphs, Code-Interpreter can handle it all.
+- 🚀 Executes generated code from instructions
+- 💾 Saves and edits code with advanced editor
+- 📡 Supports offline models via LM Studio
+- 📜 Command history and mode selection
+- 🧠 Multiple models and languages (Python/JavaScript)
+- 👀 Code review before execution
+- 🛡️ Safe sandbox execution with timeout and security
+- 🧠 Self-repair for failed executions
+- 💻 Cross-platform (Windows/MacOS/Linux)
+- 🤝 Integrates with HuggingFace, OpenAI, Gemini, etc.
+- 🎯 Versatile tasks: file ops, image/video editing, data analysis
 
 ## 🛠️ **Usage**
 
@@ -183,49 +155,7 @@ To use Code-Interpreter, use the following command options:
     -  `vision` - Generates description of image or video.
     - `chat` - Chat with your files and data.
 
-- List of all **models** are (**Contribute - MORE**): </br>
-    - **OpenAI stable-first (2026)**
-    - `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5-mini`, `o4-mini`, `o3`, `o3-mini`, `gpt-4o`, `gpt-4o-mini`, `gpt-4.1-mini`.
-    - **OpenAI legacy aliases**
-    - `gpt-4` -> `gpt-4.1`, `gpt-3.5-turbo` -> `gpt-4o-mini`, `o1-preview` -> `o1`.
-    - **Gemini stable-first (2026)**
-    - `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`.
-    - **Gemini preview (optional)**
-    - `gemini-3.1-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`.
-    - **Gemini legacy aliases**
-    - `gemini-pro`, `gemini-1.5-pro`, `gemini-1.5-flash` are remapped to Gemini 2.5 stable models.
-    - **Anthropic stable-first (2026)**
-    - `claude-sonnet-4-6`, `claude-opus-4-6`, `claude-haiku-4-5`.
-    - **Anthropic legacy aliases**
-    - `claude-2`, `claude-2.1`, `claude-3-sonnet`, `claude-3-5-sonnet`, `claude-3-7-sonnet` -> `claude-sonnet-4-6`.
-    - **Groq stable-first (2026)**
-    - `groq-llama-3.3`, `groq-llama-3.1-8b`, `groq-gpt-oss-120b`, `groq-gpt-oss-20b`.
-    - **Groq preview (optional)**
-    - `groq-llama-4-scout-preview`.
-    - **Groq legacy aliases**
-    - `groq-mixtral`, `groq-llama2`, `groq-gemma` are remapped to modern Groq models.
-    - **DeepSeek**
-    - `deepseek-chat`, `deepseek-reasoner`, with `deepseek-coder` remapped to `deepseek-chat`.
-    - **NVIDIA (OpenAI-compatible API)**
-    - `nvidia-nemotron` -> `nvidia/nemotron-3-super-120b-a12b`.
-    - **Z AI (OpenAI-compatible API)**
-    - `z-ai-glm-5` -> `glm-5`.
-    - **OpenRouter (OpenAI-compatible API)**
-    - `openrouter-free` -> `openrouter/free`
-    - `openrouter-qwen3-coder` -> `qwen/qwen3-coder:free`
-    - `openrouter-claude-opus-4-6` -> `anthropic/claude-opus-4.6`
-    - `openrouter-mimo-v2-pro` -> `xiaomi/mimo-v2-pro`
-    - `openrouter-gpt-5-4` -> `openai/gpt-5.4`
-    - `openrouter-deepseek-v3-2` -> `deepseek/deepseek-v3.2`
-    - `openrouter-qwen3-coder-480b-free` -> `qwen/qwen3-coder-480b:free`
-    - `openrouter-mimo-v2-flash-free` -> `xiaomi/mimo-v2-flash:free`
-    - `openrouter-nemotron-3-super-free` -> `nvidia/nemotron-3-super:free`
-    - `openrouter-minimax-m2-5-free` -> `minimax/minimax-m2.5:free`
-    - `openrouter-qwen3-6-plus-free` -> `qwen/qwen3.6-plus:free`
-    - **Browser Use**
-    - `browser-use-bu-max` -> `bu-max` (session-based model).
-    - **Hugging Face + local**
-    - `hf-meta-llama-3`, `code-llama`, `code-llama-phind`, `mistral-7b`, `wizard-coder`, `star-chat`, `local-model`.
+- See [Models.MD](Models.MD) for the complete list of supported models.
 
 - Basic usage (with least options)</br>
 ```python
