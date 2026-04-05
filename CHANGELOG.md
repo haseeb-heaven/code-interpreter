@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 ## v3.1.0 - April 5, 2026
 - Added OpenRouter support with multiple paid and free model aliases.
-- Added OpenRouter free defaults and switched `OPENROUTER_API_KEY` auto-selection to `openrouter-free`.
+- Added OpenRouter free defaults and switched `OPENROUTER_API_KEY` auto-selection to `openrouter/free`.
 - Added safer bounded self-repair retries with a max of 3 repair attempts.
 - Improved simple intent detection so tasks like printing files in a directory generate minimal executable code instead of extra tables or charts.
 - Expanded TUI documentation and added fresh screenshots for mode selection, model selection, and output flow.

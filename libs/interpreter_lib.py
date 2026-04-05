@@ -337,11 +337,15 @@ class Interpreter:
 			display_markdown_message("Use `--unsafe` only if you explicitly trust the generated output.")
 			return None, f"Safety blocked: {reason_text}"
 
-		sandbox_context = self.safety_manager.build_sandbox_context()
+		if not self.UNSAFE_EXECUTION:
+			sandbox_context = self.safety_manager.build_sandbox_context()
+		else:
+			sandbox_context = None
 		try:
 			return self.execute_code(code_snippet, os_name, sandbox_context=sandbox_context, force_execute=force_execute)
 		finally:
-			self.safety_manager.cleanup_sandbox_context(sandbox_context)
+			if not self.UNSAFE_EXECUTION:
+				self.safety_manager.cleanup_sandbox_context(sandbox_context)
 
 	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, skip_first_line, extracted_file_name, code_output=None):
 		circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)

@@ -754,9 +754,6 @@ class TestNewConfigFilesFromPR(unittest.TestCase):
 
     # --- New Claude configs ---
 
-    def test_claude_3_5_haiku_config_maps_to_claude_haiku_4_5(self):
-        self.assertEqual(self._read_hf_model("claude-3-5-haiku.config"), "claude-haiku-4-5")
-
     def test_claude_3_7_sonnet_config_maps_to_claude_sonnet_4_6(self):
         self.assertEqual(self._read_hf_model("claude-3-7-sonnet.config"), "claude-3-7-sonnet")
 

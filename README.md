@@ -28,17 +28,17 @@ Committed to being **free** and **simple** - no downloads or tedious setups requ
 - Additional OS support
 
 ## **Table of Contents**
-- [Features](#🌟-features)
-- [Installation](#📥-installation)
-- [Usage](#️🛠️-usage)
-- [Examples](#📖-examples)
-- [TUI Screenshots](#-tui-screenshots)
-- [Settings](#️⚙️-settings)
-- [Contributing](#🤝-contributing)
-- [Versioning](#📌-versioning)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Examples](#examples)
+- [TUI Screenshots](#tui-screenshots)
+- [Settings](#settings)
+- [Contributing](#contributing)
+- [Versioning](#versioning)
 - [Changelog](CHANGELOG.md)
-- [License](#📜-license)
-- [Acknowledgments](#🙏-acknowledgments)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ## 📥 **Installation**
 
