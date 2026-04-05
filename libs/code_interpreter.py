@@ -59,22 +59,25 @@ class CodeInterpreter:
 			elif shell == "applescript":
 				process = subprocess.Popen(['osascript', '-'], stdin=subprocess.PIPE, **popen_kwargs)
 			else:
-				self.logger.error(f"Invalid shell selected: {shell}")
-				return None, f"Invalid shell selected: {shell}"
+				if self.logger:
+					self.logger.error(f"Invalid shell selected: {shell}")
+				raise ValueError(f"Invalid shell selected: {shell}")
 			timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
 			stdout, stderr = process.communicate(timeout=timeout)
-			self.logger.info(f"Output is {stdout.decode()} and error is {stderr.decode()}")
+			if self.logger:
+				self.logger.info(f"Output is {stdout.decode()} and error is {stderr.decode()}")
 			if process.returncode != 0:
-				self.logger.info(f"Error in running {shell} script: {stderr.decode()}")
+				if self.logger:
+					self.logger.info(f"Error in running {shell} script: {stderr.decode()}")
+			return stdout.decode().strip() if stdout else None, stderr.decode().strip() if stderr else None
 		except subprocess.TimeoutExpired:
 			process.kill()
-			stdout, stderr = process.communicate()
-			stderr = "Execution timed out."
+			process.communicate()
+			raise TimeoutError("Execution timed out.")
 		except Exception as exception:
-			self.logger.error(f"Exception in running {shell} script: {str(exception)}")
-			stderr = str(exception)
-		finally:
-			return stdout.decode().strip() if stdout else None, stderr.decode().strip() if stderr else None
+			if self.logger:
+				self.logger.error(f"Exception in running {shell} script: {str(exception)}")
+			raise
 		
 	def _check_compilers(self, language):
 		try:
@@ -282,4 +285,3 @@ class CodeInterpreter:
 		except Exception as exception:
 			self.logger.error(f"Error in executing command: {str(exception)}")
 			raise exception
-

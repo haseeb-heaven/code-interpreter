@@ -136,6 +136,17 @@ class TestInterpreter(unittest.TestCase):
         completion_mock.assert_called_once()
         self.assertEqual(completion_mock.call_args.args[0], "o1-mini")
 
+        # Assert exact kwargs to ensure o-series models go through OpenAI path with correct params
+        called_kwargs = completion_mock.call_args.kwargs
+        self.assertIn("messages", called_kwargs)
+        self.assertIn("max_tokens", called_kwargs)
+        self.assertIn("drop_params", called_kwargs)
+        self.assertTrue(called_kwargs["drop_params"])
+        self.assertIn("custom_llm_provider", called_kwargs)
+        self.assertEqual(called_kwargs["custom_llm_provider"], "openai")
+        # Temperature should not be in kwargs for o-series models
+        self.assertNotIn("temperature", called_kwargs)
+
     @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
     @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
     def test_legacy_claude_alias_is_remapped_to_sonnet_46(self, _mock_history, _mock_client):
@@ -654,7 +665,9 @@ class TestSubprocessSecurityKwargs(unittest.TestCase):
     """Tests for CodeInterpreter._get_subprocess_security_kwargs() added in this PR."""
 
     def setUp(self):
-        self.ci = CodeInterpreter()
+        # Mock the Logger.initialize to avoid FileNotFoundError during test setup
+        with patch("libs.code_interpreter.Logger.initialize", return_value=None):
+            self.ci = CodeInterpreter()
 
     def test_no_sandbox_context_returns_none_for_cwd_and_env(self):
         kwargs = self.ci._get_subprocess_security_kwargs(sandbox_context=None)
@@ -663,13 +676,14 @@ class TestSubprocessSecurityKwargs(unittest.TestCase):
 
     def test_sandbox_context_with_cwd_is_passed(self):
         from types import SimpleNamespace
-        ctx = SimpleNamespace(cwd="/tmp/sandbox", env=None)
+        sandbox_path = os.path.join(tempfile.gettempdir(), "sandbox")
+        ctx = SimpleNamespace(cwd=sandbox_path, env=None)
         kwargs = self.ci._get_subprocess_security_kwargs(sandbox_context=ctx)
-        self.assertEqual(kwargs["cwd"], "/tmp/sandbox")
+        self.assertEqual(kwargs["cwd"], sandbox_path)
 
     def test_sandbox_context_with_env_is_passed(self):
         from types import SimpleNamespace
-        custom_env = {"PATH": "/usr/bin", "HOME": "/tmp"}
+        custom_env = {"PATH": "/usr/bin", "HOME": tempfile.gettempdir()}
         ctx = SimpleNamespace(cwd=None, env=custom_env)
         kwargs = self.ci._get_subprocess_security_kwargs(sandbox_context=ctx)
         self.assertEqual(kwargs["env"], custom_env)
@@ -697,7 +711,9 @@ class TestBuildCommandInvocation(unittest.TestCase):
     """Tests for CodeInterpreter._build_command_invocation() added in this PR."""
 
     def setUp(self):
-        self.ci = CodeInterpreter()
+        # Mock the Logger.initialize to avoid FileNotFoundError during test setup
+        with patch("libs.code_interpreter.Logger.initialize", return_value=None):
+            self.ci = CodeInterpreter()
 
     @patch("libs.code_interpreter.os.name", "posix")
     @patch("libs.code_interpreter.os.path.exists", return_value=True)
@@ -735,20 +751,21 @@ class TestExecuteScriptInvalidShell(unittest.TestCase):
     """Tests for CodeInterpreter._execute_script() with new sandbox_context parameter."""
 
     def setUp(self):
-        self.ci = CodeInterpreter()
+        # Mock the Logger.initialize to avoid FileNotFoundError during test setup
+        with patch("libs.code_interpreter.Logger.initialize", return_value=None):
+            self.ci = CodeInterpreter()
 
-    def test_execute_script_invalid_shell_returns_none_stdout(self):
-        # The finally block always returns (decoded stdout, decoded stderr).
-        # When the shell is invalid, both stdout and stderr remain None (from
-        # line-45 initialisation) so the finally clause yields (None, None).
-        stdout, stderr = self.ci._execute_script("echo hi", shell="invalid_shell")
-        self.assertIsNone(stdout)
+    def test_execute_script_invalid_shell_raises_error(self):
+        # Invalid shell should raise a ValueError instead of silently returning None.
+        # This tests the expected behavior (will fail until implementation is fixed).
+        with self.assertRaises(ValueError):
+            self.ci._execute_script("echo hi", shell="invalid_shell")  # noqa: S604
 
-    def test_execute_script_invalid_shell_returns_none_stderr(self):
-        # Same as above: the early `return` inside the else-branch is shadowed
-        # by the `finally` block which evaluates to (None, None).
-        stdout, stderr = self.ci._execute_script("echo hi", shell="zsh")
-        self.assertIsNone(stderr)
+    def test_execute_script_unsupported_shell_raises_error(self):
+        # Unsupported shell should raise a ValueError instead of silently returning None.
+        # This tests the expected behavior (will fail until implementation is fixed).
+        with self.assertRaises(ValueError):
+            self.ci._execute_script("echo hi", shell="zsh")  # noqa: S604
 
     @patch("subprocess.Popen")
     def test_execute_script_passes_sandbox_context_timeout(self, mock_popen):
@@ -781,16 +798,12 @@ class TestExecuteScriptInvalidShell(unittest.TestCase):
             _subprocess.TimeoutExpired(cmd="bash", timeout=30),
             (b"", b""),
         ]
-        # The timeout handler sets `stderr = "Execution timed out."` (a plain str),
-        # but the finally clause calls `stderr.decode()` expecting bytes.  This is an
-        # existing edge-case in the code; we verify that kill() is still invoked even
-        # though the finally clause raises AttributeError.
+        # Timeout should raise a proper TimeoutError instead of the AttributeError
+        # caused by the finally block trying to decode a string.
         with patch("libs.code_interpreter.os.path.exists", return_value=True), \
              patch("libs.code_interpreter.os.name", "posix"):
-            try:
+            with self.assertRaises(TimeoutError):
                 self.ci._execute_script("sleep 100", shell="bash")
-            except AttributeError:
-                pass  # known edge-case: finally tries to .decode() a plain str
         mock_process.kill.assert_called_once()
 
 
