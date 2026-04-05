@@ -22,7 +22,7 @@ class SafetyDecision:
 
 @dataclass
 class RepairCircuitBreaker:
-	max_attempts: int = 2
+	max_attempts: int = 3
 	seen_errors: set[str] = field(default_factory=set)
 	attempts: int = 0
 

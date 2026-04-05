@@ -20,7 +20,7 @@ Supports tasks like file operations, image editing, video processing, data analy
 
 ## **Why Unique?**
 
-Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, MacOS.
+Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, macOS.
 
 ## **Future Plans**
 - More free-tier Hugging Face models
@@ -121,7 +121,7 @@ python interpreter.py -md 'code' -m 'gpt-4o' -dc
 ```
 
 5. Run the interpreter directly:</br>
-### Running Interpreter without Python (Executable MacOs/Linux only).
+### Running Interpreter without Python (Executable macOS/Linux only).
 ```bash
 ./interpreter -md 'code' -m 'gpt-4o' -dc 
 ```
@@ -136,7 +136,7 @@ python interpreter.py -md 'code' -m 'gpt-4o' -dc
 - 👀 Code review before execution
 - 🛡️ Safe sandbox execution with timeout and security
 - 🧠 Self-repair for failed executions
-- 💻 Cross-platform (Windows/MacOS/Linux)
+- 💻 Cross-platform (Windows/macOS/Linux)
 - 🤝 Integrates with HuggingFace, OpenAI, Gemini, etc.
 - 🎯 Versatile tasks: file ops, image/video editing, data analysis
 

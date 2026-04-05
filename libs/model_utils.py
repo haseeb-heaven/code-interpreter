@@ -5,8 +5,9 @@ def normalize_model_name(model_name):
     """
     # Legacy mappings
     legacy_mappings = {
-        "claude-2.1": "claude-sonnet-4-6",
         "claude-2": "claude-sonnet-4-6",
+        "claude-2.1": "claude-sonnet-4-6",
+        "claude-3-7-sonnet": "claude-sonnet-4-6",
     }
     
     # Known Claude models that don't need anthropic prefix

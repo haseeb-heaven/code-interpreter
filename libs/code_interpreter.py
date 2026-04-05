@@ -42,7 +42,7 @@ class CodeInterpreter:
 		return ["sh", "-c", command]
 	
 	def _execute_script(self, script: str, shell: str, sandbox_context=None):
-		stdout = stderr = None
+		stdout_val = stderr_val = None
 		try:
 			popen_kwargs = {
 				"stdout": subprocess.PIPE,
@@ -59,25 +59,25 @@ class CodeInterpreter:
 			elif shell == "applescript":
 				process = subprocess.Popen(['osascript', '-'], stdin=subprocess.PIPE, **popen_kwargs)
 			else:
-				if self.logger:
-					self.logger.error(f"Invalid shell selected: {shell}")
-				raise ValueError(f"Invalid shell selected: {shell}")
+				stderr_val = f"Invalid shell selected: {shell}".encode()
+			if stderr_val is not None:
+				return (stdout_val, stderr_val.decode().strip() if isinstance(stderr_val, bytes) else stderr_val)
 			timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
-			stdout, stderr = process.communicate(timeout=timeout)
+			stdout_val, stderr_val = process.communicate(timeout=timeout)
 			if self.logger:
-				self.logger.info(f"Output is {stdout.decode()} and error is {stderr.decode()}")
+				self.logger.info(f"Output is {stdout_val.decode()} and error is {stderr_val.decode()}")
 			if process.returncode != 0:
 				if self.logger:
-					self.logger.info(f"Error in running {shell} script: {stderr.decode()}")
-			return stdout.decode().strip() if stdout else None, stderr.decode().strip() if stderr else None
+					self.logger.info(f"Error in running {shell} script: {stderr_val.decode()}")
 		except subprocess.TimeoutExpired as timeout_exc:
 			process.kill()
 			process.communicate()
-			raise TimeoutError("Execution timed out.") from timeout_exc
+			stderr_val = b"Execution timed out."
 		except Exception as exception:
 			if self.logger:
 				self.logger.error(f"Exception in running {shell} script: {str(exception)}")
-			raise exception from exception
+			stderr_val = str(exception).encode()
+		return (stdout_val.decode().strip() if stdout_val else None, stderr_val.decode().strip() if isinstance(stderr_val, bytes) else stderr_val)
 		
 	def _check_compilers(self, language):
 		try:
