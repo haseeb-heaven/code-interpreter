@@ -25,7 +25,7 @@ def normalize_model_name(model_name):
         else:
             return f'anthropic/{model_name}'
     
-    if any(keyword in model_name for keyword in ['gpt', 'o1', 'o3', 'o4']):
+    if any(model_name.lower().startswith(prefix) for prefix in ['gpt', 'o1', 'o3', 'o4']):
         return model_name
     
     if 'deepseek' in model_name:
