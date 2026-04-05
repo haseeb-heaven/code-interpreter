@@ -19,6 +19,18 @@ CONFIGS_DIR = ROOT_DIR / "configs"
 
 
 def _read_hf_model(config_path: Path) -> str:
+    """
+    Read a config file and return the value assigned to HF_MODEL.
+    
+    Parameters:
+        config_path (Path): Path to the configuration file to parse.
+    
+    Returns:
+        str: The HF_MODEL value with surrounding quotes and whitespace removed.
+    
+    Raises:
+        AssertionError: If no HF_MODEL entry is found in the file.
+    """
     for line in config_path.read_text(encoding="utf-8-sig").splitlines():
         stripped = line.strip()
         if stripped.startswith("HF_MODEL") and "=" in stripped:
@@ -27,6 +39,15 @@ def _read_hf_model(config_path: Path) -> str:
 
 
 def _expected_completion_model(model_name: str) -> str:
+    """
+    Map a raw model identifier to the canonical model identifier used for completion requests.
+    
+    Parameters:
+        model_name (str): The model identifier read from configuration (e.g., "claude-2.1", "groq-llama-3.3", "gpt-4o", or plain model names).
+    
+    Returns:
+        str: The canonical model identifier to pass to provider clients. Known legacy or provider-specific aliases are remapped to their modern equivalents (for example, Claude and Groq legacy names are translated, Deepseek entries are ensured to be prefixed with "deepseek/", and most non-prefixed models are returned with a "huggingface/" prefix). If no remapping applies, returns the original `model_name`.
+    """
     if model_name.startswith(("gpt", "o1", "o3", "o4")):
         return model_name
 
@@ -96,6 +117,25 @@ def _expected_completion_model(model_name: str) -> str:
 
 class TestInterpreter(unittest.TestCase):
     def _make_args(self, mode="code", model="code-llama"):
+        """
+        Create a Namespace of CLI-like interpreter arguments used by tests.
+        
+        Parameters:
+            mode (str): Interpreter mode to set (e.g., "code", "vision").
+            model (str): Model name to set as the interpreter model.
+        
+        Returns:
+            argparse.Namespace: A Namespace populated with default CLI options:
+                exec (bool): False
+                save_code (bool): False
+                mode (str): Provided mode
+                model (str): Provided model
+                display_code (bool): False
+                lang (str): "python"
+                file (None|str): None
+                history (bool): False
+                upgrade (bool): False
+        """
         return Namespace(
             exec=False,
             save_code=False,
@@ -119,6 +159,11 @@ class TestInterpreter(unittest.TestCase):
     @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
     @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
     def test_openai_o_series_uses_openai_path(self, _mock_history, _mock_client):
+        """
+        Verifies that OpenAI O-series models are routed through the OpenAI-compatible completion path.
+        
+        Asserts that generate_content invokes the litellm completion function once with the O-series model identifier ("o1-mini") and returns the extracted content ("ok").
+        """
         interpreter = Interpreter(self._make_args(model="o1-mini"))
         interpreter.INTERPRETER_MODEL = "o1-mini"
 
@@ -139,6 +184,11 @@ class TestInterpreter(unittest.TestCase):
     @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
     @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
     def test_legacy_claude_alias_is_remapped_to_sonnet_46(self, _mock_history, _mock_client):
+        """
+        Verifies that the legacy Claude model alias "claude-2.1" is remapped to "claude-sonnet-4-6" when invoking completions.
+        
+        When Interpreter.INTERPRETER_MODEL is set to "claude-2.1", calling generate_content should invoke the completion API with the mapped model identifier "claude-sonnet-4-6".
+        """
         interpreter = Interpreter(self._make_args(model="claude-2.1"))
         interpreter.INTERPRETER_MODEL = "claude-2.1"
 
@@ -179,6 +229,11 @@ class TestInterpreter(unittest.TestCase):
         self.assertEqual(interpreter.INTERPRETER_MODEL_LABEL, "groq-gpt-oss-20b")
 
     def test_every_config_is_parseable_and_has_hf_model(self):
+        """
+        Verify all configuration files under CONFIGS_DIR are parseable and define a non-empty HF_MODEL.
+        
+        Loads each `*.config` file and asserts the parsed values include an `HF_MODEL` key whose value is not empty after trimming whitespace.
+        """
         utility_manager = UtilityManager()
         config_files = sorted(CONFIGS_DIR.glob("*.config"))
         self.assertTrue(config_files, "No config files found")
@@ -265,6 +320,12 @@ class TestInterpreter(unittest.TestCase):
         self.assertEqual(extracted, "print('OK')")
 
     def test_legacy_alias_configs_are_mapped_to_modern_targets(self):
+        """
+        Verifies that legacy config filenames are remapped to their expected modern `HF_MODEL` values.
+        
+        For each legacy config in a predefined mapping, reads the config's `HF_MODEL` via `_read_hf_model`
+        and asserts it equals the expected modern target. Each mapping is executed as a unittest subTest.
+        """
         expected_aliases = {
             "gpt-3.5-turbo.config": "gpt-4o-mini",
             "gpt-4.config": "gpt-4.1",
@@ -285,6 +346,11 @@ class TestInterpreter(unittest.TestCase):
                 self.assertEqual(hf_model, expected_hf_model)
 
     def test_new_provider_configs_exist(self):
+        """
+        Verify that a set of required provider config files exist and specify the expected HF_MODEL values.
+        
+        For each config filename in the required set, read its HF_MODEL entry and assert it matches the expected canonical model identifier.
+        """
         required_configs = {
             "openrouter-free.config": "openrouter/free",
             "nvidia-nemotron.config": "nvidia/nemotron-3-super-120b-a12b",

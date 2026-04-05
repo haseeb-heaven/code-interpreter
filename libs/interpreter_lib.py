@@ -44,6 +44,20 @@ class Interpreter:
 	console = Console()
 	
 	def __init__(self,  args):
+		"""
+		Initialize the Interpreter instance, configure runtime helpers and flags, and perform setup.
+		
+		Parameters:
+			args (argparse.Namespace): Parsed CLI arguments; expected attributes:
+				- unsafe (bool, optional): If true, allow execution paths that bypass safety blocking.
+				- tui (bool, optional): If true, enable the optional terminal UI.
+		
+		Behavior:
+			Creates and assigns core helper objects (utility manager, code interpreter, package manager,
+			history manager, logger, execution safety manager, optional TerminalUI), initializes
+			execution and retry limits, stores initial history settings, and invokes instance
+			initialization via initialize().
+		"""
 		self.args = args
 		self.history = []
 		self.history_count = 3
@@ -66,6 +80,18 @@ class Interpreter:
 		self.initialize()
 	
 	def initialize(self):
+		"""
+		Initialize interpreter runtime settings and external helpers.
+		
+		Configures language, model, mode, prompt source (stdin versus file), display/save/execute flags, and optional history flag; loads the appropriate system message for the active mode (vision/chat or from system/system_message.txt), initializes the model client and mode-specific flags, and attempts to enable readline history.
+		
+		Raises:
+			FileNotFoundError or other IO/error raised when reading `system/system_message.txt` fails.
+		
+		Notes:
+			- Sets instance attributes such as INTERPRETER_LANGUAGE, SAVE_CODE, EXECUTE_CODE, DISPLAY_CODE, INTERPRETER_MODEL, INTERPRETER_MODEL_LABEL, INTERPRETER_MODE, INTERPRETER_PROMPT_FILE, INTERPRETER_PROMPT_INPUT, INTERPRETER_HISTORY, and system_message.
+			- Calls initialize_client(), initialize_mode(), and utility_manager.initialize_readline_history() (the latter errors are logged but do not propagate).
+		"""
 		self.INTERPRETER_LANGUAGE = self.args.lang if self.args.lang else 'python'
 		self.SAVE_CODE = self.args.save_code
 		self.EXECUTE_CODE = self.args.exec
@@ -118,6 +144,15 @@ class Interpreter:
 			self.logger.error("Exception on initializing readline history")
 
 	def _is_recoverable_runtime_error(self, error_text):
+		"""
+		Detects whether the provided runtime error text signals a recoverable or transient issue.
+		
+		Parameters:
+			error_text (str | None): The error message to inspect; `None` is treated as an empty string.
+		
+		Returns:
+			True if the text contains markers of recoverable/provider/transient errors (e.g., rate limits, quota/credits, authentication/authorization issues, model or resource not found, timeouts, or connection problems), False otherwise.
+		"""
 		recoverable_errors = [
 			"rate limit",
 			"ratelimit",
@@ -140,6 +175,15 @@ class Interpreter:
 		return any(error in error_text for error in recoverable_errors)
 
 	def _format_runtime_error_message(self, error_text):
+		"""
+		Normalize and clean an error message for concise display.
+		
+		Parameters:
+			error_text (str | None): The raw error text to normalize; may be None or empty.
+		
+		Returns:
+			str: A cleaned, single-line error message with URLs and common error prefixes removed and excess whitespace collapsed. Returns "Unknown error" when `error_text` is falsy.
+		"""
 		message = error_text or "Unknown error"
 		message = re.sub(r"https?://\S+", "", message)
 		message = re.sub(r"litellm\.[A-Za-z]+Error:\s*", "", message)
@@ -150,6 +194,17 @@ class Interpreter:
 		return message
 
 	def _is_retryable_request_error(self, error_text):
+		"""
+		Determines whether a provider request error message indicates a retryable failure.
+		
+		Examines the provided error text for markers that imply either retryable transient issues (rate limits, timeouts, connection problems, HTTP 5xx/429) or non-retryable issues (billing, quota, authentication, missing model). Non-retryable markers take precedence.
+		
+		Parameters:
+			error_text (str): The error message or text to analyze; may be None or empty.
+		
+		Returns:
+			True if the error text suggests a retryable request error, False otherwise.
+		"""
 		error_text = (error_text or "").lower()
 		retryable_markers = [
 			"rate limit",
@@ -180,6 +235,21 @@ class Interpreter:
 		return any(marker in error_text for marker in retryable_markers)
 
 	def _generate_content_with_retries(self, message, chat_history, config_values=None, image_file=None):
+		"""
+		Attempt to generate model content, retrying on transient request errors up to the configured retry limit.
+		
+		Parameters:
+			message (str): User prompt or task sent to the model.
+			chat_history (list|None): Optional conversation history to include in the request.
+			config_values (object|None): Optional overrides for model request parameters (e.g., temperature, max_tokens, provider).
+			image_file (str|None): Optional path to an image file used for vision-mode requests.
+		
+		Returns:
+			(str): The generated model text returned by generate_content.
+		
+		Raises:
+			Exception: Re-raises the last encountered exception when a non-retryable error occurs or all retry attempts are exhausted.
+		"""
 		last_exception = None
 		for attempt in range(1, self.MAX_LLM_RETRIES + 1):
 			try:
@@ -195,12 +265,33 @@ class Interpreter:
 			raise last_exception
 
 	def _apply_mode(self, mode):
+		"""
+		Set the interpreter mode and update corresponding boolean mode flags.
+		
+		Parameters:
+			mode (str): Mode name to apply (case-insensitive). Expected values include "vision", "script", "command", "code", and "chat".
+		
+		Effects:
+			Sets self.INTERPRETER_MODE to the lowercased mode and updates the boolean attributes
+			`VISION_MODE`, `SCRIPT_MODE`, `COMMAND_MODE`, `CODE_MODE`, and `CHAT_MODE` so that
+			only the attribute matching the applied mode is True and the others are False.
+		"""
 		modes = {'vision': 'VISION_MODE', 'script': 'SCRIPT_MODE', 'command': 'COMMAND_MODE', 'code': 'CODE_MODE', 'chat': 'CHAT_MODE'}
 		self.INTERPRETER_MODE = mode.lower()
 		for key in modes:
 			setattr(self, modes[key], self.INTERPRETER_MODE == key)
 
 	def _open_tui_settings(self, setting_type):
+		"""
+		Open an interactive terminal UI to select or modify a runtime setting.
+		
+		Parameters:
+			setting_type (str): One of "mode", "model", "language", or "settings" indicating which UI selector to open.
+		
+		Returns:
+			dict: A mapping with the selected key and value (e.g., {"mode": "code"}, {"model": "gpt"}), or the result of interactive_settings when `setting_type` is "settings".
+			None: If no terminal UI is configured or the `setting_type` is unrecognized.
+		"""
 		if not self.terminal_ui:
 			return None
 		if setting_type == "mode":
@@ -214,6 +305,21 @@ class Interpreter:
 		return None
 
 	def _apply_runtime_settings(self, settings):
+		"""
+		Apply runtime configuration overrides from a settings mapping to the interpreter.
+		
+		Updates interpreter mode, language, display/execute/save flags, history flag, and model selection when corresponding keys are present in the provided `settings` dict. If a `model` is specified and its config file is missing, prints a user-facing message; if present, sets the model and reinitializes the client.
+		
+		Parameters:
+			settings (dict): Mapping of runtime settings to apply. Recognized keys:
+				- "mode": interpreter mode name (e.g., "code", "script", "chat", "vision", "command"); applied via _apply_mode().
+				- "language": programming language name to set INTERPRETER_LANGUAGE.
+				- "display_code": boolean to set DISPLAY_CODE.
+				- "execute_code": boolean to set EXECUTE_CODE.
+				- "save_code": boolean to set SAVE_CODE.
+				- "history": boolean to set INTERPRETER_HISTORY.
+				- "model": model name string; if a corresponding configs/<model>.config file exists, sets INTERPRETER_MODEL and INTERPRETER_MODEL_LABEL and calls initialize_client(); otherwise prints a guidance message.
+		"""
 		if not settings:
 			return
 		if "mode" in settings and settings["mode"]:
@@ -239,6 +345,13 @@ class Interpreter:
 				self.initialize_client()
 
 	def _display_session_banner(self, os_name, input_prompt_mode):
+		"""
+		Prints a compact session banner showing OS, language, mode, prompt source, and model label.
+		
+		Parameters:
+			os_name (str): The operating system name to display (e.g., "Windows 10" or "Linux").
+			input_prompt_mode (str): Source of prompts; when equal to "input" (case-insensitive) displays "input", otherwise displays "file".
+		"""
 		short_lang = "python" if self.INTERPRETER_LANGUAGE == "python" else "javascript"
 		short_prompt_mode = "input" if input_prompt_mode.lower() == "input" else "file"
 		short_os_name = os_name.replace("Windows ", "Win")
@@ -250,6 +363,20 @@ class Interpreter:
 		self.console.print(f"[bold bright_blue]{session_line}[/bold bright_blue]", overflow="ignore", no_wrap=True)
 
 	def _build_repair_prompt(self, task, prompt, code_snippet, error_text, os_name, code_output=None):
+		"""
+		Builds a bounded repair prompt instructing the model to return a single corrected code block for a failed execution.
+		
+		Parameters:
+			task (str): The original user task or intent.
+			prompt (str): The resolved prompt that was sent to the model.
+			code_snippet (str): The generated code that failed when executed.
+			error_text (str): The execution error message observed.
+			os_name (str): The operating system name to contextualize platform-specific fixes.
+			code_output (str, optional): Observed stdout produced before the failure, if any.
+		
+		Returns:
+			str: A repair prompt asking the model to privately reason about the failure and return only the corrected code enclosed in one triple-backtick block.
+		"""
 		if self.COMMAND_MODE:
 			target = "single terminal command"
 		elif self.SCRIPT_MODE:
@@ -275,9 +402,28 @@ class Interpreter:
 		)
 
 	def _task_has_any(self, text, phrases):
+		"""
+		Check whether any of the provided substrings appears in the given text.
+		
+		Parameters:
+			text (str): The text to search within.
+			phrases (Iterable[str]): An iterable of substring phrases to look for.
+		
+		Returns:
+			True if any phrase from `phrases` is found in `text`, False otherwise.
+		"""
 		return any(phrase in text for phrase in phrases)
 
 	def _is_simple_directory_listing_task(self, task_lower):
+		"""
+		Determine whether a user task is a simple request to list files in the current directory without requesting charts, images, tables, or size information.
+		
+		Parameters:
+			task_lower (str): The user task text normalized to lowercase.
+		
+		Returns:
+			bool: `True` if the task matches common directory-listing phrases and does not contain disallowed keywords (e.g., "chart", "graph", "png", "table", "size"); `False` otherwise.
+		"""
 		if not task_lower:
 			return False
 
@@ -302,6 +448,22 @@ class Interpreter:
 		return self._task_has_any(task_lower, list_phrases) and not self._task_has_any(task_lower, disallowed)
 
 	def _maybe_simplify_generated_code(self, task, code_snippet):
+		"""
+		Simplify generated code for trivial tasks (exact print, current working directory, simple directory listing) when in code mode.
+		
+		When `CODE_MODE` is enabled and both `task` and `code_snippet` are strings, this returns a minimal, language-appropriate code snippet for:
+		- requests to "print(s) exactly '<literal>'" (produces a single print/log statement),
+		- requests mentioning the "current working directory" (produces a cwd print),
+		- simple directory-listing requests (produces a short listing loop).
+		For unsupported languages or when no simplification applies, returns the original `code_snippet`.
+		
+		Parameters:
+			task (str): The user's task/description used to detect simple patterns.
+			code_snippet (str): The original generated code to potentially simplify.
+		
+		Returns:
+			str: A simplified code snippet tailored to `INTERPRETER_LANGUAGE` when a recognized trivial pattern is found; otherwise the original `code_snippet`.
+		"""
 		if not self.CODE_MODE or not isinstance(task, str) or not isinstance(code_snippet, str):
 			return code_snippet
 
@@ -329,6 +491,17 @@ class Interpreter:
 		return code_snippet
 
 	def _execute_generated_output(self, code_snippet, os_name, force_execute=False):
+		"""
+		Assess the generated code against the safety policy and, if permitted, execute it inside a sandboxed context.
+		
+		Parameters:
+			code_snippet (str): The code or command block produced by the model to be assessed and potentially executed.
+			os_name (str): Operating system name used to select the appropriate execution path (e.g., "linux", "windows", "darwin").
+			force_execute (bool): If True, bypasses interactive execution approval and forces execution when allowed by safety.
+		
+		Returns:
+			(stdout, stderr) tuple from the execution where `stdout` is the captured standard output (or None) and `stderr` is None on success or an error string on failure. If execution is prevented by the safety policy, returns (None, "Safety blocked: <reason>").
+		"""
 		decision = self.safety_manager.assess_execution(code_snippet, self.INTERPRETER_MODE)
 		if not self.UNSAFE_EXECUTION and not decision.allowed:
 			reason_text = "; ".join(decision.reasons)
@@ -343,6 +516,27 @@ class Interpreter:
 			self.safety_manager.cleanup_sandbox_context(sandbox_context)
 
 	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, skip_first_line, extracted_file_name, code_output=None):
+		"""
+		Attempt to iteratively repair a failing code snippet by requesting corrected code from the model and re-executing it until a successful result, a safety block, or the repair attempt limit is reached.
+		
+		Parameters:
+			task (str): Original user task description driving the generation.
+			prompt (str): The resolved prompt that was sent to the model.
+			code_snippet (str): The most recently generated code to attempt to repair.
+			code_error (str): Error message or stderr produced when the code last executed.
+			os_name (str): Target operating system name used to tailor repairs and execution.
+			start_sep (str): Opening fence/marker used when extracting code blocks from model output.
+			end_sep (str): Closing fence/marker used when extracting code blocks from model output.
+			skip_first_line (bool): Whether the first line of the extracted fenced block should be skipped when extracting runnable code.
+			extracted_file_name (str): Path or name of any file referenced in the prompt (used as context for repair generation).
+			code_output (str | None): Stdout from the previous execution, if any.
+		
+		Returns:
+			tuple: (final_snippet, stdout, error)
+			- final_snippet (str): The last attempted code snippet (repaired or original).
+			- stdout (str | None): Captured standard output from the last execution, or None if none produced.
+			- error (str | None): Error text from the last execution, or None if the last execution succeeded.
+		"""
 		circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)
 		current_snippet = code_snippet
 		current_error = code_error
@@ -373,12 +567,31 @@ class Interpreter:
 		return current_snippet, current_output, current_error
 
 	def _safe_input(self, prompt_text, default=None):
+		"""
+		Prompt the user with prompt_text and return a default value if input is interrupted (EOF).
+		
+		Parameters:
+			prompt_text (str): Text displayed to the user when requesting input.
+			default (Optional[str]): Value returned when EOF is encountered; defaults to None.
+		
+		Returns:
+			user_input (str or None): The entered string, or `default` if EOF was raised.
+		"""
 		try:
 			return input(prompt_text)
 		except EOFError:
 			return default
 
 	def initialize_client(self):
+		"""
+		Prepare model configuration and validate required API credentials from the local `.env`.
+		
+		Reads the interpreter model configuration, sets the active model name/label, and ensures environment credentials required for the selected provider are present and well-formed. For local models, client initialization is skipped and a default local OpenAI API key is injected into the environment when one is not present. For remote providers, the method determines the expected API key variable and enforces presence and basic prefix/length constraints.
+		 
+		Raises:
+		    Exception: If the expected provider API key is missing from the environment or `.env`.
+		    Exception: If the found API key does not match the required prefix or fails the minimum length check.
+		"""
 		env_path = os.path.join(os.getcwd(), ".env")
 		load_dotenv(dotenv_path=env_path, override=True)
 		self.logger.info("Initializing Client")
@@ -455,6 +668,11 @@ class Interpreter:
 			raise Exception(f"{api_key_name} should have length greater than {api_key_info['length']}. Please check your .env file.")
 		
 	def initialize_mode(self):
+		"""
+		Set interpreter mode flags based on self.args.mode.
+		
+		Sets CODE_MODE, SCRIPT_MODE, COMMAND_MODE, VISION_MODE, and CHAT_MODE according to the exact string value of self.args.mode ('code', 'script', 'command', 'vision', 'chat'). If none of the non-code modes are selected, ensures CODE_MODE is True by default.
+		"""
 		self.CODE_MODE = True if self.args.mode == 'code' else False
 		self.SCRIPT_MODE = True if self.args.mode == 'script' else False
 		self.COMMAND_MODE = True if self.args.mode == 'command' else False
@@ -464,6 +682,22 @@ class Interpreter:
 			self.CODE_MODE = True
 	
 	def get_prompt(self, message: str, chat_history: List[dict]) -> List[dict] | str:
+		"""
+		Construct the prompt payload appropriate for the current interpreter mode and model.
+		
+		Builds a provider-specific messages payload (list of role/content dicts) used for LLM requests, or a plain system string for vision mode. The exact messages and strict instructions differ by mode:
+		- code/script/command: system and assistant messages enforce returning exactly one fenced code block or single command/script with no extra explanation.
+		- chat: includes a concise system instruction and, when provided, appends chat_history for context.
+		- vision: returns a single system instruction string (not a messages list).
+		For models whose identifier contains "claude", returns a single Anthropic-style user message with nested text chunks.
+		
+		Parameters:
+			message (str): The user's current prompt or task.
+			chat_history (List[dict]): Optional prior conversation entries to include for chat-mode context; expected as a list of role/content dictionaries.
+		
+		Returns:
+			List[dict] | str: A messages list suitable for the target provider APIs, or a system instruction string when in vision mode.
+		"""
 		system_message: str = ""
 		assistant_message = "Please generate code wrapped inside triple backticks known as codeblock."
 		
@@ -526,6 +760,13 @@ class Interpreter:
 		return messages
 	
 	def execute_last_code(self, os_name):
+		"""
+		Display the most recently saved or generated code and run it for the specified operating system.
+		
+		Retrieves the last saved output for the current interpreter mode/language, shows a message if no saved code is available, renders the code to the user, and then attempts execution through the interpreter's guarded execution path. Execution results and errors are displayed to the user and recorded in the logger.
+		Parameters:
+			os_name (str): Target operating system identifier used to locate the saved output and to select the platform-specific execution path.
+		"""
 		try:
 			code_file, code_snippet = self.utility_manager.get_output_history(mode=self.INTERPRETER_MODE, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
 
@@ -551,6 +792,23 @@ class Interpreter:
 			raise
 
 	def _extract_latest_user_text(self, message, messages):
+		"""
+		Extract the most recent user-provided text from a direct message or a conversation messages list.
+		
+		Search order and behavior:
+		- If `message` is a non-empty string, return it trimmed.
+		- Otherwise, if `messages` is a list, scan it in reverse for the last item with `"role" == "user"`.
+		  - If that user's `"content"` is a non-empty string, return it trimmed.
+		  - If the user's `"content"` is a list of chunk dicts, extract chunks where `chunk["type"] == "text"`, join their `text` fields with spaces, and return the result if non-empty.
+		- If no user text is found, return the literal string "Help with this request."
+		
+		Parameters:
+			message: a direct message string or other value to consider first.
+			messages: an optional list of message dicts (each may include "role" and "content") to search when `message` is empty.
+		
+		Returns:
+			Extracted user text (trimmed) when available, otherwise the fallback string "Help with this request."
+		"""
 		if isinstance(message, str) and message.strip():
 			return message.strip()
 		if isinstance(messages, list):
@@ -571,6 +829,24 @@ class Interpreter:
 		return "Help with this request."
 
 	def _run_openai_compatible_completion(self, api_key_name, messages, temperature, max_tokens, api_base, extra_headers=None):
+		"""
+		Send a completion request to an OpenAI-compatible LLM provider using credentials from the environment.
+		
+		Parameters:
+			api_key_name (str): Name of the environment variable that holds the API key.
+			messages (list|dict): Message payload formatted for the model provider.
+			temperature (float): Sampling temperature for the completion.
+			max_tokens (int): Maximum tokens to generate.
+			api_base (str): Base URL for the model API; must be set for custom models.
+			extra_headers (dict, optional): Additional HTTP headers to include with the request.
+		
+		Returns:
+			The response object returned by litellm.completion for the configured model.
+		
+		Raises:
+			Exception: If the specified API key environment variable is missing.
+			Exception: If `api_base` equals the string 'None' (i.e., not configured).
+		"""
 		api_key = os.getenv(api_key_name)
 		if not api_key:
 			raise Exception(f"{api_key_name} not found in .env file.")
@@ -590,6 +866,23 @@ class Interpreter:
 		return litellm.completion(self.INTERPRETER_MODEL, **completion_kwargs)
 
 	def _generate_browser_use_content(self, message, messages, config_values):
+		"""
+		Use the Browser Use API to run a browsing task and return the session result.
+		
+		Parameters:
+			message (str): The latest user message fallback used when extracting the task.
+			messages (list|None): Conversation message history used to extract the most recent user text.
+			config_values (Mapping): Configuration overrides; supports keys:
+				- "api_base": base URL for the Browser Use API (default "https://api.browser-use.com/api/v3")
+				- "browser_use_timeout": maximum seconds to wait for completion (default 150)
+				- "browser_use_poll_interval": seconds between poll attempts (default 3)
+		
+		Returns:
+			str: The session output as a string; if the output is a dict or list it is returned as a JSON string.
+		
+		Raises:
+			Exception: If BROWSER_USE_API_KEY is missing, session creation fails or returns no id, the session reports a terminal failure status, or the session times out.
+		"""
 		api_key = os.getenv("BROWSER_USE_API_KEY")
 		if not api_key:
 			raise Exception("BROWSER_USE_API_KEY not found in .env file.")
@@ -647,6 +940,22 @@ class Interpreter:
 		raise Exception("Browser Use session timed out.")
 	
 	def generate_content(self, message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
+		"""
+		Generate model output for the current interpreter mode and return the extracted text content.
+		
+		This builds provider-specific request payloads from the given message and chat history, calls the appropriate LLM or vision endpoint (handling provider/model-specific mappings and API base overrides), and returns the utility-extracted textual result.
+		
+		Parameters:
+			message (str): The user's prompt or task to send to the model.
+			chat_history (list[tuple[str, str]]): Conversation history as (role, text) pairs to include in the request.
+			temperature (float): Sampling temperature for the model (lower values make outputs more deterministic).
+			max_tokens (int): Maximum number of tokens to request from the model.
+			config_values (dict | None): Optional config overrides (e.g., 'temperature', 'max_tokens', 'api_base', 'provider') that influence provider selection and request parameters.
+			image_file (str | None): Path or URL to an image when using vision models; required for vision-mode Gemini calls.
+		
+		Returns:
+			generated_text (str): The text extracted from the model/vision response suitable for downstream processing or display.
+		"""
 		self.logger.info(f"Generating content with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
 		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
 		api_base = 'None'
@@ -848,6 +1157,18 @@ class Interpreter:
 	
 	def get_code_prompt(self,  task, os_name):
 		
+		"""
+		Constructs a concise model instruction that requests a single, executable code block in the configured interpreter language for the given task and operating system.
+		
+		The prompt enforces returning exactly one fenced code block with no explanations, comments, or extra prose; requires production-ready syntax and imports; discourages side effects (file creation, network calls, subprocesses, plots, etc.) unless explicitly required by the task; and asks for safe handling of common filesystem/permission errors.
+		
+		Parameters:
+			task (str): Natural-language description of the task to implement.
+			os_name (str): Target operating system name used to tailor the prompt.
+		
+		Returns:
+			str: A prompt string instructing the model to generate one executable fenced code block in the interpreter language for the specified task and OS.
+		"""
 		if self.INTERPRETER_LANGUAGE not in ['python', 'javascript']:
 			self.INTERPRETER_LANGUAGE = 'python'
 		
@@ -865,6 +1186,19 @@ class Interpreter:
 		return prompt
 
 	def get_script_prompt(self,  task, os_name):
+		"""
+		Builds a concise instruction requesting a single OS-compatible script implementing the given task.
+		
+		Parameters:
+			task (str): The user task or requirement to implement in the script.
+			os_name (str): Host operating system name or identifier used to select the script language (e.g., macOS/Darwin, Linux, Windows).
+		
+		Returns:
+			str: A prompt string that asks the model to return only the script (no extra text), constrained to an OS-appropriate script type.
+		
+		Side effects:
+			Sets self.INTERPRETER_LANGUAGE to the detected script language for the provided OS.
+		"""
 		os_name_lower = os_name.lower()
 
 		# Combined dictionary for both language mapping and script type
@@ -892,6 +1226,18 @@ class Interpreter:
 		return prompt
 
 	def get_command_prompt(self,  task, os_name):
+		"""
+		Builds a strict instruction prompt asking the model to produce a single terminal command.
+		
+		The returned prompt embeds the user task and target operating system, requires the command to be compatible with the specified OS, and instructs the model to output only the single, simplest safe built-in command without additional text, unrelated chaining, or file generation.
+		
+		Parameters:
+			task (str): The user task or request to be converted into a terminal command.
+			os_name (str): The target operating system name/version to ensure command compatibility.
+		
+		Returns:
+			prompt (str): A formatted prompt string directing the model to return exactly one terminal command.
+		"""
 		prompt = (
 			f"Generate only the single terminal command for this task:\n"
 			f"Task: '{task}'\n"
@@ -912,6 +1258,16 @@ class Interpreter:
 		return prompt
 
 	def get_mode_prompt(self,  task, os_name):
+		"""
+		Selects and returns a prompt tailored to the interpreter's active mode for the given task and operating system.
+		
+		Parameters:
+			task (str): The user's task or request to be converted into a prompt.
+			os_name (str): Operating system identifier used to tailor prompts for scripts/commands (e.g., "linux", "darwin", "windows").
+		
+		Returns:
+			A mode-appropriate prompt payload for the provided task and OS (for example, a messages list or a system prompt string depending on the active mode).
+		"""
 		if self.CODE_MODE:
 			self.logger.info("Getting code prompt.")
 			return self.get_code_prompt(task, os_name)
@@ -930,6 +1286,27 @@ class Interpreter:
 
 	def execute_code(self,  extracted_code, os_name, sandbox_context=None, force_execute=False):
 		# If the interpreter mode is Vision, do not execute the code.
+		"""
+		Execute a previously generated code snippet according to the current interpreter mode and execution policy.
+		
+		Parameters:
+			extracted_code (str): The code or command text to execute.
+			os_name (str): Host operating system identifier used for script/command execution selection.
+			sandbox_context (optional): Context object returned by the safety manager to constrain execution (passed to the code interpreter).
+			force_execute (bool): When True, bypasses interactive confirmation and proceeds with execution.
+		
+		Behavior:
+			- Does not execute for 'vision' or 'chat' modes; returns (None, None).
+			- If neither `force_execute` nor the interpreter's `EXECUTE_CODE` flag is set, prompts the user "Execute the code? (Y/N): " and records the decision in `self._last_execution_approved`.
+			- Executes using the appropriate code_interpreter method based on mode:
+			  - SCRIPT_MODE -> execute_script(...)
+			  - COMMAND_MODE -> execute_command(...)
+			  - CODE_MODE -> execute_code(...) with `self.INTERPRETER_LANGUAGE`
+			- Passes `sandbox_context` through to the code interpreter when provided.
+		
+		Returns:
+			(tuple) A pair (stdout, stderr)-style values from the code interpreter on successful invocation, `(None, error_message)` if execution raised an exception, or `(None, None)` if execution was skipped.
+		"""
 		if self.INTERPRETER_MODE in ['vision', 'chat']:
 			return None, None
 		
@@ -959,6 +1336,17 @@ class Interpreter:
 
 	def interpreter_main(self,  version):
 		
+		"""
+		Run the interpreter's interactive main loop, processing user tasks and model-driven code generation/execution.
+		
+		This starts a REPL that reads tasks from stdin or a prompt file, handles built-in commands (e.g., /exit, /help, /save, /mode, /model, /install, /execute, /fix), constructs mode-appropriate prompts for the LLM, requests and extracts executable blocks, optionally saves and executes generated code (with sandbox/safety checks and package-install/retry/repair flows), opens generated resource files (graphs/charts/tables), and persists session history. The loop also supports switching modes, models, and languages, and prints user-facing messages via the configured UI utilities.
+		
+		Parameters:
+			version (str): Version label for this interpreter session (used for logging and display).
+		
+		Raises:
+			Exception: Re-raises unrecoverable errors encountered during the loop.
+		"""
 		self.interpreter_version = version
 		self.logger.info(f"Interpreter - v{self.interpreter_version}")
 		

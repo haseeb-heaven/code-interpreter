@@ -17,9 +17,27 @@ from libs.markdown_code import display_markdown_message
 class CodeInterpreter:
 
 	def __init__(self):
+		"""
+		Initialize the CodeInterpreter instance and configure its logger.
+		
+		Sets self.logger to a Logger initialized with the file "logs/code-interpreter.log".
+		"""
 		self.logger = Logger.initialize("logs/code-interpreter.log")
 
 	def _get_subprocess_security_kwargs(self, sandbox_context=None):
+		"""
+		Builds subprocess keyword arguments applying working directory, environment, and OS-specific process isolation flags.
+		
+		Parameters:
+			sandbox_context (optional): An object that may have `cwd` and `env` attributes; those values (or `None` if absent) are used to populate the corresponding subprocess kwargs.
+		
+		Returns:
+			dict: A mapping suitable for passing to subprocess functions containing:
+			- `cwd`: the working directory from `sandbox_context.cwd` or `None`.
+			- `env`: the environment mapping from `sandbox_context.env` or `None`.
+			- On Windows (`os.name == "nt"`): `creationflags` (int) combining available flags such as `CREATE_NO_WINDOW` and `CREATE_NEW_PROCESS_GROUP`.
+			- On non-Windows: `start_new_session` set to `True`.
+		"""
 		kwargs = {
 			"cwd": getattr(sandbox_context, "cwd", None),
 			"env": getattr(sandbox_context, "env", None),
@@ -34,6 +52,15 @@ class CodeInterpreter:
 		return kwargs
 
 	def _build_command_invocation(self, command: str):
+		"""
+		Constructs a platform-appropriate command invocation list suitable for passing to subprocess functions.
+		
+		Parameters:
+			command (str): The shell command string to execute.
+		
+		Returns:
+			list: A list of program and argument tokens that invoke the given command on the current OS (Windows uses `cmd.exe /d /c`, Linux/macOS prefers `/bin/bash --noprofile --norc -lc` when available, otherwise `sh -c`).
+		"""
 		if os.name == "nt":
 			return ["cmd.exe", "/d", "/c", command]
 		bash_path = "/bin/bash" if os.path.exists("/bin/bash") else None
@@ -42,6 +69,17 @@ class CodeInterpreter:
 		return ["sh", "-c", command]
 	
 	def _execute_script(self, script: str, shell: str, sandbox_context=None):
+		"""
+		Execute a script using the specified shell and return its captured output and error text.
+		
+		Parameters:
+			script (str): The script text to execute.
+			shell (str): The shell to use; expected values are `"bash"`, `"powershell"`, or `"applescript"`.
+			sandbox_context (optional): An object that may provide `cwd`, `env`, and `timeout_seconds` to control the subprocess environment and timeout.
+		
+		Returns:
+			(tuple): A pair `(stdout, stderr)` where `stdout` is the trimmed standard output string or `None` if no output, and `stderr` is the trimmed standard error string or `None` if no error. On timeout, `stderr` will be `"Execution timed out."`. If an invalid `shell` is provided, returns `(None, "Invalid shell selected: <shell>")`.
+		"""
 		stdout = stderr = None
 		try:
 			popen_kwargs = {
@@ -124,9 +162,19 @@ class CodeInterpreter:
 
 	def extract_code(self, code: str, start_sep='```', end_sep='```', skip_first_line=False, code_mode=False):
 		"""
-		Extracts the code from the provided string.
-		If the string contains the start and end separators, it extracts the code between them.
-		Otherwise, it returns the original string.
+		Extracts a code snippet delimited by the provided start and end separators from a text block.
+		
+		If the input contains triple backticks ("```") but the provided separators are single backticks, the function treats the separators as triple backticks. When a matching fenced region is found, the content between the separators is returned with optional adjustments described below; if no matching separators are present, the original `code` string is returned.
+		
+		Parameters:
+			code (str): The input text containing code or plain text. If `None`, the function returns `None`.
+			start_sep (str): Opening separator that marks the start of the code block (default: "```").
+			end_sep (str): Closing separator that marks the end of the code block (default: "```").
+			skip_first_line (bool): When True and `code_mode` is True, skip the first line of the fenced block if the opening separator is not immediately followed by a newline.
+			code_mode (bool): When True, treat the extracted content as code (affects `skip_first_line` behavior). When False, non-code cleanup is applied (see returns).
+		
+		Returns:
+			str or None: The extracted code block (possibly adjusted), the original `code` string if no matching separators are found, or `None` if the input `code` is `None`.
 		"""
 		try:
 			if code is None:
@@ -172,6 +220,24 @@ class CodeInterpreter:
 			raise Exception(f"Error occurred while extracting code: {exception}")
 		  
 	def execute_code(self, code, language, sandbox_context=None):
+		"""
+		Execute the provided source code in the specified language and return its captured output and errors.
+		
+		Executes `code` using a subprocess for the given `language` and returns the subprocess stdout and stderr as decoded UTF-8 strings. Supports "python" (runs `python -c`) and "javascript" (runs `node -e`). Applies optional sandboxing parameters from `sandbox_context` (cwd, env, and timeout_seconds) to the subprocess invocation.
+		
+		Parameters:
+			code (str): Source code to execute.
+			language (str): Programming language name (e.g., "python", "javascript").
+			sandbox_context (optional): An object that may provide `cwd`, `env`, and `timeout_seconds` to control subprocess execution and timeout.
+		
+		Returns:
+			tuple: `(stdout, stderr)` where each is a decoded UTF-8 string containing the subprocess standard output and standard error.
+			str: If the provided `code` is empty or only whitespace, returns the message "Code is empty. Cannot execute an empty code."
+			tuple: `(None, "Execution timed out.")` if the subprocess exceeds the configured timeout.
+		
+		Raises:
+			Exception: If required compilers/interpreters are not found, if the language is unsupported, or on other execution errors.
+		"""
 		try:
 			language = language.lower()
 			self.logger.info(f"Running code: {code[:100]} in language: {language}")
@@ -226,6 +292,20 @@ class CodeInterpreter:
 			raise exception
 		
 	def execute_script(self, script:str, os_type:str='macos', sandbox_context=None):
+		"""
+		Execute a platform-specific script and return its captured output and error.
+		
+		Parameters:
+			script (str): The script content to run.
+			os_type (str): Target operating system; recognized values include 'macos', 'linux', and 'windows' (case-insensitive).
+			sandbox_context (optional): Sandbox configuration object (e.g., providing `cwd`, `env`, and `timeout_seconds`) applied to the subprocess invocation.
+		
+		Returns:
+			tuple: (stdout, stderr) where `stdout` is the script's standard output string or None, and `stderr` is the script's standard error string or None.
+		
+		Raises:
+			ValueError: If `script` or `os_type` is missing, or if `os_type` is not one of 'macos', 'linux', or 'windows'.
+		"""
 		output = error = None
 		try:
 			if not script:
@@ -254,6 +334,26 @@ class CodeInterpreter:
 			return output, error
 		
 	def execute_command(self, command:str, sandbox_context=None):
+		"""
+		Execute a shell command in a subprocess and return its captured stdout and stderr.
+		
+		Parameters:
+			command (str): The command string to execute; must be provided.
+			sandbox_context (optional): Optional object that may supply execution parameters:
+				- cwd: working directory for the subprocess
+				- env: environment variables mapping for the subprocess
+				- timeout_seconds: execution timeout in seconds (defaults to 30)
+				Additionally used to determine OS-specific subprocess kwargs (e.g., creationflags or start_new_session).
+		
+		Returns:
+			tuple: (stdout, stderr)
+			- stdout (str or None): UTF-8 decoded standard output from the command, or None if execution timed out.
+			- stderr (str): UTF-8 decoded standard error from the command, or the string "Execution timed out." if the process exceeded the timeout.
+		
+		Raises:
+			ValueError: If `command` is empty or not provided.
+			Exception: Re-raises any unexpected exceptions encountered during execution.
+		"""
 		try:
 			if not command:
 				raise ValueError("Command must be provided.")

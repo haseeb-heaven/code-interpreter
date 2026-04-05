@@ -9,6 +9,14 @@ class SafeStreamHandler(logging.StreamHandler):
 	"""A console handler that degrades non-encodable characters safely on Windows."""
 
 	def emit(self, record):
+		"""
+		Emit a log record to the handler's stream, falling back to an ASCII-safe representation on encoding errors.
+		
+		Attempts to emit the provided logging record normally. If a UnicodeEncodeError occurs while writing to the stream, formats the record and writes an ASCII-safe version (with replacement characters) to the stream, then flushes. If the fallback write fails, delegates error handling to the handler's error handler.
+		
+		Parameters:
+			record (logging.LogRecord): The log record to be emitted.
+		"""
 		try:
 			super().emit(record)
 		except UnicodeEncodeError:
@@ -28,6 +36,15 @@ class Logger:
 
 	@staticmethod
 	def initialize(filename: str) -> logging.Logger:
+		"""
+		Initialize and return a singleton logger configured with a rotating file handler and a console handler.
+		
+		Parameters:
+			filename (str): Path (and logger name) for the rotating log file. If a logger for this name already exists, the existing configured logger is returned.
+		
+		Returns:
+			logging.Logger: The singleton logger configured with a rotating file handler (5MB max per file, 5 backups) and a console stream handler.
+		"""
 		if Logger._logger is None:
 			Logger._logger = logging.getLogger(filename)
 			Logger._logger.setLevel(logging.DEBUG)
