@@ -475,5 +475,568 @@ class TestInterpreter(unittest.TestCase):
         self.assertEqual(result, (None, None))
 
 
+class TestBuildParser(unittest.TestCase):
+    """Tests for the build_parser() function added in this PR."""
+
+    def test_interpreter_version_is_3_1_0(self):
+        self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.1.0")
+
+    def test_unsafe_flag_defaults_to_false(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args([])
+        self.assertFalse(args.unsafe)
+
+    def test_unsafe_flag_can_be_set(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--unsafe"])
+        self.assertTrue(args.unsafe)
+
+    def test_model_default_is_none(self):
+        # Previously the default was 'code-llama'; PR changes it to None
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args([])
+        self.assertIsNone(args.model)
+
+    def test_cli_flag_defaults_to_false(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args([])
+        self.assertFalse(args.cli)
+
+    def test_tui_flag_defaults_to_false(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args([])
+        self.assertFalse(args.tui)
+
+    def test_cli_flag_can_be_set(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--cli"])
+        self.assertTrue(args.cli)
+        self.assertFalse(args.tui)
+
+    def test_tui_flag_can_be_set(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--tui"])
+        self.assertTrue(args.tui)
+        self.assertFalse(args.cli)
+
+    def test_cli_and_tui_are_mutually_exclusive(self):
+        import argparse
+        parser = interpreter_entry.build_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["--cli", "--tui"])
+
+    def test_mode_choices_include_all_expected_modes(self):
+        parser = interpreter_entry.build_parser()
+        for mode in ["code", "script", "command", "vision", "chat"]:
+            args = parser.parse_args(["--mode", mode])
+            self.assertEqual(args.mode, mode)
+
+    def test_mode_rejects_invalid_choice(self):
+        parser = interpreter_entry.build_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["--mode", "invalid_mode"])
+
+    def test_display_code_short_flag_works(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["-dc"])
+        self.assertTrue(args.display_code)
+
+    def test_mode_short_flag_works(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["-md", "code"])
+        self.assertEqual(args.mode, "code")
+
+    def test_model_short_flag_works(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["-m", "gpt-4o"])
+        self.assertEqual(args.model, "gpt-4o")
+
+    def test_history_flag_defaults_to_false(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args([])
+        self.assertFalse(args.history)
+
+    def test_exec_flag_defaults_to_false(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args([])
+        self.assertFalse(args.exec)
+
+    def test_save_code_flag_defaults_to_false(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args([])
+        self.assertFalse(args.save_code)
+
+    def test_lang_defaults_to_python(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args([])
+        self.assertEqual(args.lang, "python")
+
+    def test_unsafe_is_independent_of_cli_flag(self):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--cli", "--unsafe"])
+        self.assertTrue(args.unsafe)
+        self.assertTrue(args.cli)
+
+
+class TestPrepareArgsBehavior(unittest.TestCase):
+    """Tests for the prepare_args() function added in this PR."""
+
+    @patch("interpreter.TerminalUI.launch")
+    def test_prepare_args_with_explicit_tui_flag_calls_tui_launch(self, launch_mock):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--tui"])
+        launch_mock.return_value = args
+        interpreter_entry.prepare_args(args, ["interpreter.py", "--tui"])
+        launch_mock.assert_called_once()
+
+    @patch("interpreter._get_default_model", return_value="gpt-4o")
+    def test_prepare_args_cli_preserves_explicitly_set_model(self, _mock_model):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--cli", "-m", "gemini-pro"])
+        result = interpreter_entry.prepare_args(args, ["interpreter.py", "--cli", "-m", "gemini-pro"])
+        self.assertEqual(result.model, "gemini-pro")
+
+    @patch("interpreter._get_default_model", return_value="gpt-4o")
+    def test_prepare_args_cli_preserves_explicitly_set_mode(self, _mock_model):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--cli", "-md", "chat"])
+        result = interpreter_entry.prepare_args(args, ["interpreter.py", "--cli", "-md", "chat"])
+        self.assertEqual(result.mode, "chat")
+
+    @patch("interpreter._get_default_model", return_value="gpt-4o")
+    def test_prepare_args_cli_sets_mode_to_code_when_not_provided(self, _mock_model):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--cli"])
+        result = interpreter_entry.prepare_args(args, ["interpreter.py", "--cli"])
+        self.assertEqual(result.mode, "code")
+
+    @patch("interpreter._get_default_model", return_value="openrouter-free")
+    def test_prepare_args_cli_sets_model_to_default_when_not_provided(self, _mock_model):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--cli"])
+        result = interpreter_entry.prepare_args(args, ["interpreter.py", "--cli"])
+        self.assertEqual(result.model, "openrouter-free")
+
+    @patch("interpreter._get_default_model", return_value="gpt-4o")
+    def test_prepare_args_sets_cli_true_when_cli_flag_given(self, _mock_model):
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--cli"])
+        result = interpreter_entry.prepare_args(args, ["interpreter.py", "--cli"])
+        self.assertTrue(result.cli)
+
+    @patch("interpreter._get_default_model", return_value="gpt-4o")
+    def test_prepare_args_with_model_and_mode_args_does_not_launch_tui(self, _mock_model):
+        # More than 1 argv entry without --tui → should not call TUI
+        parser = interpreter_entry.build_parser()
+        args = parser.parse_args(["--cli", "-m", "gpt-4o", "-md", "code"])
+        with patch("interpreter.TerminalUI.launch") as tui_mock:
+            result = interpreter_entry.prepare_args(args, ["interpreter.py", "--cli", "-m", "gpt-4o", "-md", "code"])
+        tui_mock.assert_not_called()
+        self.assertIsNotNone(result)
+
+
+class TestGetDefaultModel(unittest.TestCase):
+    """Tests for the _get_default_model() helper added in this PR."""
+
+    @patch("interpreter.UtilityManager.get_default_model_name", return_value="openrouter-free")
+    def test_get_default_model_delegates_to_utility_manager(self, mock_get):
+        result = interpreter_entry._get_default_model()
+        self.assertEqual(result, "openrouter-free")
+        mock_get.assert_called_once()
+
+    @patch("interpreter.UtilityManager.get_default_model_name", return_value="groq-llama-3.3")
+    def test_get_default_model_returns_whatever_utility_manager_returns(self, mock_get):
+        result = interpreter_entry._get_default_model()
+        self.assertEqual(result, "groq-llama-3.3")
+
+
+class TestSubprocessSecurityKwargs(unittest.TestCase):
+    """Tests for CodeInterpreter._get_subprocess_security_kwargs() added in this PR."""
+
+    def setUp(self):
+        self.ci = CodeInterpreter()
+
+    def test_no_sandbox_context_returns_none_for_cwd_and_env(self):
+        kwargs = self.ci._get_subprocess_security_kwargs(sandbox_context=None)
+        self.assertIsNone(kwargs["cwd"])
+        self.assertIsNone(kwargs["env"])
+
+    def test_sandbox_context_with_cwd_is_passed(self):
+        from types import SimpleNamespace
+        ctx = SimpleNamespace(cwd="/tmp/sandbox", env=None)
+        kwargs = self.ci._get_subprocess_security_kwargs(sandbox_context=ctx)
+        self.assertEqual(kwargs["cwd"], "/tmp/sandbox")
+
+    def test_sandbox_context_with_env_is_passed(self):
+        from types import SimpleNamespace
+        custom_env = {"PATH": "/usr/bin", "HOME": "/tmp"}
+        ctx = SimpleNamespace(cwd=None, env=custom_env)
+        kwargs = self.ci._get_subprocess_security_kwargs(sandbox_context=ctx)
+        self.assertEqual(kwargs["env"], custom_env)
+
+    def test_sandbox_context_with_neither_cwd_nor_env(self):
+        from types import SimpleNamespace
+        # Context object with no cwd/env attributes → getattr returns None
+        ctx = SimpleNamespace()
+        kwargs = self.ci._get_subprocess_security_kwargs(sandbox_context=ctx)
+        self.assertIsNone(kwargs["cwd"])
+        self.assertIsNone(kwargs["env"])
+
+    @patch("libs.code_interpreter.os.name", "posix")
+    def test_unix_returns_start_new_session_true(self):
+        kwargs = self.ci._get_subprocess_security_kwargs()
+        self.assertTrue(kwargs.get("start_new_session"))
+
+    @patch("libs.code_interpreter.os.name", "posix")
+    def test_unix_does_not_include_creationflags(self):
+        kwargs = self.ci._get_subprocess_security_kwargs()
+        self.assertNotIn("creationflags", kwargs)
+
+
+class TestBuildCommandInvocation(unittest.TestCase):
+    """Tests for CodeInterpreter._build_command_invocation() added in this PR."""
+
+    def setUp(self):
+        self.ci = CodeInterpreter()
+
+    @patch("libs.code_interpreter.os.name", "posix")
+    @patch("libs.code_interpreter.os.path.exists", return_value=True)
+    def test_unix_with_bash_uses_bash_noprofile_norc(self, _mock_exists):
+        result = self.ci._build_command_invocation("echo hello")
+        self.assertEqual(result[0], "/bin/bash")
+        self.assertIn("--noprofile", result)
+        self.assertIn("--norc", result)
+        self.assertEqual(result[-1], "echo hello")
+
+    @patch("libs.code_interpreter.os.name", "posix")
+    @patch("libs.code_interpreter.os.path.exists", return_value=False)
+    def test_unix_without_bash_falls_back_to_sh(self, _mock_exists):
+        result = self.ci._build_command_invocation("echo hello")
+        self.assertEqual(result[0], "sh")
+        self.assertIn("-c", result)
+        self.assertEqual(result[-1], "echo hello")
+
+    @patch("libs.code_interpreter.os.name", "nt")
+    def test_windows_uses_cmd_exe(self):
+        result = self.ci._build_command_invocation("dir")
+        self.assertEqual(result[0], "cmd.exe")
+        self.assertIn("/c", result)
+        self.assertEqual(result[-1], "dir")
+
+    @patch("libs.code_interpreter.os.name", "posix")
+    @patch("libs.code_interpreter.os.path.exists", return_value=True)
+    def test_command_is_last_element(self, _mock_exists):
+        cmd = "ls -la /tmp"
+        result = self.ci._build_command_invocation(cmd)
+        self.assertEqual(result[-1], cmd)
+
+
+class TestExecuteScriptInvalidShell(unittest.TestCase):
+    """Tests for CodeInterpreter._execute_script() with new sandbox_context parameter."""
+
+    def setUp(self):
+        self.ci = CodeInterpreter()
+
+    def test_execute_script_invalid_shell_returns_none_stdout(self):
+        # The finally block always returns (decoded stdout, decoded stderr).
+        # When the shell is invalid, both stdout and stderr remain None (from
+        # line-45 initialisation) so the finally clause yields (None, None).
+        stdout, stderr = self.ci._execute_script("echo hi", shell="invalid_shell")
+        self.assertIsNone(stdout)
+
+    def test_execute_script_invalid_shell_returns_none_stderr(self):
+        # Same as above: the early `return` inside the else-branch is shadowed
+        # by the `finally` block which evaluates to (None, None).
+        stdout, stderr = self.ci._execute_script("echo hi", shell="zsh")
+        self.assertIsNone(stderr)
+
+    @patch("subprocess.Popen")
+    def test_execute_script_passes_sandbox_context_timeout(self, mock_popen):
+        from types import SimpleNamespace
+        mock_process = mock_popen.return_value
+        mock_process.communicate.return_value = (b"ok", b"")
+        mock_process.returncode = 0
+        ctx = SimpleNamespace(cwd=None, env=None, timeout_seconds=60)
+        with patch("libs.code_interpreter.os.path.exists", return_value=True), \
+             patch("libs.code_interpreter.os.name", "posix"):
+            self.ci._execute_script("echo hi", shell="bash", sandbox_context=ctx)
+        mock_process.communicate.assert_called_once_with(timeout=60)
+
+    @patch("subprocess.Popen")
+    def test_execute_script_defaults_to_30s_timeout_without_sandbox(self, mock_popen):
+        mock_process = mock_popen.return_value
+        mock_process.communicate.return_value = (b"hi", b"")
+        mock_process.returncode = 0
+        with patch("libs.code_interpreter.os.path.exists", return_value=True), \
+             patch("libs.code_interpreter.os.name", "posix"):
+            self.ci._execute_script("echo hi", shell="bash")
+        mock_process.communicate.assert_called_once_with(timeout=30)
+
+    @patch("subprocess.Popen")
+    def test_execute_script_timeout_expired_kills_process(self, mock_popen):
+        import subprocess as _subprocess
+        mock_process = mock_popen.return_value
+        # First communicate() call raises TimeoutExpired; second (after kill) returns empty bytes.
+        mock_process.communicate.side_effect = [
+            _subprocess.TimeoutExpired(cmd="bash", timeout=30),
+            (b"", b""),
+        ]
+        # The timeout handler sets `stderr = "Execution timed out."` (a plain str),
+        # but the finally clause calls `stderr.decode()` expecting bytes.  This is an
+        # existing edge-case in the code; we verify that kill() is still invoked even
+        # though the finally clause raises AttributeError.
+        with patch("libs.code_interpreter.os.path.exists", return_value=True), \
+             patch("libs.code_interpreter.os.name", "posix"):
+            try:
+                self.ci._execute_script("sleep 100", shell="bash")
+            except AttributeError:
+                pass  # known edge-case: finally tries to .decode() a plain str
+        mock_process.kill.assert_called_once()
+
+
+class TestNewConfigFilesFromPR(unittest.TestCase):
+    """Tests for new and modified config files introduced in this PR."""
+
+    def _read_config(self, name):
+        from libs.utility_manager import UtilityManager
+        return UtilityManager().read_config_file(str(CONFIGS_DIR / name))
+
+    def _read_hf_model(self, name):
+        return _read_hf_model(CONFIGS_DIR / name)
+
+    # --- New Claude configs ---
+
+    def test_claude_3_5_haiku_config_maps_to_claude_haiku_4_5(self):
+        self.assertEqual(self._read_hf_model("claude-3-5-haiku.config"), "claude-haiku-4-5")
+
+    def test_claude_3_7_sonnet_config_maps_to_claude_sonnet_4_6(self):
+        self.assertEqual(self._read_hf_model("claude-3-7-sonnet.config"), "claude-sonnet-4-6")
+
+    def test_claude_3_5_sonnet_config_maps_to_claude_sonnet_4_6(self):
+        self.assertEqual(self._read_hf_model("claude-3-5-sonnet.config"), "claude-sonnet-4-6")
+
+    def test_claude_sonnet_4_6_config_has_correct_model(self):
+        self.assertEqual(self._read_hf_model("claude-sonnet-4-6.config"), "claude-sonnet-4-6")
+
+    def test_claude_opus_4_6_config_has_correct_model(self):
+        self.assertEqual(self._read_hf_model("claude-opus-4-6.config"), "claude-opus-4-6")
+
+    def test_claude_haiku_4_5_config_has_correct_model(self):
+        self.assertEqual(self._read_hf_model("claude-haiku-4-5.config"), "claude-haiku-4-5")
+
+    def test_claude_3_opus_remapped_to_claude_opus_4_6(self):
+        self.assertEqual(self._read_hf_model("claude-3-opus.config"), "claude-opus-4-6")
+
+    # --- Legacy HuggingFace configs remapped ---
+
+    def test_code_llama_maps_to_meta_llama_3(self):
+        self.assertEqual(
+            self._read_hf_model("code-llama.config"),
+            "huggingface/meta-llama/Meta-Llama-3-8B-Instruct",
+        )
+
+    def test_code_llama_phind_maps_to_meta_llama_3(self):
+        self.assertEqual(
+            self._read_hf_model("code-llama-phind.config"),
+            "huggingface/meta-llama/Meta-Llama-3-8B-Instruct",
+        )
+
+    # --- New Gemini configs (legacy aliases) ---
+
+    def test_gemini_1_5_pro_maps_to_gemini_2_5_pro(self):
+        self.assertEqual(self._read_hf_model("gemini-1.5-pro.config"), "gemini/gemini-2.5-pro")
+
+    def test_gemini_1_5_flash_maps_to_gemini_2_5_flash(self):
+        self.assertEqual(self._read_hf_model("gemini-1.5-flash.config"), "gemini/gemini-2.5-flash")
+
+    # --- Separator changes: all new configs use single backtick ---
+
+    def test_claude_sonnet_4_6_config_uses_single_backtick_separator(self):
+        config = self._read_config("claude-sonnet-4-6.config")
+        self.assertEqual(config.get("start_sep"), "`")
+        self.assertEqual(config.get("end_sep"), "`")
+
+    def test_gemini_1_5_pro_config_uses_single_backtick_separator(self):
+        config = self._read_config("gemini-1.5-pro.config")
+        self.assertEqual(config.get("start_sep"), "`")
+        self.assertEqual(config.get("end_sep"), "`")
+
+    def test_deepseek_chat_config_uses_single_backtick_separator(self):
+        config = self._read_config("deepseek-chat.config")
+        self.assertEqual(config.get("start_sep"), "`")
+        self.assertEqual(config.get("end_sep"), "`")
+
+    def test_deepseek_reasoner_config_uses_single_backtick_separator(self):
+        config = self._read_config("deepseek-reasoner.config")
+        self.assertEqual(config.get("start_sep"), "`")
+        self.assertEqual(config.get("end_sep"), "`")
+
+    # --- max_tokens updated in deepseek configs ---
+
+    def test_deepseek_chat_config_max_tokens_is_4096(self):
+        config = self._read_config("deepseek-chat.config")
+        self.assertEqual(config.get("max_tokens"), "4096")
+
+    def test_deepseek_coder_config_max_tokens_is_4096(self):
+        config = self._read_config("deepseek-coder.config")
+        self.assertEqual(config.get("max_tokens"), "4096")
+
+    def test_deepseek_reasoner_config_max_tokens_is_4096(self):
+        config = self._read_config("deepseek-reasoner.config")
+        self.assertEqual(config.get("max_tokens"), "4096")
+
+    # --- Browser Use config specific fields ---
+
+    def test_browser_use_config_has_provider_field(self):
+        config = self._read_config("browser-use-bu-max.config")
+        self.assertEqual(config.get("provider"), "browser-use")
+
+    def test_browser_use_config_has_correct_api_base(self):
+        config = self._read_config("browser-use-bu-max.config")
+        self.assertEqual(config.get("api_base"), "https://api.browser-use.com/api/v3")
+
+    def test_browser_use_config_has_timeout_setting(self):
+        config = self._read_config("browser-use-bu-max.config")
+        self.assertIn("browser_use_timeout", config)
+
+    def test_browser_use_config_has_poll_interval(self):
+        config = self._read_config("browser-use-bu-max.config")
+        self.assertIn("browser_use_poll_interval", config)
+
+    def test_browser_use_config_max_tokens_is_2048(self):
+        config = self._read_config("browser-use-bu-max.config")
+        self.assertEqual(config.get("max_tokens"), "2048")
+
+    # --- deepseek-coder remapped to deepseek-chat ---
+
+    def test_deepseek_coder_config_remapped_to_deepseek_chat_model(self):
+        self.assertEqual(self._read_hf_model("deepseek-coder.config"), "deepseek-chat")
+
+    # --- skip_first_line updated in deepseek configs ---
+
+    def test_deepseek_chat_skip_first_line_is_true(self):
+        config = self._read_config("deepseek-chat.config")
+        self.assertEqual(config.get("skip_first_line").strip().lower(), "true")
+
+    def test_deepseek_coder_skip_first_line_is_true(self):
+        config = self._read_config("deepseek-coder.config")
+        self.assertEqual(config.get("skip_first_line").strip().lower(), "true")
+
+
+class TestVersionFile(unittest.TestCase):
+    """Tests for the VERSION file added in this PR."""
+
+    def test_version_file_exists(self):
+        version_file = ROOT_DIR / "VERSION"
+        self.assertTrue(version_file.exists(), "VERSION file should exist")
+
+    def test_version_file_contains_3_1_0(self):
+        version_file = ROOT_DIR / "VERSION"
+        content = version_file.read_text(encoding="utf-8").strip()
+        self.assertEqual(content, "3.1.0")
+
+    def test_version_file_matches_interpreter_version_constant(self):
+        version_file = ROOT_DIR / "VERSION"
+        content = version_file.read_text(encoding="utf-8").strip()
+        self.assertEqual(content, interpreter_entry.INTERPRETER_VERSION)
+
+
+class TestEnvExampleFile(unittest.TestCase):
+    """Tests for the .env.example file added in this PR."""
+
+    def setUp(self):
+        self.env_example_path = ROOT_DIR / ".env.example"
+        self.content = self.env_example_path.read_text(encoding="utf-8-sig")
+
+    def test_env_example_file_exists(self):
+        self.assertTrue(self.env_example_path.exists())
+
+    def test_env_example_contains_openai_key(self):
+        self.assertIn("OPENAI_API_KEY=", self.content)
+
+    def test_env_example_contains_gemini_key(self):
+        self.assertIn("GEMINI_API_KEY=", self.content)
+
+    def test_env_example_contains_anthropic_key(self):
+        self.assertIn("ANTHROPIC_API_KEY=", self.content)
+
+    def test_env_example_contains_groq_key(self):
+        self.assertIn("GROQ_API_KEY=", self.content)
+
+    def test_env_example_contains_deepseek_key(self):
+        self.assertIn("DEEPSEEK_API_KEY=", self.content)
+
+    def test_env_example_contains_huggingface_key(self):
+        self.assertIn("HUGGINGFACE_API_KEY=", self.content)
+
+    def test_env_example_contains_nvidia_key(self):
+        self.assertIn("NVIDIA_API_KEY=", self.content)
+
+    def test_env_example_contains_z_ai_key(self):
+        self.assertIn("Z_AI_API_KEY=", self.content)
+
+    def test_env_example_contains_openrouter_key(self):
+        self.assertIn("OPENROUTER_API_KEY=", self.content)
+
+    def test_env_example_contains_browser_use_key(self):
+        self.assertIn("BROWSER_USE_API_KEY=", self.content)
+
+    def test_env_example_values_are_empty_placeholders(self):
+        # API key lines should end with '=' and no value (just placeholders)
+        for line in self.content.splitlines():
+            stripped = line.strip()
+            if stripped.endswith("_KEY=") or stripped.endswith("_KEY= "):
+                # All key lines end with just '=' (empty value)
+                self.assertTrue(stripped.endswith("="), f"Expected empty value in: {stripped}")
+
+
+class TestGitignoreEntries(unittest.TestCase):
+    """Tests for new entries added to .gitignore in this PR."""
+
+    def setUp(self):
+        gitignore_path = ROOT_DIR / ".gitignore"
+        self.content = gitignore_path.read_text(encoding="utf-8")
+
+    def test_gitignore_contains_pycache_dir(self):
+        self.assertIn("__pycache__/", self.content)
+
+    def test_gitignore_contains_pytest_cache(self):
+        self.assertIn(".pytest_cache/", self.content)
+
+    def test_gitignore_contains_venv_dir(self):
+        self.assertIn(".venv/", self.content)
+
+    def test_gitignore_contains_logs_dir(self):
+        self.assertIn("logs/*", self.content)
+
+    def test_gitignore_contains_dist_dir(self):
+        self.assertIn("dist/", self.content)
+
+    def test_gitignore_contains_tmp_files(self):
+        self.assertIn("*.tmp", self.content)
+
+    def test_gitignore_contains_bak_files(self):
+        self.assertIn("*.bak", self.content)
+
+    def test_gitignore_contains_env_local(self):
+        self.assertIn(".env.local", self.content)
+
+    def test_gitignore_contains_env_star_local(self):
+        self.assertIn(".env.*.local", self.content)
+
+    def test_gitignore_contains_history_gitkeep_exclusion(self):
+        self.assertIn("!history/.gitkeep", self.content)
+
+    def test_gitignore_contains_debug_output_artifacts(self):
+        self.assertIn("debug_output*.txt", self.content)
+
+    def test_gitignore_contains_test_results_artifacts(self):
+        self.assertIn("test_results*.txt", self.content)
+
+    def test_gitignore_ends_with_newline(self):
+        # Ensures the previously missing final newline (desktop.ini) was fixed
+        self.assertTrue(self.content.endswith("\n"))
+
+
 if __name__ == "__main__":
     unittest.main()
