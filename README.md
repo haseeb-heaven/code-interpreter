@@ -94,6 +94,7 @@ Follow the steps below to obtain and set up the API keys for each service:
     - Anthropic AI: Obtain access [here](https://www.anthropic.com/earlyaccess), then visit [Anthropic AI Console](https://console.anthropic.com/settings/keys), sign up or log in, navigate to the API Keys section in your account, and click on the **Create Key** button.
     - NVIDIA API Catalog: Visit [NVIDIA Build](https://build.nvidia.com/), create a key, and use `NVIDIA_API_KEY`.
     - Z AI: Visit [Z AI Docs](https://docs.z.ai/) and use `Z_AI_API_KEY`.
+    - OpenRouter: Visit [OpenRouter Keys](https://openrouter.ai/settings/keys) and use `OPENROUTER_API_KEY`.
     - Browser Use: Visit [Browser Use Docs](https://docs.browser-use.com/) and use `BROWSER_USE_API_KEY`.
 
 2. **Save the API keys:**
@@ -109,6 +110,7 @@ export ANTHROPIC_API_KEY="Your Anthropic API Key"
 export DEEPSEEK_API_KEY="Your Deepseek API Key"
 export NVIDIA_API_KEY="Your NVIDIA API Key"
 export Z_AI_API_KEY="Your Z AI API Key"
+export OPENROUTER_API_KEY="Your OpenRouter API Key"
 export BROWSER_USE_API_KEY="Your Browser Use API Key"
 ```
 
@@ -206,6 +208,18 @@ To use Code-Interpreter, use the following command options:
     - `nvidia-nemotron` -> `nvidia/nemotron-3-super-120b-a12b`.
     - **Z AI (OpenAI-compatible API)**
     - `z-ai-glm-5` -> `glm-5`.
+    - **OpenRouter (OpenAI-compatible API)**
+    - `openrouter-free` -> `openrouter/free`
+    - `openrouter-qwen3-coder` -> `qwen/qwen3-coder:free`
+    - `openrouter-claude-opus-4-6` -> `anthropic/claude-opus-4.6`
+    - `openrouter-mimo-v2-pro` -> `xiaomi/mimo-v2-pro`
+    - `openrouter-gpt-5-4` -> `openai/gpt-5.4`
+    - `openrouter-deepseek-v3-2` -> `deepseek/deepseek-v3.2`
+    - `openrouter-qwen3-coder-480b-free` -> `qwen/qwen3-coder-480b:free`
+    - `openrouter-mimo-v2-flash-free` -> `xiaomi/mimo-v2-flash:free`
+    - `openrouter-nemotron-3-super-free` -> `nvidia/nemotron-3-super:free`
+    - `openrouter-minimax-m2-5-free` -> `minimax/minimax-m2.5:free`
+    - `openrouter-qwen3-6-plus-free` -> `qwen/qwen3.6-plus:free`
     - **Browser Use**
     - `browser-use-bu-max` -> `bu-max` (session-based model).
     - **Hugging Face + local**
@@ -272,13 +286,15 @@ python interpreter.py --upgrade
 ```bash
 python scripts/validate_models_cli.py --providers gemini,groq --tier stable --mode chat
 python scripts/validate_models_cli.py --providers openai,anthropic,deepseek,huggingface --tier stable --mode chat
-python scripts/validate_models_cli.py --providers nvidia,z-ai,browser-use --tier stable --mode chat
+python scripts/validate_models_cli.py --providers nvidia,z-ai,browser-use,openrouter --tier stable --mode chat
 ```
 
 - Direct provider examples </br>
 ```bash
 python interpreter.py -m 'nvidia-nemotron' -md 'chat' -dc
 python interpreter.py -m 'z-ai-glm-5' -md 'chat' -dc
+python interpreter.py -m 'openrouter-free' -md 'chat' -dc
+python interpreter.py -m 'openrouter-qwen3-coder' -md 'chat' -dc
 python interpreter.py -m 'browser-use-bu-max' -md 'chat' -dc
 ```
 

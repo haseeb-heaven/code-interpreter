@@ -81,6 +81,9 @@ def _expected_completion_model(model_name: str) -> str:
     if model_name.startswith(("bu-", "browser-use/")):
         return model_name
 
+    if any(model_name.startswith(prefix) for prefix in ("openai/", "anthropic/", "qwen/", "xiaomi/", "openrouter/", "minimax/", "nvidia/")):
+        return model_name
+
     if "deepseek" in model_name:
         if not model_name.startswith("deepseek/"):
             return "deepseek/" + model_name
@@ -221,6 +224,30 @@ class TestInterpreter(unittest.TestCase):
         )
         self.assertEqual(simplified, "print('Heaven Hello')")
 
+    @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+    @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+    def test_simple_directory_listing_task_is_simplified_for_python(self, _mock_history, _mock_client):
+        interpreter = Interpreter(self._make_args(mode="code", model="z-ai-glm-5"))
+        simplified = interpreter._maybe_simplify_generated_code(
+            "Print current files in directory",
+            "import os\nimport pandas as pd\nprint(os.listdir())\n",
+        )
+        self.assertEqual(simplified, "import os\nfor name in os.listdir():\n    print(name)")
+
+    @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+    @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+    def test_simple_directory_listing_task_is_simplified_for_javascript(self, _mock_history, _mock_client):
+        interpreter = Interpreter(self._make_args(mode="code", model="z-ai-glm-5"))
+        interpreter.INTERPRETER_LANGUAGE = "javascript"
+        simplified = interpreter._maybe_simplify_generated_code(
+            "Print current files in directory",
+            "const fs = require('fs');\nconsole.log(fs.readdirSync(process.cwd()));",
+        )
+        self.assertEqual(
+            simplified,
+            "const fs = require('fs');\nfor (const name of fs.readdirSync(process.cwd())) {\n  console.log(name);\n}",
+        )
+
     def test_repair_circuit_breaker_stops_on_repeated_error(self):
         breaker = RepairCircuitBreaker(max_attempts=2)
         self.assertTrue(breaker.should_continue("syntax error"))
@@ -259,14 +286,30 @@ class TestInterpreter(unittest.TestCase):
 
     def test_new_provider_configs_exist(self):
         required_configs = {
+            "openrouter-free.config": "openrouter/free",
             "nvidia-nemotron.config": "nvidia/nemotron-3-super-120b-a12b",
             "z-ai-glm-5.config": "glm-5",
             "browser-use-bu-max.config": "bu-max",
+            "openrouter-qwen3-coder.config": "qwen/qwen3-coder:free",
+            "openrouter-claude-opus-4-6.config": "anthropic/claude-opus-4.6",
+            "openrouter-mimo-v2-pro.config": "xiaomi/mimo-v2-pro",
+            "openrouter-gpt-5-4.config": "openai/gpt-5.4",
+            "openrouter-deepseek-v3-2.config": "deepseek/deepseek-v3.2",
+            "openrouter-qwen3-coder-480b-free.config": "qwen/qwen3-coder-480b:free",
+            "openrouter-mimo-v2-flash-free.config": "xiaomi/mimo-v2-flash:free",
+            "openrouter-nemotron-3-super-free.config": "nvidia/nemotron-3-super:free",
+            "openrouter-minimax-m2-5-free.config": "minimax/minimax-m2.5:free",
+            "openrouter-qwen3-6-plus-free.config": "qwen/qwen3.6-plus:free",
         }
         for config_name, expected_hf_model in required_configs.items():
             with self.subTest(config=config_name):
                 hf_model = _read_hf_model(CONFIGS_DIR / config_name)
                 self.assertEqual(hf_model, expected_hf_model)
+
+    @patch("libs.utility_manager.load_dotenv", return_value=None)
+    def test_openrouter_becomes_default_when_openrouter_key_exists(self, _mock_load_dotenv):
+        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "sk-or-v1-test"}, clear=True):
+            self.assertEqual(UtilityManager.get_default_model_name(), "openrouter-free")
 
     @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
     @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
@@ -282,10 +325,11 @@ class TestInterpreter(unittest.TestCase):
             model_name = _read_hf_model(config_file)
             expected_model = _expected_completion_model(model_name)
             model_config_values = utility_manager.read_config_file(str(config_file))
+            config_provider = str(model_config_values.get("provider", "")).strip().lower()
             interpreter.INTERPRETER_MODEL = model_name
 
             with self.subTest(config=config_file.name, model=model_name):
-                if model_name.startswith(("bu-", "browser-use/")):
+                if config_provider in {"browser-use", "browser_use"} or model_name.startswith(("bu-", "browser-use/")):
                     with patch.object(interpreter, "_generate_browser_use_content", return_value="ok-browser-use") as browser_mock:
                         response = interpreter.generate_content(
                             message="healthcheck",
@@ -296,7 +340,7 @@ class TestInterpreter(unittest.TestCase):
                     browser_mock.assert_called_once()
                     continue
 
-                if model_name.startswith("nvidia/") or model_name.startswith(("glm-", "z-ai/", "zai/")):
+                if config_provider in {"nvidia", "z-ai", "zai", "openrouter"} or model_name.startswith("nvidia/") or model_name.startswith(("glm-", "z-ai/", "zai/")):
                     with patch.object(
                         interpreter,
                         "_run_openai_compatible_completion",

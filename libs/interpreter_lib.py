@@ -59,7 +59,7 @@ class Interpreter:
 		self.gemini_vision = None
 		self.safety_manager = ExecutionSafetyManager()
 		self.UNSAFE_EXECUTION = getattr(self.args, "unsafe", False)
-		self.MAX_REPAIR_ATTEMPTS = 2
+		self.MAX_REPAIR_ATTEMPTS = 3
 		self.MAX_LLM_RETRIES = 3
 		self.terminal_ui = TerminalUI() if getattr(self.args, "tui", False) else None
 		self._last_execution_approved = False
@@ -120,8 +120,14 @@ class Interpreter:
 	def _is_recoverable_runtime_error(self, error_text):
 		recoverable_errors = [
 			"rate limit",
+			"ratelimit",
 			"quota",
+			"credits",
+			"requires more credits",
 			"resource_exhausted",
+			"temporarily rate-limited",
+			"402",
+			"429",
 			"api key",
 			"authentication",
 			"unauthorized",
@@ -147,16 +153,22 @@ class Interpreter:
 		error_text = (error_text or "").lower()
 		retryable_markers = [
 			"rate limit",
+			"ratelimit",
 			"timeout",
 			"temporarily unavailable",
+			"temporarily rate-limited",
 			"connection",
 			"503",
 			"502",
+			"429",
 			"overloaded",
+			"provider returned error",
 			"try again",
 		]
 		non_retryable_markers = [
 			"quota",
+			"credits",
+			"requires more credits",
 			"billing",
 			"api key",
 			"authentication",
@@ -237,7 +249,7 @@ class Interpreter:
 		)
 		self.console.print(f"[bold bright_blue]{session_line}[/bold bright_blue]", overflow="ignore", no_wrap=True)
 
-	def _build_repair_prompt(self, task, prompt, code_snippet, error_text, os_name):
+	def _build_repair_prompt(self, task, prompt, code_snippet, error_text, os_name, code_output=None):
 		if self.COMMAND_MODE:
 			target = "single terminal command"
 		elif self.SCRIPT_MODE:
@@ -245,16 +257,49 @@ class Interpreter:
 		else:
 			target = f"{self.INTERPRETER_LANGUAGE} code"
 
+		observed_output = ""
+		if code_output:
+			observed_output = f"\nObserved stdout before failure:\n{code_output}\n"
+
 		return (
 			f"You are in bounded repair mode for a failed {target} execution.\n"
 			f"Original task: {task}\n"
 			f"Resolved prompt: {prompt}\n"
 			f"Operating system: {os_name}\n"
 			f"Generated content:\n{code_snippet}\n\n"
+			f"{observed_output}"
 			f"Execution error:\n{error_text}\n\n"
 			f"Think through the failure privately, then return only the corrected {target} inside one triple-backtick block.\n"
+			"Preserve only the parts that help complete the original task, and remove unrelated extras.\n"
 			"Do not include explanations, comments, or any text outside the code block."
 		)
+
+	def _task_has_any(self, text, phrases):
+		return any(phrase in text for phrase in phrases)
+
+	def _is_simple_directory_listing_task(self, task_lower):
+		if not task_lower:
+			return False
+
+		list_phrases = (
+			"print current files",
+			"list current files",
+			"show current files",
+			"print files in directory",
+			"list files in directory",
+			"show files in directory",
+			"print files in the directory",
+			"list files in the directory",
+			"show files in the directory",
+			"print files in current directory",
+			"list files in current directory",
+			"show files in current directory",
+			"print current files in directory",
+			"list current files in directory",
+			"show current files in directory",
+		)
+		disallowed = ("chart", "graph", "plot", "table", "markdown", "html", "png", "csv", "image", "size in mb", "size")
+		return self._task_has_any(task_lower, list_phrases) and not self._task_has_any(task_lower, disallowed)
 
 	def _maybe_simplify_generated_code(self, task, code_snippet):
 		if not self.CODE_MODE or not isinstance(task, str) or not isinstance(code_snippet, str):
@@ -275,6 +320,12 @@ class Interpreter:
 			if self.INTERPRETER_LANGUAGE == "javascript":
 				return "console.log(process.cwd())"
 
+		if self._is_simple_directory_listing_task(task_lower):
+			if self.INTERPRETER_LANGUAGE == "python":
+				return "import os\nfor name in os.listdir():\n    print(name)"
+			if self.INTERPRETER_LANGUAGE == "javascript":
+				return "const fs = require('fs');\nfor (const name of fs.readdirSync(process.cwd())) {\n  console.log(name);\n}"
+
 		return code_snippet
 
 	def _execute_generated_output(self, code_snippet, os_name, force_execute=False):
@@ -291,16 +342,18 @@ class Interpreter:
 		finally:
 			self.safety_manager.cleanup_sandbox_context(sandbox_context)
 
-	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, skip_first_line, extracted_file_name):
+	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, skip_first_line, extracted_file_name, code_output=None):
 		circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)
 		current_snippet = code_snippet
 		current_error = code_error
+		current_output = code_output
 
 		while current_error and circuit_breaker.should_continue(current_error):
 			display_markdown_message(f"Repair attempt {circuit_breaker.attempts}/{circuit_breaker.max_attempts} after execution failure.")
-			repair_prompt = self._build_repair_prompt(task, prompt, current_snippet, current_error, os_name)
+			repair_prompt = self._build_repair_prompt(task, prompt, current_snippet, current_error, os_name, code_output=current_output)
 			repaired_output = self._generate_content_with_retries(repair_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
 			repaired_snippet = self.code_interpreter.extract_code(repaired_output, start_sep, end_sep, skip_first_line, self.CODE_MODE)
+			repaired_snippet = self._maybe_simplify_generated_code(task, repaired_snippet)
 
 			if not repaired_snippet or repaired_snippet.strip() == current_snippet.strip():
 				break
@@ -308,16 +361,16 @@ class Interpreter:
 			current_snippet = repaired_snippet
 			display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
 			display_code(current_snippet, language=display_language)
-			code_output, current_error = self._execute_generated_output(current_snippet, os_name, force_execute=True)
+			current_output, current_error = self._execute_generated_output(current_snippet, os_name, force_execute=True)
 
-			if code_output:
-				return current_snippet, code_output, current_error
+			if current_output:
+				return current_snippet, current_output, current_error
 			if not current_error:
-				return current_snippet, code_output, None
+				return current_snippet, current_output, None
 			if current_error.startswith("Safety blocked:"):
 				break
 
-		return current_snippet, None, current_error
+		return current_snippet, current_output, current_error
 
 	def _safe_input(self, prompt_text, default=None):
 		try:
@@ -374,6 +427,8 @@ class Interpreter:
 			api_key_info = {"key_name": "Z_AI_API_KEY", "prefix": None, "length": 10}
 		elif config_provider in ("browser-use", "browser_use") or self.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
 			api_key_info = {"key_name": "BROWSER_USE_API_KEY", "prefix": "bu_"}
+		elif config_provider == "openrouter":
+			api_key_info = {"key_name": "OPENROUTER_API_KEY", "prefix": "sk-or-v1-"}
 		elif self.INTERPRETER_MODEL.startswith(("gpt", "o1", "o3", "o4")):
 			api_key_info = {"key_name": "OPENAI_API_KEY", "prefix": "sk-"}
 		elif self.INTERPRETER_MODEL.startswith("groq/") or "groq" in self.INTERPRETER_MODEL:
@@ -515,22 +570,24 @@ class Interpreter:
 						return joined
 		return "Help with this request."
 
-	def _run_openai_compatible_completion(self, api_key_name, messages, temperature, max_tokens, api_base):
+	def _run_openai_compatible_completion(self, api_key_name, messages, temperature, max_tokens, api_base, extra_headers=None):
 		api_key = os.getenv(api_key_name)
 		if not api_key:
 			raise Exception(f"{api_key_name} not found in .env file.")
 		if api_base == 'None':
 			raise Exception("Exception api base not set for custom model")
 		custom_llm_provider = "openai"
-		return litellm.completion(
-			self.INTERPRETER_MODEL,
-			messages=messages,
-			temperature=temperature,
-			max_tokens=max_tokens,
-			api_base=api_base,
-			api_key=api_key,
-			custom_llm_provider=custom_llm_provider,
-		)
+		completion_kwargs = {
+			"messages": messages,
+			"temperature": temperature,
+			"max_tokens": max_tokens,
+			"api_base": api_base,
+			"api_key": api_key,
+			"custom_llm_provider": custom_llm_provider,
+		}
+		if extra_headers:
+			completion_kwargs["extra_headers"] = extra_headers
+		return litellm.completion(self.INTERPRETER_MODEL, **completion_kwargs)
 
 	def _generate_browser_use_content(self, message, messages, config_values):
 		api_key = os.getenv("BROWSER_USE_API_KEY")
@@ -621,6 +678,15 @@ class Interpreter:
 			response_text = self._generate_browser_use_content(message, messages, config_values or {})
 			self.logger.info("Response received from Browser Use session.")
 			return response_text
+
+		elif config_provider == "openrouter":
+			self.logger.info("Model is OpenRouter via OpenAI-compatible API.")
+			extra_headers = {
+				"HTTP-Referer": "https://github.com/haseeb-heaven/code-interpreter",
+				"X-OpenRouter-Title": "Code Interpreter",
+			}
+			response = self._run_openai_compatible_completion("OPENROUTER_API_KEY", messages, temperature, max_tokens, api_base, extra_headers=extra_headers)
+			self.logger.info("Response received from OpenRouter completion.")
 
 		# Check if the model is from OpenAI (GPT/o-series)
 		elif self.INTERPRETER_MODEL.startswith(("gpt", "o1", "o3", "o4")):
@@ -792,6 +858,7 @@ class Interpreter:
 			"Do not include explanations, comments, docstrings, markdown prose, or usage notes.\n"
 			"Use production-ready syntax with correct indentation and imports.\n"
 			"Do not create tables, dataframes, plots, files, package installers, subprocess calls, or network requests unless the task explicitly requires them.\n"
+			"If the task only asks to print, list, or show something, generate only the few lines needed to do that exact action.\n"
 			"Handle common filesystem and permission errors safely when relevant.\n"
 			"If multiple solutions exist, choose the most direct working solution."
 		)
@@ -1342,7 +1409,8 @@ class Interpreter:
 											file_data = file.read()
 											self.logger.info(f"Input prompt file_data: '{str(file_data)}'")
 											
-										if any(word in prompt.lower() for word in ['graph', 'graphs', 'chart', 'charts']):
+										task_lower = task.lower()
+										if any(word in task_lower for word in ['graph', 'graphs', 'chart', 'charts']):
 											prompt += "\n" + "This is file data from user input: " + str(file_data) + " use this to analyze the data."
 											self.logger.info(f"Input Prompt: '{prompt}'")
 										else:
@@ -1357,21 +1425,22 @@ class Interpreter:
 					self.logger.info("No file name found in the prompt.")
 			
 				# If graph were requested.
-				if any(word in prompt.lower() for word in ['graph', 'graphs']):
+				task_lower = task.lower()
+				if any(word in task_lower for word in ['graph', 'graphs']):
 					if self.INTERPRETER_LANGUAGE == 'python':
 						prompt += "\n" + "using Python use Matplotlib save the graph in file called 'graph.png'"
 					elif self.INTERPRETER_LANGUAGE == 'javascript':
 						prompt += "\n" + "using JavaScript use Chart.js save the graph in file called 'graph.png'"
 
 				# if Chart were requested
-				if any(word in prompt.lower() for word in ['chart', 'charts', 'plot', 'plots']):    
+				if any(word in task_lower for word in ['chart', 'charts', 'plot', 'plots']):    
 					if self.INTERPRETER_LANGUAGE == 'python':
 						prompt += "\n" + "using Python use Plotly save the chart in file called 'chart.png'"
 					elif self.INTERPRETER_LANGUAGE == 'javascript':
 						prompt += "\n" + "using JavaScript use Chart.js save the chart in file called 'chart.png'"
 
 				# if Table were requested
-				if 'table' in prompt.lower():
+				if 'table' in task_lower:
 					if self.INTERPRETER_LANGUAGE == 'python':
 						prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
 					elif self.INTERPRETER_LANGUAGE == 'javascript':
@@ -1496,6 +1565,7 @@ class Interpreter:
 							end_sep,
 							skip_first_line,
 							extracted_file_name,
+							code_output=code_output,
 						)
 						if repaired_output:
 							code_output = repaired_output

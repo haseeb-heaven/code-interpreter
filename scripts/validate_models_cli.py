@@ -5,7 +5,7 @@ Live CLI smoke validation for model configs.
 Examples:
   python scripts/validate_models_cli.py --providers gemini,groq --tier stable --mode chat
   python scripts/validate_models_cli.py --providers openai,anthropic,deepseek,huggingface --tier stable --mode chat
-  python scripts/validate_models_cli.py --providers nvidia,z-ai,browser-use --tier stable --mode chat
+  python scripts/validate_models_cli.py --providers nvidia,z-ai,browser-use,openrouter --tier stable --mode chat
 """
 
 from __future__ import annotations
@@ -42,6 +42,8 @@ QUOTA_INDICATORS = (
     "RateLimitError",
     "quota",
     "retry in",
+    "requires more credits",
+    "upgrade to a paid account",
 )
 
 PROVIDER_API_KEYS = {
@@ -54,6 +56,7 @@ PROVIDER_API_KEYS = {
     "nvidia": "NVIDIA_API_KEY",
     "z-ai": "Z_AI_API_KEY",
     "browser-use": "BROWSER_USE_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
 }
 
 
@@ -176,7 +179,7 @@ def run_cli_smoke(
         return "SKIP", "Rate-limit or quota exhausted for this model/key"
     if any(indicator in output for indicator in ERROR_INDICATORS):
         return "FAIL", "Error indicator found in CLI output"
-    if "Welcome to" not in output or "OS:" not in output:
+    if "Welcome to" not in output or ("OS=" not in output and "OS:" not in output):
         return "FAIL", "Interpreter did not reach normal startup/output sequence"
     return "PASS", "CLI smoke succeeded"
 
@@ -199,7 +202,7 @@ def main() -> int:
     parser.add_argument(
         "--providers",
         type=str,
-        default="openai,gemini,anthropic,groq,deepseek,huggingface,nvidia,z-ai,browser-use",
+        default="openai,gemini,anthropic,groq,deepseek,huggingface,nvidia,z-ai,browser-use,openrouter",
         help="Comma-separated providers",
     )
     parser.add_argument("--tier", choices=["stable", "preview", "all"], default="stable")

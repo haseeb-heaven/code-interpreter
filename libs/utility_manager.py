@@ -16,6 +16,7 @@ class UtilityManager:
 	logger = None
 	DEFAULT_MODELS = [
 		("OPENAI_API_KEY", "gpt-4o"),
+		("OPENROUTER_API_KEY", "openrouter-free"),
 		("GEMINI_API_KEY", "gemini-2.5-flash"),
 		("ANTHROPIC_API_KEY", "claude-sonnet-4-6"),
 		("GROQ_API_KEY", "groq-gpt-oss-20b"),
