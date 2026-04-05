@@ -10,6 +10,7 @@ import interpreter as interpreter_entry
 from interpreter import Interpreter
 from libs.history_manager import History
 from libs.code_interpreter import CodeInterpreter
+from libs.model_utils import normalize_model_name
 from libs.safety_manager import ExecutionSafetyManager, RepairCircuitBreaker
 from libs.utility_manager import UtilityManager
 
@@ -25,73 +26,6 @@ def _read_hf_model(config_path: Path) -> str:
             return stripped.split("=", 1)[1].strip().strip("'").strip('"')
     raise AssertionError(f"HF_MODEL missing in config: {config_path}")
 
-
-def _expected_completion_model(model_name: str) -> str:
-    if model_name.startswith(("gpt", "o1", "o3", "o4")):
-        return model_name
-
-    if "gemini" in model_name:
-        if model_name == "gemini-pro":
-            return "gemini/gemini-2.5-pro"
-        if model_name == "gemini-1.5-pro":
-            return "gemini/gemini-2.5-pro"
-        if model_name == "gemini-1.5-flash":
-            return "gemini/gemini-2.5-flash"
-        return model_name
-
-    if "groq" in model_name:
-        if "groq-llama-3.3" in model_name:
-            return "groq/llama-3.3-70b-versatile"
-        if "groq-llama-3.1-8b" in model_name:
-            return "groq/llama-3.1-8b-instant"
-        if "groq-llama2" in model_name:
-            return "groq/llama-3.1-8b-instant"
-        if "groq-mixtral" in model_name:
-            return "groq/llama-3.3-70b-versatile"
-        if "groq-gemma" in model_name:
-            return "groq/openai/gpt-oss-20b"
-        return model_name
-
-    if "claude" in model_name:
-        if "claude-2.1" in model_name:
-            return "claude-sonnet-4-6"
-        if "claude-2" in model_name:
-            return "claude-sonnet-4-6"
-        if "claude-3-7-sonnet" in model_name:
-            return "claude-sonnet-4-6"
-        if "claude-3-5-sonnet" in model_name:
-            return "claude-sonnet-4-6"
-        if "claude-3-5-haiku" in model_name:
-            return "claude-haiku-4-5"
-        if "claude-3-sonnet" in model_name:
-            return "claude-sonnet-4-6"
-        if "claude-3-opus" in model_name:
-            return "claude-opus-4-6"
-        return model_name
-
-    if "local" in model_name:
-        return model_name
-
-    if model_name.startswith("nvidia/"):
-        return model_name
-
-    if model_name.startswith(("glm-", "z-ai/", "zai/")):
-        return model_name
-
-    if model_name.startswith(("bu-", "browser-use/")):
-        return model_name
-
-    if any(model_name.startswith(prefix) for prefix in ("openai/", "anthropic/", "qwen/", "xiaomi/", "openrouter/", "minimax/", "nvidia/")):
-        return model_name
-
-    if "deepseek" in model_name:
-        if not model_name.startswith("deepseek/"):
-            return "deepseek/" + model_name
-        return model_name
-
-    if "huggingface/" not in model_name:
-        return "huggingface/" + model_name
-    return model_name
 
 
 class TestInterpreter(unittest.TestCase):
@@ -334,7 +268,7 @@ class TestInterpreter(unittest.TestCase):
                 continue
 
             model_name = _read_hf_model(config_file)
-            expected_model = _expected_completion_model(model_name)
+            expected_model = normalize_model_name(model_name)
             model_config_values = utility_manager.read_config_file(str(config_file))
             config_provider = str(model_config_values.get("provider", "")).strip().lower()
             interpreter.INTERPRETER_MODEL = model_name

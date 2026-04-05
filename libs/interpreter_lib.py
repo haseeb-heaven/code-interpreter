@@ -23,6 +23,7 @@ from libs.code_interpreter import CodeInterpreter
 from libs.history_manager import History
 from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
+from libs.model_utils import normalize_model_name
 from libs.package_manager import PackageManager
 from libs.safety_manager import ExecutionSafetyManager, RepairCircuitBreaker
 from libs.terminal_ui import TerminalUI
@@ -746,67 +747,21 @@ class Interpreter:
 				return response # Return the response from Gemini Vision because its not coding model.
 			else:
 				self.logger.info("Model is Gemini.")
-				if self.INTERPRETER_MODEL == "gemini-pro":
-					self.INTERPRETER_MODEL = "gemini/gemini-2.5-pro"
-				elif self.INTERPRETER_MODEL == "gemini-1.5-pro":
-					self.INTERPRETER_MODEL = "gemini/gemini-2.5-pro"
-				elif self.INTERPRETER_MODEL == "gemini-1.5-flash":
-					self.INTERPRETER_MODEL = "gemini/gemini-2.5-flash"
+				self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
 				self.logger.info("Response received from completion function.")
 		
 		# Check if the model is Groq-AI
 		elif 'groq' in self.INTERPRETER_MODEL:
-			
-			if 'groq-llama-3.3' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Groq/Llama-3.3.")
-				self.INTERPRETER_MODEL = "groq/llama-3.3-70b-versatile"
-			elif 'groq-llama-3.1-8b' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Groq/Llama-3.1-8B.")
-				self.INTERPRETER_MODEL = "groq/llama-3.1-8b-instant"
-			if 'groq-llama2' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Groq/Llama2.")
-				self.INTERPRETER_MODEL = "groq/llama-3.1-8b-instant"
-			elif 'groq-mixtral' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Groq/Mixtral.")
-				self.INTERPRETER_MODEL = "groq/llama-3.3-70b-versatile"
-			elif 'groq-gemma' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Groq/Gemma.")
-				self.INTERPRETER_MODEL = "groq/openai/gpt-oss-20b"
-				
+			self.logger.info("Model is Groq.")
+			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
 			self.logger.info("Response received from completion function.")
 		
 		# Check if the model is AnthropicAI
 		elif 'claude' in self.INTERPRETER_MODEL:
-			
-			if 'claude-2.1' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is claude-2.1.")
-				self.INTERPRETER_MODEL = "claude-sonnet-4-6"
-			elif 'claude-2' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is Claude-2.")
-				self.INTERPRETER_MODEL = "claude-sonnet-4-6"
-			elif 'claude-3-7-sonnet' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is claude-3-7-sonnet.")
-				self.INTERPRETER_MODEL = "claude-sonnet-4-6"
-			elif 'claude-3-5-sonnet' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is claude-3-5-sonnet.")
-				self.INTERPRETER_MODEL = "claude-sonnet-4-6"
-			elif 'claude-3-5-haiku' in self.INTERPRETER_MODEL:
-				self.logger.info("Model is claude-3-5-haiku.")
-				self.INTERPRETER_MODEL = "claude-haiku-4-5"
-			
-			# Support for Claude-3 Models
-			elif 'claude-3' in self.INTERPRETER_MODEL:
-				
-				if 'claude-3-sonnet' in self.INTERPRETER_MODEL:
-					self.logger.info("Model is claude-3-sonnet.")
-					self.INTERPRETER_MODEL = "claude-sonnet-4-6"
-					
-				elif 'claude-3-opus' in self.INTERPRETER_MODEL:
-					self.logger.info("Model is claude-3-opus.")
-					self.INTERPRETER_MODEL = "claude-opus-4-6"
-				
+			self.logger.info("Model is Claude.")
+			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
 			self.logger.info("Response received from completion function.")
 		
@@ -825,18 +780,13 @@ class Interpreter:
 		# Check if the model is Deepseek
 		elif 'deepseek' in self.INTERPRETER_MODEL:
 			self.logger.info("Model is Deepseek.")
-			 # Ensure the model string is prefixed with "deepseek/"
-			if not self.INTERPRETER_MODEL.startswith("deepseek/"):
-				self.INTERPRETER_MODEL = "deepseek/" + self.INTERPRETER_MODEL
+			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
 			self.logger.info("Response received from Deepseek completion.")
 
 		# Check if model are from Hugging Face.
 		else:
-			# Add huggingface/ if not present in the model name.
-			if 'huggingface/' not in self.INTERPRETER_MODEL:
-				self.INTERPRETER_MODEL = 'huggingface/' + self.INTERPRETER_MODEL
-			
+			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 			self.logger.info(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
 			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
 			self.logger.info("Response received from completion function.")

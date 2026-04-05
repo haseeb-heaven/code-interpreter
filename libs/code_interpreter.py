@@ -70,14 +70,14 @@ class CodeInterpreter:
 				if self.logger:
 					self.logger.info(f"Error in running {shell} script: {stderr.decode()}")
 			return stdout.decode().strip() if stdout else None, stderr.decode().strip() if stderr else None
-		except subprocess.TimeoutExpired:
+		except subprocess.TimeoutExpired as timeout_exc:
 			process.kill()
 			process.communicate()
-			raise TimeoutError("Execution timed out.")
+			raise TimeoutError("Execution timed out.") from timeout_exc
 		except Exception as exception:
 			if self.logger:
 				self.logger.error(f"Exception in running {shell} script: {str(exception)}")
-			raise
+			raise exception from exception
 		
 	def _check_compilers(self, language):
 		try:
@@ -222,8 +222,8 @@ class CodeInterpreter:
 		except subprocess.TimeoutExpired:
 			process.kill()
 			process.communicate()
-			return None, "Execution timed out."
-				
+			raise TimeoutError("Execution timed out.")
+
 		except Exception as exception:
 			self.logger.error(f"Exception in running code: {str(exception)}")
 			raise exception
