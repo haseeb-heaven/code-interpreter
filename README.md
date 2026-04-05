@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-**Welcome to Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This is powerful tool and it also leverages the power of **GPT 3.5 Turbo**,**PALM 2**,**Groq**,**Claude**, **HuggingFace models** like **Code-llama**, **Mistral 7b**, **Wizard Coder**, and many more to transform your instructions into executable code for **free** and **safe** to use environments and even has **Vision Models** for Image Processing available.
+**Welcome to Code-Interpreter 🎉,** an innovative open-source and free alternative to traditional Code Interpreters. This powerful tool leverages **OpenAI**, **Gemini**, **Groq**, **Claude**, **DeepSeek**, **NVIDIA NIM**, **Z AI**, **Browser Use**, and **HuggingFace** models to transform your instructions into executable code for **free** and **safe** use, and includes **Vision Models** for image processing.
 
 **Code-Interpreter** is more than just a code generator. It's a versatile tool that can execute a wide range of tasks. Whether you need to find files in your system 📂, save images from a website and convert them into a different format 🖼️, create a GIF 🎞️, edit videos 🎥, or even analyze files for data analysis and creating graphs 📊, Code-Interpreter can handle it all.
 
@@ -30,7 +30,6 @@ The distinguishing feature of this interpreter, as compared to others, is its **
 
 ## **Future Plans:**
 - ~~🎯 We plan to integrate **GPT 3.5** models.~~ *🎯 We have added support for **GPT 3.5** models*.
-- 🌐 .~~We plan to provide **Vertex AI (PALM 2)** models..~~ We have added support for **PALM-2** model using [**LiteLLM**](https://litellm.ai/)
 - 🔗 ~~We plan to provide API Base change using [**LiteLLM**](https://litellm.ai/)~~. Added Support for [**LiteLLM**](https://litellm.ai/)
 - 🤖 More **Hugging Face** models with free-tier.
 - 💻 Support for more **Operating Systems**.
@@ -60,7 +59,7 @@ pip install open-code-interpreter
 ```
 - To run the interpreter with Python:</br>
 ```bash
-interpreter -m 'gemini-pro' -md 'code' -dc
+interpreter -m 'gpt-4o' -md 'code' -dc
 ```
 - Make sure you install required packages before running the interpreter.</br>
 - And you have API keys setup in the `.env` file.</br>
@@ -78,6 +77,10 @@ cd code-interpreter
 pip install -r requirements.txt
 ```
 3. Setup the Keys required.
+4. Copy the example environment file and add the keys you plan to use:</br>
+```bash
+copy .env.example .env
+```
 
 ## API Key setup for All models.
 
@@ -85,10 +88,13 @@ Follow the steps below to obtain and set up the API keys for each service:
 
 1. **Obtain the API keys:**
     - HuggingFace: Visit [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
-    - Google Palm and Gemini: Visit [Google AI Studio](https://makersuite.google.com/app/apikey) and click on the **Create API Key** button.
+    - Google Gemini: Visit [Google AI Studio](https://makersuite.google.com/app/apikey) and click on the **Create API Key** button.
     - OpenAI: Visit [OpenAI Dashboard](https://platform.openai.com/account/api-keys), sign up or log in, navigate to the API section in your account dashboard, and click on the **Create New Key** button.
     - Groq AI: Obtain access [here](https://wow.groq.com), then visit [Groq AI Console](https://console.groq.com/keys), sign up or log in, navigate to the API section in your account, and click on the **Create API Key** button.
     - Anthropic AI: Obtain access [here](https://www.anthropic.com/earlyaccess), then visit [Anthropic AI Console](https://console.anthropic.com/settings/keys), sign up or log in, navigate to the API Keys section in your account, and click on the **Create Key** button.
+    - NVIDIA API Catalog: Visit [NVIDIA Build](https://build.nvidia.com/), create a key, and use `NVIDIA_API_KEY`.
+    - Z AI: Visit [Z AI Docs](https://docs.z.ai/) and use `Z_AI_API_KEY`.
+    - Browser Use: Visit [Browser Use Docs](https://docs.browser-use.com/) and use `BROWSER_USE_API_KEY`.
 
 2. **Save the API keys:**
     - Create a `.env` file in your project root directory.
@@ -96,12 +102,14 @@ Follow the steps below to obtain and set up the API keys for each service:
 
 ```bash
 export HUGGINGFACE_API_KEY="Your HuggingFace API Key"
-export PALM_API_KEY="Your Google Palm API Key"
 export GEMINI_API_KEY="Your Google Gemini API Key"
 export OPENAI_API_KEY="Your OpenAI API Key"
 export GROQ_API_KEY="Your Groq API Key"
 export ANTHROPIC_API_KEY="Your Anthropic API Key"
 export DEEPSEEK_API_KEY="Your Deepseek API Key"
+export NVIDIA_API_KEY="Your NVIDIA API Key"
+export Z_AI_API_KEY="Your Z AI API Key"
+export BROWSER_USE_API_KEY="Your Browser Use API Key"
 ```
 
 # Offline models setup.</br>
@@ -116,13 +124,13 @@ This Interpreter supports offline models via **LM Studio** and **OLlaMa** so to 
 4. Run the interpreter with Python:</br>
 ### Running with Python.
 ```bash
-python interpreter.py -md 'code' -m 'gpt-3.5-turbo' -dc 
+python interpreter.py -md 'code' -m 'gpt-4o' -dc 
 ```
 
 5. Run the interpreter directly:</br>
 ### Running Interpreter without Python (Executable MacOs/Linux only).
 ```bash
-./interpreter -md 'code' -m 'gpt-3.5-turbo' -dc 
+./interpreter -md 'code' -m 'gpt-4o' -dc 
 ```
 
 ## 🌟 **Features**
@@ -168,49 +176,63 @@ To use Code-Interpreter, use the following command options:
     - `chat` - Chat with your files and data.
 
 - List of all **models** are (**Contribute - MORE**): </br>
-    - `gpt-3.5-turbo` - Alias now mapped to a modern lightweight OpenAI model (`gpt-4o-mini`).
-    - `gpt-4` - Alias now mapped to the latest GPT-4.1 model.
-    - `gpt-4o` - Generates code using the GPT-4o model.
-    - `gpt-4.1-mini` - Generates code using the GPT-4.1 mini model.
-	- `o1-mini` - Generates code using the OpenAI o1-mini model.
-	- `o1-preview` - Alias now mapped to `o1`.
-	- `o3-mini` - Generates code using the OpenAI o3-mini model.
-	- `deepseek-chat` - Generates response using the DeepSeek chat model.
-	- `deepseek-coder` - Generates code using the DeepSeek coder model.
-	- `deepseek-reasoner` - Generates code using the DeepSeek reasoner model.
-    - `gemini-pro` - Alias now mapped to Gemini 1.5 Pro latest.
-    - `gemini-1.5-pro` - Generates code using Gemini 1.5 Pro latest.
-    - `gemini-1.5-flash` - Generates code using Gemini 1.5 Flash latest.
-    - `palm-2` - Legacy alias now mapped to Gemini 1.5 Flash latest.
-    - `claude-2` - Generates code using the Anthropic Claude-2 model.
-    - `claude-3-sonnet` - Alias now mapped to Claude 3.5 Sonnet latest.
-    - `claude-3-5-sonnet` - Generates code using Claude 3.5 Sonnet latest.
-    - `claude-3-5-haiku` - Generates code using Claude 3.5 Haiku latest.
-    - `claude-3-7-sonnet` - Generates code using Claude 3.7 Sonnet latest.
-    - `groq-mixtral` - Alias now mapped to Groq Llama 3.3 70B versatile.
-    - `groq-llama2` - Alias now mapped to Groq Llama 3.1 8B instant.
-    - `groq-llama-3.3` - Generates code using Groq Llama 3.3 70B versatile.
-    - `groq-gemma` - Alias now mapped to Groq Gemma2 9B IT.
-    - `code-llama` - Generates code using the Code-Llama model.
-    - `code-llama-phind` - Generates code using the Code-Llama Phind model.
-    - `mistral-7b` - Generates code using the Mistral 7b model.
-    - `wizard-coder` - Generates code using the Wizard Coder model.
-    - `star-chat` - Generates code using the Star Chat model.
-    - `local-model` - Generates code using the local offline model.
+    - **OpenAI stable-first (2026)**
+    - `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5-mini`, `o4-mini`, `o3`, `o3-mini`, `gpt-4o`, `gpt-4o-mini`, `gpt-4.1-mini`.
+    - **OpenAI legacy aliases**
+    - `gpt-4` -> `gpt-4.1`, `gpt-3.5-turbo` -> `gpt-4o-mini`, `o1-preview` -> `o1`.
+    - **Gemini stable-first (2026)**
+    - `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`.
+    - **Gemini preview (optional)**
+    - `gemini-3.1-pro-preview`, `gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`.
+    - **Gemini legacy aliases**
+    - `gemini-pro`, `gemini-1.5-pro`, `gemini-1.5-flash` are remapped to Gemini 2.5 stable models.
+    - **Anthropic stable-first (2026)**
+    - `claude-sonnet-4-6`, `claude-opus-4-6`, `claude-haiku-4-5`.
+    - **Anthropic legacy aliases**
+    - `claude-2`, `claude-2.1`, `claude-3-sonnet`, `claude-3-5-sonnet`, `claude-3-7-sonnet` -> `claude-sonnet-4-6`.
+    - **Groq stable-first (2026)**
+    - `groq-llama-3.3`, `groq-llama-3.1-8b`, `groq-gpt-oss-120b`, `groq-gpt-oss-20b`.
+    - **Groq preview (optional)**
+    - `groq-llama-4-scout-preview`.
+    - **Groq legacy aliases**
+    - `groq-mixtral`, `groq-llama2`, `groq-gemma` are remapped to modern Groq models.
+    - **DeepSeek**
+    - `deepseek-chat`, `deepseek-reasoner`, with `deepseek-coder` remapped to `deepseek-chat`.
+    - **NVIDIA (OpenAI-compatible API)**
+    - `nvidia-nemotron` -> `nvidia/nemotron-3-super-120b-a12b`.
+    - **Z AI (OpenAI-compatible API)**
+    - `z-ai-glm-5` -> `glm-5`.
+    - **Browser Use**
+    - `browser-use-bu-max` -> `bu-max` (session-based model).
+    - **Hugging Face + local**
+    - `hf-meta-llama-3`, `code-llama`, `code-llama-phind`, `mistral-7b`, `wizard-coder`, `star-chat`, `local-model`.
 
 - Basic usage (with least options)</br>
 ```python
-python interpreter.py -dc
+python interpreter.py
+```
+- `python interpreter.py` now opens the TUI and uses arrow-key navigation in a real terminal.
+- The TUI falls back to plain text prompts when stdin is piped or not attached to a terminal.
+
+- Launch the classic prompt-based CLI directly</br>
+```python
+python interpreter.py --cli -m 'z-ai-glm-5' -md 'code'
+```
+- `python interpreter.py --cli` automatically picks the best configured model from your `.env` file if you do not pass `-m`.
+
+- Launch the selector-based TUI</br>
+```python
+python interpreter.py --tui
 ```
 
 - Using different models (replace 'model-name' with your chosen model) </br>
 ```python
-python interpreter.py -md 'code' -m 'model-name' -dc
+python interpreter.py --cli -md 'code' -m 'model-name' -dc
 ```
 
 - Using different modes (replace 'mode-name' with your chosen mode) </br>
 ```python
-python interpreter.py -m 'model-name' -md 'mode-name'
+python interpreter.py --cli -m 'model-name' -md 'mode-name'
 ```
 
 - Using auto execution </br>
@@ -237,6 +259,22 @@ python interpreter.py -m 'gemini-pro' -md 'code' --file 'my_prompt_file.txt'
 ```python
 python interpreter.py --upgrade
 ```
+
+- Live CLI smoke validation (stable models only) </br>
+```bash
+python scripts/validate_models_cli.py --providers gemini,groq --tier stable --mode chat
+python scripts/validate_models_cli.py --providers openai,anthropic,deepseek,huggingface --tier stable --mode chat
+python scripts/validate_models_cli.py --providers nvidia,z-ai,browser-use --tier stable --mode chat
+```
+
+- Direct provider examples </br>
+```bash
+python interpreter.py -m 'nvidia-nemotron' -md 'chat' -dc
+python interpreter.py -m 'z-ai-glm-5' -md 'chat' -dc
+python interpreter.py -m 'browser-use-bu-max' -md 'chat' -dc
+```
+
+Last verified model baseline: **April 5, 2026**.
 
 # Interpreter Commands 🖥️
 
@@ -353,6 +391,8 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 - **v2.2.1** - Fixed **No Content/Response from LLM** Bug, Fixed _Debug Mode_ with **Logs**.
 
 - **v2.3.0** - Added Deepseek V3 and R1 models support now. Added OpenAI o1 Models support.
+- **v2.4.0** - 2026 model refresh: stable-first OpenAI/Gemini/Anthropic/Groq/DeepSeek catalog updates, legacy alias remaps, CLI smoke validator, and expanded unit tests.
+- **v2.4.1** - Removed deprecated PALM model path, added NVIDIA + Z AI + Browser Use providers, added `.env.example`, cleaned project artifacts, and introduced `--cli` / `--tui` startup flows with safer interactive error handling.
 
 ---
 
@@ -363,8 +403,6 @@ This project is licensed under the **MIT License**. For more details, please ref
 Please note the following additional licensing details:
 
 - The **GPT 3.5/4 models** are provided by **OpenAI** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [OpenAI's Terms of Use](https://openai.com/policies/terms-of-use).
-
-- The **PALM models** are officially supported by the **Google PALM 2 API**. These models have their own licensing terms and support. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Google Generative AI's Terms of Service](https://developers.generativeai.google/terms).
 
 - The **Hugging Face models** are provided by **Hugging Face Inc.** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Hugging Face's Terms of Service](https://huggingface.co/terms-of-service).
 

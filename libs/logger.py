@@ -2,6 +2,25 @@ import logging
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
+logging.raiseExceptions = False
+
+
+class SafeStreamHandler(logging.StreamHandler):
+	"""A console handler that degrades non-encodable characters safely on Windows."""
+
+	def emit(self, record):
+		try:
+			super().emit(record)
+		except UnicodeEncodeError:
+			try:
+				msg = self.format(record)
+				safe_msg = msg.encode("ascii", errors="replace").decode("ascii")
+				self.stream.write(safe_msg + self.terminator)
+				self.flush()
+			except Exception:
+				self.handleError(record)
+
+
 class Logger:
 	_logger: Optional[logging.Logger] = None
 	_file_handler = None
@@ -25,7 +44,7 @@ class Logger:
 			Logger._file_handler.setLevel(logging.DEBUG)
 
 			# Create a console handler
-			Logger._console_handler = logging.StreamHandler()
+			Logger._console_handler = SafeStreamHandler()
 			Logger._console_handler.setFormatter(logging.Formatter(log_format))
 			Logger._console_handler.setLevel(logging.ERROR)
 

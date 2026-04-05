@@ -8,6 +8,12 @@ class History:
 	def __init__(self, history_file: str):
 		self.history_file = history_file
 		self.logger = Logger.initialize("logs/interpreter.log")
+		history_dir = os.path.dirname(self.history_file)
+		if history_dir and not os.path.exists(history_dir):
+			os.makedirs(history_dir, exist_ok=True)
+		if not os.path.exists(self.history_file):
+			with open(self.history_file, "w", encoding="utf-8") as history_file:
+				json.dump([], history_file)
 
 	def save_history_json(self, task, mode, os_name, language, prompt, code_snippet, code_output, model_name):
 		try:
@@ -42,6 +48,8 @@ class History:
 	def _get_data_for_key(self, key: str) -> List[Any]:
 		"""Returns a list of all values for the specified key in the history data."""
 		try:
+			if not os.path.exists(self.history_file):
+				return []
 			if os.path.getsize(self.history_file) > 0:
 				with open(self.history_file, 'r') as file:
 					history_data = json.load(file)
@@ -63,6 +71,8 @@ class History:
 	def _get_last_entries(self, count: int) -> List[dict]:
 		"""Returns the last n entries from the history data."""
 		try:
+			if not os.path.exists(self.history_file) or os.path.getsize(self.history_file) == 0:
+				return []
 			with open(self.history_file, 'r') as file:
 				history_data = json.load(file)
 			last_entries = history_data[-count:]
@@ -92,6 +102,8 @@ class History:
 		last_entries = []
 		try:
 			entries = {key: self._get_last_entries_for_key(key, count) for key in keys}
+			if not any(entries[key] for key in keys):
+				return []
 			
 			for index in range(count):
 				session = {key: entries[key][index] if index < len(entries[key]) else None for key in keys}
