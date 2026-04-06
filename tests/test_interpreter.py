@@ -684,7 +684,7 @@ class TestDangerousCommandRepairLoop(unittest.TestCase):
 
 		def fake_execute(snippet, os_name, force_execute=False):
 			execute_calls.append(snippet)
-			return None, "Safety blocked: Absolute-path deletion is blocked."
+			return None, "Safety blocked: Absolute-path deletion is blocked.", None
 
 		with patch.object(interp, "_generate_content_with_retries", return_value=dangerous_llm_response), \
 			 patch.object(interp, "_execute_generated_output", side_effect=fake_execute):
@@ -722,7 +722,7 @@ class TestDangerousCommandRepairLoop(unittest.TestCase):
 		safe_llm_response = f"```\n{safe_cmd}\n```"
 
 		with patch.object(interp, "_generate_content_with_retries", return_value=safe_llm_response), \
-			 patch.object(interp, "_execute_generated_output", return_value=("Volume in drive D", None)):
+			 patch.object(interp, "_execute_generated_output", return_value=("Volume in drive D", None, None)):
 			snippet, output, error = interp._attempt_repair_after_failure(
 				task="list all text files in D:\\Temp",
 				prompt="list all text files in D:\\Temp",
@@ -1780,7 +1780,8 @@ class TestPackageManagerRunCommandSafety(unittest.TestCase):
 	def test_windows_safe_args_pass_validation(self):
 		with patch("subprocess.check_call", return_value=0) as mock_call:
 			result = self.pm._run_command(["pip", "install", "requests"])
-		mock_call.assert_called_once_with(["pip", "install", "requests"], shell=True)
+		# On Windows, args are converted to a single string via list2cmdline
+		mock_call.assert_called_once_with("pip install requests", shell=True)
 
 	@patch("libs.package_manager.os.name", "posix")
 	def test_unix_uses_shell_false(self):

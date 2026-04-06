@@ -159,7 +159,23 @@ class ExecutionSafetyManager:
 		# =========================
 		# FILESYSTEM RULES
 		# =========================
+		# Detect Windows drive-letter paths (e.g., C:\) OR POSIX absolute paths (e.g., /tmp/)
 		is_path_access = bool(re.search(r"[a-z]:[\\/]", code_lower))
+
+		# Also detect POSIX absolute paths in quoted strings
+		if not is_path_access:
+			# Match quoted strings starting with / (POSIX absolute paths)
+			is_path_access = bool(re.search(r'''["']/[^"'\s]''', code))
+
+		# Check open() calls for absolute path arguments
+		if not is_path_access:
+			open_calls = re.findall(r'open\s*\(\s*(["\'][^"\']+["\'])', code, re.IGNORECASE)
+			for path_match in open_calls:
+				# Remove quotes and check if it starts with / (POSIX) or contains drive letter
+				path = path_match.strip('\'"')
+				if path.startswith('/') or re.match(r'[a-zA-Z]:[\\/]', path):
+					is_path_access = True
+					break
 
 		if is_path_access:
 
