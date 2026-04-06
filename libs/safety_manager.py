@@ -65,6 +65,8 @@ class ExecutionSafetyManager:
 		(r"\brm\s+/", "Absolute-path deletion is blocked."),
 		(r"\bdel\s+/(?:f|q|s)", "Destructive delete command is blocked."),
 		(r"\bdel\s+[A-Za-z]:(?:\\\\|/)", "Absolute-path deletion is blocked."),
+		# Block quoted absolute-path del (e.g. del "D:\Temp\*.txt" or del 'C:\folder\file')
+		(r'\bdel\s+["\'][A-Za-z]:[/\\\\]', "Absolute-path deletion is blocked."),
 		(r"\brmdir\s+/(?:s|q)", "Recursive directory removal is blocked."),
 		(r"\brd\s+/s\s+/q\b", "Recursive directory removal is blocked."),
 		(r"Remove-Item\s+.+-Recurse", "Recursive PowerShell deletion is blocked."),
