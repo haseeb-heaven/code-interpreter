@@ -99,6 +99,17 @@ class ExecutionSafetyManager:
 		r"\.to_parquet\s*\([^)]*['\"/]",
 	]
 
+	# Sensitive POSIX system path prefixes that are ALWAYS blocked (even for reads).
+	# These expose credentials, secrets, kernel internals, or device nodes.
+	_SENSITIVE_POSIX_PREFIXES = [
+		r"/etc/\w+",
+		r"/root/\w+",
+		r"/proc/\w+",
+		r"/sys/\w+",
+		r"/dev/\w+",
+		r"/boot/\w+",
+	]
+
 	# Known-dangerous call targets for .remove() / .unlink() / .rmtree().
 	# Used by _ast_check to avoid blocking list.remove(), dict.pop(), etc.
 	_DANGEROUS_ATTR_OWNERS = frozenset({"os", "shutil", "pathlib", "path"})
@@ -208,6 +219,15 @@ class ExecutionSafetyManager:
 
 		return False
 
+	def _is_sensitive_posix_path(self, code: str) -> bool:
+		"""Return True if *code* references a sensitive POSIX system path.
+
+		These paths expose credentials, kernel internals, or device nodes and
+		must be blocked even for read-only access (unlike general absolute paths
+		which are only blocked when paired with write operations).
+		"""
+		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+
 	# =========================
 	# MAIN CHECK
 	# =========================
@@ -278,15 +298,22 @@ class ExecutionSafetyManager:
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
-		# FILESYSTEM / HOST PATH BLOCK  (Critical #1 fix)
+		# FILESYSTEM / HOST PATH BLOCK
 		#
-		# ANY reference to a host absolute path is rejected in SAFE mode —
-		# reads included.  Previously only writes/deletes inside this branch
-		# were blocked, leaving read access to /etc/passwd, ~/.ssh/id_rsa,
-		# /etc/hosts, etc. completely unguarded.
+		# Sensitive system paths (/etc, /root, /proc, /sys, /dev, /boot) are
+		# ALWAYS blocked — even for read-only access — because they expose
+		# credentials, secrets, and kernel internals.
+		#
+		# General absolute paths (Windows drive letters, /tmp, /home, etc.)
+		# are only blocked when a write operation is also present.  Pure
+		# read-only access to absolute paths is permitted so that legitimate
+		# tasks like reading a user-supplied data file are not rejected.
 		# =========================
-		if self._is_host_absolute_path(code):
-			return Decision(False, ["Host filesystem access blocked (absolute path)."])
+		if self._is_sensitive_posix_path(code):
+			return Decision(False, ["Host filesystem access blocked (sensitive system path)."])
+
+		if self._is_host_absolute_path(code) and self._has_write_operation(code):
+			return Decision(False, ["Host filesystem access blocked (absolute path write)."])
 
 		# =========================
 		# COMMAND MODE RULE
