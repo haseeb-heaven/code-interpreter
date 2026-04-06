@@ -20,7 +20,7 @@ class PackageManager:
 		try:
 			if os.name == 'nt':
 				# Windows requires shell=True for .cmd/.bat resolution
-				safe_pattern = re.compile(r'^[a-zA-Z0-9._\-\[\]=<>!,]+$')
+				safe_pattern = re.compile(r'^[a-zA-Z0-9._\-\[\]=<>!,/@]+$')
 				for arg in args:
 					if not isinstance(arg, str) or not safe_pattern.match(arg):
 						raise ValueError("Unsafe command argument detected")

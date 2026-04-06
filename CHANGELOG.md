@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## v3.1.1 - April 6, 2026
+- Refactored execution architecture to Python-first model (replacing shell-subprocess as default)
+- Enforced 10 KB hard output limit with truncation sentinel
+- Minor fixes for timeout handling, output limits, and version alignment.
+
 ## v3.1.0 - April 5, 2026
 - Added OpenRouter support with multiple paid and free model aliases.
 - Added OpenRouter free defaults and switched `OPENROUTER_API_KEY` auto-selection to `openrouter/free`.

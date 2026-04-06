@@ -79,8 +79,13 @@ def _strip_leading_fence_language_line(extracted: str) -> str:
 
 class CodeInterpreter:
 
-	def __init__(self):
+	def __init__(self, safety_manager=None):
 		self.logger = Logger.initialize("logs/code-interpreter.log")
+
+		if safety_manager is None:
+			self.safety_manager = ExecutionSafetyManager()
+		else:
+			self.safety_manager = safety_manager
 
 	def _get_subprocess_security_kwargs(self, sandbox_context=None):
 		# If no sandbox_context was provided, preserve that by returning
@@ -231,7 +236,7 @@ class CodeInterpreter:
 			popen_kwargs.update(base_kwargs)
 
 			# Create an isolated temp dir per execution
-			safe_dir = tempfile.mkdtemp(prefix="ci_sandbox_")
+			safe_dir = sandbox_context.cwd if sandbox_context else tempfile.mkdtemp(prefix="ci_sandbox_")
 			popen_kwargs["cwd"] = safe_dir
 
 			# posix-only preexec to limit resources
@@ -239,13 +244,9 @@ class CodeInterpreter:
 			timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
 
 			# SAFETY CHECK (centralized)
-			safety_manager = ExecutionSafetyManager()
-			decision = safety_manager.assess_execution(script, "script")
-			if not decision.allowed:
+			decision = self.safety_manager.assess_execution(script, "script")
+			if not self.safety_manager.unsafe_mode and not decision.allowed:
 				return None, f"Safety blocked: {'; '.join(decision.reasons)}"
-
-			if re.search(r'(C:\\|/etc/|/usr/|/var/)', script):
-				return None, "Access to system paths is restricted."
 
 			#  NEW: Detect Python scripts and run with Python instead of shell
 			if shell == "python":
@@ -268,7 +269,13 @@ class CodeInterpreter:
 				stderr_decoded = stderr_val.decode(errors="ignore") if stderr_val else ""
 
 			elif shell == "bash":
-				args = shlex.split(script)
+				fd, temp_script_path = tempfile.mkstemp(prefix="ci_script_", suffix=".sh", dir=safe_dir)
+				with os.fdopen(fd, "wb") as fh:
+					fh.write(script.encode())
+					fh.flush()
+				os.chmod(temp_script_path, 0o700)
+
+				args = ["/bin/bash", temp_script_path]
 
 				if os.name != "nt":
 					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
@@ -321,12 +328,16 @@ class CodeInterpreter:
 			return None, str(e)
 
 		finally:
-			# Cleanup temp script if created
-			try:
-				if temp_script_path and os.path.exists(temp_script_path):
-					os.remove(temp_script_path)
-			except Exception:
-				pass
+		    # remove temp script
+		    try:
+		        if temp_script_path and os.path.exists(temp_script_path):
+		            os.remove(temp_script_path)
+		    except Exception:
+		        pass
+
+		    # cleanup sandbox ONLY if we created it
+		    if (sandbox_context is None) and safe_dir and os.path.exists(safe_dir):
+		        shutil.rmtree(safe_dir, ignore_errors=True)
 
 	def _check_compilers(self, language):
 		try:
@@ -425,8 +436,7 @@ class CodeInterpreter:
 		self.logger.info(f"Running code: {code[:100]} in language: {language}")
 
 		# SAFETY CHECK
-		safety_manager = ExecutionSafetyManager()
-		decision = safety_manager.assess_execution(code, "code")
+		decision = self.safety_manager.assess_execution(code, "code")
 		if not decision.allowed:
 			reason_text = "; ".join(decision.reasons)
 			self.logger.warning(f"Safety blocked: {reason_text}")
@@ -443,9 +453,15 @@ class CodeInterpreter:
 
 		base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
 		timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
-		# isolated execution directory
-		safe_dir = tempfile.mkdtemp(prefix="ci_sandbox_")
+		
+		# Use sandbox if available, else fallback
+		if sandbox_context and sandbox_context.cwd:
+			safe_dir = sandbox_context.cwd
+		else:
+			safe_dir = tempfile.mkdtemp(prefix="ci_sandbox_")
+
 		base_kwargs["cwd"] = safe_dir
+
 		posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
 
 		process = None
@@ -494,10 +510,12 @@ class CodeInterpreter:
 					pass
 			return None, "Execution timed out."
 		finally:
-			try:
-				shutil.rmtree(safe_dir)
-			except Exception:
-				pass
+			#  Only cleanup if we created it
+			if (sandbox_context is None) and safe_dir:
+				try:
+					shutil.rmtree(safe_dir, ignore_errors=True)
+				except Exception:
+					pass
 		
 	def execute_script(self, script: str, os_type: str = 'macos', sandbox_context=None):
 		output = error = None
@@ -508,8 +526,7 @@ class CodeInterpreter:
 				raise ValueError("OS type must be provided.")
 
 			# Check for dangerous patterns
-			safety_manager = ExecutionSafetyManager()
-			decision = safety_manager.assess_execution(script, "script")
+			decision = self.safety_manager.assess_execution(script, "script")
 			if not decision.allowed:
 				reason_text = "; ".join(decision.reasons)
 				self.logger.error(f"Execution blocked by safety policy: {reason_text}")
@@ -548,13 +565,17 @@ class CodeInterpreter:
 				raise ValueError("Command must be provided.")
 
 			# SAFETY CHECK (centralized)
-			safety_manager = ExecutionSafetyManager()
-			decision = safety_manager.assess_execution(command, "command")
+			decision = self.safety_manager.assess_execution(command, "command")
 			if not decision.allowed:
 				return None, f"Safety blocked: {'; '.join(decision.reasons)}"
 
 			# Normalize command (convert shell-like commands → python -c)
 			command = self._normalize_command(command)
+
+			#  HARD BLOCK (real-world safety)
+			if not getattr(self, "UNSAFE_EXECUTION", False):
+				if any(k in command for k in ["unlink(", "remove(", "rmtree", "del ", "rm "]):
+					return None, "Blocked: destructive operation (LLM safety)."
 
 			# Build safe invocation (no shell)
 			args = self._build_command_invocation(command)

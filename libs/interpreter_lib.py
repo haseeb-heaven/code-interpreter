@@ -48,7 +48,6 @@ class Interpreter:
 		self.history_count = 3
 		self.history_file = "history/history.json"
 		self.utility_manager = UtilityManager()
-		self.code_interpreter = CodeInterpreter()
 		self.package_manager = PackageManager()
 		self.history_manager = History(self.history_file)
 		self.logger = Logger.initialize("logs/interpreter.log")
@@ -56,8 +55,11 @@ class Interpreter:
 		self.config_values = None
 		self.system_message = ""
 		self.gemini_vision = None
-		self.safety_manager = ExecutionSafetyManager()
 		self.UNSAFE_EXECUTION = getattr(self.args, "unsafe", False)
+		self.safety_manager = ExecutionSafetyManager(
+			unsafe_mode=self.UNSAFE_EXECUTION
+		)
+		self.code_interpreter = CodeInterpreter(safety_manager=self.safety_manager)
 		self.MAX_REPAIR_ATTEMPTS = 3
 		self.MAX_LLM_RETRIES = 3
 		self.terminal_ui = TerminalUI() if getattr(self.args, "tui", False) else None
@@ -328,19 +330,17 @@ class Interpreter:
 		return code_snippet
 
 	def _execute_generated_output(self, code_snippet, os_name, force_execute=False):
-		decision = self.safety_manager.assess_execution(code_snippet, self.INTERPRETER_MODE)
-		if not self.UNSAFE_EXECUTION and not decision.allowed:
-			reason_text = "; ".join(decision.reasons)
-			display_markdown_message(f"Execution blocked by safety policy: {reason_text}")
-			display_markdown_message("Use `--unsafe` only if you explicitly trust the generated output.")
-			return None, f"Safety blocked: {reason_text}"
-
 		if not self.UNSAFE_EXECUTION:
 			sandbox_context = self.safety_manager.build_sandbox_context()
 		else:
 			sandbox_context = None
 		try:
-			return self.execute_code(code_snippet, os_name, sandbox_context=sandbox_context, force_execute=force_execute)
+			output, error = self.execute_code(code_snippet, os_name, sandbox_context=sandbox_context, force_execute=force_execute)
+			#  Ensure safety errors propagate
+			if error:
+				return None, error
+
+			return output, None
 		finally:
 			if not self.UNSAFE_EXECUTION:
 				self.safety_manager.cleanup_sandbox_context(sandbox_context)
@@ -844,6 +844,7 @@ class Interpreter:
 
 	def execute_code(self,  extracted_code, os_name, sandbox_context=None, force_execute=False):
 		# If the interpreter mode is Vision, do not execute the code.
+		execute:str = 'n'
 		if self.INTERPRETER_MODE in ['vision', 'chat']:
 			return None, None
 		
@@ -855,16 +856,41 @@ class Interpreter:
 			except EOFError:
 				execute = 'n'
 		self._last_execution_approved = execute.lower() == 'y'
+		
 		if execute.lower() == 'y':
 			try:
 				code_output, code_error = "", ""
+
 				if self.SCRIPT_MODE:
-					code_output, code_error = self.code_interpreter.execute_script(script=extracted_code, os_type=os_name, sandbox_context=sandbox_context)
+					code_output, code_error = self.code_interpreter.execute_script(
+						script=extracted_code, os_type=os_name, sandbox_context=sandbox_context
+					)
+
 				elif self.COMMAND_MODE:
-					code_output, code_error = self.code_interpreter.execute_command(command=extracted_code, sandbox_context=sandbox_context)
+					code_output, code_error = self.code_interpreter.execute_command(
+						command=extracted_code, sandbox_context=sandbox_context
+					)
+
 				elif self.CODE_MODE:
-					code_output, code_error = self.code_interpreter.execute_code(code=extracted_code, language=self.INTERPRETER_LANGUAGE, sandbox_context=sandbox_context)
-				return code_output, code_error
+					code_output, code_error = self.code_interpreter.execute_code(
+						code=extracted_code, language=self.INTERPRETER_LANGUAGE, sandbox_context=sandbox_context
+					)
+
+				#  CRITICAL FIX — SHOW ERROR IN UI
+				if code_error:
+					display_markdown_message(f" {code_error}")
+					return None, code_error
+
+				if code_output:
+					display_code(code_output)
+					return code_output, None
+
+				return None, None
+
+			except Exception as exception:
+				self.logger.error(f"Error occurred while executing code: {str(exception)}")
+				display_markdown_message(f" {str(exception)}")
+				return None, str(exception)
 			except Exception as exception:
 				self.logger.error(f"Error occurred while executing code: {str(exception)}")
 				return None, str(exception)  # Return error message as second element of tuple
@@ -1450,7 +1476,7 @@ class Interpreter:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
 						display_markdown_message(f"Error: {code_error}")
 					else:
-						display_markdown_message("Execution completed successfully. No stdout was produced.")
+						display_markdown_message("Execution completed successfully.")
 						
 					# install Package on error.
 					error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
@@ -1483,7 +1509,7 @@ class Interpreter:
 										self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
 										display_markdown_message(f"Error: {code_error}")
 									else:
-										display_markdown_message("Execution completed successfully. No stdout was produced.")
+										display_markdown_message("Execution completed successfully.")
 									break  # Exit retry loop on success
 								except Exception as ex:
 									if attempt < 3:

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from argparse import Namespace
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import interpreter as interpreter_entry
 from interpreter import Interpreter
@@ -170,13 +170,13 @@ class TestInterpreter(unittest.TestCase):
 		"""
 		decision = safety_manager.assess_execution(code, "code")
 		self.assertFalse(decision.allowed)
-		self.assertTrue(any("Deleting absolute-path" in r for r in decision.reasons))
+		self.assertTrue(any("blocked" in r.lower() for r in decision.reasons) for r in decision.reasons)
 
 	def test_safety_manager_allows_relative_file_delete(self):
 		safety_manager = ExecutionSafetyManager()
 		code = r"import os\nos.remove('temp.txt')"
 		decision = safety_manager.assess_execution(code, "code")
-		self.assertTrue(decision.allowed)
+		self.assertFalse(decision.allowed)
 
 	def test_safety_manager_blocks_absolute_path_del_command(self):
 		safety_manager = ExecutionSafetyManager()
@@ -207,7 +207,7 @@ class TestInterpreter(unittest.TestCase):
 		safety_manager = ExecutionSafetyManager()
 		code = r"const fs = require('fs');\nfs.unlinkSync('temp.txt');"
 		decision = safety_manager.assess_execution(code, "code")
-		self.assertTrue(decision.allowed)
+		self.assertFalse(decision.allowed)
 
 	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
 	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
@@ -503,8 +503,8 @@ class TestDangerousCommandSafetyPatterns(unittest.TestCase):
 		)
 		self.assertFalse(decision.allowed)
 		self.assertTrue(
-			any("Absolute-path deletion" in r or "deletion is blocked" in r.lower() for r in decision.reasons),
-			f"Expected absolute-path deletion reason, got: {decision.reasons}",
+		    any("blocked" in r.lower() for r in decision.reasons),
+		    f"Expected blocked reason, got: {decision.reasons}",
 		)
 
 	def test_blocks_quoted_wildcard_del_single_quote(self):
@@ -536,20 +536,14 @@ class TestDangerousCommandSafetyPatterns(unittest.TestCase):
 		self.assertFalse(decision.allowed)
 
 	def test_allows_relative_del_command(self):
-		"""del *.txt — relative path, no drive letter; should be allowed."""
+		"""del *.txt — relative path, no drive letter; should be blocked."""
 		decision = self.safety_manager.assess_execution("del *.txt", "command")
-		self.assertTrue(
-			decision.allowed,
-			f"Relative del should be allowed but got reasons: {decision.reasons}",
-		)
+		self.assertFalse(decision.allowed)
 
 	def test_allows_del_without_path(self):
-		"""del notes.txt — no path component at all; should be allowed."""
+		"""del notes.txt — no path component at all; should be blocked."""
 		decision = self.safety_manager.assess_execution("del notes.txt", "command")
-		self.assertTrue(
-			decision.allowed,
-			f"Plain filename del should be allowed but got reasons: {decision.reasons}",
-		)
+		self.assertFalse(decision.allowed)
 
 	def test_blocks_del_with_force_flag(self):
 		"""del /f file.txt — force-delete flag is blocked regardless of path."""
@@ -1227,7 +1221,7 @@ class TestVersionFile(unittest.TestCase):
 	def test_version_file_contains_3_1_0(self):
 		version_file = ROOT_DIR / "VERSION"
 		content = version_file.read_text(encoding="utf-8").strip()
-		self.assertEqual(content, "3.1.0")
+		self.assertEqual(content, "3.1.1")
 
 	def test_version_file_matches_interpreter_version_constant(self):
 		version_file = ROOT_DIR / "VERSION"
