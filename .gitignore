@@ -28,20 +28,24 @@ node_modules/
 interp/
 
 # Generated output files and directories
-output/*
-logs/*
+output/
+logs/
 dist/
 *.tmp
 *.bak
 
-# JSON files
+# JSON files (ignore ALL json files)
 *.json
-history.json
+
+# BUT keep config JSONs
+!configs/
 !configs/*.json
 
-# History files
+# History files (explicitly ignored)
+history.json
 history/
-history/history.json
+
+# Keep placeholder only
 !history/.gitkeep
 
 # Local test/diagnostic artifacts

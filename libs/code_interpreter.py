@@ -145,10 +145,74 @@ class CodeInterpreter:
 			kwargs["start_new_session"] = True
 		return kwargs
 
+	def _normalize_command(self, command: str) -> str:
+		command = command.strip()
+
+		command_lower = command.lower()
+
+		# WINDOWS / GENERIC FILE LISTING
+		if any(keyword in command_lower for keyword in ["dir", "get-childitem", "ls"]):
+			if ".txt" in command_lower:
+				import re
+
+				# extract path
+				match = re.search(r"(?:from|path)?\s*['\"]?([a-zA-Z]:[\\/][^'\"]+)['\"]?", command)
+				path = match.group(1) if match else "."
+
+				return (
+					f'python -c "import pathlib; '
+					f'print(\'\\n\'.join(str(p) for p in pathlib.Path(r\'{path}\').rglob(\'*.txt\')))"'
+				)
+
+		# CURRENT DIRECTORY
+		if "pwd" in command_lower or "current directory" in command_lower:
+			return 'python -c "import os; print(os.getcwd())"'
+
+		# LIST FILES GENERIC
+		if command_lower.strip() in ["ls", "dir"]:
+			return 'python -c "import os; print(\'\\n\'.join(os.listdir()))"'
+
+		# FALLBACK (no change)
+		return command
+
 	def _build_command_invocation(self, command: str):
 		# Use simple shlex splitting for both POSIX and Windows. Do not
 		# introduce a cmd.exe fallback here — callers (CLI) that need shell
 		# semantics should invoke the appropriate high-level handler.
+		command = command.strip()
+		command_lower = command.lower()
+
+		# FIX: preserve inline interpreters (avoid shlex breaking quotes/newlines)
+		try:
+			if command_lower.startswith("python -c"):
+				parts = command.split(" ", 2)
+				if len(parts) < 3:
+					raise ValueError("Invalid python -c format")
+				first, second, rest = parts
+				if (rest.startswith('"') and rest.endswith('"')) or (rest.startswith("'") and rest.endswith("'")):
+					rest = rest[1:-1]
+				return [first, second, rest]
+
+			if command_lower.startswith("node -e"):
+				parts = command.split(" ", 2)
+				if len(parts) < 3:
+					raise ValueError("Invalid node -e format")
+				first, second, rest = parts
+				if (rest.startswith('"') and rest.endswith('"')) or (rest.startswith("'") and rest.endswith("'")):
+					rest = rest[1:-1]
+				return [first, second, rest]
+
+			if command_lower.startswith("bash -c"):
+				parts = command.split(" ", 2)
+				if len(parts) < 3:
+					raise ValueError("Invalid bash -c format")
+				first, second, rest = parts
+				if (rest.startswith('"') and rest.endswith('"')) or (rest.startswith("'") and rest.endswith("'")):
+					rest = rest[1:-1]
+				return [first, second, rest]
+		except Exception as e:
+			raise ValueError(f"Invalid inline command format: {command}") from e
+
 		if os.name != "nt":
 			try:
 				parts = shlex.split(command)
@@ -162,8 +226,8 @@ class CodeInterpreter:
 				parts = shlex.split(command, posix=False)
 				if not parts:
 					raise ValueError("Empty command")
-				# Disallow obvious shell operators on Windows to encourage explicit shell use.
-				if any(op in command for op in ["&", "|", "&&"]):
+				# Disallow obvious shell operators on Windows to enforce safe execution.
+				if any(op in command for op in ["&", "|", "&&", ">", "<"]):
 					raise ValueError("Shell operators not allowed")
 				return parts
 			except Exception as e:
@@ -199,8 +263,23 @@ class CodeInterpreter:
 				if pat in lower_script:
 					return None, f"Blocked dangerous command: {pat}"
 
-			if shell == "bash":
-				# If the script looks like a multi-line script, write to temp file
+			# ✅ NEW: Detect Python scripts and run with Python instead of shell
+			if shell == "python":
+				fd, temp_script_path = tempfile.mkstemp(prefix="ci_py_", suffix=".py", dir=safe_dir)
+				with os.fdopen(fd, "wb") as fh:
+					fh.write(script.encode())
+					fh.flush()
+
+				args = ["python", temp_script_path]
+
+				if os.name != "nt":
+					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
+				else:
+					process = subprocess.Popen(args, **popen_kwargs)
+
+				stdout_val, stderr_val = process.communicate(timeout=timeout)
+
+			elif shell == "bash":
 				if "\n" in script or script.strip().startswith("#!") or any(ch in script for ch in ['|', '>', '<', ';', '&', '$', '`']):
 					fd, temp_script_path = tempfile.mkstemp(prefix="ci_script_", suffix=".sh", dir=safe_dir)
 					with os.fdopen(fd, "wb") as fh:
@@ -212,21 +291,42 @@ class CodeInterpreter:
 					else:
 						args = ["bash", temp_script_path]
 				else:
-					# Treat as a simple command and split safely (no shell interpretation)
 					args = shlex.split(script)
-				# Launch the process
+
 				if os.name != "nt":
 					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
 				else:
 					process = subprocess.Popen(args, **popen_kwargs)
+
 				stdout_val, stderr_val = process.communicate(timeout=timeout)
 
 			elif shell == "powershell":
-				args = ["powershell", "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script]
+
+				popen_kwargs["env"] = os.environ.copy()
+
+				pwsh = shutil.which("pwsh") or "powershell"
+
+				fd, temp_script_path = tempfile.mkstemp(
+					prefix="ci_ps_", suffix=".ps1", dir=safe_dir
+				)
+				with os.fdopen(fd, "wb") as fh:
+					fh.write(script.encode())
+					fh.flush()
+
+				args = [
+					pwsh,
+					"-NoLogo",
+					"-NoProfile",
+					"-NonInteractive",
+					"-ExecutionPolicy", "Bypass",
+					"-File", temp_script_path
+				]
+
 				if os.name != "nt":
 					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
 				else:
 					process = subprocess.Popen(args, **popen_kwargs)
+
 				stdout_val, stderr_val = process.communicate(timeout=timeout)
 
 			elif shell == "applescript":
@@ -240,82 +340,28 @@ class CodeInterpreter:
 			else:
 				stderr_decoded = f"Invalid shell selected: {shell}"
 				return (None, stderr_decoded)
+			# Decode outputs
+			stdout_decoded = stdout_val.decode(errors="ignore") if stdout_val else ""
+			stderr_decoded = stderr_val.decode(errors="ignore") if stderr_val else ""
 
-			# Decode and truncate outputs
-			stdout_decoded = stdout_val.decode('utf-8', errors='replace') if stdout_val else None
-			stderr_decoded = stderr_val.decode('utf-8', errors='replace') if isinstance(stderr_val, bytes) else (str(stderr_val) if stderr_val else None)
-			if stdout_decoded and len(stdout_decoded) > MAX_OUTPUT:
-				stdout_decoded = stdout_decoded[:MAX_OUTPUT]
-			if stderr_decoded and len(stderr_decoded) > MAX_OUTPUT:
-				stderr_decoded = stderr_decoded[:MAX_OUTPUT]
-			if self.logger:
-				self.logger.info(f"Output is {stdout_decoded} and error is {stderr_decoded}")
-			if process and process.returncode != 0:
-				if self.logger:
-					self.logger.info(f"Error in running {shell} script: {stderr_decoded}")
+			return stdout_decoded, stderr_decoded
+
 		except subprocess.TimeoutExpired:
-			# Attempt to kill the entire process group to avoid fork bombs.
 			if process:
-				try:
-					# Only attempt process-group operations on POSIX-like systems.
-					if os.name != "nt":
-						pgid = None
-						getpgid = getattr(os, "getpgid", None)
-						if callable(getpgid):
-							try:
-								pgid = getpgid(process.pid)
-							except Exception:
-								pgid = None
-						killpg = getattr(os, "killpg", None)
-						if callable(killpg):
-							try:
-								target = pgid if pgid is not None else process.pid
-								killpg(target, signal.SIGKILL)
-							except Exception:
-								# Fall back to killing the single process if group kill fails
-								try:
-									process.kill()
-								except Exception:
-									pass
-						else:
-							try:
-								process.kill()
-							except Exception:
-								pass
-					else:
-						# Windows: kill the process directly
-						try:
-							process.kill()
-						except Exception:
-							pass
-				except Exception:
-					# Swallow any exceptions during cleanup attempts
-					pass
-				# Ensure we try to drain any remaining output from the process.
-				try:
-					process.communicate()
-				except Exception:
-					pass
-				return (None, "Execution timed out.")
-		except Exception as exception:
-			if self.logger:
-				self.logger.error(f"Exception in running {shell} script: {str(exception)}")
-			stderr_decoded = str(exception)
-			return (None, stderr_decoded)
+				process.kill()
+			return None, "Execution timed out."
+
+		except Exception as e:
+			return None, str(e)
+
 		finally:
-			# Cleanup temp script and sandbox dir
+			# Cleanup temp script if created
 			try:
 				if temp_script_path and os.path.exists(temp_script_path):
 					os.remove(temp_script_path)
 			except Exception:
 				pass
-			try:
-				if safe_dir and os.path.exists(safe_dir):
-					shutil.rmtree(safe_dir)
-			except Exception:
-				pass
-		return (stdout_decoded.strip() if stdout_decoded else None, stderr_decoded.strip() if stderr_decoded else None)
-		
+
 	def _check_compilers(self, language):
 		try:
 			language = language.lower().strip()
@@ -510,7 +556,7 @@ class CodeInterpreter:
 			elif 'linux' in os_type.lower():
 				output, error = self._execute_script(script, shell='bash', sandbox_context=sandbox_context)
 			elif 'windows' in os_type.lower():
-				output, error = self._execute_script(script, shell='powershell', sandbox_context=sandbox_context)
+				output, error = self._execute_script(script, shell='python', sandbox_context=sandbox_context)
 			else:
 				raise ValueError(f"Invalid OS type '{os_type}'. Please provide 'macos', 'linux', or 'windows'.")
 
@@ -551,6 +597,7 @@ class CodeInterpreter:
 			base_kwargs["cwd"] = safe_dir
 			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
 
+			command = self._normalize_command(command)
 			args = self._build_command_invocation(command)
 			process = None
 			try:

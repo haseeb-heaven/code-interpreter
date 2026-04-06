@@ -487,50 +487,80 @@ class Interpreter:
 				self.system_message
 				+ "\nReturn exactly one executable code block."
 				+ "\nDo not include explanations, comments, docstrings, markdown headings, or text outside the code block."
-				+ "\nDo not add unrelated files, tables, charts, dataframes, package installs, subprocess calls, or network requests unless the user explicitly asks for them."
+				+ "\nDo not use subprocess, os.system, or any shell execution."
+				+ "\nOnly create tables, charts, plots, files, or visual outputs IF explicitly required."
+				+ "\nIf not explicitly requested, do NOT generate them."
 			)
 			assistant_message = (
 				f"Return only executable {self.INTERPRETER_LANGUAGE} code wrapped in triple backticks."
 				f" No explanations. No comments. No text outside the code block."
-				f" Do not add extra libraries or side effects unless required by the task."
+				f" Do not use subprocess, os.system, or shell execution."
 			)
+
 		elif self.SCRIPT_MODE:
 			system_message = (
-				"Please generate a well-written script that is precise, easy to understand, and compatible with the current operating system."
-				"\nReturn exactly one executable code block with no explanations or extra text."
+				"Generate a Python script only."
+				"\nSTRICT RULES:"
+				"\n- Do NOT use bash, sh, cmd, or powershell"
+				"\n- Do NOT use subprocess, os.system, or shell execution"
+				"\n- Script must be fully self-contained and executable"
+				"\n- Return exactly one code block with no explanations"
 			)
-			assistant_message = "Return only the script wrapped in triple backticks. No explanations or comments."
+			assistant_message = (
+				"Return only Python script inside triple backticks."
+				" No explanations. No comments outside code."
+			)
+
 		elif self.COMMAND_MODE:
 			system_message = (
-				"Please generate a single line command that is precise, easy to understand, and compatible with the current operating system."
-				"\nReturn only the command with no explanations or extra text."
+				"Generate only a single executable command."
+				"\nSTRICT RULES:"
+				"\n- Do NOT use shell built-in commands (dir, ls, cd, copy, del, Get-ChildItem)"
+				"\n- Do NOT use cmd, powershell, bash, or shell syntax"
+				"\n- Do NOT use &&, ||, |, ;, >, <, $, or chaining"
+				"\n- Always use python -c for filesystem or logic tasks"
+				"\n- Command must be directly executable without shell"
 			)
-			assistant_message = "Return only the command wrapped in triple backticks. No explanations."
+			assistant_message = (
+				"Return only a single-line executable command."
+				" Do NOT return a code block."
+				" Do NOT use triple backticks."
+				" No explanations. No extra text."
+			)
+
 		elif self.VISION_MODE:
-			system_message = "Please generate a well-written description of the image that is precise, easy to understand"
-			return system_message
+			system_message = (
+				"Please generate a well-written description of the image that is precise, easy to understand"
+			)
+			assistant_message = (
+				"Return only the description. No code. No formatting. No markdown."
+			)
+
 		elif self.CHAT_MODE:
 			system_message = "Please generate a well-written response that is precise, easy to understand"
+			assistant_message = "Return a clear and helpful response."
 			
-			# Add the chat history to the prompt
-			if chat_history or len(chat_history) > 0:
-				system_message += "\n\n" + "\n\n" + "This is user chat history for this task and make sure to use this as reference to generate the answer if user asks for 'History' or 'Chat History'.\n\n" + "\n\n" + str(chat_history) + "\n\n"
-		
-		# Use the Messages API from Anthropic.
+			if chat_history and len(chat_history) > 0:
+				system_message += (
+					"\n\nThis is user chat history. Use it as context if needed:\n\n"
+					+ str(chat_history)
+				)
+
+		# If using Claude (Anthropic), format message as structured content list (no system/assistant roles supported)
 		if 'claude' in self.INTERPRETER_MODEL:
 			messages = [
-					{
-						"role": "user",
-						"content": [
-							{
-								"type": "text",
-								"text": message
-							}
-						]
-					}
-				]
-
-		# Use the Assistants API.
+				{
+					"role": "user",
+					"content": [
+						{
+							"type": "text",
+							"text": message
+						}
+					]
+				}
+			]
+			
+		# Otherwise, use standard chat format with system + assistant + user messages (OpenAI-style)
 		else:
 			messages = [
 				{"role": "system", "content": system_message},
@@ -539,7 +569,7 @@ class Interpreter:
 			]
 		
 		return messages
-	
+
 	def execute_last_code(self, os_name):
 		try:
 			code_file, code_snippet = self.utility_manager.get_output_history(mode=self.INTERPRETER_MODE, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
@@ -742,7 +772,9 @@ class Interpreter:
 			"Return exactly one fenced code block and nothing else.\n"
 			"Do not include explanations, comments, docstrings, markdown prose, or usage notes.\n"
 			"Use production-ready syntax with correct indentation and imports.\n"
-			"Do not create tables, dataframes, plots, files, package installers, subprocess calls, or network requests unless the task explicitly requires them.\n"
+			"Do not use subprocess, os.system, or any shell execution.\n"
+			"Only create tables, charts, plots, files, or visual outputs IF the task explicitly requires them.\n"
+			"If the task does NOT explicitly request tables, charts, plots, or files, do NOT generate them.\n"
 			"If the task only asks to print, list, or show something, generate only the few lines needed to do that exact action.\n"
 			"Handle common filesystem and permission errors safely when relevant.\n"
 			"If multiple solutions exist, choose the most direct working solution."
@@ -750,27 +782,22 @@ class Interpreter:
 		return prompt
 
 	def get_script_prompt(self,  task, os_name):
-		os_name_lower = os_name.lower()
 
-		# Combined dictionary for both language mapping and script type
-		language_map = {
-			'darwin': ('applescript', 'AppleScript'),
-			'linux': ('bash', 'Bash Shell script'),
-			'windows': ('powershell', 'Powershell script')
-		}
-
-		# Find matching language and script type or default to Python
-		self.INTERPRETER_LANGUAGE, script_type = next(
-			(lang, stype) for key, (lang, stype) in language_map.items() if key in os_name_lower
-		) if any(key in os_name_lower for key in language_map) else ('python', 'script')
+		# Force Python for safety and consistency
+		self.INTERPRETER_LANGUAGE = 'python'
+		script_type = 'Python script'
 
 		prompt = (
 			f"Generate only the {script_type} for this task:\n"
 			f"Task: '{task}'\n"
 			f"Operating System: {os_name}\n"
-			"NOTE: Ensure the script is compatible with the specified OS and version.\n"
+			"NOTE: Script must be fully self-contained and executable without any shell usage.\n"
+			"Do NOT use bash, sh, cmd, or powershell.\n"
+			"Do NOT use subprocess, os.system, or shell invocation.\n"
+			"Only generate tables, charts, plots, or files IF explicitly required by the task.\n"
+			"Do not generate unnecessary outputs or extra files.\n"
 			"Output should only contain the script, with no additional text.\n"
-			"Do not add unrelated package installs, files, or cleanup commands unless the task requires them."
+			"Do not add unrelated package installs or extra logic unless required."
 		)
 
 		self.logger.info(f"Script Prompt: {prompt}")
@@ -778,12 +805,14 @@ class Interpreter:
 
 	def get_command_prompt(self,  task, os_name):
 		prompt = (
-			f"Generate only the single terminal command for this task:\n"
+			f"Generate only the single executable command for this task:\n"
 			f"Task: '{task}'\n"
 			f"Operating System: {os_name}\n"
-			"NOTE: Ensure the command is compatible with the specified OS and version.\n"
-			"Output should only contain the command, with no additional text.\n"
-			"Choose the simplest safe built-in command and do not add unrelated chaining or file generation."
+			"IMPORTANT: Do NOT use shell built-in commands (dir, cd, copy, del, Get-ChildItem).\n"
+			"Instead, generate a python -c command to perform the task.\n"
+			"The command must be directly executable without shell.\n"
+			"Do not use &&, ||, |, ;, >, <, $, or chaining.\n"
+			"Output only the command, nothing else."
 		)
 		self.logger.info("Command Prompt: {prompt}")
 		return prompt
