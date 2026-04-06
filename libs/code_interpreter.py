@@ -8,6 +8,7 @@ It includes features like:
 - Checking for compilers
 """
 
+import ast
 import os
 import re
 import subprocess
@@ -29,11 +30,7 @@ MAX_OUTPUT = 10_000_000  # 10 MB
 MAX_TIMEOUT = 120  # 2 minutes
 
 def _limit_resources():
-	"""Apply basic resource limits in the child process (Unix only).
-
-	This function is safe to call on any platform — it will no-op when
-	the `resource` module is unavailable (Windows).
-	"""
+	"""Apply basic resource limits in the child process (Unix only)."""
 	if resource is None:
 		return
 	try:
@@ -45,10 +42,8 @@ def _limit_resources():
 		try:
 			resource.setrlimit(resource.RLIMIT_NPROC, (50, 50))
 		except Exception:
-			# Some platforms may not support RLIMIT_NPROC
 			pass
 	except Exception:
-		# Be resilient: don't let resource limit failures crash the child setup
 		pass
 
 # Common GitHub-flavored markdown fence language tags; first line after ``` is stripped when it matches.
@@ -64,13 +59,20 @@ _FENCE_LANGUAGE_TAGS = frozenset({
 	"zsh", "wasm", "llvm", "hcl", "terraform", "tf",
 })
 
-# Python-specific keywords/patterns used to detect Python code in execute_script
-_PYTHON_CODE_PATTERNS = re.compile(
-	r'^\s*(import\s+\w|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+[\s:(]'
-	r'|print\s*\(|for\s+\w+\s+in\s|if\s+\w|while\s+\w|with\s+\w|try\s*:'
-	r'|except\s|raise\s|return\s|yield\s|async\s+def\s|lambda\s)',
-	re.MULTILINE,
-)
+
+def _is_python_code(script: str) -> bool:
+	"""Return True if *script* is valid Python, by attempting ast.parse().
+
+	This replaces the old regex heuristic (_PYTHON_CODE_PATTERNS) which
+	false-positived on bash constructs like 'for x in *.txt; do ... done'
+	and 'while true; do ... done', routing valid shell scripts to the
+	Python executor where they die with SyntaxError.
+	"""
+	try:
+		ast.parse(script)
+		return True
+	except SyntaxError:
+		return False
 
 
 def _strip_leading_fence_language_line(extracted: str) -> str:
@@ -115,8 +117,6 @@ class CodeInterpreter:
 		self.UNSAFE_EXECUTION = self.safety_manager.unsafe_mode if self.safety_manager else False
 
 	def _get_subprocess_security_kwargs(self, sandbox_context=None):
-		# If no sandbox_context was provided, preserve that by returning
-		# explicit None for `cwd` and `env`. Tests rely on this behavior.
 		if sandbox_context is None:
 			kwargs = {"cwd": None, "env": None}
 			if os.name == "nt":
@@ -128,14 +128,7 @@ class CodeInterpreter:
 				kwargs["start_new_session"] = True
 			return kwargs
 
-		# When a sandbox_context object is provided, respect explicit values
-		# (including explicit None). If the context provides an `env` dict,
-		# whitelist only a minimal set of environment variables to avoid
-		# leaking sensitive host env values into subprocesses.
 		cwd = getattr(sandbox_context, "cwd", None)
-		# Only build a safe env if the sandbox explicitly provides an `env`
-		# attribute. If `env` is absent on the context, return None so callers
-		# can detect that no env override was requested.
 		allowed_keys = {"PATH", "HOME", "LANG"}
 		if hasattr(sandbox_context, "env"):
 			provided_env = getattr(sandbox_context, "env")
@@ -143,8 +136,6 @@ class CodeInterpreter:
 				default_env = {"PATH": os.environ.get("PATH", ""), "HOME": os.environ.get("USERPROFILE", ""), "LANG": os.environ.get("LANG", "C")}
 			else:
 				default_env = {"PATH": "/usr/bin:/bin", "HOME": tempfile.gettempdir(), "LANG": "C"}
-			# Start from a safe baseline and selectively copy allowed keys from the
-			# provided environment (if any).
 			safe_env = default_env.copy()
 			if isinstance(provided_env, dict):
 				for k in allowed_keys:
@@ -152,8 +143,6 @@ class CodeInterpreter:
 						safe_env[k] = provided_env[k]
 				env = safe_env
 			else:
-				# Propagate explicit None or non-dict values as-is (so callers can
-				# explicitly request no environment override by setting env=None).
 				env = provided_env
 		else:
 			env = None
@@ -198,13 +187,9 @@ class CodeInterpreter:
 		return command
 
 	def _build_command_invocation(self, command: str):
-		# Use simple shlex splitting for both POSIX and Windows. Do not
-		# introduce a cmd.exe fallback here — callers (CLI) that need shell
-		# semantics should invoke the appropriate high-level handler.
 		command = command.strip()
 		command_lower = command.lower()
 
-		# FIX: preserve inline interpreters (avoid shlex breaking quotes/newlines)
 		try:
 			if command_lower.startswith("python -c"):
 				parts = command.split(" ", 2)
@@ -240,19 +225,14 @@ class CodeInterpreter:
 				parts = shlex.split(command, posix=False)
 				if not parts:
 					raise ValueError("Empty command")
-				# Disallow obvious shell operators on Windows to enforce safe execution.
 				if any(op in command for op in ["&", "|", "&&", ">", "<"]):
 					raise ValueError("Shell operators not allowed")
 				return parts
 			except Exception as e:
 				raise ValueError(f"Invalid command format: {command}") from e
-	
-	def _execute_script(self, script: str, shell: str, sandbox_context=None):
-		"""Execute a script in an isolated temp directory with basic resource limits.
 
-		This function avoids invoking a shell with "-lc". For multi-line script
-		bodies we write a temporary script file and execute the interpreter on it.
-		"""
+	def _execute_script(self, script: str, shell: str, sandbox_context=None):
+		"""Execute a script in an isolated temp directory with basic resource limits."""
 		stdout_decoded = stderr_decoded = None
 		process = None
 		safe_dir = None
@@ -262,11 +242,9 @@ class CodeInterpreter:
 			base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
 			popen_kwargs.update(base_kwargs)
 
-			# Create an isolated temp dir per execution
 			safe_dir = sandbox_context.cwd if sandbox_context else tempfile.mkdtemp(prefix="ci_sandbox_")
 			popen_kwargs["cwd"] = safe_dir
 
-			# posix-only preexec to limit resources
 			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
 			timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
 
@@ -275,7 +253,6 @@ class CodeInterpreter:
 			if not self.safety_manager.unsafe_mode and not decision.allowed:
 				return None, f"Safety blocked: {'; '.join(decision.reasons)}"
 
-			#  NEW: Detect Python scripts and run with Python instead of shell
 			if shell == "python":
 				fd, temp_script_path = tempfile.mkstemp(prefix="ci_py_", suffix=".py", dir=safe_dir)
 				with os.fdopen(fd, "wb") as fh:
@@ -317,7 +294,6 @@ class CodeInterpreter:
 				try:
 					stdout_val, stderr_val = process.communicate(timeout=timeout)
 				except subprocess.TimeoutExpired:
-					# Bug #1 fix: kill entire process group, not just direct child
 					_kill_process_group(process)
 					process.communicate()
 					return None, "Execution timed out."
@@ -354,7 +330,6 @@ class CodeInterpreter:
 			return stdout_decoded, stderr_decoded
 
 		except subprocess.TimeoutExpired:
-			# Outer safety net — kill entire process group
 			if process:
 				_kill_process_group(process)
 				try:
@@ -367,14 +342,12 @@ class CodeInterpreter:
 			return None, str(e)
 
 		finally:
-			# remove temp script
 			try:
 				if temp_script_path and os.path.exists(temp_script_path):
 					os.remove(temp_script_path)
 			except Exception:
 				pass
 
-			# cleanup sandbox ONLY if we created it
 			if (sandbox_context is None) and safe_dir and os.path.exists(safe_dir):
 				shutil.rmtree(safe_dir, ignore_errors=True)
 
@@ -402,18 +375,17 @@ class CodeInterpreter:
 		except Exception as exception:
 			self.logger.error(f"Error occurred while checking compilers: {exception}")
 			raise Exception(f"Error occurred while checking compilers: {exception}")
-	
+
 	def save_code(self, filename='output/code_generated.py', code=None):
 		"""
 		Saves the provided code to a file.
 		The default filename is 'code_generated.py'.
 		"""
 		try:
-			# Check if the directory exists, if not create it
 			directory = os.path.dirname(filename)
 			if not os.path.exists(directory):
 				os.makedirs(directory)
-			
+
 			if not code:
 				self.logger.error("Code not provided.")
 				display_markdown_message("Error **Code not provided to save.**")
@@ -439,26 +411,22 @@ class CodeInterpreter:
 				display_markdown_message("Error: **No content were generated by the LLM.**")
 				return None
 
-			# Many legacy configs still specify single backticks, but modern providers
-			# usually return fenced triple-backtick blocks. Prefer triple fences when present.
 			if "```" in code and (start_sep == '`' or end_sep == '`'):
 				start_sep = "```"
 				end_sep = "```"
 
 			if start_sep in code and end_sep in code:
 				start = code.find(start_sep) + len(start_sep)
-				# Skip the newline character after the start separator
 				if start < len(code) and code[start] == '\n':
 					start += 1
-					
+
 				end = code.find(end_sep, start)
-				# Skip the newline character before the end separator
 				if end > start and code[end - 1] == '\n':
 					end -= 1
-					
+
 				extracted_code = code[start:end]
 				extracted_code = _strip_leading_fence_language_line(extracted_code)
-				
+
 				self.logger.info("Code extracted successfully.")
 				return extracted_code
 			else:
@@ -467,7 +435,7 @@ class CodeInterpreter:
 		except Exception as exception:
 			self.logger.error(f"Error occurred while extracting code: {exception}")
 			raise Exception(f"Error occurred while extracting code: {exception}")
-		  
+
 	def execute_code(self, code, language, sandbox_context=None):
 		# Run code in an isolated temp directory with resource limits and
 		# safe subprocess argv usage to avoid shell injection.
@@ -481,19 +449,16 @@ class CodeInterpreter:
 			self.logger.warning(f"Safety blocked: {reason_text}")
 			return None, f"Safety blocked: {reason_text}"
 
-		# Check for code and language validity
 		if not code or len(code.strip()) == 0:
 			return None, "Code is empty. Cannot execute an empty code."
 
-		# Check for compilers on the system
 		compilers_status = self._check_compilers(language)
 		if not compilers_status:
 			raise Exception("Compilers not found. Please install compilers on your system.")
 
 		base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
 		timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
-		
-		# Use sandbox if available, else fallback
+
 		if sandbox_context and sandbox_context.cwd:
 			safe_dir = sandbox_context.cwd
 		else:
@@ -515,7 +480,6 @@ class CodeInterpreter:
 				self.logger.info("Unsupported language.")
 				raise Exception("Unsupported language.")
 
-			# Launch the process with resource limits when supported
 			if os.name != "nt":
 				process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **base_kwargs, **posix_extra)
 			else:
@@ -528,7 +492,6 @@ class CodeInterpreter:
 				stdout_output = stdout_output[:MAX_OUTPUT]
 			if len(stderr_output) > MAX_OUTPUT:
 				stderr_output = stderr_output[:MAX_OUTPUT]
-			# Log by language
 			if language == "python":
 				self.logger.debug(f"Python Output execution: {stdout_output}, Errors: {stderr_output}")
 			else:
@@ -536,7 +499,6 @@ class CodeInterpreter:
 			return stdout_output, stderr_output
 		except subprocess.TimeoutExpired:
 			if process:
-				# Bug #1 fix: kill entire process group so grandchildren don't survive
 				_kill_process_group(process)
 				try:
 					process.communicate()
@@ -544,13 +506,12 @@ class CodeInterpreter:
 					pass
 			return None, "Execution timed out."
 		finally:
-			#  Only cleanup if we created it
 			if (sandbox_context is None) and safe_dir:
 				try:
 					shutil.rmtree(safe_dir, ignore_errors=True)
 				except Exception:
 					pass
-		
+
 	def execute_script(self, script: str, os_type: str = 'macos', sandbox_context=None):
 		output = error = None
 		try:
@@ -559,7 +520,6 @@ class CodeInterpreter:
 			if not os_type:
 				raise ValueError("OS type must be provided.")
 
-			# Check for dangerous patterns
 			decision = self.safety_manager.assess_execution(script, "script")
 			if not decision.allowed:
 				reason_text = "; ".join(decision.reasons)
@@ -571,15 +531,16 @@ class CodeInterpreter:
 			if re.search(r'(C:\\|/etc/|/usr/|/var/)', script):
 				return None, "Access to system paths is restricted."
 
-			# Bug #4 fix: detect Python code so it runs under Python, not bash,
-			# on macOS/Linux — otherwise valid LLM Python crashes with SyntaxError.
-			is_python_code = bool(_PYTHON_CODE_PATTERNS.search(script))
+			# Use ast.parse() to reliably detect Python code.
+			# The old regex heuristic (_PYTHON_CODE_PATTERNS) false-positived on
+			# bash constructs like 'for x in *.txt; do ... done'.
+			is_python = _is_python_code(script)
 
 			if 'darwin' in os_type.lower() or 'macos' in os_type.lower():
-				shell = 'python' if is_python_code else 'bash'
+				shell = 'python' if is_python else 'bash'
 				output, error = self._execute_script(script, shell=shell, sandbox_context=sandbox_context)
 			elif 'linux' in os_type.lower():
-				shell = 'python' if is_python_code else 'bash'
+				shell = 'python' if is_python else 'bash'
 				output, error = self._execute_script(script, shell=shell, sandbox_context=sandbox_context)
 			elif 'windows' in os_type.lower():
 				output, error = self._execute_script(script, shell='python', sandbox_context=sandbox_context)
@@ -591,13 +552,13 @@ class CodeInterpreter:
 
 			if error:
 				self.logger.error(f"Script executed with error: {error}...")
-		
+
 		except Exception as exception:
 			self.logger.error(f"Error in executing script: {traceback.format_exc()}")
 			error = str(exception)
 		finally:
 			return output, error
-		
+
 	def execute_command(self, command: str, sandbox_context=None):
 		try:
 			if not command:
@@ -643,7 +604,6 @@ class CodeInterpreter:
 				stdout_decoded = stdout.decode("utf-8", errors="ignore") if stdout else ""
 				stderr_decoded = stderr.decode("utf-8", errors="ignore") if stderr else ""
 
-				# Output size guard
 				if len(stdout_decoded) > MAX_OUTPUT:
 					stdout_decoded = stdout_decoded[:MAX_OUTPUT]
 				if len(stderr_decoded) > MAX_OUTPUT:
@@ -653,7 +613,12 @@ class CodeInterpreter:
 
 			except subprocess.TimeoutExpired:
 				if process:
-					process.kill()
+					# Fix: kill entire process group so session children don't survive
+					_kill_process_group(process)
+					try:
+						process.communicate()
+					except Exception:
+						pass
 				return None, "Execution timed out."
 
 		except Exception as e:
