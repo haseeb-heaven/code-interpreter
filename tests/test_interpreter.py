@@ -159,6 +159,55 @@ class TestInterpreter(unittest.TestCase):
         decision = safety_manager.assess_execution('rd /s /q "C:\\Users\\hasee\\Desktop"', "command")
         self.assertFalse(decision.allowed)
 
+    def test_safety_manager_blocks_os_remove_when_building_absolute_path(self):
+        safety_manager = ExecutionSafetyManager()
+        code = r"""
+import os
+for filename in os.listdir('D:\\Temp'):
+    if filename.endswith('.txt'):
+        os.remove(os.path.join('D:\\Temp', filename))
+"""
+        decision = safety_manager.assess_execution(code, "code")
+        self.assertFalse(decision.allowed)
+        self.assertTrue(any("Deleting absolute-path" in r for r in decision.reasons))
+
+    def test_safety_manager_allows_relative_file_delete(self):
+        safety_manager = ExecutionSafetyManager()
+        code = r"import os\nos.remove('temp.txt')"
+        decision = safety_manager.assess_execution(code, "code")
+        self.assertTrue(decision.allowed)
+
+    def test_safety_manager_blocks_absolute_path_del_command(self):
+        safety_manager = ExecutionSafetyManager()
+        decision = safety_manager.assess_execution(r"del D:\\Temp\\a.txt", "command")
+        self.assertFalse(decision.allowed)
+
+    def test_safety_manager_blocks_absolute_path_rm_command(self):
+        safety_manager = ExecutionSafetyManager()
+        decision = safety_manager.assess_execution(r"rm /tmp/a.txt", "command")
+        self.assertFalse(decision.allowed)
+
+    def test_safety_manager_blocks_js_unlink_on_absolute_path_join(self):
+        safety_manager = ExecutionSafetyManager()
+        code = r"""
+const fs = require('fs');
+const path = require('path');
+const directory = 'D:\\Temp';
+const files = fs.readdirSync(directory);
+for (const file of files) {
+  const filePath = path.join(directory, file);
+  fs.unlinkSync(filePath);
+}
+"""
+        decision = safety_manager.assess_execution(code, "code")
+        self.assertFalse(decision.allowed)
+
+    def test_safety_manager_allows_js_unlink_on_relative_path(self):
+        safety_manager = ExecutionSafetyManager()
+        code = r"const fs = require('fs');\nfs.unlinkSync('temp.txt');"
+        decision = safety_manager.assess_execution(code, "code")
+        self.assertTrue(decision.allowed)
+
     @patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
     @patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
     def test_simple_exact_print_task_is_simplified(self, _mock_history, _mock_client):

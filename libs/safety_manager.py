@@ -62,10 +62,13 @@ class ExecutionSafetyManager:
 
 	DANGEROUS_PATTERNS = [
 		(r"\brm\s+-rf\b", "Recursive deletion is blocked."),
+		(r"\brm\s+/", "Absolute-path deletion is blocked."),
 		(r"\bdel\s+/(?:f|q|s)", "Destructive delete command is blocked."),
+		(r"\bdel\s+[A-Za-z]:(?:\\\\|/)", "Absolute-path deletion is blocked."),
 		(r"\brmdir\s+/(?:s|q)", "Recursive directory removal is blocked."),
 		(r"\brd\s+/s\s+/q\b", "Recursive directory removal is blocked."),
 		(r"Remove-Item\s+.+-Recurse", "Recursive PowerShell deletion is blocked."),
+		(r"Remove-Item\s+[\"'](?:[A-Za-z]:\\\\|/)", "Deleting absolute-path items in PowerShell is blocked."),
 		(r"\bformat\s+[a-z]:", "Disk formatting is blocked."),
 		(r"\bmkfs\b", "Filesystem formatting is blocked."),
 		(r"\bshutdown\b", "System shutdown commands are blocked."),
@@ -75,8 +78,24 @@ class ExecutionSafetyManager:
 		(r"\bcipher\s+/w\b", "Secure wipe commands are blocked."),
 		(r"\bdiskpart\b", "Disk management commands are blocked."),
 		(r"shutil\.rmtree\s*\(", "Recursive directory deletion in code is blocked."),
+		# Block direct absolute-path deletes.
 		(r"os\.remove\s*\(\s*[\"'](?:[A-Za-z]:\\\\|/)", "Deleting absolute-path files is blocked."),
 		(r"os\.rmdir\s*\(\s*[\"'](?:[A-Za-z]:\\\\|/)", "Removing absolute-path directories is blocked."),
+		# Block absolute-path deletes when the path is constructed via os.path.join().
+		(r"os\.remove\s*\(\s*os\.path\.join\s*\(\s*[\"'](?:[A-Za-z]:\\\\|/)", "Deleting absolute-path files is blocked."),
+		(r"os\.rmdir\s*\(\s*os\.path\.join\s*\(\s*[\"'](?:[A-Za-z]:\\\\|/)", "Removing absolute-path directories is blocked."),
+		(r"shutil\.rmtree\s*\(\s*os\.path\.join\s*\(\s*[\"'](?:[A-Za-z]:\\\\|/)", "Recursive directory deletion in code is blocked."),
+		# Catch absolute-path string literals anywhere inside delete function calls.
+		(r"os\.remove\s*\(\s*[^)]*[\"'](?:[A-Za-z]:\\\\|/)", "Deleting absolute-path files is blocked."),
+		(r"os\.rmdir\s*\(\s*[^)]*[\"'](?:[A-Za-z]:\\\\|/)", "Removing absolute-path directories is blocked."),
+		# Node.js filesystem deletions on absolute paths:
+		# In practice we see patterns like:
+		#   const directory = 'D:\\Temp';
+		#   const filePath = path.join(directory, file);
+		#   fs.unlinkSync(filePath);
+		# The absolute path isn't inside unlinkSync(...), so we match both in the same script.
+		(r"(?s)(?=.*fs\.(?:unlinkSync|rmSync))(?=.*[`'\"][A-Za-z]:[\\\\/])", "Deleting absolute-path files is blocked."),
+		(r"(?s)(?=.*fs\.rmdirSync)(?=.*[`'\"][A-Za-z]:[\\\\/])", "Removing absolute-path directories is blocked."),
 		(r"subprocess\.(?:run|Popen)\s*\(.+(?:rm -rf|shutdown|format)", "Dangerous subprocess invocation is blocked."),
 	]
 
