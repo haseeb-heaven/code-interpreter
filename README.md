@@ -272,7 +272,6 @@ Here are the available commands:
 - 📜 `/log` - Toggle different modes of logging.
 - ⏫ `/upgrade` - Upgrade the interpreter.
 - 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
-- 💻 `/shell` - Access the shell.
 - 🐞 `/debug` - Toggle Debug mode for debugging.
 
 

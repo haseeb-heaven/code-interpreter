@@ -347,34 +347,45 @@ class Interpreter:
 				self.safety_manager.cleanup_sandbox_context(sandbox_context)
 
 	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, extracted_file_name, code_output=None):
-		circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)
-		current_snippet = code_snippet
-		current_error = code_error
-		current_output = code_output
+			circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)
+			current_snippet = code_snippet
+			current_error = code_error
+			current_output = code_output
 
-		while current_error and circuit_breaker.should_continue(current_error):
-			display_markdown_message(f"Repair attempt {circuit_breaker.attempts}/{circuit_breaker.max_attempts} after execution failure.")
-			repair_prompt = self._build_repair_prompt(task, prompt, current_snippet, current_error, os_name, code_output=current_output)
-			repaired_output = self._generate_content_with_retries(repair_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
-			repaired_snippet = self.code_interpreter.extract_code(repaired_output, start_sep, end_sep)
-			repaired_snippet = self._maybe_simplify_generated_code(task, repaired_snippet)
+			while current_error and circuit_breaker.should_continue(current_error):
+				display_markdown_message(f"Repair attempt {circuit_breaker.attempts}/{circuit_breaker.max_attempts} after execution failure.")
+				repair_prompt = self._build_repair_prompt(task, prompt, current_snippet, current_error, os_name, code_output=current_output)
+				repaired_output = self._generate_content_with_retries(repair_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
+				repaired_snippet = self.code_interpreter.extract_code(repaired_output, start_sep, end_sep)
+				repaired_snippet = self._maybe_simplify_generated_code(task, repaired_snippet)
 
-			if not repaired_snippet or repaired_snippet.strip() == current_snippet.strip():
-				break
+				if not repaired_snippet:
+					current_error = "Failed to extract repaired output from model response."
+					continue
 
-			current_snippet = repaired_snippet
-			display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
-			display_code(current_snippet, language=display_language)
-			current_output, current_error = self._execute_generated_output(current_snippet, os_name, force_execute=True)
+				if repaired_snippet.strip() == current_snippet.strip():
+					current_output, current_error = self._execute_generated_output(repaired_snippet, os_name, force_execute=False)
+					if current_output:
+						return repaired_snippet, current_output, current_error
+					if not current_error:
+						return repaired_snippet, current_output, None
+					if current_error.startswith("Safety blocked:"):
+						return repaired_snippet, current_output, current_error
+					break
 
-			if current_output:
-				return current_snippet, current_output, current_error
-			if not current_error:
-				return current_snippet, current_output, None
-			if current_error.startswith("Safety blocked:"):
-				break
+				current_snippet = repaired_snippet
+				display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
+				display_code(current_snippet, language=display_language)
+				current_output, current_error = self._execute_generated_output(current_snippet, os_name, force_execute=False)
 
-		return current_snippet, current_output, current_error
+				if current_output:
+					return current_snippet, current_output, current_error
+				if not current_error:
+					return current_snippet, current_output, None
+				if current_error.startswith("Safety blocked:"):
+					return current_snippet, current_output, current_error
+
+			return current_snippet, current_output, current_error
 
 	def _safe_input(self, prompt_text, default=None):
 		try:
@@ -968,18 +979,10 @@ class Interpreter:
 					display_markdown_message(f"History is {'enabled' if self.INTERPRETER_HISTORY else 'disabled'}")
 					continue
 				
-				# SHELL - Command section.
-				elif any(command in task.lower() for command in ['/shell ']):
-					shell_command = shlex.split(task)[1:]
-					shell_command = ' '.join(shell_command)
-					shell_output, shell_error = self.code_interpreter.execute_command(shell_command)
-					if shell_output:
-						self.logger.info("Shell command executed successfully.")
-						display_code(shell_output)
-						self.logger.info(f"Output: {shell_output[:100]}")
-					elif shell_error:
-						self.logger.info("Shell command executed with error.")
-						display_markdown_message(f"Error: {shell_error}")
+				# SHELL - Command removed for security reasons.
+				elif task.lower().startswith('/shell'):
+					# The /shell feature has been intentionally removed. Inform the user.
+					display_markdown_message("The '/shell' command has been removed for security reasons.")
 					continue
 
 				# LOG - Command section.

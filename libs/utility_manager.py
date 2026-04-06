@@ -254,34 +254,31 @@ class UtilityManager:
 			raise
 
 	def display_help(self):
-		display_markdown_message("Interpreter\n\
-				\n\
-				Startup flags:\n\
-				\n\
-				--cli - Launch the classic prompt-based CLI.\n\
-				--tui - Launch the selector-based terminal UI.\n\
-				\n\
-				Commands available:\n\
-				\n\
-				/exit - Exit the interpreter.\n\
-				/execute - Execute the last code generated.\n\
-				/install - Install a package from npm or pip.\n\
-				/save - Save the last code generated.\n\
-				/edit - Edit the last code generated.\n\
-				/fix - Fix the last code generated.\n\
-				/mode - Change the mode of interpreter.\n\
-				/model - Change the model for interpreter.\n\
-				/language - Change the language of the interpreter.\n\
-				/history - Use history as memory.\n\
-				/clear - Clear the screen.\n\
-				/help - Display this help message.\n\
-				/list - List the available models.\n\
-				/version - Display the version of the interpreter.\n\
-				/debug - Switch between debug and silent mode.\n\
-				/prompt - Switch input prompt mode between file and prompt.\n\
-				/upgrade - Upgrade the interpreter.\n\
-				/shell - Access the shell.\n")
-	
+		msg = (
+			"Interpreter\n\n"
+			"Startup flags:\n\n"
+			"--cli - Launch the classic prompt-based CLI.\n"
+			"--tui - Launch the selector-based terminal UI.\n\n"
+			"Commands available:\n\n"
+			"/exit - Exit the interpreter.\n"
+			"/execute - Execute the last code generated.\n"
+			"/install - Install a package from npm or pip.\n"
+			"/save - Save the last code generated.\n"
+			"/edit - Edit the last code generated.\n"
+			"/fix - Fix the last code generated.\n"
+			"/mode - Change the mode of interpreter.\n"
+			"/model - Change the model for interpreter.\n"
+			"/language - Change the language of the interpreter.\n"
+			"/history - Use history as memory.\n"
+			"/clear - Clear the screen.\n"
+			"/help - Display this help message.\n"
+			"/list - List the available models.\n"
+			"/version - Display the version of the interpreter.\n"
+			"/debug - Switch between debug and silent mode.\n"
+			"/prompt - Switch input prompt mode between file and prompt.\n"
+			"/upgrade - Upgrade the interpreter.\n"
+		)
+		display_markdown_message(msg)
 	def display_version(self, version):
 		display_markdown_message(f"Interpreter - v{version}")
 
