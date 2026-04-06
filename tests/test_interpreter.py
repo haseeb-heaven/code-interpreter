@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from argparse import Namespace
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import interpreter as interpreter_entry
 from interpreter import Interpreter
@@ -480,6 +480,254 @@ for (const file of files) {
         interpreter = Interpreter(self._make_args(mode="code", model="z-ai-glm-5"))
         result = interpreter.execute_code("print('OK')", "Windows 10")
         self.assertEqual(result, (None, None))
+
+
+class TestDangerousCommandSafetyPatterns(unittest.TestCase):
+    """
+    Tests for dangerous command detection in command mode.
+    Covers the exact pattern from the reported issue:
+      del "D:\\Temp\\*.txt"
+    as well as related quoted-path and wildcard variants.
+    """
+
+    def setUp(self):
+        self.safety_manager = ExecutionSafetyManager()
+
+    # ── Quoted wildcard del (the original failing case) ────────────────────
+
+    def test_blocks_quoted_wildcard_del_double_quote(self):
+        """del \"D:\\Temp\\*.txt\" must be blocked (quoted absolute path with wildcard)."""
+        decision = self.safety_manager.assess_execution(
+            'del "D:\\Temp\\*.txt"', "command"
+        )
+        self.assertFalse(decision.allowed)
+        self.assertTrue(
+            any("Absolute-path deletion" in r or "deletion is blocked" in r.lower() for r in decision.reasons),
+            f"Expected absolute-path deletion reason, got: {decision.reasons}",
+        )
+
+    def test_blocks_quoted_wildcard_del_single_quote(self):
+        """del 'D:\\Temp\\*.txt' must be blocked."""
+        decision = self.safety_manager.assess_execution(
+            "del 'D:\\Temp\\*.txt'", "command"
+        )
+        self.assertFalse(decision.allowed)
+
+    def test_blocks_quoted_del_specific_txt_file(self):
+        """del \"D:\\Temp\\notes.txt\" — single quoted file, absolute path."""
+        decision = self.safety_manager.assess_execution(
+            'del "D:\\Temp\\notes.txt"', "command"
+        )
+        self.assertFalse(decision.allowed)
+
+    def test_blocks_quoted_del_forward_slash_path(self):
+        """del \"C:/Users/temp/*.log\" — forward-slash absolute path inside quotes."""
+        decision = self.safety_manager.assess_execution(
+            'del "C:/Users/temp/*.log"', "command"
+        )
+        self.assertFalse(decision.allowed)
+
+    def test_blocks_unquoted_wildcard_del_backslash(self):
+        """del D:\\Temp\\*.txt — unquoted absolute-path wildcard del."""
+        decision = self.safety_manager.assess_execution(
+            "del D:\\Temp\\*.txt", "command"
+        )
+        self.assertFalse(decision.allowed)
+
+    def test_allows_relative_del_command(self):
+        """del *.txt — relative path, no drive letter; should be allowed."""
+        decision = self.safety_manager.assess_execution("del *.txt", "command")
+        self.assertTrue(
+            decision.allowed,
+            f"Relative del should be allowed but got reasons: {decision.reasons}",
+        )
+
+    def test_allows_del_without_path(self):
+        """del notes.txt — no path component at all; should be allowed."""
+        decision = self.safety_manager.assess_execution("del notes.txt", "command")
+        self.assertTrue(
+            decision.allowed,
+            f"Plain filename del should be allowed but got reasons: {decision.reasons}",
+        )
+
+    def test_blocks_del_with_force_flag(self):
+        """del /f file.txt — force-delete flag is blocked regardless of path."""
+        decision = self.safety_manager.assess_execution("del /f file.txt", "command")
+        self.assertFalse(decision.allowed)
+
+    def test_blocks_del_with_quiet_flag(self):
+        """del /q file.txt — quiet-delete flag is blocked."""
+        decision = self.safety_manager.assess_execution("del /q file.txt", "command")
+        self.assertFalse(decision.allowed)
+
+
+class TestDangerousCommandRepairLoop(unittest.TestCase):
+    """
+    Tests that verify the _attempt_repair_after_failure loop correctly handles
+    the case where the LLM (mocked) responds with another dangerous command.
+
+    Scenario (mirrors the reported bug):
+      - Mode: command
+      - Task: 'remove all text files from D:\\Temp'
+      - First LLM response: del "D:\\Temp\\*.txt"   → safety-blocked
+      - Repair prompt sent back to LLM
+      - Second LLM response: del "D:\\Temp\\*.txt"  → still dangerous
+      - The repair loop MUST stop and surface a safety-blocked error,
+        NOT execute the dangerous command.
+    """
+
+    def _make_command_interpreter(self):
+        with patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None), \
+             patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None):
+            args = Namespace(
+                exec=True,
+                save_code=False,
+                mode="command",
+                model="z-ai-glm-5",
+                display_code=False,
+                lang="python",
+                file=None,
+                history=False,
+                upgrade=False,
+                unsafe=False,
+            )
+            interp = Interpreter(args)
+        interp.config_values = {"start_sep": "```", "end_sep": "```"}
+        return interp
+
+    # ── Core test: repair loop must halt on persistent dangerous command ───
+
+    @patch("libs.interpreter_lib.display_markdown_message")
+    @patch("libs.interpreter_lib.display_code")
+    def test_repair_loop_halts_when_llm_keeps_returning_dangerous_command(
+        self, _mock_display_code, _mock_markdown
+    ):
+        """
+        When every LLM repair response is still a dangerous command,
+        _attempt_repair_after_failure must stop after MAX_REPAIR_ATTEMPTS
+        and return a safety-blocked error without executing anything.
+        """
+        interp = self._make_command_interpreter()
+
+        dangerous_cmd = 'del "D:\\Temp\\*.txt"'
+        # LLM always returns the same dangerous command regardless of repair prompt
+        dangerous_llm_response = f"```\n{dangerous_cmd}\n```"
+
+        with patch.object(
+            interp, "_generate_content_with_retries", return_value=dangerous_llm_response
+        ) as mock_generate:
+            snippet, output, error = interp._attempt_repair_after_failure(
+                task="remove all text files from D:\\Temp",
+                prompt="remove all text files from D:\\Temp",
+                code_snippet=dangerous_cmd,
+                code_error="The filename, directory name, or volume label syntax is incorrect.",
+                os_name="Windows 10",
+                start_sep="```",
+                end_sep="```",
+                extracted_file_name=None,
+            )
+
+        # The repair loop should have attempted at most MAX_REPAIR_ATTEMPTS
+        self.assertLessEqual(mock_generate.call_count, interp.MAX_REPAIR_ATTEMPTS)
+        # The returned error must contain the safety-blocked marker
+        self.assertIsNotNone(error)
+        self.assertIn("Safety blocked", error)
+
+    @patch("libs.interpreter_lib.display_markdown_message")
+    @patch("libs.interpreter_lib.display_code")
+    def test_repair_loop_does_not_execute_dangerous_repaired_command(
+        self, _mock_display_code, _mock_markdown
+    ):
+        """
+        _execute_generated_output must NOT be called with the dangerous
+        command even after the LLM supplies it during repair.
+        """
+        interp = self._make_command_interpreter()
+
+        dangerous_cmd = 'del "D:\\Temp\\*.txt"'
+        dangerous_llm_response = f"```\n{dangerous_cmd}\n```"
+
+        execute_calls = []
+
+        def fake_execute(snippet, os_name, force_execute=False):
+            execute_calls.append(snippet)
+            # Simulate safety block
+            return None, "Safety blocked: Absolute-path deletion is blocked."
+
+        with patch.object(interp, "_generate_content_with_retries", return_value=dangerous_llm_response), \
+             patch.object(interp, "_execute_generated_output", side_effect=fake_execute):
+            interp._attempt_repair_after_failure(
+                task="remove all text files from D:\\Temp",
+                prompt="remove all text files from D:\\Temp",
+                code_snippet=dangerous_cmd,
+                code_error="The filename, directory name, or volume label syntax is incorrect.",
+                os_name="Windows 10",
+                start_sep="```",
+                end_sep="```",
+                extracted_file_name=None,
+            )
+
+        # If execute was called, every invocation must have been blocked
+        for called_snippet in execute_calls:
+            decision = ExecutionSafetyManager().assess_execution(called_snippet, "command")
+            self.assertFalse(
+                decision.allowed,
+                f"Dangerous command was passed to executor unblocked: {called_snippet!r}",
+            )
+
+    @patch("libs.interpreter_lib.display_markdown_message")
+    @patch("libs.interpreter_lib.display_code")
+    def test_repair_loop_succeeds_when_llm_returns_safe_command(
+        self, _mock_display_code, _mock_markdown
+    ):
+        """
+        When the LLM repairs the command with a safe equivalent (e.g., using
+        PowerShell Remove-Item with a relative path), the repair loop must
+        return success (no error).
+        """
+        interp = self._make_command_interpreter()
+
+        # A safe repaired command: list files, no deletion
+        safe_cmd = "dir /b"
+        safe_llm_response = f"```\n{safe_cmd}\n```"
+
+        with patch.object(interp, "_generate_content_with_retries", return_value=safe_llm_response), \
+             patch.object(interp, "_execute_generated_output", return_value=("Volume in drive D", None)):
+            snippet, output, error = interp._attempt_repair_after_failure(
+                task="list all text files in D:\\Temp",
+                prompt="list all text files in D:\\Temp",
+                code_snippet="dir D:\\Temp\\*.txt",
+                code_error="The filename, directory name, or volume label syntax is incorrect.",
+                os_name="Windows 10",
+                start_sep="```",
+                end_sep="```",
+                extracted_file_name=None,
+            )
+
+        self.assertIsNone(error)
+        self.assertIsNotNone(output)
+
+    @patch("libs.interpreter_lib.display_markdown_message")
+    @patch("libs.interpreter_lib.display_code")
+    def test_safety_manager_blocks_exact_failing_command_from_issue(
+        self, _mock_display_code, _mock_markdown
+    ):
+        """
+        Regression test: the exact command from the reported issue
+        must be blocked BEFORE execution.
+        """
+        safety_manager = ExecutionSafetyManager()
+        # Exact command generated by the LLM in the original bug report
+        failing_cmd = 'del "D:\\Temp\\*.txt"'
+        decision = safety_manager.assess_execution(failing_cmd, "command")
+        self.assertFalse(
+            decision.allowed,
+            f"Expected command to be blocked but it was allowed. Command: {failing_cmd!r}",
+        )
+        self.assertTrue(
+            len(decision.reasons) > 0,
+            "Safety decision must include at least one blocking reason.",
+        )
 
 
 class TestBuildParser(unittest.TestCase):
