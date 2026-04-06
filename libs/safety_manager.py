@@ -72,6 +72,7 @@ class ExecutionSafetyManager:
 	#   Path.write_text()  Path.write_bytes()       (pathlib)
 	#   fs.writeFile()     fs.writeFileSync()       (Node.js)
 	#   df.to_csv(path)    df.to_json(path)  df.to_html(path)  (pandas)
+	#   f.write(...)       — bare file-handle write on any already-opened handle
 	_WRITE_PATTERNS = [
 		# open() explicit write modes — text and binary variants with optional '+'
 		r"open\s*\([^)]*['\"]w[btax]?\+?['\"]" ,  # 'w', 'wb', 'wt', 'wa', 'wx', 'w+', 'wb+', 'wt+', 'wa+', 'wx+'
@@ -83,6 +84,10 @@ class ExecutionSafetyManager:
 		r"open\s*\([^)]*mode\s*=\s*['\"]a[btx]?\+?"  ,  # mode='a', mode='a+', mode='ab+', …
 		r"open\s*\([^)]*mode\s*=\s*['\"]x[bt]?\+?"  ,  # mode='x', mode='x+', mode='xb+', …
 		r"open\s*\([^)]*mode\s*=\s*['\"]r[bt]?\+"  ,  # mode='r+', mode='rb+', mode='rt+'
+		# bare file-handle write — catches f.write(...) regardless of open() mode
+		# This closes the bypass where open(..., 'r') is used but .write() is
+		# called afterward on the returned handle.
+		r"\.write\s*\(",
 		# pathlib — Path.write_text() / write_bytes()
 		r"\.write_text\s*\(",
 		r"\.write_bytes\s*\(",
@@ -166,8 +171,7 @@ class ExecutionSafetyManager:
 	def _has_write_operation(self, code: str) -> bool:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.  Covers binary open() modes, pathlib, Node.js,
-		and pandas export helpers — patterns that the old open()-only check
-		missed entirely.
+		pandas export helpers, and bare file-handle .write() calls.
 		"""
 		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
 
@@ -259,6 +263,7 @@ class ExecutionSafetyManager:
 		# GLOBAL WRITE BLOCK
 		# Catches binary/pathlib/JS/pandas write bypasses that the old
 		# is_path_access-gated open()-only check missed entirely.
+		# Also catches bare f.write(...) calls on any file handle.
 		# =========================
 		if self._has_write_operation(code):
 			return Decision(False, ["Write blocked (read-only mode)."])
