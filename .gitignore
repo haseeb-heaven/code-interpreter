@@ -37,6 +37,7 @@ dist/
 # JSON files
 *.json
 history.json
+!configs/*.json
 
 # History files
 history/

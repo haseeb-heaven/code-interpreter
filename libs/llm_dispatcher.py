@@ -10,6 +10,9 @@ import os
 # Providers whose configs route through the OpenAI-compatible shim.
 _OPENAI_COMPATIBLE_PROVIDERS = frozenset({"nvidia", "z-ai", "zai", "openrouter", "browser-use", "browser_use"})
 
+# Explicit tags for a self-hosted OpenAI-compatible server (Ollama, LM Studio, vLLM, llama.cpp, etc.).
+_LOCAL_OPENAI_ENDPOINT_PROVIDERS = frozenset({"local", "ollama", "lmstudio"})
+
 # Maps a config_provider value to the environment-variable name that holds its
 # API key.
 _PROVIDER_KEY_MAP = {
@@ -22,10 +25,21 @@ _PROVIDER_KEY_MAP = {
 }
 
 
-def _detect_provider(model: str, config_provider: str) -> str:
+def _has_openai_compatible_api_base(api_base: str) -> bool:
+    """True when config points at an http(s) URL (local or custom OpenAI-compatible API)."""
+    if not api_base or api_base == "None":
+        return False
+    lower = api_base.strip().lower()
+    return lower.startswith("http://") or lower.startswith("https://")
+
+
+def _detect_provider(model: str, config_provider: str, api_base: str) -> str:
     """Return a canonical provider tag based on config or model name."""
-    if config_provider in _OPENAI_COMPATIBLE_PROVIDERS:
-        return config_provider
+    cp = (config_provider or "").strip().lower()
+    if cp in _OPENAI_COMPATIBLE_PROVIDERS:
+        return cp
+    if cp in _LOCAL_OPENAI_ENDPOINT_PROVIDERS:
+        return "local"
 
     model_lower = model.lower()
 
@@ -41,6 +55,10 @@ def _detect_provider(model: str, config_provider: str) -> str:
         return "local"
     if "deepseek" in model_lower:
         return "deepseek"
+
+    # Custom endpoint in config (e.g. configs/local-model.json) without "local" in the model id.
+    if _has_openai_compatible_api_base(api_base) and not cp:
+        return "local"
 
     return "huggingface"
 
@@ -65,7 +83,7 @@ def build_completion_kwargs(
         When a required environment variable (API key) is missing or when
         ``api_base`` is required but not set.
     """
-    provider = _detect_provider(model, config_provider)
+    provider = _detect_provider(model, config_provider, api_base)
 
     kwargs: dict = {
         "messages": messages,

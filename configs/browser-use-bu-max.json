@@ -1,0 +1,11 @@
+{
+    "temperature": 0.1,
+    "max_tokens": 2048,
+    "start_sep": "```",
+    "end_sep": "```",
+    "provider": "browser-use",
+    "api_base": "https://api.browser-use.com/api/v3",
+    "browser_use_timeout": 150,
+    "browser_use_poll_interval": 3,
+    "model": "bu-max"
+}

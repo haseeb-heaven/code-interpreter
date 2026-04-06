@@ -1,0 +1,9 @@
+{
+    "temperature": 0.1,
+    "max_tokens": 4096,
+    "start_sep": "```",
+    "end_sep": "```",
+    "provider": "openrouter",
+    "api_base": "https://openrouter.ai/api/v1",
+    "model": "xiaomi/mimo-v2-pro"
+}

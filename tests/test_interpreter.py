@@ -13,6 +13,7 @@ from libs.code_interpreter import CodeInterpreter
 from libs.model_utils import normalize_model_name
 from libs.safety_manager import ExecutionSafetyManager, RepairCircuitBreaker
 from libs.utility_manager import UtilityManager
+from libs.llm_dispatcher import build_completion_kwargs
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -990,6 +991,42 @@ class TestGitignoreEntries(unittest.TestCase):
     def test_gitignore_ends_with_newline(self):
         # Ensures the previously missing final newline (desktop.ini) was fixed
         self.assertTrue(self.content.endswith("\n"))
+
+
+class TestLlmDispatcherLocalEndpoint(unittest.TestCase):
+    def test_llama_custom_api_base_routes_as_openai_compatible(self):
+        kwargs = build_completion_kwargs(
+            model="llama3.1:8b",
+            messages=[{"role": "user", "content": "hi"}],
+            temperature=0.1,
+            max_tokens=128,
+            config_provider="",
+            api_base="http://localhost:8080/v1",
+        )
+        self.assertEqual(kwargs["api_base"], "http://localhost:8080/v1")
+        self.assertEqual(kwargs["custom_llm_provider"], "openai")
+
+    def test_explicit_provider_local_sets_openai_shim(self):
+        kwargs = build_completion_kwargs(
+            model="qwen2.5",
+            messages=[{"role": "user", "content": "hi"}],
+            temperature=0.1,
+            max_tokens=128,
+            config_provider="local",
+            api_base="http://127.0.0.1:11434/v1",
+        )
+        self.assertEqual(kwargs["custom_llm_provider"], "openai")
+
+    def test_llama_without_api_base_does_not_use_openai_shim(self):
+        kwargs = build_completion_kwargs(
+            model="llama3.1:8b",
+            messages=[{"role": "user", "content": "hi"}],
+            temperature=0.1,
+            max_tokens=128,
+            config_provider="",
+            api_base="None",
+        )
+        self.assertNotIn("custom_llm_provider", kwargs)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,9 @@
+{
+    "temperature": 0.1,
+    "max_tokens": 4096,
+    "start_sep": "```",
+    "end_sep": "```",
+    "provider": "nvidia",
+    "api_base": "https://integrate.api.nvidia.com/v1",
+    "model": "nvidia/nemotron-3-super-120b-a12b"
+}

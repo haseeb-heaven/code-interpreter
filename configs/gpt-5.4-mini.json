@@ -1,0 +1,7 @@
+{
+    "temperature": 0.1,
+    "max_tokens": 3072,
+    "start_sep": "```",
+    "end_sep": "```",
+    "model": "gpt-5.4-mini"
+}
