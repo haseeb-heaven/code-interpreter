@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -63,25 +64,23 @@ PROVIDER_API_KEYS = {
 @dataclass
 class ModelConfig:
     alias: str
-    hf_model: str
+    model: str
     provider: str
     tier: str
 
 
 def parse_hf_model(config_path: Path) -> str:
-    for line in config_path.read_text(encoding="utf-8-sig").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("HF_MODEL") and "=" in stripped:
-            return stripped.split("=", 1)[1].strip().strip("'").strip('"')
-    raise ValueError(f"HF_MODEL missing in {config_path}")
+    with open(config_path, "r", encoding="utf-8-sig") as f:
+        data = json.load(f)
+    if "model" in data:
+        return data["model"]
+    raise ValueError(f"model missing in {config_path}")
 
 
 def parse_provider(config_path: Path) -> str | None:
-    for line in config_path.read_text(encoding="utf-8-sig").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("provider") and "=" in stripped:
-            return stripped.split("=", 1)[1].strip().strip("'").strip('"').lower()
-    return None
+    with open(config_path, "r", encoding="utf-8-sig") as f:
+        data = json.load(f)
+    return data.get("provider", "").lower() or None
 
 
 def infer_provider(hf_model: str, explicit_provider: str | None = None) -> str:
@@ -115,13 +114,13 @@ def infer_tier(alias: str, hf_model: str) -> str:
 
 def list_model_configs() -> list[ModelConfig]:
     models: list[ModelConfig] = []
-    for config_path in sorted(CONFIGS_DIR.glob("*.config")):
+    for config_path in sorted(CONFIGS_DIR.glob("*.json")):
         alias = config_path.stem
-        hf_model = parse_hf_model(config_path)
+        model = parse_hf_model(config_path)
         config_provider = parse_provider(config_path)
-        provider = infer_provider(hf_model, explicit_provider=config_provider)
-        tier = infer_tier(alias, hf_model)
-        models.append(ModelConfig(alias=alias, hf_model=hf_model, provider=provider, tier=tier))
+        provider = infer_provider(model, explicit_provider=config_provider)
+        tier = infer_tier(alias, model)
+        models.append(ModelConfig(alias=alias, model=model, provider=provider, tier=tier))
     return models
 
 

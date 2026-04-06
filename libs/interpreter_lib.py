@@ -230,7 +230,7 @@ class Interpreter:
 			self.INTERPRETER_HISTORY = settings["history"]
 		if "model" in settings and settings["model"]:
 			model = settings["model"]
-			model_config_file = f"configs/{model}.config"
+			model_config_file = f"configs/{model}.json"
 			if not os.path.isfile(model_config_file):
 				display_markdown_message(f"Model {model} does not exists. Please check the model name using '/list' command.")
 			else:
@@ -346,7 +346,7 @@ class Interpreter:
 			if not self.UNSAFE_EXECUTION:
 				self.safety_manager.cleanup_sandbox_context(sandbox_context)
 
-	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, skip_first_line, extracted_file_name, code_output=None):
+	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, extracted_file_name, code_output=None):
 		circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)
 		current_snippet = code_snippet
 		current_error = code_error
@@ -356,7 +356,7 @@ class Interpreter:
 			display_markdown_message(f"Repair attempt {circuit_breaker.attempts}/{circuit_breaker.max_attempts} after execution failure.")
 			repair_prompt = self._build_repair_prompt(task, prompt, current_snippet, current_error, os_name, code_output=current_output)
 			repaired_output = self._generate_content_with_retries(repair_prompt, self.history, config_values=self.config_values, image_file=extracted_file_name)
-			repaired_snippet = self.code_interpreter.extract_code(repaired_output, start_sep, end_sep, skip_first_line, self.CODE_MODE)
+			repaired_snippet = self.code_interpreter.extract_code(repaired_output, start_sep, end_sep)
 			repaired_snippet = self._maybe_simplify_generated_code(task, repaired_snippet)
 
 			if not repaired_snippet or repaired_snippet.strip() == current_snippet.strip():
@@ -390,18 +390,18 @@ class Interpreter:
 
 		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
 		if self.INTERPRETER_MODEL is None or self.INTERPRETER_MODEL == "":
-			self.logger.info("HF_MODEL is not provided, using default model.")
+			self.logger.info("Model is not provided, using default model.")
 			self.INTERPRETER_MODEL = self.utility_manager.get_default_model_name()
 			self.INTERPRETER_MODEL_LABEL = self.INTERPRETER_MODEL
-			config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
+			config_file_name = f"configs/{self.INTERPRETER_MODEL}.json"
 		else:
 			self.INTERPRETER_MODEL_LABEL = self.INTERPRETER_MODEL
-			config_file_name = f"configs/{self.INTERPRETER_MODEL}.config"
+			config_file_name = f"configs/{self.INTERPRETER_MODEL}.json"
 		
 		self.logger.info(f"Reading config file {config_file_name}")    
 		self.config_values = self.utility_manager.read_config_file(config_file_name)
-		self.INTERPRETER_MODEL = str(self.config_values.get('HF_MODEL', self.INTERPRETER_MODEL))       
-		hf_model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
+		self.INTERPRETER_MODEL = str(self.config_values.get('model', self.INTERPRETER_MODEL))       
+		model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
 		
 		# skip init client for local models.(Bug#10 https://github.com/haseeb-heaven/code-interpreter/issues/10)
 		if 'local' in self.INTERPRETER_MODEL:
@@ -421,7 +421,7 @@ class Interpreter:
 					os.environ['OPENAI_API_KEY'] = "sk-1234567890" # Setting default API key for local models.
 			return
 		
-		self.logger.info(f"Using model {hf_model_name}")
+		self.logger.info(f"Using model {model_name}")
 
 		config_provider = str(self.config_values.get("provider", "")).strip().lower()
 
@@ -651,6 +651,8 @@ class Interpreter:
 		raise Exception("Browser Use session timed out.")
 	
 	def generate_content(self, message, chat_history: list[tuple[str, str]], temperature=0.1, max_tokens=1024,config_values=None,image_file=None):
+		from libs.llm_dispatcher import build_completion_kwargs
+
 		self.logger.info(f"Generating content with args: message={message}, chat_history={chat_history}, temperature={temperature}, max_tokens={max_tokens}, config_values={config_values}, image_file={image_file}")
 		self.logger.info(f"Interpreter model selected is '{self.INTERPRETER_MODEL}'")
 		api_base = 'None'
@@ -665,135 +667,54 @@ class Interpreter:
 
 		# Get the system prompt
 		messages = self.get_prompt(message, chat_history)
-		
-		# Provider-specific OpenAI-compatible endpoints.
-		if config_provider == "nvidia" or self.INTERPRETER_MODEL.startswith("nvidia/"):
-			self.logger.info("Model is NVIDIA via OpenAI-compatible API.")
-			response = self._run_openai_compatible_completion("NVIDIA_API_KEY", messages, temperature, max_tokens, api_base)
-			self.logger.info("Response received from completion function.")
 
-		elif config_provider in ("z-ai", "zai") or self.INTERPRETER_MODEL.startswith(("glm-", "z-ai/", "zai/")):
-			self.logger.info("Model is Z AI via OpenAI-compatible API.")
-			response = self._run_openai_compatible_completion("Z_AI_API_KEY", messages, temperature, max_tokens, api_base)
-			self.logger.info("Response received from completion function.")
-
-		elif config_provider in ("browser-use", "browser_use") or self.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
+		# ── Special case: Browser-Use (does not use litellm) ────────────
+		if config_provider in ("browser-use", "browser_use") or self.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
 			self.logger.info("Model is Browser Use session model.")
 			response_text = self._generate_browser_use_content(message, messages, config_values or {})
 			self.logger.info("Response received from Browser Use session.")
 			return response_text
 
-		elif config_provider == "openrouter":
-			self.logger.info("Model is OpenRouter via OpenAI-compatible API.")
-			extra_headers = {
-				"HTTP-Referer": "https://github.com/haseeb-heaven/code-interpreter",
-				"X-OpenRouter-Title": "Code Interpreter",
-			}
-			response = self._run_openai_compatible_completion("OPENROUTER_API_KEY", messages, temperature, max_tokens, api_base, extra_headers=extra_headers)
-			self.logger.info("Response received from OpenRouter completion.")
+		# ── Special case: Gemini Vision (does not use litellm) ──────────
+		if 'gemini' in self.INTERPRETER_MODEL and self.INTERPRETER_MODE == 'vision':
+			try:
+				from libs.gemini_vision import GeminiVision
+				self.gemini_vision = GeminiVision()
+			except Exception as exception:
+				self.logger.error(f"Error importing Gemini Vision: {exception}")
+				raise
 
-		# Check if the model is from OpenAI (GPT/o-series)
-		elif self.INTERPRETER_MODEL.startswith(("gpt", "o1", "o3", "o4")):
-			self.logger.info("Model is OpenAI GPT/o-series")
-			reasoning_model = self.INTERPRETER_MODEL.startswith(("o1", "o3", "o4", "gpt-5"))
-			completion_kwargs = {
-				"messages": messages,
-				"max_tokens": max_tokens,
-			}
-			if not reasoning_model:
-				completion_kwargs["temperature"] = temperature
+			self.logger.info("Model is Gemini Pro Vision.")
+			if not image_file:
+				self.logger.error("Image file is not valid or Corrupted.")
+				raise ValueError("Image file is not valid or Corrupted.")
+
+			if 'http' in image_file or 'https' in image_file or 'www.' in image_file:
+				self.logger.info("Image contains URL.")
+				response = self.gemini_vision.gemini_vision_url(prompt=messages, image_url=image_file)
 			else:
-				# O-series and GPT-5 models reject some classic params (e.g., temperature != 1)
-				completion_kwargs["drop_params"] = True
+				self.logger.info("Image contains file.")
+				response = self.gemini_vision.gemini_vision_path(prompt=messages, image_path=image_file)
 
-			if api_base != 'None':
-				# Set the custom language model provider
-				completion_kwargs["custom_llm_provider"] = "openai"
-				completion_kwargs["api_base"] = api_base
-				self.logger.info(f"Custom API mode selected for OpenAI, api_base={api_base}")
-			else:
-				if self.INTERPRETER_MODEL.startswith(("o1", "o3", "o4")):
-					completion_kwargs["custom_llm_provider"] = "openai"
-				self.logger.info("Default API mode selected for OpenAI.")
-			response = litellm.completion(self.INTERPRETER_MODEL, **completion_kwargs)
 			self.logger.info("Response received from completion function.")
-		
-		# Check if the model is Gemini Pro
-		elif 'gemini' in self.INTERPRETER_MODEL:
+			return response  # Gemini Vision is not a coding model.
 
-			if self.INTERPRETER_MODE == 'vision':
-				# Import Gemini Vision only if the model is Gemini Pro Vision.
-				try:
-					from libs.gemini_vision import GeminiVision
-					self.gemini_vision = GeminiVision()
-				except Exception as exception:
-					self.logger.error(f"Error importing Gemini Vision: {exception}")
-					raise
+		# ── Normalize model name for providers that need it ─────────────
+		self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
 
-				self.logger.info("Model is Gemini Pro Vision.")
-				response = None
+		# ── Build kwargs and make a single litellm.completion call ──────
+		kwargs = build_completion_kwargs(
+			model=self.INTERPRETER_MODEL,
+			messages=messages,
+			temperature=temperature,
+			max_tokens=max_tokens,
+			config_provider=config_provider,
+			api_base=api_base,
+		)
+		self.logger.info(f"Calling litellm.completion for provider-resolved kwargs (keys: {list(kwargs.keys())})")
+		response = litellm.completion(self.INTERPRETER_MODEL, **kwargs)
+		self.logger.info("Response received from completion function.")
 
-				# Check if image_file is valid.
-				if not image_file:
-					self.logger.error("Image file is not valid or Corrupted.")
-					raise ValueError("Image file is not valid or Corrupted.")
-				
-				# Check if image contains URL.
-				if 'http' in image_file or 'https' in image_file or 'www.' in image_file:
-					self.logger.info("Image contains URL.")
-					response = self.gemini_vision.gemini_vision_url(prompt=messages,image_url=image_file)
-				else:
-					self.logger.info("Image contains file.")
-					response = self.gemini_vision.gemini_vision_path(prompt=messages,image_path=image_file)
-				
-				self.logger.info("Response received from completion function.")
-				return response # Return the response from Gemini Vision because its not coding model.
-			else:
-				self.logger.info("Model is Gemini.")
-				self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
-				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature)
-				self.logger.info("Response received from completion function.")
-		
-		# Check if the model is Groq-AI
-		elif 'groq' in self.INTERPRETER_MODEL:
-			self.logger.info("Model is Groq.")
-			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
-			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-			self.logger.info("Response received from completion function.")
-		
-		# Check if the model is AnthropicAI
-		elif 'claude' in self.INTERPRETER_MODEL:
-			self.logger.info("Model is Claude.")
-			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
-			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-			self.logger.info("Response received from completion function.")
-		
-		# Check if the model is Local Model
-		elif 'local' in self.INTERPRETER_MODEL:
-			self.logger.info("Model is Local model")
-			if api_base != 'None':
-				# Set the custom language model provider
-				custom_llm_provider = "openai"
-				self.logger.info(f"Custom API mode selected for Local Model, api_base={api_base}")
-				response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens, api_base=api_base, custom_llm_provider=custom_llm_provider)
-			else:
-				raise Exception("Exception api base not set for custom model")
-			self.logger.info("Response received from completion function.")
-
-		# Check if the model is Deepseek
-		elif 'deepseek' in self.INTERPRETER_MODEL:
-			self.logger.info("Model is Deepseek.")
-			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
-			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages, temperature=temperature, max_tokens=max_tokens)
-			self.logger.info("Response received from Deepseek completion.")
-
-		# Check if model are from Hugging Face.
-		else:
-			self.INTERPRETER_MODEL = normalize_model_name(self.INTERPRETER_MODEL)
-			self.logger.info(f"Model is from Hugging Face. {self.INTERPRETER_MODEL}")
-			response = litellm.completion(self.INTERPRETER_MODEL, messages=messages,temperature=temperature,max_tokens=max_tokens)
-			self.logger.info("Response received from completion function.")
-		
 		self.logger.info(f"Generated text {response}")
 		generated_text = self.utility_manager._extract_content(response)
 		self.logger.info(f"Generated content {generated_text}")
@@ -934,9 +855,8 @@ class Interpreter:
 
 		start_sep = str(self.config_values.get('start_sep', '```'))
 		end_sep = str(self.config_values.get('end_sep', '```'))
-		skip_first_line = self.config_values.get('skip_first_line', 'False') == 'True'
 		
-		self.logger.info(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}, Skip first line: {skip_first_line}")
+		self.logger.info(f"Mode: {self.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}")
 
 		# Display system and Assistant information.
 		input_prompt_mode = "File" if self.INTERPRETER_PROMPT_FILE else "Input"
@@ -1205,7 +1125,7 @@ class Interpreter:
 
 					# Extract the code from the generated output.
 					self.logger.info(f"Generated output type {type(generated_output)}")
-					code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line, self.CODE_MODE)
+					code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep)
 					
 					# Display the extracted code.
 					if code_snippet:
@@ -1442,7 +1362,7 @@ class Interpreter:
 
 				# Extract the code from the generated output.
 				self.logger.info(f"Generated output type {type(generated_output)}")
-				code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep, skip_first_line,self.CODE_MODE)
+				code_snippet = self.code_interpreter.extract_code(generated_output, start_sep, end_sep)
 				code_snippet = self._maybe_simplify_generated_code(task, code_snippet)
 				display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
 				
@@ -1551,7 +1471,6 @@ class Interpreter:
 							os_name,
 							start_sep,
 							end_sep,
-							skip_first_line,
 							extracted_file_name,
 							code_output=code_output,
 						)

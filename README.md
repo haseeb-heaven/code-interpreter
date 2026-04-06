@@ -111,7 +111,7 @@ This Interpreter supports offline models via **LM Studio** and **OLlaMa** so to 
 - Then in the app go to **Local Server** option and select the model.
 - Start the server and copy the **URL**. (LM-Studio will provide you with the URL).
 - Run command `ollama serve` and copy the **URL**. (OLlaMa will provide you with the URL).
-- Open config file `configs/local-model.config` and paste the **URL** in the `api_base` field.
+- Open config file `configs/local-model.json` and paste the **URL** in the `api_base` field.
 - Now you can use the model with the interpreter set the model name to `local-model` and run the interpreter.</br>
 
 4. Run the interpreter with Python:</br>
@@ -277,15 +277,15 @@ Here are the available commands:
 
 
 ## ⚙️ **Settings**
-You can customize the settings of the current model from the `.config` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
+You can customize the settings of the current model from the `.json` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
 
 ### **Steps to add your own custom API Server**
 To integrate your own API server for OpenAI instead of the default server, follow these steps:
 1. Navigate to the `Configs` directory.
-2. Open the configuration file for the model you want to modify. This could be either `gpt-3.5-turbo.config` or `gpt-4.config`.
-3. Add the following line at the end of the file:
-   ```
-   api_base = https://my-custom-base.com
+2. Open the configuration file for the model you want to modify. This could be either `gpt-3.5-turbo.json` or `gpt-4.json`.
+3. Add the following key-value pair to the JSON object:
+   ```json
+   "api_base": "https://my-custom-base.com"
    ```
    Replace `https://my-custom-base.com` with the URL of your custom API server.
 4. Save and close the file.
@@ -294,9 +294,9 @@ Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will a
 ## **Steps to add new models**
 
 ### **Manual Method**
-1. 📋 Copy the `.config` file and rename it to `configs/hf-model-new.config`.
-2. 🛠️ Modify the parameters of the model like `start_sep`, `end_sep`, `skip_first_line`.
-3. 📝 Set the model name from Hugging Face to `HF_MODEL = 'Model name here'`.
+1. 📋 Copy the `.json` file and rename it to `configs/hf-model-new.json`.
+2. 🛠️ Modify the parameters of the model like `start_sep`, `end_sep`.
+3. 📝 Set the model name from Hugging Face to `"model": "Model name here"`.
 4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
 5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
 
@@ -304,7 +304,7 @@ Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will a
 1. 🚀 Go to the `scripts` directory and run the `config_builder` script .
 2. 🔧 For Linux/MacOS, run `config_builder.sh` and for Windows, run `config_builder.bat` .
 3. 📝 Follow the instructions and enter the model name and parameters.
-4. 📋 The script will automatically create the `.config` file for you.
+4. 📋 The script will automatically create the `.json` file for you.
 
 ## Star History
 

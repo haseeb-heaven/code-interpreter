@@ -14,6 +14,33 @@ import traceback
 from libs.logger import Logger
 from libs.markdown_code import display_markdown_message
 
+# Common GitHub-flavored markdown fence language tags; first line after ``` is stripped when it matches.
+_FENCE_LANGUAGE_TAGS = frozenset({
+	"asm", "bash", "bat", "c", "clojure", "cljs", "cmd", "cpp", "cs", "csharp", "css", "cxx", "c++",
+	"dart", "diff", "dockerfile", "elixir", "erl", "erlang", "ex", "exs", "fish", "go", "golang",
+	"graphql", "gql", "graphqls", "haskell", "hs", "html", "htm", "java", "javascript", "jl", "js",
+	"json", "julia", "jsx", "kt", "kotlin", "less", "lua", "makefile", "markdown", "matlab", "md", "m",
+	"ml", "nginx", "objc", "objective-c", "ocaml", "octave", "patch", "perl", "php", "plaintext",
+	"powershell", "protobuf", "proto", "ps1", "py", "py3", "python", "python3", "r", "rb", "ruby",
+	"rust", "rs", "sass", "scala", "scss", "sh", "shell", "sol", "solidity", "sql", "swift", "text",
+	"toml", "ts", "tsx", "txt", "typescript", "vb", "vbnet", "vim", "xml", "yaml", "yml", "zig",
+	"zsh", "wasm", "llvm", "hcl", "terraform", "tf",
+})
+
+
+def _strip_leading_fence_language_line(extracted: str) -> str:
+	if not extracted:
+		return extracted
+	if "\n" not in extracted:
+		line = extracted.strip()
+		if line.lower() in _FENCE_LANGUAGE_TAGS:
+			return ""
+		return extracted
+	first, rest = extracted.split("\n", 1)
+	if first.strip().lower() in _FENCE_LANGUAGE_TAGS:
+		return rest
+	return extracted
+
 class CodeInterpreter:
 
 	def __init__(self):
@@ -125,11 +152,12 @@ class CodeInterpreter:
 			self.logger.error(f"Error occurred while saving code to file: {exception}")
 			raise Exception(f"Error occurred while saving code to file: {exception}")
 
-	def extract_code(self, code: str, start_sep='```', end_sep='```', skip_first_line=False, code_mode=False):
+	def extract_code(self, code: str, start_sep='```', end_sep='```'):
 		"""
 		Extracts the code from the provided string.
 		If the string contains the start and end separators, it extracts the code between them.
 		Otherwise, it returns the original string.
+		Leading markdown fence language lines (e.g. python, js, c++) are removed automatically.
 		"""
 		try:
 			if code is None:
@@ -143,27 +171,19 @@ class CodeInterpreter:
 				start_sep = "```"
 				end_sep = "```"
 
-			has_newline = False
 			if start_sep in code and end_sep in code:
 				start = code.find(start_sep) + len(start_sep)
 				# Skip the newline character after the start separator
-				if code[start] == '\n':
+				if start < len(code) and code[start] == '\n':
 					start += 1
-					has_newline = True
 					
 				end = code.find(end_sep, start)
 				# Skip the newline character before the end separator
-				if code[end - 1] == '\n':
+				if end > start and code[end - 1] == '\n':
 					end -= 1
 					
-				if skip_first_line and code_mode and not has_newline:
-					# Skip the first line after the start separator
-					start = code.find('\n', start) + 1
-					
 				extracted_code = code[start:end]
-				# Remove extra words for commands present.
-				if not code_mode and 'bash' in extracted_code:
-					extracted_code = extracted_code.replace('bash', '')
+				extracted_code = _strip_leading_fence_language_line(extracted_code)
 				
 				self.logger.info("Code extracted successfully.")
 				return extracted_code

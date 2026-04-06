@@ -8,6 +8,7 @@ from libs.logger import Logger
 import csv
 import glob
 from datetime import datetime
+import json
 
 from libs.markdown_code import display_code, display_markdown_message
 
@@ -129,17 +130,12 @@ class UtilityManager:
 			self.logger.info(f"Skipping readline history initialization: {str(exception)}")
 			return False
 
-	def read_config_file(self, filename=".config"):
+	def read_config_file(self, filename=None):
+		if not filename:
+			raise ValueError("Config filename must be provided.")
 		try:
-			config_data = {}
 			with open(filename, "r") as config_file:
-				for line in config_file:
-					# Ignore comments and lines without an equals sign
-					if line.strip().startswith('#') or '=' not in line:
-						continue
-					key, value = line.strip().split("=", 1)
-					config_data[key.strip()] = value.strip()
-			return config_data
+				return json.load(config_file)
 		except Exception as exception:
 			self.logger.error(f"Error in reading config file: {str(exception)}")
 			raise
@@ -147,7 +143,7 @@ class UtilityManager:
 	def list_available_models(self, configs_path=None):
 		try:
 			configs_path = configs_path or os.path.join(os.getcwd(), 'configs')
-			configs_files = [file for file in os.listdir(configs_path) if file.endswith('.config')]
+			configs_files = [file for file in os.listdir(configs_path) if file.endswith('.json')]
 			return sorted(os.path.splitext(file)[0] for file in configs_files)
 		except Exception as exception:
 			self.logger.error(f"Error in listing available models: {str(exception)}")
