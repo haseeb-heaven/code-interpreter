@@ -64,6 +64,38 @@ class ExecutionSafetyManager:
 	# Artifact extensions that callers care about (plots, tables, reports)
 	ARTIFACT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".md", ".csv", ".txt", ".html", ".json"}
 
+	# Write-mode patterns that must be blocked in SAFE mode regardless of path.
+	# These cover:
+	#   open(..., 'w')   open(..., 'wb')  open(..., 'wa')  open(..., 'wt')
+	#   open(..., 'ab')  open(..., 'xb')  open(..., mode='w')  etc.
+	#   Path.write_text()  Path.write_bytes()       (pathlib)
+	#   fs.writeFile()     fs.writeFileSync()       (Node.js)
+	#   df.to_csv(path)    df.to_json(path)  df.to_html(path)  (pandas)
+	_WRITE_PATTERNS = [
+		# open() explicit write modes — text and binary variants
+		r"open\s*\([^)]*['\"]w[btax]?['\"]" ,  # 'w', 'wb', 'wt', 'wa', 'wx'
+		r"open\s*\([^)]*['\"]a[btx]?['\"]"  ,  # 'a', 'ab', 'at'
+		r"open\s*\([^)]*['\"]x[bt]?['\"]"   ,  # 'x', 'xb', 'xt'
+		# keyword mode= argument
+		r"open\s*\([^)]*mode\s*=\s*['\"]w"  ,  # mode='w', mode="wb", …
+		r"open\s*\([^)]*mode\s*=\s*['\"]a"  ,  # mode='a', …
+		r"open\s*\([^)]*mode\s*=\s*['\"]x"  ,  # mode='x', …
+		# pathlib — Path.write_text() / write_bytes()
+		r"\.write_text\s*\(",
+		r"\.write_bytes\s*\(",
+		# Node.js filesystem writes
+		r"\bwriteFile\s*\(",
+		r"\bwriteFileSync\s*\(",
+		r"\bappendFile\s*\(",
+		r"\bappendFileSync\s*\(",
+		# pandas / DataFrame export with path argument
+		r"\.to_csv\s*\([^)]*['\"/]",   # to_csv('some/path') or to_csv("/abs")
+		r"\.to_json\s*\([^)]*['\"/]",
+		r"\.to_html\s*\([^)]*['\"/]",
+		r"\.to_excel\s*\([^)]*['\"/]",
+		r"\.to_parquet\s*\([^)]*['\"/]",
+	]
+
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
 
@@ -100,6 +132,17 @@ class ExecutionSafetyManager:
 		return reasons
 
 	# =========================
+	# WRITE DETECTION (GLOBAL)
+	# =========================
+	def _has_write_operation(self, code: str) -> bool:
+		"""Return True if *code* contains any write operation that must be
+		blocked in SAFE mode.  Covers binary open() modes, pathlib, Node.js,
+		and pandas export helpers — patterns that the old open()-only check
+		missed entirely.
+		"""
+		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+
+	# =========================
 	# MAIN CHECK
 	# =========================
 	def assess_execution(self, code: str, mode: str) -> Decision:
@@ -125,6 +168,14 @@ class ExecutionSafetyManager:
 		ast_reasons = self._ast_check(code)
 		if ast_reasons:
 			return Decision(False, ast_reasons)
+
+		# =========================
+		# GLOBAL WRITE BLOCK (Bug #2 fix)
+		# Catches binary/pathlib/JS/pandas write bypasses that the old
+		# is_path_access-gated open()-only check missed entirely.
+		# =========================
+		if self._has_write_operation(code):
+			return Decision(False, ["Write blocked (read-only mode)."])
 
 		# =========================
 		# DELETE BLOCK (STRICT)
@@ -199,27 +250,12 @@ class ExecutionSafetyManager:
 		if is_path_access:
 
 			# =========================
-			#  HANDLE open() PROPERLY
-			# =========================
-			open_calls = re.findall(r'(open\s*\(.*?\)|\.open\s*\(.*?\))', code, re.IGNORECASE)
-
-			for call in open_calls:
-				call_lower = call.lower()
-
-				#  WRITE MODES → BLOCK
-				if ("'w'" in call_lower or '"w"' in call_lower or
-					"'a'" in call_lower or '"a"' in call_lower or
-					"'x'" in call_lower or '"x"' in call_lower):
-					return Decision(False, ["Write blocked (read-only mode)."])
-
-			# =========================
-			#  BLOCK WRITE FUNCTIONS
+			#  BLOCK WRITE FUNCTIONS (path-scoped — Belt-and-suspenders for
+			#  anything not already caught by the global _has_write_operation check)
 			# =========================
 			if ("write(" in code_lower or
 				"save(" in code_lower or
-				"dump(" in code_lower or
-				"to_csv" in code_lower or
-				"to_json" in code_lower):
+				"dump(" in code_lower):
 				return Decision(False, ["Write blocked (read-only mode)."])
 
 			# =========================
