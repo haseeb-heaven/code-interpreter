@@ -4,7 +4,7 @@ import ast
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 # =========================
@@ -68,6 +68,7 @@ class ExecutionSafetyManager:
 	# These cover:
 	#   open(..., 'w')   open(..., 'wb')  open(..., 'wa')  open(..., 'wt')
 	#   open(..., 'ab')  open(..., 'xb')  open(..., mode='w')  etc.
+	#   open(..., 'w+')  open(..., 'r+')  open(..., 'rb+')     (read-write)
 	#   Path.write_text()  Path.write_bytes()       (pathlib)
 	#   fs.writeFile()     fs.writeFileSync()       (Node.js)
 	#   df.to_csv(path)    df.to_json(path)  df.to_html(path)  (pandas)
@@ -98,6 +99,10 @@ class ExecutionSafetyManager:
 		r"\.to_parquet\s*\([^)]*['\"/]",
 	]
 
+	# Known-dangerous call targets for .remove() / .unlink() / .rmtree().
+	# Used by _ast_check to avoid blocking list.remove(), dict.pop(), etc.
+	_DANGEROUS_ATTR_OWNERS = frozenset({"os", "shutil", "pathlib", "path"})
+
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
 
@@ -114,10 +119,21 @@ class ExecutionSafetyManager:
 		for node in ast.walk(tree):
 			if isinstance(node, ast.Call):
 
-				# delete functions
+				# Narrow deletion check to known-dangerous call targets only.
+				# This avoids false positives on e.g. list.remove("item") or
+				# custom_obj.unlink() that are unrelated to filesystem ops.
 				if isinstance(node.func, ast.Attribute):
-					if node.func.attr in ["remove", "unlink", "rmtree"]:
-						reasons.append("AST: deletion blocked.")
+					attr = node.func.attr
+					if attr in ("remove", "unlink", "rmtree"):
+						# Only block when the object is a known-dangerous module/type
+						owner_name = ""
+						if isinstance(node.func.value, ast.Name):
+							owner_name = node.func.value.id.lower()
+						elif isinstance(node.func.value, ast.Attribute):
+							owner_name = node.func.value.attr.lower()
+						if owner_name in self._DANGEROUS_ATTR_OWNERS or owner_name == "":
+							# Empty owner means bare Path().unlink() style — block it
+							reasons.append(f"AST: deletion blocked ({owner_name or 'unknown'}.{attr}).")
 
 				# getattr obfuscation
 				if isinstance(node.func, ast.Name) and node.func.id == "getattr":
@@ -143,6 +159,54 @@ class ExecutionSafetyManager:
 		missed entirely.
 		"""
 		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+
+	# =========================
+	# HOST ABSOLUTE PATH CHECK
+	# =========================
+	def _is_host_absolute_path(self, code: str) -> bool:
+		"""Return True if *code* references a host absolute path.
+
+		Covers:
+		- Windows drive-letter paths: C:\\ or C:/
+		- POSIX absolute paths in quoted strings: open('/etc/passwd')
+		- Unquoted well-known POSIX system paths: /etc/passwd, /tmp/x
+		- open() calls whose first arg is an absolute path
+		"""
+		# Windows drive-letter path
+		if re.search(r"[a-z]:[\\/]", code.lower()):
+			return True
+
+		# Quoted POSIX absolute path: '/...' or "/..."
+		if re.search(r"""["']/[^"'\s]""", code):
+			return True
+
+		# Unquoted well-known POSIX system directory prefixes
+		_posix_system_prefixes = [
+			r"/etc/\w+",
+			r"/tmp/\w+",
+			r"/var/\w+",
+			r"/usr/\w+",
+			r"/root/\w+",
+			r"/home/\w+/",
+			r"/proc/\w+",
+			r"/sys/\w+",
+			r"/dev/\w+",
+			r"/boot/\w+",
+			r"/opt/\w+",
+			r"/mnt/\w+",
+			r"/media/\w+",
+		]
+		if any(re.search(p, code, re.IGNORECASE) for p in _posix_system_prefixes):
+			return True
+
+		# open() call whose first positional argument is an absolute path string
+		open_args = re.findall(r"open\s*\(\s*([\"'][^\"']+[\"'])", code, re.IGNORECASE)
+		for arg in open_args:
+			path = arg.strip("'\"")
+			if path.startswith("/") or re.match(r"[a-zA-Z]:[\\/]", path):
+				return True
+
+		return False
 
 	# =========================
 	# MAIN CHECK
@@ -172,7 +236,7 @@ class ExecutionSafetyManager:
 			return Decision(False, ast_reasons)
 
 		# =========================
-		# GLOBAL WRITE BLOCK (Bug #2 fix)
+		# GLOBAL WRITE BLOCK
 		# Catches binary/pathlib/JS/pandas write bypasses that the old
 		# is_path_access-gated open()-only check missed entirely.
 		# =========================
@@ -214,63 +278,15 @@ class ExecutionSafetyManager:
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
-		# FILESYSTEM RULES
+		# FILESYSTEM / HOST PATH BLOCK  (Critical #1 fix)
+		#
+		# ANY reference to a host absolute path is rejected in SAFE mode —
+		# reads included.  Previously only writes/deletes inside this branch
+		# were blocked, leaving read access to /etc/passwd, ~/.ssh/id_rsa,
+		# /etc/hosts, etc. completely unguarded.
 		# =========================
-		# Detect Windows drive-letter paths (e.g., C:\) OR POSIX absolute paths (e.g., /tmp/)
-		is_path_access = bool(re.search(r"[a-z]:[\\/]", code_lower))
-
-		# Detect POSIX absolute paths in quoted strings  e.g. open('/etc/passwd')
-		if not is_path_access:
-			is_path_access = bool(re.search(r'''["']/[^"'\s]''', code))
-
-		# Bug #5 fix: detect unquoted POSIX absolute paths — e.g. /etc/passwd, /tmp/x
-		# These bypassed the quoted-string check above.
-		if not is_path_access:
-			posix_absolute_patterns = [
-				r"/etc/\w+",
-				r"/tmp/\w+",
-				r"/var/\w+",
-				r"/usr/\w+",
-				r"/root/\w+",
-				r"/home/\w+/",
-				r"/proc/\w+",
-				r"/sys/\w+",
-				r"/dev/\w+",
-			]
-			if any(re.search(p, code, re.IGNORECASE) for p in posix_absolute_patterns):
-				return Decision(False, ["Host filesystem access blocked (absolute path)."])
-
-		# Check open() calls for absolute path arguments
-		if not is_path_access:
-			open_calls = re.findall(r'open\s*\(\s*(["\'][^"\']+["\'])', code, re.IGNORECASE)
-			for path_match in open_calls:
-				path = path_match.strip('\'"')
-				if path.startswith('/') or re.match(r'[a-zA-Z]:[\\/]', path):
-					is_path_access = True
-					break
-
-		if is_path_access:
-
-			# =========================
-			#  BLOCK WRITE FUNCTIONS (path-scoped — Belt-and-suspenders for
-			#  anything not already caught by the global _has_write_operation check)
-			# =========================
-			if ("write(" in code_lower or
-				"save(" in code_lower or
-				"dump(" in code_lower):
-				return Decision(False, ["Write blocked (read-only mode)."])
-
-			# =========================
-			#  BLOCK DELETE
-			# =========================
-			if ("remove" in code_lower or
-				"unlink" in code_lower or
-				"del " in code_lower or
-				"rm " in code_lower or
-				"rmtree" in code_lower):
-				return Decision(False, ["Filesystem delete blocked."])
-
-			#  OTHERWISE → READ → ALLOWED
+		if self._is_host_absolute_path(code):
+			return Decision(False, ["Host filesystem access blocked (absolute path)."])
 
 		# =========================
 		# COMMAND MODE RULE
@@ -307,43 +323,87 @@ class ExecutionSafetyManager:
 			r"\brd\s+",
 			r"\bshutil\.rmtree\b",
 			r"\bos\.rmdir\b",
+			# Destructive system commands
+			r"\bshutdown\b",
+			r"\breboot\b",
+			r"\binit\s+0\b",
+			r"\binit\s+6\b",
+			r"\bmkfs\b",
+			r"\bdd\s+if=",
+			r"\bformat\s+[a-z]:",
 		]
 		
 		return any(re.search(p, code_lower) for p in dangerous_patterns)
 
 	# =========================
-	# ARTIFACT EXPORT  (Bug #3 fix)
+	# ARTIFACT EXPORT  (Critical #2 fix)
 	# =========================
-	def export_artifacts(self, context: "SandboxContext | None", dest_dir: str | None = None) -> Dict[str, str]:
+	def export_artifacts(
+		self,
+		context: "SandboxContext | None",
+		dest_dir: Optional[str] = None,
+	) -> Dict[str, str]:
 		"""Copy generated artifact files out of the sandbox before cleanup.
 
 		Scans *context.cwd* for files whose extension is in ARTIFACT_EXTENSIONS
-		and copies them to *dest_dir* (defaults to the current working directory).
+		and copies them to *dest_dir*.
 
-		Returns a mapping of ``{original_filename: dest_path}`` for every file
-		that was successfully exported.  Returns an empty dict when *context* is
-		``None`` or the sandbox directory no longer exists.
+		Security hardening (Critical #2):
+		- dest_dir defaults to a fresh temporary directory, NOT os.getcwd().
+		  Using os.getcwd() allowed sandbox code to plant a symlink that
+		  shutil.copy2 would follow, overwriting arbitrary host files.
+		- Source symlinks are skipped unconditionally (islink guard).
+		- Only regular files are copied (isfile guard).
+		- Destination names are collision-safe (fname_1.ext, fname_2.ext …).
+		- shutil.copy2 is called with follow_symlinks=False so the copy
+		  itself never follows a symlink even if one slips through.
+
+		Returns a mapping of {original_filename: dest_path} for every file
+		that was successfully exported.  Returns an empty dict when *context*
+		is None or the sandbox directory no longer exists.
 		"""
 		if not context or not context.cwd or not os.path.isdir(context.cwd):
 			return {}
 
+		# Default to a fresh isolated temp dir — never the host cwd.
 		if dest_dir is None:
-			dest_dir = os.getcwd()
+			dest_dir = tempfile.mkdtemp(prefix="ci_artifacts_")
+
+		os.makedirs(dest_dir, exist_ok=True)
 
 		exported: Dict[str, str] = {}
 
 		try:
 			for fname in os.listdir(context.cwd):
+				src = os.path.join(context.cwd, fname)
+
+				# Skip symlinks — a malicious script could plant one pointing
+				# to /etc/passwd or any other host file.
+				if os.path.islink(src):
+					continue
+
+				# Skip non-regular files (dirs, device nodes, pipes, …)
+				if not os.path.isfile(src):
+					continue
+
 				_, ext = os.path.splitext(fname)
 				if ext.lower() not in self.ARTIFACT_EXTENSIONS:
 					continue
-				src = os.path.join(context.cwd, fname)
-				dst = os.path.join(dest_dir, fname)
+
+				# Collision-safe destination: fname.ext → fname_1.ext → fname_2.ext
+				dst_base = os.path.join(dest_dir, fname)
+				dst = dst_base
+				counter = 1
+				while os.path.exists(dst):
+					base, file_ext = os.path.splitext(dst_base)
+					dst = f"{base}_{counter}{file_ext}"
+					counter += 1
+
 				try:
-					shutil.copy2(src, dst)
+					shutil.copy2(src, dst, follow_symlinks=False)
 					exported[fname] = dst
 				except Exception:
-					# Best-effort: log but don't crash
+					# Best-effort: skip files that cannot be copied
 					pass
 		except Exception:
 			pass
