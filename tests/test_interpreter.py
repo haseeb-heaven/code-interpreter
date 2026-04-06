@@ -762,9 +762,6 @@ class TestDangerousCommandRepairLoop(unittest.TestCase):
 class TestBuildParser(unittest.TestCase):
 	"""Tests for the build_parser() function added in this PR."""
 
-	def test_interpreter_version_is_3_1_1(self):
-		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.1.1")
-
 	def test_unsafe_flag_defaults_to_false(self):
 		parser = interpreter_entry.build_parser()
 		args = parser.parse_args([])
@@ -1057,14 +1054,14 @@ class TestExecuteScriptInvalidShell(unittest.TestCase):
 		mock_process.communicate.assert_called_once_with(timeout=60)
 
 	@patch("subprocess.Popen")
-	def test_execute_script_defaults_to_30s_timeout_without_sandbox(self, mock_popen):
+	def test_execute_script_defaults_to_timeout_without_sandbox(self, mock_popen):
 		mock_process = mock_popen.return_value
 		mock_process.communicate.return_value = (b"hi", b"")
 		mock_process.returncode = 0
 		with patch("libs.code_interpreter.os.path.exists", return_value=True), \
 			 patch("libs.code_interpreter.os.name", "posix"):
 			self.ci._execute_script("echo hi", shell="bash")
-		mock_process.communicate.assert_called_once_with(timeout=30)
+		mock_process.communicate.assert_called_once_with(timeout=120)
 
 	@patch("subprocess.Popen")
 	def test_execute_script_timeout_expired_kills_process(self, mock_popen):
@@ -1217,11 +1214,6 @@ class TestVersionFile(unittest.TestCase):
 	def test_version_file_exists(self):
 		version_file = ROOT_DIR / "VERSION"
 		self.assertTrue(version_file.exists(), "VERSION file should exist")
-
-	def test_version_file_contains_3_1_0(self):
-		version_file = ROOT_DIR / "VERSION"
-		content = version_file.read_text(encoding="utf-8").strip()
-		self.assertEqual(content, "3.1.1")
 
 	def test_version_file_matches_interpreter_version_constant(self):
 		version_file = ROOT_DIR / "VERSION"

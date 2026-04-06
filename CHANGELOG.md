@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## v3.2.0 - April 6, 2026
+- Added visual mode indicator in session banner ([SAFE MODE] or [UNSAFE MODE ⚠️])
+- Implemented strict safety blocking: dangerous operations are hard-blocked in SAFE MODE
+- Added confirmation prompts for dangerous operations in UNSAFE MODE
+- Enhanced user awareness of destructive operations with warning messages
+- Improved enterprise-level safety and user control
+
 ## v3.1.1 - April 6, 2026
 - Refactored execution architecture to Python-first model (replacing shell-subprocess as default)
 - Enforced 10 KB hard output limit with truncation sentinel

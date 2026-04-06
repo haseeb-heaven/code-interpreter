@@ -243,12 +243,18 @@ class Interpreter:
 		short_lang = "python" if self.INTERPRETER_LANGUAGE == "python" else "javascript"
 		short_prompt_mode = "input" if input_prompt_mode.lower() == "input" else "file"
 		short_os_name = os_name.replace("Windows ", "Win")
+		
+		# Add mode indicator
+		mode_indicator = "[UNSAFE MODE ⚠️]" if self.UNSAFE_EXECUTION else "[SAFE MODE]"
+		mode_style = "bold red" if self.UNSAFE_EXECUTION else "bold green"
+		
 		session_line = (
+			f"{mode_indicator} | "
 			f"OS={short_os_name} | Lang={short_lang} | "
 			f"Mode={self.INTERPRETER_MODE} | Src={short_prompt_mode} | "
 			f"Model={self.INTERPRETER_MODEL_LABEL or self.INTERPRETER_MODEL}"
 		)
-		self.console.print(f"[bold bright_blue]{session_line}[/bold bright_blue]", overflow="ignore", no_wrap=True)
+		self.console.print(f"[{mode_style}]{session_line}[/{mode_style}]", overflow="ignore", no_wrap=True)
 
 	def _build_repair_prompt(self, task, prompt, code_snippet, error_text, os_name, code_output=None):
 		if self.COMMAND_MODE:
@@ -844,17 +850,29 @@ class Interpreter:
 
 	def execute_code(self,  extracted_code, os_name, sandbox_context=None, force_execute=False):
 		# If the interpreter mode is Vision, do not execute the code.
-		execute:str = 'n'
 		if self.INTERPRETER_MODE in ['vision', 'chat']:
 			return None, None
 		
+		# 🔥 DANGEROUS OPERATION HANDLING
+		is_dangerous = self.safety_manager.is_dangerous_operation(extracted_code)
+		
+		# SAFE MODE → BLOCK
+		if is_dangerous and not self.UNSAFE_EXECUTION:
+			display_markdown_message("❌ Dangerous operation blocked in SAFE MODE.")
+			return None, "Safety blocked: dangerous operation"
+		
+		# SINGLE PROMPT FLOW
 		if force_execute or self.EXECUTE_CODE:
 			execute = 'y'
 		else:
 			try:
-				execute = input("Execute the code? (Y/N): ")
+				if is_dangerous:
+					execute = input("⚠️ Dangerous operation. Continue? (Y/N): ")
+				else:
+					execute = input("Execute the code? (Y/N): ")
 			except EOFError:
 				execute = 'n'
+		
 		self._last_execution_approved = execute.lower() == 'y'
 		
 		if execute.lower() == 'y':
@@ -882,7 +900,6 @@ class Interpreter:
 					return None, code_error
 
 				if code_output:
-					display_code(code_output)
 					return code_output, None
 
 				return None, None
@@ -1190,7 +1207,6 @@ class Interpreter:
 						self.logger.info(f"Extracted code: {code_snippet[:50]}")
 					
 						if self.DISPLAY_CODE:
-							display_code(code_snippet)
 							self.logger.info("Code extracted successfully.")
 						
 							# Execute the code if the user has selected.
@@ -1492,8 +1508,9 @@ class Interpreter:
 							display_markdown_message(f"Package {package_name} is a system module.")
 							raise Exception(f"Package {package_name} is a system module.")
 						
+						MAX_INSTALL_ATTEMPTS:int = 3
 						if package_name:
-							for attempt in range(1, 4):
+							for attempt in range(1, MAX_INSTALL_ATTEMPTS + 1):
 								try:
 									self.logger.info(f"Installing package {package_name} on interpreter {self.INTERPRETER_LANGUAGE} (Attempt {attempt}/3)")
 									self.package_manager.install_package(package_name, self.INTERPRETER_LANGUAGE)

@@ -205,6 +205,37 @@ class ExecutionSafetyManager:
 		return Decision(True, [])
 
 	# =========================
+	# DANGEROUS OPERATION DETECTION
+	# =========================
+	def is_dangerous_operation(self, code: str) -> bool:
+		"""
+		Check if the code contains dangerous operations that require user confirmation.
+		Returns True if dangerous patterns are detected.
+		"""
+		if not code or not code.strip():
+			return False
+		
+		code_lower = code.lower()
+		
+		dangerous_patterns = [
+			r"\bunlink\b",
+			r"\bunlinksync\b",
+			r"\bremove\(",
+			r"\bos\.remove\b",
+			r"\brmtree\b",
+			r"\bdel\s+",
+			r"\brm\s+",
+			r"\berase\s+",
+			r"\bdelete\b",
+			r"\bremove-item\b",
+			r"\brd\s+",
+			r"\bshutil\.rmtree\b",
+			r"\bos\.rmdir\b",
+		]
+		
+		return any(re.search(p, code_lower) for p in dangerous_patterns)
+
+	# =========================
 	# REAL SANDBOX
 	# =========================
 	def build_sandbox_context(self) -> SandboxContext:

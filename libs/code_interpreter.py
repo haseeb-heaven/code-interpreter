@@ -26,6 +26,7 @@ from libs.safety_manager import ExecutionSafetyManager
 
 # Maximum stdout/stderr to capture (characters) to avoid unbounded memory use
 MAX_OUTPUT = 10_000_000  # 10 MB
+MAX_TIMEOUT = 120  # 2 minutes
 
 def _limit_resources():
 	"""Apply basic resource limits in the child process (Unix only).
@@ -241,7 +242,7 @@ class CodeInterpreter:
 
 			# posix-only preexec to limit resources
 			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
-			timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
+			timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
 
 			# SAFETY CHECK (centralized)
 			decision = self.safety_manager.assess_execution(script, "script")
@@ -452,7 +453,7 @@ class CodeInterpreter:
 			raise Exception("Compilers not found. Please install compilers on your system.")
 
 		base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
-		timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
+		timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
 		
 		# Use sandbox if available, else fallback
 		if sandbox_context and sandbox_context.cwd:
@@ -491,9 +492,9 @@ class CodeInterpreter:
 				stderr_output = stderr_output[:MAX_OUTPUT]
 			# Log by language
 			if language == "python":
-				self.logger.info(f"Python Output execution: {stdout_output}, Errors: {stderr_output}")
+				self.logger.debug(f"Python Output execution: {stdout_output}, Errors: {stderr_output}")
 			else:
-				self.logger.info(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
+				self.logger.debug(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
 			return stdout_output, stderr_output
 		except subprocess.TimeoutExpired:
 			if process:
@@ -588,7 +589,7 @@ class CodeInterpreter:
 			# Resource limits (POSIX only)
 			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
 
-			timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
+			timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
 
 			process = None
 
