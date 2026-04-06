@@ -65,14 +65,6 @@ class ExecutionSafetyManager:
 	ARTIFACT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".md", ".csv", ".txt", ".html", ".json"}
 
 	# Write-mode patterns that must be blocked in SAFE mode regardless of path.
-	# These cover:
-	#   open(..., 'w')   open(..., 'wb')  open(..., 'wa')  open(..., 'wt')
-	#   open(..., 'ab')  open(..., 'xb')  open(..., mode='w')  etc.
-	#   open(..., 'w+')  open(..., 'r+')  open(..., 'rb+')     (read-write)
-	#   Path.write_text()  Path.write_bytes()       (pathlib)
-	#   fs.writeFile()     fs.writeFileSync()       (Node.js)
-	#   df.to_csv(path)    df.to_json(path)  df.to_html(path)  (pandas)
-	#   f.write(...)       — bare file-handle write on any already-opened handle
 	_WRITE_PATTERNS = [
 		# open() explicit write modes — text and binary variants with optional '+'
 		r"open\s*\([^)]*['\"]w[btax]?\+?['\"]" ,  # 'w', 'wb', 'wt', 'wa', 'wx', 'w+', 'wb+', 'wt+', 'wa+', 'wx+'
@@ -85,8 +77,6 @@ class ExecutionSafetyManager:
 		r"open\s*\([^)]*mode\s*=\s*['\"]x[bt]?\+?"  ,  # mode='x', mode='x+', mode='xb+', …
 		r"open\s*\([^)]*mode\s*=\s*['\"]r[bt]?\+"  ,  # mode='r+', mode='rb+', mode='rt+'
 		# bare file-handle write — catches f.write(...) regardless of open() mode
-		# This closes the bypass where open(..., 'r') is used but .write() is
-		# called afterward on the returned handle.
 		r"\.write\s*\(",
 		# pathlib — Path.write_text() / write_bytes()
 		r"\.write_text\s*\(",
@@ -97,7 +87,7 @@ class ExecutionSafetyManager:
 		r"\bappendFile\s*\(",
 		r"\bappendFileSync\s*\(",
 		# pandas / DataFrame export with path argument
-		r"\.to_csv\s*\([^)]*['\"/]",   # to_csv('some/path') or to_csv("/abs")
+		r"\.to_csv\s*\([^)]*['\"/]",
 		r"\.to_json\s*\([^)]*['\"/]",
 		r"\.to_html\s*\([^)]*['\"/]",
 		r"\.to_excel\s*\([^)]*['\"/]",
@@ -105,7 +95,6 @@ class ExecutionSafetyManager:
 	]
 
 	# Sensitive POSIX system path prefixes that are ALWAYS blocked (even for reads).
-	# These expose credentials, secrets, kernel internals, or device nodes.
 	_SENSITIVE_POSIX_PREFIXES = [
 		r"/etc/\w+",
 		r"/root/\w+",
@@ -116,7 +105,6 @@ class ExecutionSafetyManager:
 	]
 
 	# Known-dangerous call targets for .remove() / .unlink() / .rmtree().
-	# Used by _ast_check to avoid blocking list.remove(), dict.pop(), etc.
 	_DANGEROUS_ATTR_OWNERS = frozenset({"os", "shutil", "pathlib", "path"})
 
 	def __init__(self, unsafe_mode: bool = False):
@@ -135,20 +123,15 @@ class ExecutionSafetyManager:
 		for node in ast.walk(tree):
 			if isinstance(node, ast.Call):
 
-				# Narrow deletion check to known-dangerous call targets only.
-				# This avoids false positives on e.g. list.remove("item") or
-				# custom_obj.unlink() that are unrelated to filesystem ops.
 				if isinstance(node.func, ast.Attribute):
 					attr = node.func.attr
 					if attr in ("remove", "unlink", "rmtree"):
-						# Only block when the object is a known-dangerous module/type
 						owner_name = ""
 						if isinstance(node.func.value, ast.Name):
 							owner_name = node.func.value.id.lower()
 						elif isinstance(node.func.value, ast.Attribute):
 							owner_name = node.func.value.attr.lower()
 						if owner_name in self._DANGEROUS_ATTR_OWNERS or owner_name == "":
-							# Empty owner means bare Path().unlink() style — block it
 							reasons.append(f"AST: deletion blocked ({owner_name or 'unknown'}.{attr}).")
 
 				# getattr obfuscation
@@ -170,8 +153,7 @@ class ExecutionSafetyManager:
 	# =========================
 	def _has_write_operation(self, code: str) -> bool:
 		"""Return True if *code* contains any write operation that must be
-		blocked in SAFE mode.  Covers binary open() modes, pathlib, Node.js,
-		pandas export helpers, and bare file-handle .write() calls.
+		blocked in SAFE mode.
 		"""
 		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
 
@@ -179,14 +161,7 @@ class ExecutionSafetyManager:
 	# HOST ABSOLUTE PATH CHECK
 	# =========================
 	def _is_host_absolute_path(self, code: str) -> bool:
-		"""Return True if *code* references a host absolute path.
-
-		Covers:
-		- Windows drive-letter paths: C:\\ or C:/
-		- POSIX absolute paths in quoted strings: open('/etc/passwd')
-		- Unquoted well-known POSIX system paths: /etc/passwd, /tmp/x
-		- open() calls whose first arg is an absolute path
-		"""
+		"""Return True if *code* references a host absolute path."""
 		# Windows drive-letter path
 		if re.search(r"[a-z]:[\\/]", code.lower()):
 			return True
@@ -224,12 +199,7 @@ class ExecutionSafetyManager:
 		return False
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
-		"""Return True if *code* references a sensitive POSIX system path.
-
-		These paths expose credentials, kernel internals, or device nodes and
-		must be blocked even for read-only access (unlike general absolute paths
-		which are only blocked when paired with write operations).
-		"""
+		"""Return True if *code* references a sensitive POSIX system path."""
 		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
 
 	# =========================
@@ -261,17 +231,17 @@ class ExecutionSafetyManager:
 
 		# =========================
 		# GLOBAL WRITE BLOCK
-		# Catches binary/pathlib/JS/pandas write bypasses that the old
-		# is_path_access-gated open()-only check missed entirely.
-		# Also catches bare f.write(...) calls on any file handle.
 		# =========================
 		if self._has_write_operation(code):
 			return Decision(False, ["Write blocked (read-only mode)."])
 
 		# =========================
 		# DELETE BLOCK (STRICT)
+		# Covers filesystem deletions AND destructive system-level commands
+		# that an LLM could generate (shutdown, reboot, mkfs, dd, format, etc.)
 		# =========================
 		delete_patterns = [
+			# Filesystem deletion
 			r"\bunlink\b",
 			r"\bunlinksync\b",
 			r"\bremove\(",
@@ -283,10 +253,21 @@ class ExecutionSafetyManager:
 			r"\bdelete\b",
 			r"\bremove-item\b",
 			r"\brd\s+",
+			r"\bshutil\.rmtree\b",
+			r"\bos\.rmdir\b",
+			# Destructive system-level commands (LLM-generated threat)
+			r"\bshutdown\b",
+			r"\breboot\b",
+			r"\binit\s+0\b",
+			r"\binit\s+6\b",
+			r"\bmkfs\b",
+			r"\bdd\s+if=",
+			r"\bformat\s+[a-z]:",
+			r"\bdiskpart\b",
 		]
 
 		if any(re.search(p, code_lower) for p in delete_patterns):
-			return Decision(False, ["Deletion operations are strictly blocked."])
+			return Decision(False, ["Deletion/destructive operations are strictly blocked."])
 
 		# =========================
 		# SHELL BLOCK
@@ -304,15 +285,6 @@ class ExecutionSafetyManager:
 
 		# =========================
 		# FILESYSTEM / HOST PATH BLOCK
-		#
-		# Sensitive system paths (/etc, /root, /proc, /sys, /dev, /boot) are
-		# ALWAYS blocked — even for read-only access — because they expose
-		# credentials, secrets, and kernel internals.
-		#
-		# General absolute paths (Windows drive letters, /tmp, /home, etc.)
-		# are only blocked when a write operation is also present.  Pure
-		# read-only access to absolute paths is permitted so that legitimate
-		# tasks like reading a user-supplied data file are not rejected.
 		# =========================
 		if self._is_sensitive_posix_path(code):
 			return Decision(False, ["Host filesystem access blocked (sensitive system path)."])
@@ -338,9 +310,9 @@ class ExecutionSafetyManager:
 		"""
 		if not code or not code.strip():
 			return False
-		
+
 		code_lower = code.lower()
-		
+
 		dangerous_patterns = [
 			r"\bunlink\b",
 			r"\bunlinksync\b",
@@ -363,41 +335,23 @@ class ExecutionSafetyManager:
 			r"\bmkfs\b",
 			r"\bdd\s+if=",
 			r"\bformat\s+[a-z]:",
+			r"\bdiskpart\b",
 		]
-		
+
 		return any(re.search(p, code_lower) for p in dangerous_patterns)
 
 	# =========================
-	# ARTIFACT EXPORT  (Critical #2 fix)
+	# ARTIFACT EXPORT
 	# =========================
 	def export_artifacts(
 		self,
 		context: "SandboxContext | None",
 		dest_dir: Optional[str] = None,
 	) -> Dict[str, str]:
-		"""Copy generated artifact files out of the sandbox before cleanup.
-
-		Scans *context.cwd* for files whose extension is in ARTIFACT_EXTENSIONS
-		and copies them to *dest_dir*.
-
-		Security hardening (Critical #2):
-		- dest_dir defaults to a fresh temporary directory, NOT os.getcwd().
-		  Using os.getcwd() allowed sandbox code to plant a symlink that
-		  shutil.copy2 would follow, overwriting arbitrary host files.
-		- Source symlinks are skipped unconditionally (islink guard).
-		- Only regular files are copied (isfile guard).
-		- Destination names are collision-safe (fname_1.ext, fname_2.ext …).
-		- shutil.copy2 is called with follow_symlinks=False so the copy
-		  itself never follows a symlink even if one slips through.
-
-		Returns a mapping of {original_filename: dest_path} for every file
-		that was successfully exported.  Returns an empty dict when *context*
-		is None or the sandbox directory no longer exists.
-		"""
+		"""Copy generated artifact files out of the sandbox before cleanup."""
 		if not context or not context.cwd or not os.path.isdir(context.cwd):
 			return {}
 
-		# Default to a fresh isolated temp dir — never the host cwd.
 		if dest_dir is None:
 			dest_dir = tempfile.mkdtemp(prefix="ci_artifacts_")
 
@@ -409,12 +363,9 @@ class ExecutionSafetyManager:
 			for fname in os.listdir(context.cwd):
 				src = os.path.join(context.cwd, fname)
 
-				# Skip symlinks — a malicious script could plant one pointing
-				# to /etc/passwd or any other host file.
 				if os.path.islink(src):
 					continue
 
-				# Skip non-regular files (dirs, device nodes, pipes, …)
 				if not os.path.isfile(src):
 					continue
 
@@ -422,7 +373,6 @@ class ExecutionSafetyManager:
 				if ext.lower() not in self.ARTIFACT_EXTENSIONS:
 					continue
 
-				# Collision-safe destination: fname.ext → fname_1.ext → fname_2.ext
 				dst_base = os.path.join(dest_dir, fname)
 				dst = dst_base
 				counter = 1
@@ -435,7 +385,6 @@ class ExecutionSafetyManager:
 					shutil.copy2(src, dst, follow_symlinks=False)
 					exported[fname] = dst
 				except Exception:
-					# Best-effort: skip files that cannot be copied
 					pass
 		except Exception:
 			pass
