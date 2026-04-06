@@ -67,18 +67,18 @@ class ExecutionSafetyManager:
 	# Write-mode patterns that must be blocked in SAFE mode regardless of path.
 	_WRITE_PATTERNS = [
 		# open() explicit write modes — text and binary variants with optional '+'
-		r"open\s*\([^)]*['\"]w[btax]?\+?['\"]" ,  # 'w', 'wb', 'wt', 'wa', 'wx', 'w+', 'wb+', 'wt+', 'wa+', 'wx+'
-		r"open\s*\([^)]*['\"]a[btx]?\+?['\"]"  ,  # 'a', 'ab', 'at', 'a+', 'ab+', 'at+', 'ax+'
-		r"open\s*\([^)]*['\"]x[bt]?\+?['\"]"   ,  # 'x', 'xb', 'xt', 'x+', 'xb+', 'xt+'
-		r"open\s*\([^)]*['\"]r[bt]?\+['\"]"    ,  # 'r+', 'rb+', 'rt+' (read-write modes)
+		r"open\s*\([^)]*['\"]w[btax]?\+?['\"]" ,
+		r"open\s*\([^)]*['\"]a[btx]?\+?['\"]"  ,
+		r"open\s*\([^)]*['\"]x[bt]?\+?['\"]"   ,
+		r"open\s*\([^)]*['\"]r[bt]?\+['\"]"    ,
 		# keyword mode= argument
-		r"open\s*\([^)]*mode\s*=\s*['\"]w[btax]?\+?"  ,  # mode='w', mode="wb", mode='w+', mode='wb+', …
-		r"open\s*\([^)]*mode\s*=\s*['\"]a[btx]?\+?"  ,  # mode='a', mode='a+', mode='ab+', …
-		r"open\s*\([^)]*mode\s*=\s*['\"]x[bt]?\+?"  ,  # mode='x', mode='x+', mode='xb+', …
-		r"open\s*\([^)]*mode\s*=\s*['\"]r[bt]?\+"  ,  # mode='r+', mode='rb+', mode='rt+'
-		# bare file-handle write — catches f.write(...) regardless of open() mode
+		r"open\s*\([^)]*mode\s*=\s*['\"]w[btax]?\+?"  ,
+		r"open\s*\([^)]*mode\s*=\s*['\"]a[btx]?\+?"  ,
+		r"open\s*\([^)]*mode\s*=\s*['\"]x[bt]?\+?"  ,
+		r"open\s*\([^)]*mode\s*=\s*['\"]r[bt]?\+"  ,
+		# bare file-handle write
 		r"\.write\s*\(",
-		# pathlib — Path.write_text() / write_bytes()
+		# pathlib
 		r"\.write_text\s*\(",
 		r"\.write_bytes\s*\(",
 		# Node.js filesystem writes
@@ -106,6 +106,39 @@ class ExecutionSafetyManager:
 
 	# Known-dangerous call targets for .remove() / .unlink() / .rmtree().
 	_DANGEROUS_ATTR_OWNERS = frozenset({"os", "shutil", "pathlib", "path"})
+
+	# =========================
+	# FIX 1+5: Shared destructive patterns list.
+	# Used by BOTH assess_execution() (safe-mode block) AND is_dangerous_operation()
+	# (unsafe-mode warning). Keeping one source of truth prevents the regression
+	# where system-destructive commands were in is_dangerous_operation() but NOT
+	# in the safe-mode delete_patterns block inside assess_execution().
+	# =========================
+	_DESTRUCTIVE_PATTERNS = [
+		# Filesystem deletes
+		r"\bunlink\b",
+		r"\bunlinksync\b",
+		r"\bremove\(",
+		r"\bos\.remove\b",
+		r"\brmtree\b",
+		r"\bdel\s+",
+		r"\brm\s+",
+		r"\berase\s+",
+		r"\bdelete\b",
+		r"\bremove-item\b",
+		r"\brd\s+",
+		r"\bshutil\.rmtree\b",
+		r"\bos\.rmdir\b",
+		# Destructive system commands (FIX 1: these were missing from safe-mode block)
+		r"\bshutdown\b",
+		r"\breboot\b",
+		r"\binit\s+0\b",
+		r"\binit\s+6\b",
+		r"\bmkfs\b",
+		r"\bdd\s+if=",
+		r"\bformat\s+[a-z]:",
+		r"\bdiskpart\b",
+	]
 
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
@@ -236,38 +269,14 @@ class ExecutionSafetyManager:
 			return Decision(False, ["Write blocked (read-only mode)."])
 
 		# =========================
-		# DELETE BLOCK (STRICT)
-		# Covers filesystem deletions AND destructive system-level commands
-		# that an LLM could generate (shutdown, reboot, mkfs, dd, format, etc.)
+		# FIX 1+5: DESTRUCTIVE OPERATION BLOCK (unified)
+		# Uses _DESTRUCTIVE_PATTERNS which now includes system-level commands
+		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
+		# filesystem deletes. Previously only delete patterns were here,
+		# causing LLM-generated shutdown/reboot to pass safe-mode unblocked.
 		# =========================
-		delete_patterns = [
-			# Filesystem deletion
-			r"\bunlink\b",
-			r"\bunlinksync\b",
-			r"\bremove\(",
-			r"\bos\.remove\b",
-			r"\brmtree\b",
-			r"\bdel\s+",
-			r"\brm\s+",
-			r"\berase\s+",
-			r"\bdelete\b",
-			r"\bremove-item\b",
-			r"\brd\s+",
-			r"\bshutil\.rmtree\b",
-			r"\bos\.rmdir\b",
-			# Destructive system-level commands (LLM-generated threat)
-			r"\bshutdown\b",
-			r"\breboot\b",
-			r"\binit\s+0\b",
-			r"\binit\s+6\b",
-			r"\bmkfs\b",
-			r"\bdd\s+if=",
-			r"\bformat\s+[a-z]:",
-			r"\bdiskpart\b",
-		]
-
-		if any(re.search(p, code_lower) for p in delete_patterns):
-			return Decision(False, ["Deletion/destructive operations are strictly blocked."])
+		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
 		# SHELL BLOCK
@@ -302,6 +311,8 @@ class ExecutionSafetyManager:
 
 	# =========================
 	# DANGEROUS OPERATION DETECTION
+	# FIX 5: Now delegates to shared _DESTRUCTIVE_PATTERNS constant
+	# instead of maintaining a separate duplicate list.
 	# =========================
 	def is_dangerous_operation(self, code: str) -> bool:
 		"""
@@ -310,35 +321,8 @@ class ExecutionSafetyManager:
 		"""
 		if not code or not code.strip():
 			return False
-
 		code_lower = code.lower()
-
-		dangerous_patterns = [
-			r"\bunlink\b",
-			r"\bunlinksync\b",
-			r"\bremove\(",
-			r"\bos\.remove\b",
-			r"\brmtree\b",
-			r"\bdel\s+",
-			r"\brm\s+",
-			r"\berase\s+",
-			r"\bdelete\b",
-			r"\bremove-item\b",
-			r"\brd\s+",
-			r"\bshutil\.rmtree\b",
-			r"\bos\.rmdir\b",
-			# Destructive system commands
-			r"\bshutdown\b",
-			r"\breboot\b",
-			r"\binit\s+0\b",
-			r"\binit\s+6\b",
-			r"\bmkfs\b",
-			r"\bdd\s+if=",
-			r"\bformat\s+[a-z]:",
-			r"\bdiskpart\b",
-		]
-
-		return any(re.search(p, code_lower) for p in dangerous_patterns)
+		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
 
 	# =========================
 	# ARTIFACT EXPORT
