@@ -1,4 +1,3 @@
-```bash
 #!/bin/bash
 
 VERSION_FILE="VERSION"
@@ -74,4 +73,3 @@ if confirm "Create GitHub release?"; then
 fi
 
 echo "✅ Done: $NEW_VERSION"
-```

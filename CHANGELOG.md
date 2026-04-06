@@ -1,3 +1,35 @@
+
+## v3.2.1 (2026-04-07)
+- Add mode indicator, strict safe-mode blocking, unsafe confirmations, warnings, and improved safety controls for enterprise-grade execution behavior and user awareness
+- Update the Sandbox and Code Exectution
+- Refactor execution architecture with python-first model, restore bash compatibility for tests, fix decoding bug, enforce output limits, update versioning, and correct gitignore entries for logs and newline compliance.
+- Overhaul execution architecture with python-first model, sandboxing, and improved safety controls
+- stop tracking history.json
+- Removed /shell command and added Code Exeuction safety
+- fix(safety): block unquoted absolute-path del command (e.g. del D:\Temp\*.txt)
+- test: add safety checks for quoted wildcard del commands and mocked LLM repair loop for dangerous commands
+- fix: block quoted wildcard del commands and add Windows absolute-path delete patterns
+- feat: enhance safety manager to block absolute-path deletions in various contexts
+- feat: enhance llm_dispatcher to support local endpoints
+- refactor: update configuration files to use JSON format
+- feat: fixed package manager issues with retry circuit logic
+- Update configuration files to use triple backtick separators for code generation
+- Merge pull request #24 from haseeb-heaven/feature/sandbox-safety-v3
+- chore: update changelog, improve README links, and remove deprecated config files
+- Merge branch 'feature/sandbox-safety-v3' of https://github.com/haseeb-heaven/code-interpreter into feature/sandbox-safety-v3
+- fix: update model configurations and improve error handling in code execution
+- fix: apply CodeRabbit auto-fixes
+- feat: update litellm version and add model normalization utility
+- fix: apply CodeRabbit auto-fixes
+- fix: apply CodeRabbit auto-fixes
+- 📝 CodeRabbit Chat: Generate unit tests for PR changes
+- Optimize README: move models to Models.MD, shorten sections
+- release: prepare v3.1.0 assets and docs
+- feat: Add OpenRouter API support with multiple model configurations
+- feat: Introduce execution safety features and self-repair mechanism
+- Add configuration files and terminal UI for model selection
+- Update LLM catalog to newer models and fix model routing bugs
+
 # Changelog
 
 All notable changes to this project are documented in this file.
