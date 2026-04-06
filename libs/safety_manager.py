@@ -4,6 +4,7 @@ import ast
 import shutil
 import tempfile
 from dataclasses import dataclass, field
+from typing import Dict, List
 
 
 # =========================
@@ -59,6 +60,9 @@ class ExecutionSafetyManager:
 		"TEMP", "TMP", "USERPROFILE", "HOME", "USERNAME",
 		"TERM", "PYTHONIOENCODING",
 	]
+
+	# Artifact extensions that callers care about (plots, tables, reports)
+	ARTIFACT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".md", ".csv", ".txt", ".html", ".json"}
 
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
@@ -162,16 +166,31 @@ class ExecutionSafetyManager:
 		# Detect Windows drive-letter paths (e.g., C:\) OR POSIX absolute paths (e.g., /tmp/)
 		is_path_access = bool(re.search(r"[a-z]:[\\/]", code_lower))
 
-		# Also detect POSIX absolute paths in quoted strings
+		# Detect POSIX absolute paths in quoted strings  e.g. open('/etc/passwd')
 		if not is_path_access:
-			# Match quoted strings starting with / (POSIX absolute paths)
 			is_path_access = bool(re.search(r'''["']/[^"'\s]''', code))
+
+		# Bug #5 fix: detect unquoted POSIX absolute paths — e.g. /etc/passwd, /tmp/x
+		# These bypassed the quoted-string check above.
+		if not is_path_access:
+			posix_absolute_patterns = [
+				r"/etc/\w+",
+				r"/tmp/\w+",
+				r"/var/\w+",
+				r"/usr/\w+",
+				r"/root/\w+",
+				r"/home/\w+/",
+				r"/proc/\w+",
+				r"/sys/\w+",
+				r"/dev/\w+",
+			]
+			if any(re.search(p, code, re.IGNORECASE) for p in posix_absolute_patterns):
+				return Decision(False, ["Host filesystem access blocked (absolute path)."])
 
 		# Check open() calls for absolute path arguments
 		if not is_path_access:
 			open_calls = re.findall(r'open\s*\(\s*(["\'][^"\']+["\'])', code, re.IGNORECASE)
 			for path_match in open_calls:
-				# Remove quotes and check if it starts with / (POSIX) or contains drive letter
 				path = path_match.strip('\'"')
 				if path.startswith('/') or re.match(r'[a-zA-Z]:[\\/]', path):
 					is_path_access = True
@@ -255,6 +274,45 @@ class ExecutionSafetyManager:
 		return any(re.search(p, code_lower) for p in dangerous_patterns)
 
 	# =========================
+	# ARTIFACT EXPORT  (Bug #3 fix)
+	# =========================
+	def export_artifacts(self, context: "SandboxContext | None", dest_dir: str | None = None) -> Dict[str, str]:
+		"""Copy generated artifact files out of the sandbox before cleanup.
+
+		Scans *context.cwd* for files whose extension is in ARTIFACT_EXTENSIONS
+		and copies them to *dest_dir* (defaults to the current working directory).
+
+		Returns a mapping of ``{original_filename: dest_path}`` for every file
+		that was successfully exported.  Returns an empty dict when *context* is
+		``None`` or the sandbox directory no longer exists.
+		"""
+		if not context or not context.cwd or not os.path.isdir(context.cwd):
+			return {}
+
+		if dest_dir is None:
+			dest_dir = os.getcwd()
+
+		exported: Dict[str, str] = {}
+
+		try:
+			for fname in os.listdir(context.cwd):
+				_, ext = os.path.splitext(fname)
+				if ext.lower() not in self.ARTIFACT_EXTENSIONS:
+					continue
+				src = os.path.join(context.cwd, fname)
+				dst = os.path.join(dest_dir, fname)
+				try:
+					shutil.copy2(src, dst)
+					exported[fname] = dst
+				except Exception:
+					# Best-effort: log but don't crash
+					pass
+		except Exception:
+			pass
+
+		return exported
+
+	# =========================
 	# REAL SANDBOX
 	# =========================
 	def build_sandbox_context(self) -> SandboxContext:
@@ -275,6 +333,6 @@ class ExecutionSafetyManager:
 			timeout_seconds=30
 		)
 
-	def cleanup_sandbox_context(self, context: SandboxContext | None):
+	def cleanup_sandbox_context(self, context: "SandboxContext | None"):
 		if context and context.cwd and os.path.exists(context.cwd):
 			shutil.rmtree(context.cwd, ignore_errors=True)
