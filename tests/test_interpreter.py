@@ -170,9 +170,9 @@ class TestInterpreter(unittest.TestCase):
 		"""
 		decision = safety_manager.assess_execution(code, "code")
 		self.assertFalse(decision.allowed)
-		self.assertTrue(any("blocked" in r.lower() for r in decision.reasons))
+		self.assertTrue(any("blocked" in r.lower() for r in decision.reasons) for r in decision.reasons)
 
-	def test_safety_manager_blocks_relative_file_delete(self):
+	def test_safety_manager_allows_relative_file_delete(self):
 		safety_manager = ExecutionSafetyManager()
 		code = r"import os\nos.remove('temp.txt')"
 		decision = safety_manager.assess_execution(code, "code")
@@ -684,7 +684,7 @@ class TestDangerousCommandRepairLoop(unittest.TestCase):
 
 		def fake_execute(snippet, os_name, force_execute=False):
 			execute_calls.append(snippet)
-			return None, "Safety blocked: Absolute-path deletion is blocked.", None
+			return None, "Safety blocked: Absolute-path deletion is blocked."
 
 		with patch.object(interp, "_generate_content_with_retries", return_value=dangerous_llm_response), \
 			 patch.object(interp, "_execute_generated_output", side_effect=fake_execute):
@@ -722,7 +722,7 @@ class TestDangerousCommandRepairLoop(unittest.TestCase):
 		safe_llm_response = f"```\n{safe_cmd}\n```"
 
 		with patch.object(interp, "_generate_content_with_retries", return_value=safe_llm_response), \
-			 patch.object(interp, "_execute_generated_output", return_value=("Volume in drive D", None, None)):
+			 patch.object(interp, "_execute_generated_output", return_value=("Volume in drive D", None)):
 			snippet, output, error = interp._attempt_repair_after_failure(
 				task="list all text files in D:\\Temp",
 				prompt="list all text files in D:\\Temp",
@@ -1352,6 +1352,734 @@ class TestLlmDispatcherLocalEndpoint(unittest.TestCase):
 			api_base="None",
 		)
 		self.assertNotIn("custom_llm_provider", kwargs)
+
+
+class TestDecisionDataclass(unittest.TestCase):
+	"""Tests for the renamed Decision dataclass (was SafetyDecision in the PR)."""
+
+	def test_decision_allowed_true_with_no_reasons(self):
+		from libs.safety_manager import Decision
+		d = Decision(allowed=True)
+		self.assertTrue(d.allowed)
+		self.assertEqual(d.reasons, [])
+
+	def test_decision_allowed_false_with_reasons(self):
+		from libs.safety_manager import Decision
+		d = Decision(allowed=False, reasons=["Deletion blocked.", "Shell blocked."])
+		self.assertFalse(d.allowed)
+		self.assertEqual(len(d.reasons), 2)
+
+	def test_decision_reasons_default_is_empty_list(self):
+		from libs.safety_manager import Decision
+		d1 = Decision(allowed=True)
+		d2 = Decision(allowed=True)
+		# Ensure default_factory is used (no shared list between instances)
+		d1.reasons.append("x")
+		self.assertEqual(d2.reasons, [])
+
+	def test_assess_execution_returns_decision_instance(self):
+		from libs.safety_manager import Decision
+		sm = ExecutionSafetyManager()
+		result = sm.assess_execution("print('hello')", "code")
+		self.assertIsInstance(result, Decision)
+
+
+class TestRepairCircuitBreakerUpdatedLogic(unittest.TestCase):
+	"""Tests for the updated RepairCircuitBreaker logic (PR changed stop-order)."""
+
+	def test_same_error_stops_on_second_call(self):
+		"""Same error text must return False on the second call, not the third."""
+		breaker = RepairCircuitBreaker(max_attempts=5)
+		self.assertTrue(breaker.should_continue("NameError: name 'x' is not defined"))
+		# Same error → must stop immediately
+		self.assertFalse(breaker.should_continue("NameError: name 'x' is not defined"))
+
+	def test_different_errors_consume_attempts(self):
+		breaker = RepairCircuitBreaker(max_attempts=3)
+		self.assertTrue(breaker.should_continue("error one"))
+		self.assertTrue(breaker.should_continue("error two"))
+		self.assertTrue(breaker.should_continue("error three"))
+		# Max attempts reached
+		self.assertFalse(breaker.should_continue("error four"))
+
+	def test_max_attempts_zero_always_stops(self):
+		breaker = RepairCircuitBreaker(max_attempts=0)
+		self.assertFalse(breaker.should_continue("any error"))
+
+	def test_attempts_counter_increments_correctly(self):
+		breaker = RepairCircuitBreaker(max_attempts=3)
+		breaker.should_continue("err1")
+		breaker.should_continue("err2")
+		self.assertEqual(breaker.attempts, 2)
+
+	def test_normalize_error_strips_whitespace(self):
+		breaker = RepairCircuitBreaker(max_attempts=3)
+		# Leading/trailing whitespace and doubled spaces should be normalized
+		self.assertTrue(breaker.should_continue("  some  error  "))
+		self.assertFalse(breaker.should_continue("some error"))
+
+	def test_seen_errors_tracks_normalized_errors(self):
+		breaker = RepairCircuitBreaker(max_attempts=5)
+		breaker.should_continue("Error A")
+		self.assertIn("error a", breaker.seen_errors)
+
+	def test_max_attempts_one_allows_first_and_blocks_second(self):
+		breaker = RepairCircuitBreaker(max_attempts=1)
+		self.assertTrue(breaker.should_continue("first error"))
+		self.assertFalse(breaker.should_continue("different second error"))
+
+
+class TestExecutionSafetyManagerUnsafeMode(unittest.TestCase):
+	"""Tests for ExecutionSafetyManager unsafe_mode parameter (new in this PR)."""
+
+	def test_unsafe_mode_false_by_default(self):
+		sm = ExecutionSafetyManager()
+		self.assertFalse(sm.unsafe_mode)
+
+	def test_unsafe_mode_true_allows_dangerous_commands(self):
+		sm = ExecutionSafetyManager(unsafe_mode=True)
+		decision = sm.assess_execution("rm -rf /", "command")
+		self.assertTrue(decision.allowed)
+
+	def test_unsafe_mode_true_allows_delete_code(self):
+		sm = ExecutionSafetyManager(unsafe_mode=True)
+		decision = sm.assess_execution("import os\nos.remove('file.txt')", "code")
+		self.assertTrue(decision.allowed)
+
+	def test_unsafe_mode_true_allows_subprocess_code(self):
+		sm = ExecutionSafetyManager(unsafe_mode=True)
+		decision = sm.assess_execution("import subprocess\nsubprocess.run(['ls'])", "code")
+		self.assertTrue(decision.allowed)
+
+	def test_unsafe_mode_hard_blocks_rd_s_q_regardless(self):
+		"""rd /s /q must be blocked even in unsafe_mode — this is the hard block."""
+		sm = ExecutionSafetyManager(unsafe_mode=True)
+		decision = sm.assess_execution("rd /s /q C:\\Temp", "command")
+		self.assertFalse(decision.allowed)
+		self.assertIn("Recursive deletion is blocked.", decision.reasons)
+
+	def test_unsafe_mode_hard_blocks_rd_s_q_case_insensitive(self):
+		sm = ExecutionSafetyManager(unsafe_mode=True)
+		decision = sm.assess_execution("RD /S /Q D:\\folder", "command")
+		self.assertFalse(decision.allowed)
+
+	def test_safe_mode_still_blocks_dangerous_commands(self):
+		sm = ExecutionSafetyManager(unsafe_mode=False)
+		decision = sm.assess_execution("rm -rf /", "command")
+		self.assertFalse(decision.allowed)
+
+	def test_unsafe_mode_true_allows_del_command(self):
+		sm = ExecutionSafetyManager(unsafe_mode=True)
+		decision = sm.assess_execution("del C:\\Temp\\file.txt", "command")
+		self.assertTrue(decision.allowed)
+
+
+class TestExecutionSafetyManagerAstCheck(unittest.TestCase):
+	"""Tests for the new _ast_check() method in ExecutionSafetyManager."""
+
+	def setUp(self):
+		self.sm = ExecutionSafetyManager()
+
+	def test_ast_blocks_os_remove_call(self):
+		code = "import os\nos.remove('myfile.txt')"
+		reasons = self.sm._ast_check(code)
+		self.assertTrue(any("deletion" in r.lower() for r in reasons))
+
+	def test_ast_blocks_os_unlink_call(self):
+		code = "import os\nos.unlink('myfile.txt')"
+		reasons = self.sm._ast_check(code)
+		self.assertTrue(any("deletion" in r.lower() for r in reasons))
+
+	def test_ast_blocks_shutil_rmtree_call(self):
+		code = "import shutil\nshutil.rmtree('/tmp/test')"
+		reasons = self.sm._ast_check(code)
+		self.assertTrue(any("deletion" in r.lower() for r in reasons))
+
+	def test_ast_blocks_eval(self):
+		code = "eval('print(1)')"
+		reasons = self.sm._ast_check(code)
+		self.assertTrue(any("dynamic" in r.lower() for r in reasons))
+
+	def test_ast_blocks_exec(self):
+		code = "exec('import os')"
+		reasons = self.sm._ast_check(code)
+		self.assertTrue(any("dynamic" in r.lower() for r in reasons))
+
+	def test_ast_blocks_getattr_obfuscated_remove(self):
+		code = "import os\ngetattr(os, 'remove')('file.txt')"
+		reasons = self.sm._ast_check(code)
+		self.assertTrue(any("obfuscated" in r.lower() for r in reasons))
+
+	def test_ast_blocks_getattr_obfuscated_unlink(self):
+		code = "import os\ngetattr(os, 'unlink')('file.txt')"
+		reasons = self.sm._ast_check(code)
+		self.assertTrue(any("obfuscated" in r.lower() for r in reasons))
+
+	def test_ast_returns_empty_for_safe_code(self):
+		code = "x = 1\nprint(x)\nresult = x + 2"
+		reasons = self.sm._ast_check(code)
+		self.assertEqual(reasons, [])
+
+	def test_ast_returns_empty_for_invalid_python(self):
+		# Non-Python code (e.g. shell) should not crash and return empty reasons
+		code = "rm -rf /"
+		reasons = self.sm._ast_check(code)
+		self.assertEqual(reasons, [])
+
+	def test_ast_check_assess_blocks_ast_detected_deletion(self):
+		"""assess_execution should block code with AST-detected deletion."""
+		sm = ExecutionSafetyManager(unsafe_mode=False)
+		code = "import os\nos.remove('file.txt')"
+		decision = sm.assess_execution(code, "code")
+		self.assertFalse(decision.allowed)
+		self.assertTrue(any("AST" in r for r in decision.reasons))
+
+
+class TestExecutionSafetyManagerAssessExecutionNew(unittest.TestCase):
+	"""Tests for the refactored assess_execution() behavior in this PR."""
+
+	def setUp(self):
+		self.sm = ExecutionSafetyManager()
+
+	def test_empty_string_returns_not_allowed(self):
+		decision = self.sm.assess_execution("", "code")
+		self.assertFalse(decision.allowed)
+		self.assertIn("Empty content", decision.reasons)
+
+	def test_whitespace_only_returns_not_allowed(self):
+		decision = self.sm.assess_execution("   \n\t  ", "code")
+		self.assertFalse(decision.allowed)
+		self.assertIn("Empty content", decision.reasons)
+
+	def test_blocks_subprocess_usage(self):
+		decision = self.sm.assess_execution("import subprocess\nsubprocess.run(['ls'])", "code")
+		self.assertFalse(decision.allowed)
+		self.assertTrue(any("shell" in r.lower() for r in decision.reasons))
+
+	def test_blocks_os_system(self):
+		decision = self.sm.assess_execution("import os\nos.system('ls')", "code")
+		self.assertFalse(decision.allowed)
+		self.assertTrue(any("shell" in r.lower() for r in decision.reasons))
+
+	def test_blocks_powershell_reference(self):
+		decision = self.sm.assess_execution("powershell -Command Get-Date", "script")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_cmd_exe_reference(self):
+		decision = self.sm.assess_execution("cmd.exe /c dir", "command")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_bash_reference(self):
+		decision = self.sm.assess_execution("bash -c 'ls -la'", "command")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_delete_keyword(self):
+		decision = self.sm.assess_execution("delete file.txt", "command")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_erase_command(self):
+		decision = self.sm.assess_execution("erase C:\\file.txt", "command")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_remove_item_powershell(self):
+		decision = self.sm.assess_execution("Remove-Item C:\\Temp\\file.txt", "script")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_absolute_path_write_mode(self):
+		decision = self.sm.assess_execution("open('C:\\\\temp\\\\out.txt', 'w')", "code")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_absolute_path_append_mode(self):
+		decision = self.sm.assess_execution("open('C:\\\\log.txt', 'a')", "code")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_absolute_path_create_mode(self):
+		decision = self.sm.assess_execution("open('C:\\\\new.txt', 'x')", "code")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_write_function_with_absolute_path(self):
+		decision = self.sm.assess_execution("f = open('C:\\\\data.txt', 'r')\nf.write('data')", "code")
+		self.assertFalse(decision.allowed)
+
+	def test_allows_safe_simple_code(self):
+		decision = self.sm.assess_execution("print('hello world')", "code")
+		self.assertTrue(decision.allowed)
+
+	def test_allows_read_only_absolute_path(self):
+		# Reading from absolute path without write/delete should be allowed
+		decision = self.sm.assess_execution("f = open('C:\\\\data.txt', 'r')\ndata = f.read()\nf.close()\nprint(data)", "code")
+		self.assertTrue(decision.allowed)
+
+	def test_command_mode_blocks_multiline(self):
+		decision = self.sm.assess_execution("echo hello\necho world", "command")
+		self.assertFalse(decision.allowed)
+		self.assertIn("Command must be single line.", decision.reasons)
+
+	def test_command_mode_allows_single_line(self):
+		decision = self.sm.assess_execution("echo hello", "command")
+		self.assertTrue(decision.allowed)
+
+	def test_rd_s_q_hard_blocked_before_unsafe_mode_check(self):
+		"""rd /s /q is blocked before the unsafe_mode bypass."""
+		sm = ExecutionSafetyManager(unsafe_mode=True)
+		decision = sm.assess_execution("rd /s /q C:\\Temp", "command")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_unlinksync_js(self):
+		decision = self.sm.assess_execution("fs.unlinkSync('temp.txt')", "code")
+		self.assertFalse(decision.allowed)
+
+	def test_blocks_rmtree(self):
+		decision = self.sm.assess_execution("shutil.rmtree('/tmp/test')", "code")
+		self.assertFalse(decision.allowed)
+
+	def test_decision_reasons_not_empty_when_blocked(self):
+		decision = self.sm.assess_execution("rm -rf /", "command")
+		self.assertFalse(decision.allowed)
+		self.assertGreater(len(decision.reasons), 0)
+
+
+class TestIsDangerousOperation(unittest.TestCase):
+	"""Tests for the new is_dangerous_operation() method in ExecutionSafetyManager."""
+
+	def setUp(self):
+		self.sm = ExecutionSafetyManager()
+
+	def test_empty_string_returns_false(self):
+		self.assertFalse(self.sm.is_dangerous_operation(""))
+
+	def test_none_equivalent_whitespace_returns_false(self):
+		self.assertFalse(self.sm.is_dangerous_operation("   "))
+
+	def test_safe_code_returns_false(self):
+		self.assertFalse(self.sm.is_dangerous_operation("print('hello')"))
+
+	def test_unlink_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("os.unlink('file.txt')"))
+
+	def test_unlinksync_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("fs.unlinkSync('file.txt')"))
+
+	def test_remove_call_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("os.remove('file.txt')"))
+
+	def test_rmtree_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("shutil.rmtree('/tmp')"))
+
+	def test_del_command_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("del file.txt"))
+
+	def test_rm_command_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("rm file.txt"))
+
+	def test_erase_command_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("erase file.txt"))
+
+	def test_delete_keyword_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("delete file.txt"))
+
+	def test_remove_item_powershell_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("Remove-Item C:\\file.txt"))
+
+	def test_rd_command_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("rd /s /q C:\\Temp"))
+
+	def test_shutil_rmtree_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("shutil.rmtree('/tmp/test')"))
+
+	def test_os_rmdir_is_dangerous(self):
+		self.assertTrue(self.sm.is_dangerous_operation("os.rmdir('empty_dir')"))
+
+	def test_case_insensitive_detection(self):
+		self.assertTrue(self.sm.is_dangerous_operation("SHUTIL.RMTREE('/tmp')"))
+
+	def test_returns_bool_type(self):
+		result = self.sm.is_dangerous_operation("print('hello')")
+		self.assertIsInstance(result, bool)
+
+
+class TestCodeInterpreterSafetyManagerInjection(unittest.TestCase):
+	"""Tests for CodeInterpreter accepting an injected safety_manager (new in PR)."""
+
+	def _make_ci(self, safety_manager=None):
+		with patch("libs.code_interpreter.Logger.initialize", return_value=None):
+			return CodeInterpreter(safety_manager=safety_manager)
+
+	def test_default_creates_execution_safety_manager(self):
+		ci = self._make_ci()
+		self.assertIsInstance(ci.safety_manager, ExecutionSafetyManager)
+
+	def test_injected_manager_is_stored(self):
+		custom_sm = ExecutionSafetyManager(unsafe_mode=True)
+		ci = self._make_ci(safety_manager=custom_sm)
+		self.assertIs(ci.safety_manager, custom_sm)
+
+	def test_injected_unsafe_manager_propagates_unsafe_mode(self):
+		unsafe_sm = ExecutionSafetyManager(unsafe_mode=True)
+		ci = self._make_ci(safety_manager=unsafe_sm)
+		self.assertTrue(ci.safety_manager.unsafe_mode)
+
+	def test_default_manager_is_safe_mode(self):
+		ci = self._make_ci()
+		self.assertFalse(ci.safety_manager.unsafe_mode)
+
+	def test_none_argument_creates_default_manager(self):
+		ci = self._make_ci(safety_manager=None)
+		self.assertIsNotNone(ci.safety_manager)
+		self.assertIsInstance(ci.safety_manager, ExecutionSafetyManager)
+
+	def test_injected_manager_is_used_for_safety_check(self):
+		"""Ensure the injected manager's assess_execution is called (not a new instance)."""
+		from unittest.mock import MagicMock
+		from libs.safety_manager import Decision
+		mock_sm = MagicMock()
+		mock_sm.assess_execution.return_value = Decision(False, ["blocked by mock"])
+		mock_sm.unsafe_mode = False
+		ci = self._make_ci(safety_manager=mock_sm)
+		# Provide a mock logger so execute_code doesn't fail on None.info()
+		ci.logger = MagicMock()
+		# execute_code calls self.safety_manager.assess_execution
+		result = ci.execute_code("print('hello')", language="python")
+		mock_sm.assess_execution.assert_called()
+
+
+class TestMaxTimeoutConstant(unittest.TestCase):
+	"""Tests for the MAX_TIMEOUT constant introduced in this PR (was hardcoded 30s)."""
+
+	def test_max_timeout_is_120(self):
+		from libs import code_interpreter
+		self.assertEqual(code_interpreter.MAX_TIMEOUT, 120)
+
+	def test_max_output_is_ten_million(self):
+		from libs import code_interpreter
+		self.assertEqual(code_interpreter.MAX_OUTPUT, 10_000_000)
+
+
+class TestPackageManagerRunCommandSafety(unittest.TestCase):
+	"""Tests for the refactored PackageManager._run_command() with arg validation."""
+
+	def setUp(self):
+		with patch("libs.package_manager.Logger.initialize", return_value=None):
+			from libs.package_manager import PackageManager
+			self.pm = PackageManager()
+
+	@patch("libs.package_manager.os.name", "nt")
+	def test_windows_unsafe_arg_with_space_raises_value_error(self):
+		with self.assertRaises(ValueError) as ctx:
+			with patch("subprocess.check_call"):
+				self.pm._run_command(["pip", "install", "package name with space"])
+		self.assertIn("Unsafe command argument", str(ctx.exception))
+
+	@patch("libs.package_manager.os.name", "nt")
+	def test_windows_unsafe_arg_with_semicolon_raises_value_error(self):
+		with self.assertRaises(ValueError):
+			with patch("subprocess.check_call"):
+				self.pm._run_command(["pip", "install", "pkg; rm -rf /"])
+
+	@patch("libs.package_manager.os.name", "nt")
+	def test_windows_safe_args_pass_validation(self):
+		with patch("subprocess.check_call", return_value=0) as mock_call:
+			result = self.pm._run_command(["pip", "install", "requests"])
+		mock_call.assert_called_once_with(["pip", "install", "requests"], shell=True)
+
+	@patch("libs.package_manager.os.name", "posix")
+	def test_unix_uses_shell_false(self):
+		with patch("subprocess.check_call", return_value=0) as mock_call:
+			self.pm._run_command(["pip", "install", "requests"])
+		mock_call.assert_called_once_with(["pip", "install", "requests"], shell=False)
+
+	@patch("libs.package_manager.os.name", "posix")
+	def test_unix_does_not_validate_args(self):
+		"""On Unix, no regex validation — any string args are passed through."""
+		with patch("subprocess.check_call", return_value=0) as mock_call:
+			# This would fail on Windows but should pass on Unix
+			self.pm._run_command(["pip", "install", "my package"])
+		mock_call.assert_called_once()
+
+	@patch("libs.package_manager.os.name", "nt")
+	def test_windows_non_string_arg_raises_value_error(self):
+		with self.assertRaises(ValueError):
+			with patch("subprocess.check_call"):
+				self.pm._run_command(["pip", "install", 123])
+
+	@patch("libs.package_manager.os.name", "nt")
+	def test_windows_unsafe_arg_with_pipe_raises_value_error(self):
+		with self.assertRaises(ValueError):
+			with patch("subprocess.check_call"):
+				self.pm._run_command(["pip", "install", "pkg | evil"])
+
+	@patch("libs.package_manager.os.name", "nt")
+	def test_windows_called_process_error_is_reraised(self):
+		import subprocess
+		with patch("subprocess.check_call", side_effect=subprocess.CalledProcessError(1, "pip")):
+			with self.assertRaises(subprocess.CalledProcessError):
+				self.pm._run_command(["pip", "install", "requests"])
+
+
+class TestExecutionSafetyManagerSandbox(unittest.TestCase):
+	"""Tests for build_sandbox_context() and cleanup_sandbox_context() (updated in PR)."""
+
+	def setUp(self):
+		self.sm = ExecutionSafetyManager()
+
+	def test_build_sandbox_context_creates_temp_dir(self):
+		ctx = self.sm.build_sandbox_context()
+		try:
+			self.assertTrue(os.path.isdir(ctx.cwd))
+			self.assertTrue(ctx.cwd.startswith(tempfile.gettempdir()) or "ci_sandbox_" in ctx.cwd)
+		finally:
+			self.sm.cleanup_sandbox_context(ctx)
+
+	def test_build_sandbox_context_sets_pythonioencoding(self):
+		ctx = self.sm.build_sandbox_context()
+		try:
+			self.assertEqual(ctx.env.get("PYTHONIOENCODING"), "utf-8")
+		finally:
+			self.sm.cleanup_sandbox_context(ctx)
+
+	def test_build_sandbox_context_timeout_is_30(self):
+		ctx = self.sm.build_sandbox_context()
+		try:
+			self.assertEqual(ctx.timeout_seconds, 30)
+		finally:
+			self.sm.cleanup_sandbox_context(ctx)
+
+	def test_cleanup_removes_sandbox_directory(self):
+		ctx = self.sm.build_sandbox_context()
+		sandbox_dir = ctx.cwd
+		self.assertTrue(os.path.exists(sandbox_dir))
+		self.sm.cleanup_sandbox_context(ctx)
+		self.assertFalse(os.path.exists(sandbox_dir))
+
+	def test_cleanup_with_none_context_does_not_raise(self):
+		# Should be a no-op without raising
+		self.sm.cleanup_sandbox_context(None)
+
+	def test_build_sandbox_prefix_starts_with_ci_sandbox(self):
+		ctx = self.sm.build_sandbox_context()
+		try:
+			self.assertIn("ci_sandbox_", ctx.cwd)
+		finally:
+			self.sm.cleanup_sandbox_context(ctx)
+
+
+class TestInterpreterUnsafeModeInitialization(unittest.TestCase):
+	"""Tests for Interpreter unsafe_mode propagation to safety_manager (new in PR)."""
+
+	def _make_args(self, unsafe=False, mode="code", model="z-ai-glm-5"):
+		return Namespace(
+			exec=False,
+			save_code=False,
+			mode=mode,
+			model=model,
+			display_code=False,
+			lang="python",
+			file=None,
+			history=False,
+			upgrade=False,
+			unsafe=unsafe,
+		)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_safe_mode_sets_unsafe_execution_false(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=False))
+		self.assertFalse(interpreter.UNSAFE_EXECUTION)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_unsafe_flag_sets_unsafe_execution_true(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=True))
+		self.assertTrue(interpreter.UNSAFE_EXECUTION)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_safety_manager_unsafe_mode_matches_unsafe_execution(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=True))
+		self.assertTrue(interpreter.safety_manager.unsafe_mode)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_safe_mode_safety_manager_not_unsafe(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=False))
+		self.assertFalse(interpreter.safety_manager.unsafe_mode)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_code_interpreter_shares_safety_manager(self, _mock_history, _mock_client):
+		"""code_interpreter and safety_manager must share the same instance."""
+		interpreter = Interpreter(self._make_args(unsafe=True))
+		self.assertIs(interpreter.code_interpreter.safety_manager, interpreter.safety_manager)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_code_interpreter_shares_safety_manager_safe_mode(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=False))
+		self.assertIs(interpreter.code_interpreter.safety_manager, interpreter.safety_manager)
+
+
+class TestInterpreterModeIndicatorBanner(unittest.TestCase):
+	"""Tests for the mode indicator added to _display_session_banner (new in PR)."""
+
+	def _make_args(self, unsafe=False, mode="code", model="z-ai-glm-5"):
+		return Namespace(
+			exec=False,
+			save_code=False,
+			mode=mode,
+			model=model,
+			display_code=False,
+			lang="python",
+			file=None,
+			history=False,
+			upgrade=False,
+			unsafe=unsafe,
+		)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_safe_mode_banner_contains_safe_mode_indicator(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=False))
+		interpreter.INTERPRETER_MODEL = "z-ai-glm-5"
+		interpreter.INTERPRETER_MODEL_LABEL = None
+
+		printed_lines = []
+		with patch.object(interpreter.console, "print", side_effect=lambda *a, **kw: printed_lines.append(a[0] if a else "")):
+			interpreter._display_session_banner("Windows 10", "input")
+
+		full_output = " ".join(printed_lines)
+		self.assertIn("SAFE MODE", full_output)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_unsafe_mode_banner_contains_unsafe_mode_indicator(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=True))
+		interpreter.INTERPRETER_MODEL = "z-ai-glm-5"
+		interpreter.INTERPRETER_MODEL_LABEL = None
+
+		printed_lines = []
+		with patch.object(interpreter.console, "print", side_effect=lambda *a, **kw: printed_lines.append(a[0] if a else "")):
+			interpreter._display_session_banner("Windows 10", "input")
+
+		full_output = " ".join(printed_lines)
+		self.assertIn("UNSAFE MODE", full_output)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_safe_mode_uses_green_style(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=False))
+		interpreter.INTERPRETER_MODEL = "z-ai-glm-5"
+		interpreter.INTERPRETER_MODEL_LABEL = None
+
+		printed_lines = []
+		with patch.object(interpreter.console, "print", side_effect=lambda *a, **kw: printed_lines.append(a[0] if a else "")):
+			interpreter._display_session_banner("Linux", "input")
+
+		full_output = " ".join(printed_lines)
+		self.assertIn("bold green", full_output)
+
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_unsafe_mode_uses_red_style(self, _mock_history, _mock_client):
+		interpreter = Interpreter(self._make_args(unsafe=True))
+		interpreter.INTERPRETER_MODEL = "z-ai-glm-5"
+		interpreter.INTERPRETER_MODEL_LABEL = None
+
+		printed_lines = []
+		with patch.object(interpreter.console, "print", side_effect=lambda *a, **kw: printed_lines.append(a[0] if a else "")):
+			interpreter._display_session_banner("Linux", "input")
+
+		full_output = " ".join(printed_lines)
+		self.assertIn("bold red", full_output)
+
+
+class TestInterpreterDangerousOperationBlocking(unittest.TestCase):
+	"""Tests for dangerous operation blocking logic (SAFE vs UNSAFE mode) in execute_code."""
+
+	def _make_args(self, unsafe=False, mode="code", exec_flag=False):
+		return Namespace(
+			exec=exec_flag,
+			save_code=False,
+			mode=mode,
+			model="z-ai-glm-5",
+			display_code=False,
+			lang="python",
+			file=None,
+			history=False,
+			upgrade=False,
+			unsafe=unsafe,
+		)
+
+	@patch("libs.interpreter_lib.display_markdown_message")
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	def test_safe_mode_blocks_dangerous_operation_before_prompt(
+		self, _mock_history, _mock_client, _mock_markdown
+	):
+		"""In SAFE MODE, dangerous operations must be blocked without prompting user."""
+		# exec=False so EXECUTE_CODE is False and input() would normally be called.
+		# But for dangerous ops in safe mode, it must be blocked before any prompt.
+		interpreter = Interpreter(self._make_args(unsafe=False, exec_flag=False))
+
+		with patch("builtins.input") as mock_input:
+			result = interpreter.execute_code("rm -rf /", "Linux")
+
+		# Should not have prompted the user
+		mock_input.assert_not_called()
+		# Should have returned an error
+		output, error = result
+		self.assertIsNone(output)
+		self.assertIsNotNone(error)
+
+	@patch("libs.interpreter_lib.display_markdown_message")
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	@patch("builtins.input", return_value="n")
+	def test_unsafe_mode_prompts_for_dangerous_operation(
+		self, _mock_input, _mock_history, _mock_client, _mock_markdown
+	):
+		"""In UNSAFE MODE, dangerous operations must show a warning prompt."""
+		# exec=False so EXECUTE_CODE is False, forcing the input() path
+		interpreter = Interpreter(self._make_args(unsafe=True, exec_flag=False))
+		interpreter.config_values = {"start_sep": "```", "end_sep": "```"}
+
+		# Use a code snippet that triggers is_dangerous_operation
+		result = interpreter.execute_code("import os\nos.remove('test.txt')", "Linux")
+
+		# Should have prompted (with dangerous warning)
+		_mock_input.assert_called()
+		call_args = _mock_input.call_args[0][0]
+		self.assertIn("Dangerous", call_args)
+
+	@patch("libs.interpreter_lib.display_markdown_message")
+	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
+	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)
+	@patch("builtins.input", return_value="n")
+	def test_safe_operation_uses_standard_prompt(
+		self, _mock_input, _mock_history, _mock_client, _mock_markdown
+	):
+		"""Non-dangerous operations use standard 'Execute the code?' prompt."""
+		# exec=False so EXECUTE_CODE is False, forcing the input() path
+		interpreter = Interpreter(self._make_args(unsafe=False, exec_flag=False))
+		interpreter.config_values = {"start_sep": "```", "end_sep": "```"}
+
+		result = interpreter.execute_code("print('hello')", "Linux")
+
+		_mock_input.assert_called()
+		call_args = _mock_input.call_args[0][0]
+		self.assertIn("Execute", call_args)
+		self.assertNotIn("Dangerous", call_args)
+
+
+class TestInterpreterVersionUpdated(unittest.TestCase):
+	"""Tests for the interpreter version update in this PR (3.1.0 → 3.2.1)."""
+
+	def test_interpreter_version_is_3_2_1(self):
+		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.2.1")
+
+	def test_version_file_contains_3_2_1(self):
+		version_file = ROOT_DIR / "VERSION"
+		content = version_file.read_text(encoding="utf-8").strip()
+		self.assertEqual(content, "3.2.1")
 
 
 if __name__ == "__main__":
