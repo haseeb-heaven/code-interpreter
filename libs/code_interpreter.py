@@ -64,6 +64,14 @@ _FENCE_LANGUAGE_TAGS = frozenset({
 	"zsh", "wasm", "llvm", "hcl", "terraform", "tf",
 })
 
+# Python-specific keywords/patterns used to detect Python code in execute_script
+_PYTHON_CODE_PATTERNS = re.compile(
+	r'^\s*(import\s+\w|from\s+\w+\s+import|def\s+\w+\s*\(|class\s+\w+[\s:(]'
+	r'|print\s*\(|for\s+\w+\s+in\s|if\s+\w|while\s+\w|with\s+\w|try\s*:'
+	r'|except\s|raise\s|return\s|yield\s|async\s+def\s|lambda\s)',
+	re.MULTILINE,
+)
+
 
 def _strip_leading_fence_language_line(extracted: str) -> str:
 	if not extracted:
@@ -77,6 +85,22 @@ def _strip_leading_fence_language_line(extracted: str) -> str:
 	if first.strip().lower() in _FENCE_LANGUAGE_TAGS:
 		return rest
 	return extracted
+
+
+def _kill_process_group(process):
+	"""Kill a subprocess and its entire process group (POSIX) or just the process (Windows)."""
+	try:
+		if os.name != "nt":
+			os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+		else:
+			process.kill()
+	except Exception:
+		# Fallback: kill direct child only
+		try:
+			process.kill()
+		except Exception:
+			pass
+
 
 class CodeInterpreter:
 
@@ -266,7 +290,12 @@ class CodeInterpreter:
 				else:
 					process = subprocess.Popen(args, **popen_kwargs)
 
-				stdout_val, stderr_val = process.communicate(timeout=timeout)
+				try:
+					stdout_val, stderr_val = process.communicate(timeout=timeout)
+				except subprocess.TimeoutExpired:
+					_kill_process_group(process)
+					process.communicate()
+					return None, "Execution timed out."
 
 				stdout_decoded = stdout_val.decode(errors="ignore") if stdout_val else ""
 				stderr_decoded = stderr_val.decode(errors="ignore") if stderr_val else ""
@@ -288,15 +317,13 @@ class CodeInterpreter:
 				try:
 					stdout_val, stderr_val = process.communicate(timeout=timeout)
 				except subprocess.TimeoutExpired:
-					try:
-						if os.name != "nt":
-							os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-						else:
-							process.kill()
-					except Exception:
-						process.kill()
+					# Bug #1 fix: kill entire process group, not just direct child
+					_kill_process_group(process)
 					process.communicate()
 					return None, "Execution timed out."
+
+				stdout_decoded = stdout_val.decode(errors="ignore") if stdout_val else ""
+				stderr_decoded = stderr_val.decode(errors="ignore") if stderr_val else ""
 
 			elif shell == "applescript":
 				args = ["osascript", "-"]
@@ -304,15 +331,19 @@ class CodeInterpreter:
 					process = subprocess.Popen(args, stdin=subprocess.PIPE, **popen_kwargs, **posix_extra)
 				else:
 					process = subprocess.Popen(args, stdin=subprocess.PIPE, **popen_kwargs)
-				stdout_val, stderr_val = process.communicate(input=script.encode(), timeout=timeout)
+				try:
+					stdout_val, stderr_val = process.communicate(input=script.encode(), timeout=timeout)
+				except subprocess.TimeoutExpired:
+					_kill_process_group(process)
+					process.communicate()
+					return None, "Execution timed out."
+
+				stdout_decoded = stdout_val.decode(errors="ignore") if stdout_val else ""
+				stderr_decoded = stderr_val.decode(errors="ignore") if stderr_val else ""
 
 			else:
 				stderr_decoded = f"Invalid shell selected: {shell}"
 				return (None, stderr_decoded)
-			
-			# Decode outputs
-			stdout_decoded = stdout_val.decode(errors="ignore") if stdout_val else ""
-			stderr_decoded = stderr_val.decode(errors="ignore") if stderr_val else ""
 
 			if len(stdout_decoded) > MAX_OUTPUT:
 				stdout_decoded = stdout_decoded[:MAX_OUTPUT]
@@ -323,24 +354,29 @@ class CodeInterpreter:
 			return stdout_decoded, stderr_decoded
 
 		except subprocess.TimeoutExpired:
+			# Outer safety net — kill entire process group
 			if process:
-				process.kill()
+				_kill_process_group(process)
+				try:
+					process.communicate()
+				except Exception:
+					pass
 			return None, "Execution timed out."
 
 		except Exception as e:
 			return None, str(e)
 
 		finally:
-		    # remove temp script
-		    try:
-		        if temp_script_path and os.path.exists(temp_script_path):
-		            os.remove(temp_script_path)
-		    except Exception:
-		        pass
+			# remove temp script
+			try:
+				if temp_script_path and os.path.exists(temp_script_path):
+					os.remove(temp_script_path)
+			except Exception:
+				pass
 
-		    # cleanup sandbox ONLY if we created it
-		    if (sandbox_context is None) and safe_dir and os.path.exists(safe_dir):
-		        shutil.rmtree(safe_dir, ignore_errors=True)
+			# cleanup sandbox ONLY if we created it
+			if (sandbox_context is None) and safe_dir and os.path.exists(safe_dir):
+				shutil.rmtree(safe_dir, ignore_errors=True)
 
 	def _check_compilers(self, language):
 		try:
@@ -500,13 +536,8 @@ class CodeInterpreter:
 			return stdout_output, stderr_output
 		except subprocess.TimeoutExpired:
 			if process:
-				try:
-					if os.name != "nt":
-						os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-					else:
-						process.kill()
-				except Exception:
-					pass
+				# Bug #1 fix: kill entire process group so grandchildren don't survive
+				_kill_process_group(process)
 				try:
 					process.communicate()
 				except Exception:
@@ -539,12 +570,17 @@ class CodeInterpreter:
 
 			if re.search(r'(C:\\|/etc/|/usr/|/var/)', script):
 				return None, "Access to system paths is restricted."
-			
-			# Use a POSIX shell on macOS rather than AppleScript for general scripts
+
+			# Bug #4 fix: detect Python code so it runs under Python, not bash,
+			# on macOS/Linux — otherwise valid LLM Python crashes with SyntaxError.
+			is_python_code = bool(_PYTHON_CODE_PATTERNS.search(script))
+
 			if 'darwin' in os_type.lower() or 'macos' in os_type.lower():
-				output, error = self._execute_script(script, shell='bash', sandbox_context=sandbox_context)
+				shell = 'python' if is_python_code else 'bash'
+				output, error = self._execute_script(script, shell=shell, sandbox_context=sandbox_context)
 			elif 'linux' in os_type.lower():
-				output, error = self._execute_script(script, shell='bash', sandbox_context=sandbox_context)
+				shell = 'python' if is_python_code else 'bash'
+				output, error = self._execute_script(script, shell=shell, sandbox_context=sandbox_context)
 			elif 'windows' in os_type.lower():
 				output, error = self._execute_script(script, shell='python', sandbox_context=sandbox_context)
 			else:
