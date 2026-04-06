@@ -1,11 +1,11 @@
 
 ## v3.2.1 (2026-04-07)
 - Add mode indicator, strict safe-mode blocking, unsafe confirmations, warnings, and improved safety controls for enterprise-grade execution behavior and user awareness
-- Update the Sandbox and Code Exectution
+- Update the Sandbox and Code Execution
 - Refactor execution architecture with python-first model, restore bash compatibility for tests, fix decoding bug, enforce output limits, update versioning, and correct gitignore entries for logs and newline compliance.
 - Overhaul execution architecture with python-first model, sandboxing, and improved safety controls
 - stop tracking history.json
-- Removed /shell command and added Code Exeuction safety
+- Removed /shell command and added Code Execution safety
 - fix(safety): block unquoted absolute-path del command (e.g. del D:\Temp\*.txt)
 - test: add safety checks for quoted wildcard del commands and mocked LLM repair loop for dangerous commands
 - fix: block quoted wildcard del commands and add Windows absolute-path delete patterns

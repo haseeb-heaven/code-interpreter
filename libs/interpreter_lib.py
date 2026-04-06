@@ -340,16 +340,13 @@ class Interpreter:
 			sandbox_context = self.safety_manager.build_sandbox_context()
 		else:
 			sandbox_context = None
-		try:
-			output, error = self.execute_code(code_snippet, os_name, sandbox_context=sandbox_context, force_execute=force_execute)
-			#  Ensure safety errors propagate
-			if error:
-				return None, error
 
-			return output, None
-		finally:
-			if not self.UNSAFE_EXECUTION:
-				self.safety_manager.cleanup_sandbox_context(sandbox_context)
+		output, error = self.execute_code(code_snippet, os_name, sandbox_context=sandbox_context, force_execute=force_execute)
+		#  Ensure safety errors propagate
+		if error:
+			return None, error, sandbox_context
+
+		return output, None, sandbox_context
 
 	def _attempt_repair_after_failure(self, task, prompt, code_snippet, code_error, os_name, start_sep, end_sep, extracted_file_name, code_output=None):
 			circuit_breaker = RepairCircuitBreaker(max_attempts=self.MAX_REPAIR_ATTEMPTS)
@@ -369,7 +366,9 @@ class Interpreter:
 					continue
 
 				if repaired_snippet.strip() == current_snippet.strip():
-					current_output, current_error = self._execute_generated_output(repaired_snippet, os_name, force_execute=False)
+					current_output, current_error, sandbox_ctx = self._execute_generated_output(repaired_snippet, os_name, force_execute=False)
+					if sandbox_ctx:
+						self.safety_manager.cleanup_sandbox_context(sandbox_ctx)
 					if current_output:
 						return repaired_snippet, current_output, current_error
 					if not current_error:
@@ -381,7 +380,9 @@ class Interpreter:
 				current_snippet = repaired_snippet
 				display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
 				display_code(current_snippet, language=display_language)
-				current_output, current_error = self._execute_generated_output(current_snippet, os_name, force_execute=False)
+				current_output, current_error, sandbox_ctx = self._execute_generated_output(current_snippet, os_name, force_execute=False)
+				if sandbox_ctx:
+					self.safety_manager.cleanup_sandbox_context(sandbox_ctx)
 
 				if current_output:
 					return current_snippet, current_output, current_error
@@ -589,7 +590,7 @@ class Interpreter:
 			display_code(code_snippet)  # Display the code first.
 
 			# Execute the code if the user has selected.
-			code_output, code_error = self._execute_generated_output(code_snippet, os_name)
+			code_output, code_error, sandbox_context = self._execute_generated_output(code_snippet, os_name)
 			if code_output:
 				self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 				display_code(code_output)
@@ -1480,8 +1481,8 @@ class Interpreter:
 						self.logger.info("Script saved successfully.")
 				
 					# Execute the code if the user has selected.
-					code_output, code_error = self._execute_generated_output(code_snippet, os_name)
-					
+					code_output, code_error, sandbox_context = self._execute_generated_output(code_snippet, os_name)
+
 					if code_output:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 						display_code(code_output)
@@ -1492,7 +1493,8 @@ class Interpreter:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
 						display_markdown_message(f"Error: {code_error}")
 					else:
-						display_markdown_message("Execution completed successfully.")
+						if self._last_execution_approved:
+							display_markdown_message("Execution completed successfully.")
 						
 					# install Package on error.
 					error_messages = ["ModuleNotFound", "ImportError", "No module named", "Cannot find module"]
@@ -1517,7 +1519,9 @@ class Interpreter:
 
 									# Wait and Execute the code again.
 									time.sleep(3)
-									code_output, code_error = self._execute_generated_output(code_snippet, os_name, force_execute=True)
+									code_output, code_error, retry_sandbox = self._execute_generated_output(code_snippet, os_name, force_execute=True)
+									if retry_sandbox:
+										self.safety_manager.cleanup_sandbox_context(retry_sandbox)
 									if code_output:
 										self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 										display_code(code_output)
@@ -1560,14 +1564,18 @@ class Interpreter:
 					try:
 						# Check if graph.png exists and open it.
 						self.utility_manager._open_resource_file('graph.png')
-						
+
 						# Check if chart.png exists and open it.
 						self.utility_manager._open_resource_file('chart.png')
-						
+
 						# Check if table.md exists and open it.
 						self.utility_manager._open_resource_file('table.md')
 					except Exception as exception:
 						display_markdown_message(f"Error in opening resource files: {str(exception)}")
+					finally:
+						# Cleanup sandbox after accessing artifacts
+						if sandbox_context:
+							self.safety_manager.cleanup_sandbox_context(sandbox_context)
 				
 				self.history_manager.save_history_json(task, self.INTERPRETER_MODE, os_name, self.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, self.INTERPRETER_MODEL)
 				

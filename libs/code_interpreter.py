@@ -88,6 +88,8 @@ class CodeInterpreter:
 		else:
 			self.safety_manager = safety_manager
 
+		self.UNSAFE_EXECUTION = self.safety_manager.unsafe_mode if self.safety_manager else False
+
 	def _get_subprocess_security_kwargs(self, sandbox_context=None):
 		# If no sandbox_context was provided, preserve that by returning
 		# explicit None for `cwd` and `env`. Tests rely on this behavior.

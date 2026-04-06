@@ -170,9 +170,9 @@ class TestInterpreter(unittest.TestCase):
 		"""
 		decision = safety_manager.assess_execution(code, "code")
 		self.assertFalse(decision.allowed)
-		self.assertTrue(any("blocked" in r.lower() for r in decision.reasons) for r in decision.reasons)
+		self.assertTrue(any("blocked" in r.lower() for r in decision.reasons))
 
-	def test_safety_manager_allows_relative_file_delete(self):
+	def test_safety_manager_blocks_relative_file_delete(self):
 		safety_manager = ExecutionSafetyManager()
 		code = r"import os\nos.remove('temp.txt')"
 		decision = safety_manager.assess_execution(code, "code")
@@ -684,7 +684,7 @@ class TestDangerousCommandRepairLoop(unittest.TestCase):
 
 		def fake_execute(snippet, os_name, force_execute=False):
 			execute_calls.append(snippet)
-			return None, "Safety blocked: Absolute-path deletion is blocked."
+			return None, "Safety blocked: Absolute-path deletion is blocked.", None
 
 		with patch.object(interp, "_generate_content_with_retries", return_value=dangerous_llm_response), \
 			 patch.object(interp, "_execute_generated_output", side_effect=fake_execute):
@@ -722,7 +722,7 @@ class TestDangerousCommandRepairLoop(unittest.TestCase):
 		safe_llm_response = f"```\n{safe_cmd}\n```"
 
 		with patch.object(interp, "_generate_content_with_retries", return_value=safe_llm_response), \
-			 patch.object(interp, "_execute_generated_output", return_value=("Volume in drive D", None)):
+			 patch.object(interp, "_execute_generated_output", return_value=("Volume in drive D", None, None)):
 			snippet, output, error = interp._attempt_repair_after_failure(
 				task="list all text files in D:\\Temp",
 				prompt="list all text files in D:\\Temp",

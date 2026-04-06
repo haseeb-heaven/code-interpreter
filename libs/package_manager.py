@@ -20,11 +20,13 @@ class PackageManager:
 		try:
 			if os.name == 'nt':
 				# Windows requires shell=True for .cmd/.bat resolution
-				safe_pattern = re.compile(r'^[a-zA-Z0-9._\-\[\]=<>!,/@]+$')
+				safe_pattern = re.compile(r'^[a-zA-Z0-9._\-\[\]=<>!,@]+$')
 				for arg in args:
 					if not isinstance(arg, str) or not safe_pattern.match(arg):
-						raise ValueError("Unsafe command argument detected")
-				return subprocess.check_call(args, shell=True)
+						raise ValueError(f"Unsafe command argument: {arg}")
+				# Convert args list to a single command string for shell=True
+				command_string = subprocess.list2cmdline(args)
+				return subprocess.check_call(command_string, shell=True)
 			else:
 				return subprocess.check_call(args, shell=False)
 		except subprocess.CalledProcessError as e:

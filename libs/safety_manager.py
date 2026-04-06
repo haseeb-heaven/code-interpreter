@@ -108,9 +108,12 @@ class ExecutionSafetyManager:
 		if re.search(r"\brd\s+/s\s+/q\b", code_lower):
 			return Decision(False, ["Recursive deletion is blocked."])
 
-		#  UNSAFE MODE
+		#  UNSAFE MODE - still detect dangerous operations but allow with warnings
 		if self.unsafe_mode:
-			return Decision(True, [])
+			warnings = []
+			if self.is_dangerous_operation(code):
+				warnings.append("Dangerous operation detected")
+			return Decision(True, warnings)
 
 		# =========================
 		# AST BLOCK

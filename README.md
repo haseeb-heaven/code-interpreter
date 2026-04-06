@@ -354,7 +354,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 ## 📌 **Versioning**
 
-Current version: **3.2.0**
+Current version: **3.2.1**
 
 Quick highlights:
 - **v3.2.0** - Added mode indicator ([SAFE MODE] or [UNSAFE MODE ⚠️]) in session banner, implemented strict safety blocking for dangerous operations in SAFE MODE, added single confirmation prompt for operations in UNSAFE MODE.
