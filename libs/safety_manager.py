@@ -72,14 +72,16 @@ class ExecutionSafetyManager:
 	#   fs.writeFile()     fs.writeFileSync()       (Node.js)
 	#   df.to_csv(path)    df.to_json(path)  df.to_html(path)  (pandas)
 	_WRITE_PATTERNS = [
-		# open() explicit write modes — text and binary variants
-		r"open\s*\([^)]*['\"]w[btax]?['\"]" ,  # 'w', 'wb', 'wt', 'wa', 'wx'
-		r"open\s*\([^)]*['\"]a[btx]?['\"]"  ,  # 'a', 'ab', 'at'
-		r"open\s*\([^)]*['\"]x[bt]?['\"]"   ,  # 'x', 'xb', 'xt'
+		# open() explicit write modes — text and binary variants with optional '+'
+		r"open\s*\([^)]*['\"]w[btax]?\+?['\"]" ,  # 'w', 'wb', 'wt', 'wa', 'wx', 'w+', 'wb+', 'wt+', 'wa+', 'wx+'
+		r"open\s*\([^)]*['\"]a[btx]?\+?['\"]"  ,  # 'a', 'ab', 'at', 'a+', 'ab+', 'at+', 'ax+'
+		r"open\s*\([^)]*['\"]x[bt]?\+?['\"]"   ,  # 'x', 'xb', 'xt', 'x+', 'xb+', 'xt+'
+		r"open\s*\([^)]*['\"]r[bt]?\+['\"]"    ,  # 'r+', 'rb+', 'rt+' (read-write modes)
 		# keyword mode= argument
-		r"open\s*\([^)]*mode\s*=\s*['\"]w"  ,  # mode='w', mode="wb", …
-		r"open\s*\([^)]*mode\s*=\s*['\"]a"  ,  # mode='a', …
-		r"open\s*\([^)]*mode\s*=\s*['\"]x"  ,  # mode='x', …
+		r"open\s*\([^)]*mode\s*=\s*['\"]w[btax]?\+?"  ,  # mode='w', mode="wb", mode='w+', mode='wb+', …
+		r"open\s*\([^)]*mode\s*=\s*['\"]a[btx]?\+?"  ,  # mode='a', mode='a+', mode='ab+', …
+		r"open\s*\([^)]*mode\s*=\s*['\"]x[bt]?\+?"  ,  # mode='x', mode='x+', mode='xb+', …
+		r"open\s*\([^)]*mode\s*=\s*['\"]r[bt]?\+"  ,  # mode='r+', mode='rb+', mode='rt+'
 		# pathlib — Path.write_text() / write_bytes()
 		r"\.write_text\s*\(",
 		r"\.write_bytes\s*\(",
