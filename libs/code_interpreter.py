@@ -9,6 +9,7 @@ It includes features like:
 """
 
 import os
+import re
 import subprocess
 import traceback
 import tempfile
@@ -25,16 +26,6 @@ from libs.safety_manager import ExecutionSafetyManager
 
 # Maximum stdout/stderr to capture (characters) to avoid unbounded memory use
 MAX_OUTPUT = 10_000_000  # 10 MB
-
-# Extra minimal dangerous patterns guard (additional to ExecutionSafetyManager)
-_SYSTEM_DANGEROUS_PATTERNS = [
-	"rm -rf",
-	"mkfs",
-	":(){",
-	"shutdown",
-	"reboot",
-]
-
 
 def _limit_resources():
 	"""Apply basic resource limits in the child process (Unix only).
@@ -151,9 +142,8 @@ class CodeInterpreter:
 		command_lower = command.lower()
 
 		# WINDOWS / GENERIC FILE LISTING
-		if any(keyword in command_lower for keyword in ["dir", "get-childitem", "ls"]):
+		if re.search(r'\b(dir|ls|get-childitem)\b', command_lower):
 			if ".txt" in command_lower:
-				import re
 
 				# extract path
 				match = re.search(r"(?:from|path)?\s*['\"]?([a-zA-Z]:[\\/][^'\"]+)['\"]?", command)
@@ -202,14 +192,6 @@ class CodeInterpreter:
 					rest = rest[1:-1]
 				return [first, second, rest]
 
-			if command_lower.startswith("bash -c"):
-				parts = command.split(" ", 2)
-				if len(parts) < 3:
-					raise ValueError("Invalid bash -c format")
-				first, second, rest = parts
-				if (rest.startswith('"') and rest.endswith('"')) or (rest.startswith("'") and rest.endswith("'")):
-					rest = rest[1:-1]
-				return [first, second, rest]
 		except Exception as e:
 			raise ValueError(f"Invalid inline command format: {command}") from e
 
@@ -254,23 +236,26 @@ class CodeInterpreter:
 
 			# posix-only preexec to limit resources
 			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
-
 			timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
 
-			# Quick extra substring guard (another layer beyond regex-based safety)
-			lower_script = (script or "").lower()
-			for pat in _SYSTEM_DANGEROUS_PATTERNS:
-				if pat in lower_script:
-					return None, f"Blocked dangerous command: {pat}"
+			# SAFETY CHECK (centralized)
+			safety_manager = ExecutionSafetyManager()
+			decision = safety_manager.assess_execution(script, "script")
+			if not decision.allowed:
+				return None, f"Safety blocked: {'; '.join(decision.reasons)}"
 
-			# ✅ NEW: Detect Python scripts and run with Python instead of shell
+			if re.search(r'(C:\\|/etc/|/usr/|/var/)', script):
+				return None, "Access to system paths is restricted."
+
+			#  NEW: Detect Python scripts and run with Python instead of shell
 			if shell == "python":
 				fd, temp_script_path = tempfile.mkstemp(prefix="ci_py_", suffix=".py", dir=safe_dir)
 				with os.fdopen(fd, "wb") as fh:
 					fh.write(script.encode())
 					fh.flush()
 
-				args = ["python", temp_script_path]
+				exec_bin = shutil.which("python3") or shutil.which("python") or "python"
+				args = [exec_bin, temp_script_path]
 
 				if os.name != "nt":
 					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
@@ -278,56 +263,30 @@ class CodeInterpreter:
 					process = subprocess.Popen(args, **popen_kwargs)
 
 				stdout_val, stderr_val = process.communicate(timeout=timeout)
+
+				stdout_decoded = stdout_val.decode(errors="ignore") if stdout_val else ""
+				stderr_decoded = stderr_val.decode(errors="ignore") if stderr_val else ""
 
 			elif shell == "bash":
-				if "\n" in script or script.strip().startswith("#!") or any(ch in script for ch in ['|', '>', '<', ';', '&', '$', '`']):
-					fd, temp_script_path = tempfile.mkstemp(prefix="ci_script_", suffix=".sh", dir=safe_dir)
-					with os.fdopen(fd, "wb") as fh:
-						fh.write(script.encode())
-						fh.flush()
-						os.chmod(temp_script_path, 0o700)
-					if os.path.exists("/bin/bash"):
-						args = ["/bin/bash", temp_script_path]
-					else:
-						args = ["bash", temp_script_path]
-				else:
-					args = shlex.split(script)
+				args = shlex.split(script)
 
 				if os.name != "nt":
 					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
 				else:
 					process = subprocess.Popen(args, **popen_kwargs)
 
-				stdout_val, stderr_val = process.communicate(timeout=timeout)
-
-			elif shell == "powershell":
-
-				popen_kwargs["env"] = os.environ.copy()
-
-				pwsh = shutil.which("pwsh") or "powershell"
-
-				fd, temp_script_path = tempfile.mkstemp(
-					prefix="ci_ps_", suffix=".ps1", dir=safe_dir
-				)
-				with os.fdopen(fd, "wb") as fh:
-					fh.write(script.encode())
-					fh.flush()
-
-				args = [
-					pwsh,
-					"-NoLogo",
-					"-NoProfile",
-					"-NonInteractive",
-					"-ExecutionPolicy", "Bypass",
-					"-File", temp_script_path
-				]
-
-				if os.name != "nt":
-					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
-				else:
-					process = subprocess.Popen(args, **popen_kwargs)
-
-				stdout_val, stderr_val = process.communicate(timeout=timeout)
+				try:
+					stdout_val, stderr_val = process.communicate(timeout=timeout)
+				except subprocess.TimeoutExpired:
+					try:
+						if os.name != "nt":
+							os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+						else:
+							process.kill()
+					except Exception:
+						process.kill()
+					process.communicate()
+					return None, "Execution timed out."
 
 			elif shell == "applescript":
 				args = ["osascript", "-"]
@@ -340,9 +299,16 @@ class CodeInterpreter:
 			else:
 				stderr_decoded = f"Invalid shell selected: {shell}"
 				return (None, stderr_decoded)
+			
 			# Decode outputs
 			stdout_decoded = stdout_val.decode(errors="ignore") if stdout_val else ""
 			stderr_decoded = stderr_val.decode(errors="ignore") if stderr_val else ""
+
+			if len(stdout_decoded) > MAX_OUTPUT:
+				stdout_decoded = stdout_decoded[:MAX_OUTPUT]
+
+			if len(stderr_decoded) > MAX_OUTPUT:
+				stderr_decoded = stderr_decoded[:MAX_OUTPUT]
 
 			return stdout_decoded, stderr_decoded
 
@@ -550,6 +516,10 @@ class CodeInterpreter:
 				return None, f"Safety blocked: {reason_text}"
 
 			self.logger.info(f"Attempting to execute script: {script[:50]}")
+
+			if re.search(r'(C:\\|/etc/|/usr/|/var/)', script):
+				return None, "Access to system paths is restricted."
+			
 			# Use a POSIX shell on macOS rather than AppleScript for general scripts
 			if 'darwin' in os_type.lower() or 'macos' in os_type.lower():
 				output, error = self._execute_script(script, shell='bash', sandbox_context=sandbox_context)
@@ -572,86 +542,59 @@ class CodeInterpreter:
 		finally:
 			return output, error
 		
-	def execute_command(self, command:str, sandbox_context=None):
+	def execute_command(self, command: str, sandbox_context=None):
 		try:
 			if not command:
 				raise ValueError("Command must be provided.")
 
-			# SAFETY CHECK
+			# SAFETY CHECK (centralized)
 			safety_manager = ExecutionSafetyManager()
 			decision = safety_manager.assess_execution(command, "command")
 			if not decision.allowed:
 				return None, f"Safety blocked: {'; '.join(decision.reasons)}"
 
-			# Extra quick guard against very obvious destructive substrings
-			lower_cmd = (command or "").lower()
-			for pat in _SYSTEM_DANGEROUS_PATTERNS:
-				if pat in lower_cmd:
-					return None, f"Blocked dangerous command: {pat}"
+			# Normalize command (convert shell-like commands → python -c)
+			command = self._normalize_command(command)
 
-			self.logger.info(f"Attempting to execute command: {command}")
+			# Build safe invocation (no shell)
+			args = self._build_command_invocation(command)
+
+			# Subprocess config
+			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE}
 			base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
-			timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
-			# isolated execution dir per command
-			safe_dir = tempfile.mkdtemp(prefix="ci_sandbox_")
-			base_kwargs["cwd"] = safe_dir
+			popen_kwargs.update(base_kwargs)
+
+			# Resource limits (POSIX only)
 			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
 
-			command = self._normalize_command(command)
-			args = self._build_command_invocation(command)
+			timeout = getattr(sandbox_context, "timeout_seconds", 30) if sandbox_context else 30
+
 			process = None
+
 			try:
-				# Launch the subprocess; handle missing executable errors gracefully
-				try:
-					if os.name != "nt":
-						process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **base_kwargs, **posix_extra)
-					else:
-						process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **base_kwargs)
-				except FileNotFoundError as fnf:
-					# Executable not found (common on Windows for Unix commands like 'ls')
-					msg = f"Executable not found: {args[0] if isinstance(args, (list, tuple)) and args else args}"
-					if self.logger:
-						self.logger.error(f"{msg}: {fnf}")
-					try:
-						shutil.rmtree(safe_dir)
-					except Exception:
-						pass
-					return None, msg
+				# Execute command safely (NO shell=True)
+				if os.name != "nt":
+					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
+				else:
+					process = subprocess.Popen(args, **popen_kwargs)
+
 				stdout, stderr = process.communicate(timeout=timeout)
-				stdout_output = stdout.decode("utf-8", errors='replace') if stdout else ""
-				stderr_output = stderr.decode("utf-8", errors='replace') if stderr else ""
-				if len(stdout_output) > MAX_OUTPUT:
-					stdout_output = stdout_output[:MAX_OUTPUT]
-				if len(stderr_output) > MAX_OUTPUT:
-					stderr_output = stderr_output[:MAX_OUTPUT]
 
-				if stdout_output:
-					self.logger.info(f"Command executed successfully with output: {stdout_output}")
-				if stderr_output:
-					self.logger.info(f"Command executed with error: {stderr_output}")
+				stdout_decoded = stdout.decode("utf-8", errors="ignore") if stdout else ""
+				stderr_decoded = stderr.decode("utf-8", errors="ignore") if stderr else ""
 
-				return stdout_output, stderr_output
+				# Output size guard
+				if len(stdout_decoded) > MAX_OUTPUT:
+					stdout_decoded = stdout_decoded[:MAX_OUTPUT]
+				if len(stderr_decoded) > MAX_OUTPUT:
+					stderr_decoded = stderr_decoded[:MAX_OUTPUT]
+
+				return stdout_decoded, stderr_decoded
+
 			except subprocess.TimeoutExpired:
 				if process:
-					try:
-						if os.name != "nt":
-							os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-						else:
-							process.kill()
-					except Exception:
-						pass
-					try:
-						process.communicate()
-					except Exception:
-						pass
-					return None, "Execution timed out."
-			finally:
-				try:
-					shutil.rmtree(safe_dir)
-				except Exception:
-					pass
-		except subprocess.TimeoutExpired:
-			return None, "Execution timed out."
-		except Exception as exception:
-			self.logger.error(f"Error in executing command: {str(exception)}")
-			raise exception
+					process.kill()
+				return None, "Execution timed out."
+
+		except Exception as e:
+			return None, str(e)

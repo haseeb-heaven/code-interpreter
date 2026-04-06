@@ -7,6 +7,8 @@ __pycache__/
 
 # Log files
 *.log
+/logs/
+logs/*
 
 # macOS system files
 .DS_Store

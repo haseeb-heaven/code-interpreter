@@ -29,7 +29,6 @@ from libs.safety_manager import ExecutionSafetyManager, RepairCircuitBreaker
 from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 from dotenv import load_dotenv
-import shlex
 import shutil
 from rich.console import Console
 
@@ -540,7 +539,7 @@ class Interpreter:
 			system_message = "Please generate a well-written response that is precise, easy to understand"
 			assistant_message = "Return a clear and helpful response."
 			
-			if chat_history and len(chat_history) > 0:
+			if chat_history:
 				system_message += (
 					"\n\nThis is user chat history. Use it as context if needed:\n\n"
 					+ str(chat_history)
@@ -548,18 +547,19 @@ class Interpreter:
 
 		# If using Claude (Anthropic), format message as structured content list (no system/assistant roles supported)
 		if 'claude' in self.INTERPRETER_MODEL:
+			combined = f"{system_message}\n\n{assistant_message}\n\nUser: {message}"
 			messages = [
 				{
 					"role": "user",
 					"content": [
 						{
 							"type": "text",
-							"text": message
+							"text": combined
 						}
 					]
 				}
 			]
-			
+
 		# Otherwise, use standard chat format with system + assistant + user messages (OpenAI-style)
 		else:
 			messages = [
@@ -814,7 +814,7 @@ class Interpreter:
 			"Do not use &&, ||, |, ;, >, <, $, or chaining.\n"
 			"Output only the command, nothing else."
 		)
-		self.logger.info("Command Prompt: {prompt}")
+		self.logger.info(f"Command Prompt: {prompt}")
 		return prompt
 
 	def handle_vision_mode(self,  task):

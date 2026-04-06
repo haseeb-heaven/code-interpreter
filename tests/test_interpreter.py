@@ -768,8 +768,8 @@ class TestDangerousCommandRepairLoop(unittest.TestCase):
 class TestBuildParser(unittest.TestCase):
 	"""Tests for the build_parser() function added in this PR."""
 
-	def test_interpreter_version_is_3_1_0(self):
-		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.1.0")
+	def test_interpreter_version_is_3_1_1(self):
+		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.1.1")
 
 	def test_unsafe_flag_defaults_to_false(self):
 		parser = interpreter_entry.build_parser()
