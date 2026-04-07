@@ -23,19 +23,19 @@ Supports tasks like file operations, image editing, video processing, data analy
 Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, macOS.
 
 ## **Table of Contents**
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Examples](#examples)
-- [TUI Screenshots](#tui-screenshots)
-- [Settings](#settings)
-- [Contributing](#contributing)
-- [Versioning](#versioning)
-- [Changelog](CHANGELOG.md)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
+- [Features](#-features)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Examples](#-examples)
+- [TUI Screenshots](#-tui-screenshots)
+- [Settings](#-settings)
+- [Contributing](#-contributing)
+- [Versioning](#-versioning)
+- [Changelog](#-changelog)
+- [License](#-license)
+- [Acknowledgments](#-acknowledgments)
 
-## 📥 **Installation**
+## **Installation**
 
 ### Installation with Python package manager
 To install Code-Interpreter, run the following command:
@@ -121,7 +121,7 @@ This Interpreter supports offline models via **LM Studio** and **Ollama**. Follo
 python interpreter.py -md 'code' -m 'local-model'
 ```
 
-## 🌟 **Features**
+## **Features**
 
 - 🚀 Executes generated code from instructions
 - 💾 Saves and edits code with advanced editor
@@ -135,7 +135,7 @@ python interpreter.py -md 'code' -m 'local-model'
 - 🤝 Integrates with HuggingFace, OpenAI, Gemini, Groq, Claude, DeepSeek, NVIDIA, Z AI, OpenRouter, Browser Use
 - 🎯 Versatile tasks: file ops, image/video editing, data analysis
 
-## 🛡️ **Safety Features**
+## **Safety Features**
 
 ### Mode Indicator
 The interpreter displays the current safety mode in the session banner:
@@ -232,7 +232,7 @@ python interpreter.py -m 'browser-use-bu-max' -md 'chat' -dc
 
 Last verified model baseline: **April 5, 2026**.
 
-## 🖼️ **TUI Screenshots**
+## **TUI Screenshots**
 
 The new TUI flow is designed for fast keyboard-first setup. Run `python interpreter.py` or `python interpreter.py --tui` to launch the selector UI, then use the arrow keys to choose the mode, model, language, and runtime options.
 
@@ -286,7 +286,7 @@ Here are the available commands:
 - 🐞 `/debug` - Toggle Debug mode for debugging.
 - 📦 `/sandbox` - Toggles secure sandbox system.
 
-## ⚙️ **Settings**
+## **Settings**
 
 You can customize the settings of the current model from the `.json` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
 
@@ -328,11 +328,11 @@ Now, whenever you select that model, the system will automatically use your cust
   </picture>
 </a>
 
-## 🤝 **Contributing**
+## **Contributing**
 
 If you're interested in contributing to **Code-Interpreter**, we'd love to have you! Please fork the repository and submit a pull request. We welcome all contributions and are always eager to hear your feedback and suggestions for improvements.
 
-## 📌 **Versioning**
+## **Versioning**
 
 Current version: **3.2.2**
 
@@ -348,17 +348,17 @@ Full release history: [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-## 📜 **License**
+## **License**
 
 This project is licensed under the **MIT License**. For more details, please refer to the LICENSE file.
 
 Please note the following additional licensing details:
 This project is a client interface only. All models are provided by their respective third-party providers and subject to their own terms of service.
 
-## 🙏 **Acknowledgments**
+## **Acknowledgments**
 
 - We would like to express our gratitude to **HuggingFace**,**Google**,**META**,**OpenAI**,**GroqAI**,**AnthropicAI** for providing the models.
 - A special shout-out to the open-source community. Your continuous support and contributions are invaluable to us.
 
-## **📝 Author**
+## * Author**
 This project is created and maintained by [Haseeb-Heaven](www.github.com/haseeb-heaven).
