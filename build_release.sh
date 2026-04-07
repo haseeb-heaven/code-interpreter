@@ -194,9 +194,9 @@ main() {
 
 
   if confirm "Create GitHub release for $new_version from '$current_branch'?"; then
-    gh release create "$new_version" \\
-      --title "$new_version" \\
-      --generate-notes \\
+    gh release create "$new_version" \
+      --title "$new_version" \
+      --generate-notes \
       --target "$current_branch"
   fi
 
