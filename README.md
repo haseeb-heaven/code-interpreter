@@ -22,11 +22,6 @@ Supports tasks like file operations, image editing, video processing, data analy
 
 Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, macOS.
 
-## **Future Plans**
-- More free-tier Hugging Face models
-- Enhanced multi-modal support
-- Additional OS support
-
 ## **Table of Contents**
 - [Features](#features)
 - [Installation](#installation)
@@ -42,38 +37,44 @@ Committed to being **free** and **simple** - no downloads or tedious setups requ
 
 ## 📥 **Installation**
 
-## Installtion with Python package manager.
-To install Code-Interpreter, run the following command:</br>
+### Installation with Python package manager
+To install Code-Interpreter, run the following command:
 
 ```bash
 pip install open-code-interpreter
 ```
-- To run the interpreter with Python:</br>
+
+To run the interpreter with Python:
+
 ```bash
-interpreter -m 'gpt-4o' -md 'code' -dc
+python interpreter.py -m 'z-ai-glm-5' -md 'code'
 ```
-- Make sure you install required packages before running the interpreter.</br>
-- And you have API keys setup in the `.env` file.</br>
 
-## Installtion with Git
-To get started with Code-Interpreter, follow these steps:</br>
+Make sure you install required packages before running the interpreter and have API keys setup in the `.env` file.
 
-1. Clone the repository:</br>
-```git
+### Installation with Git
+To get started with Code-Interpreter, follow these steps:
+
+1. Clone the repository:
+
+```bash
 git clone https://github.com/haseeb-heaven/code-interpreter.git
 cd code-interpreter
 ```
-2. Install the required packages:</br>
+
+2. Install the required packages:
+
 ```bash
 pip install -r requirements.txt
 ```
-3. Setup the Keys required.
-4. Copy the example environment file and add the keys you plan to use:</br>
+
+3. Copy the example environment file and add the keys you plan to use:
+
 ```bash
 copy .env.example .env
 ```
 
-## API Key setup for All models.
+## API Key setup for All models
 
 Follow the steps below to obtain and set up the API keys for each service:
 
@@ -81,16 +82,16 @@ Follow the steps below to obtain and set up the API keys for each service:
     - HuggingFace: Visit [HuggingFace Tokens](https://huggingface.co/settings/tokens) and get your Access Token.
     - Google Gemini: Visit [Google AI Studio](https://makersuite.google.com/app/apikey) and click on the **Create API Key** button.
     - OpenAI: Visit [OpenAI Dashboard](https://platform.openai.com/account/api-keys), sign up or log in, navigate to the API section in your account dashboard, and click on the **Create New Key** button.
-    - Groq AI: Obtain access [here](https://wow.groq.com), then visit [Groq AI Console](https://console.groq.com/keys), sign up or log in, navigate to the API section in your account, and click on the **Create API Key** button.
-    - Anthropic AI: Obtain access [here](https://www.anthropic.com/earlyaccess), then visit [Anthropic AI Console](https://console.anthropic.com/settings/keys), sign up or log in, navigate to the API Keys section in your account, and click on the **Create Key** button.
+    - Groq AI: Visit [Groq AI Console](https://console.groq.com/keys), sign up or log in, and click on the **Create API Key** button.
+    - Anthropic AI: Visit [Anthropic AI Console](https://console.anthropic.com/settings/keys), sign up or log in, and click on the **Create Key** button.
     - NVIDIA API Catalog: Visit [NVIDIA Build](https://build.nvidia.com/), create a key, and use `NVIDIA_API_KEY`.
     - Z AI: Visit [Z AI Docs](https://docs.z.ai/) and use `Z_AI_API_KEY`.
     - OpenRouter: Visit [OpenRouter Keys](https://openrouter.ai/settings/keys) and use `OPENROUTER_API_KEY`.
     - Browser Use: Visit [Browser Use Docs](https://docs.browser-use.com/) and use `BROWSER_USE_API_KEY`.
 
 2. **Save the API keys:**
-    - Create a `.env` file in your project root directory.
-    - Open the `.env` file and add the following lines, replacing `Your API Key` with the respective keys:
+
+Create a `.env` file in your project root directory and add the following lines:
 
 ```bash
 export HUGGINGFACE_API_KEY="Your HuggingFace API Key"
@@ -105,39 +106,33 @@ export OPENROUTER_API_KEY="Your OpenRouter API Key"
 export BROWSER_USE_API_KEY="Your Browser Use API Key"
 ```
 
-# Offline models setup.</br>
-This Interpreter supports offline models via **LM Studio** and **OLlaMa** so to download it from [LM-Studio](https://lmstudio.ai/) and [Ollama](https://ollama.com/) follow the steps below.
-- Download any model from **LM Studio** like _Phi-2,Code-Llama,Mistral_.
-- Then in the app go to **Local Server** option and select the model.
-- Start the server and copy the **URL**. (LM-Studio will provide you with the URL).
-- Run command `ollama serve` and copy the **URL**. (OLlaMa will provide you with the URL).
+## Offline models setup
+
+This Interpreter supports offline models via **LM Studio** and **Ollama**. Follow the steps below:
+
+- Download any model from [LM Studio](https://lmstudio.ai/) like _Phi-2, Code-Llama, Mistral_.
+- In the app go to **Local Server** option and select the model.
+- Start the server and copy the **URL** (LM-Studio will provide you with the URL).
+- Run command `ollama serve` and copy the **URL** (Ollama will provide you with the URL).
 - Open config file `configs/local-model.json` and paste the **URL** in the `api_base` field.
-- Now you can use the model with the interpreter set the model name to `local-model` and run the interpreter.</br>
+- Set the model name to `local-model` and run the interpreter.
 
-4. Run the interpreter with Python:</br>
-### Running with Python.
 ```bash
-python interpreter.py -md 'code' -m 'gpt-4o' -dc 
-```
-
-5. Run the interpreter directly:</br>
-### Running Interpreter without Python (Executable macOS/Linux only).
-```bash
-./interpreter -md 'code' -m 'gpt-4o' -dc 
+python interpreter.py -md 'code' -m 'local-model'
 ```
 
 ## 🌟 **Features**
 
 - 🚀 Executes generated code from instructions
 - 💾 Saves and edits code with advanced editor
-- 📡 Supports offline models via LM Studio
+- 📡 Supports offline models via LM Studio and Ollama
 - 📜 Command history and mode selection
 - 🧠 Multiple models and languages (Python/JavaScript)
 - 👀 Code review before execution
 - 🛡️ Safe sandbox execution with timeout and security
-- 🧠 Self-repair for failed executions
+- 🔁 Self-repair for failed executions
 - 💻 Cross-platform (Windows/macOS/Linux)
-- 🤝 Integrates with HuggingFace, OpenAI, Gemini, etc.
+- 🤝 Integrates with HuggingFace, OpenAI, Gemini, Groq, Claude, DeepSeek, NVIDIA, Z AI, OpenRouter, Browser Use
 - 🎯 Versatile tasks: file ops, image/video editing, data analysis
 
 ## 🛡️ **Safety Features**
@@ -146,11 +141,6 @@ python interpreter.py -md 'code' -m 'gpt-4o' -dc
 The interpreter displays the current safety mode in the session banner:
 - **[SAFE MODE]** - Default mode with safety restrictions enabled (green)
 - **[UNSAFE MODE ⚠️]** - Unrestricted mode (red with warning emoji)
-
-To enable unsafe mode, use the `--unsafe` flag:
-```bash
-interpreter --unsafe
-```
 
 ### Dangerous Operation Handling
 The interpreter handles dangerous operations with a single confirmation prompt:
@@ -164,97 +154,74 @@ The interpreter handles dangerous operations with a single confirmation prompt:
 - Single prompt for ALL operations (safe or dangerous)
 - Safe operations: `Execute the code? (Y/N):`
 - Dangerous operations: `⚠️ Dangerous operation. Continue? (Y/N):`
-- Operations execute only if you confirm with 'Y'
+- Operations execute only if you confirm with `Y`
 
-To enable unsafe mode, use the `--unsafe` flag:
+To enable unsafe mode:
 ```bash
-interpreter --unsafe
+python interpreter.py --unsafe
 ```
 
-**Warning:** Use unsafe mode with caution! Dangerous operations can delete or modify your files.
+To enable safe mode:
+```bash
+python interpreter.py --sandbox
+```
+
+> **Warning:** Use unsafe mode with caution. Dangerous operations can delete or modify your files.
 
 ## 🛠️ **Usage**
 
 To use Code-Interpreter, use the following command options:
 
-- List of all **programming languages** are: </br>
+- List of all **programming languages**:
     - `python` - Python programming language.
     - `javascript` - JavaScript programming language.
 
-- List of all **modes** are: </br>
+- List of all **modes**:
     - `code` - Generates code from your instructions.
     - `script` - Generates shell scripts from your instructions.
     - `command` - Generates single line commands from your instructions.
-    -  `vision` - Generates description of image or video.
+    - `vision` - Generates description of image or video.
     - `chat` - Chat with your files and data.
 
 - See [Models.MD](Models.MD) for the complete list of supported models.
 
-- Basic usage (with least options)</br>
-```python
+### Start TUI (default)
+```bash
 python interpreter.py
 ```
-- `python interpreter.py` now opens the TUI and uses arrow-key navigation in a real terminal.
-- The TUI falls back to plain text prompts when stdin is piped or not attached to a terminal.
-- In `--tui` sessions, `/mode`, `/model`, `/language`, and `/settings` can reopen interactive selectors from inside the live chat interface.
 
-- Launch the classic prompt-based CLI directly</br>
-```python
-python interpreter.py --cli -m 'z-ai-glm-5' -md 'code'
-```
-- `python interpreter.py --cli` automatically picks the best configured model from your `.env` file if you do not pass `-m`.
-- Safe sandbox protections are enabled by default in `v3.1.0`.
-- Use `--unsafe` only when you explicitly want to bypass the execution safety policy.
-- LLM request retries are bounded to a maximum of `3` transient retry attempts before the final error is shown.
+`python interpreter.py` opens the TUI and uses arrow-key navigation in a real terminal. The TUI falls back to plain text prompts when stdin is piped or not attached to a terminal.
 
-- Launch the selector-based TUI</br>
-```python
-python interpreter.py --tui
+### Open CLI mode
+```bash
+python interpreter.py --cli
 ```
 
-- Using different models (replace 'model-name' with your chosen model) </br>
-```python
-python interpreter.py --cli -md 'code' -m 'model-name' -dc
+`python interpreter.py --cli` automatically picks the best configured model from your `.env` file if you do not pass `-m`.
+
+### Run with sandbox (safe)
+```bash
+python interpreter.py --tui --sandbox
 ```
 
-- Using different modes (replace 'mode-name' with your chosen mode) </br>
-```python
-python interpreter.py --cli -m 'model-name' -md 'mode-name'
+### Run without sandbox (unsafe)
+```bash
+python interpreter.py --cli --no-sandbox
 ```
 
-- Using auto execution </br>
-```python
-python interpreter.py -m 'wizard-coder' -md 'code' -dc -e
-```
-
-- Saving the code </br>
-```python
-python interpreter.py -m 'code-llama' -md 'code' -s
-```
-
-- Selecting a language (replace 'language-name' with your chosen language) </br>
-```python
-python interpreter.py -m 'gemini-pro' -md 'code' -s -l 'language-name'
-```
-
-- Switching to File mode for prompt input (Here providing filename is optional) </br>
-```python
-python interpreter.py -m 'gemini-pro' -md 'code' --file 'my_prompt_file.txt'
-```
-
-- Using Upgrade interpreter </br>
-```python
+### Upgrade interpreter
+```bash
 python interpreter.py --upgrade
 ```
 
-- Live CLI smoke validation (stable models only) </br>
+### Live CLI smoke validation (stable models only)
 ```bash
 python scripts/validate_models_cli.py --providers gemini,groq --tier stable --mode chat
 python scripts/validate_models_cli.py --providers openai,anthropic,deepseek,huggingface --tier stable --mode chat
 python scripts/validate_models_cli.py --providers nvidia,z-ai,browser-use,openrouter --tier stable --mode chat
 ```
 
-- Direct provider examples </br>
+### Direct provider examples
 ```bash
 python interpreter.py -m 'nvidia-nemotron' -md 'chat' -dc
 python interpreter.py -m 'z-ai-glm-5' -md 'chat' -dc
@@ -295,7 +262,7 @@ When sandbox mode is enabled, commands and generated code run with the same safe
 
 When sandbox mode is disabled, execution runs in unsafe mode without sandbox restrictions, intended only for trusted local workflows.
 
-# Interpreter Commands 🖥️
+## 🖥️ **Interpreter Commands**
 
 Here are the available commands:
 
@@ -317,38 +284,39 @@ Here are the available commands:
 - ⏫ `/upgrade` - Upgrade the interpreter.
 - 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
 - 🐞 `/debug` - Toggle Debug mode for debugging.
-- 📦 `/sandbox` - Toggles secure sandbox System.
-
+- 📦 `/sandbox` - Toggles secure sandbox system.
 
 ## ⚙️ **Settings**
+
 You can customize the settings of the current model from the `.json` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
 
-### **Steps to add your own custom API Server**
+### Steps to add your own custom API Server
 To integrate your own API server for OpenAI instead of the default server, follow these steps:
+
 1. Navigate to the `Configs` directory.
-2. Open the configuration file for the model you want to modify. This could be either `gpt-3.5-turbo.json` or `gpt-4.json`.
+2. Open the configuration file for the model you want to modify (`gpt-3.5-turbo.json` or `gpt-4.json`).
 3. Add the following key-value pair to the JSON object:
    ```json
    "api_base": "https://my-custom-base.com"
    ```
-   Replace `https://my-custom-base.com` with the URL of your custom API server.
 4. Save and close the file.
-Now, whenever you select the `gpt-3.5-turbo` or `gpt-4` model, the system will automatically use your custom server.
+
+Now, whenever you select that model, the system will automatically use your custom server.
 
 ## **Steps to add new models**
 
-### **Manual Method**
-1. 📋 Copy the `.json` file and rename it to `configs/hf-model-new.json`.
-2. 🛠️ Modify the parameters of the model like `start_sep`, `end_sep`.
-3. 📝 Set the model name from Hugging Face to `"model": "Model name here"`.
-4. 🚀 Now, you can use it like this: `python interpreter.py -m 'hf-model-new' -md 'code' -e`.
-5. 📁 Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
+### Manual Method
+1. Copy the `.json` file and rename it to `configs/hf-model-new.json`.
+2. Modify the parameters of the model like `start_sep`, `end_sep`.
+3. Set the model name from Hugging Face: `"model": "Model name here"`.
+4. Use it like this: `python interpreter.py -m 'hf-model-new' -md 'code'`.
+5. Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
 
-### **Automatic Method**
-1. 🚀 Go to the `scripts` directory and run the `config_builder` script .
-2. 🔧 For Linux/MacOS, run `config_builder.sh` and for Windows, run `config_builder.bat` .
-3. 📝 Follow the instructions and enter the model name and parameters.
-4. 📋 The script will automatically create the `.json` file for you.
+### Automatic Method
+1. Go to the `scripts` directory and run the `config_builder` script.
+2. For Linux/MacOS run `config_builder.sh`, for Windows run `config_builder.bat`.
+3. Follow the instructions and enter the model name and parameters.
+4. The script will automatically create the `.json` file for you.
 
 ## Star History
 
@@ -366,11 +334,11 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 ## 📌 **Versioning**
 
-Current version: **3.2.1**
+Current version: **3.2.2**
 
 Quick highlights:
-- **v3.2.1** - Added sandbox security, improved Code Interpreter architecture, fixed execution language routing, restored sandbox toggle compatibility, added subprocess security delegation, and improved safe-mode timeout handling.
-- **v3.2.0** - Added mode indicator ([SAFE MODE] or [UNSAFE MODE ⚠️]) in session banner, implemented strict safety blocking for dangerous operations in SAFE MODE, added single confirmation prompt for operations in UNSAFE MODE.
+- **v3.2.2** - Added sandbox security, improved Code Interpreter architecture, fixed execution language routing, restored sandbox toggle compatibility, added subprocess security delegation, and improved safe-mode timeout handling.
+- **v3.2.1** - Added mode indicator ([SAFE MODE] or [UNSAFE MODE ⚠️]) in session banner, implemented strict safety blocking for dangerous operations in SAFE MODE, added single confirmation prompt for operations in UNSAFE MODE.
 - **v3.1.0** - Added OpenRouter free-model aliases, made `openrouter/free` the default OpenRouter selection, improved simple-task code generation, added fresh TUI screenshots, and prepared release packaging assets.
 - **v3.0.0** - Added a default execution safety sandbox, dangerous command/code circuit breaker, bounded ReACT-style repair retries after failures, clearer execution feedback, and polished CLI/TUI runtime output.
 - **v2.4.1** - Added NVIDIA, Z AI, Browser Use, `.env.example`, and `--cli` / `--tui` startup flows.
@@ -385,12 +353,7 @@ Full release history: [CHANGELOG.md](CHANGELOG.md)
 This project is licensed under the **MIT License**. For more details, please refer to the LICENSE file.
 
 Please note the following additional licensing details:
-
-- The **GPT 3.5/4 models** are provided by **OpenAI** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [OpenAI's Terms of Use](https://openai.com/policies/terms-of-use).
-
-- The **Hugging Face models** are provided by **Hugging Face Inc.** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Hugging Face's Terms of Service](https://huggingface.co/terms-of-service).
-
-- The **Anthropic AI models** are provided by **Anthropic AI** and are governed by their own licensing terms. Please ensure you have read and agreed to their terms before using these models. More information can be found at [Anthropic AI's Terms of Service](https://www.anthropic.com/terms).
+This project is a client interface only. All models are provided by their respective third-party providers and subject to their own terms of service.
 
 ## 🙏 **Acknowledgments**
 
