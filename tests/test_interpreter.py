@@ -1062,7 +1062,7 @@ class TestExecuteScriptInvalidShell(unittest.TestCase):
 		with patch("libs.code_interpreter.os.path.exists", return_value=True), \
 			 patch("libs.code_interpreter.os.name", "posix"):
 			self.ci._execute_script("echo hi", shell="bash")
-		mock_process.communicate.assert_called_once_with(timeout=120)
+		mock_process.communicate.assert_called_once_with(timeout=300)
 
 	@patch("subprocess.Popen")
 	def test_execute_script_timeout_expired_kills_process(self, mock_popen):
@@ -1749,7 +1749,7 @@ class TestMaxTimeoutConstant(unittest.TestCase):
 
 	def test_max_timeout_is_120(self):
 		from libs import code_interpreter
-		self.assertEqual(code_interpreter.MAX_TIMEOUT, 120)
+		self.assertEqual(code_interpreter.MAX_TIMEOUT, 300)
 
 	def test_max_output_is_ten_million(self):
 		from libs import code_interpreter
@@ -2073,15 +2073,15 @@ class TestInterpreterDangerousOperationBlocking(unittest.TestCase):
 
 
 class TestInterpreterVersionUpdated(unittest.TestCase):
-	"""Tests for the interpreter version update in this PR (3.1.0 → 3.2.1)."""
+	"""Tests for the interpreter version update in this PR (3.1.0 → 3.2.2)."""
 
-	def test_interpreter_version_is_3_2_1(self):
-		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.2.1")
+	def test_interpreter_version_is_3_2_2(self):
+		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.2.2")
 
-	def test_version_file_contains_3_2_1(self):
+	def test_version_file_contains_3_2_2(self):
 		version_file = ROOT_DIR / "VERSION"
 		content = version_file.read_text(encoding="utf-8").strip()
-		self.assertEqual(content, "3.2.1")
+		self.assertEqual(content, "3.2.2")
 
 
 if __name__ == "__main__":

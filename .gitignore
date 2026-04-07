@@ -65,3 +65,5 @@ gemini_models.txt
 Thumbs.db
 ehthumbs.db
 desktop.ini
+*.ps1
+*.cmd
