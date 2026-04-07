@@ -22,18 +22,18 @@ Supports tasks like file operations, image editing, video processing, data analy
 
 Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, macOS.
 
-## **Table of Contents**
-- [Features](#-features)
-- [Installation](#-installation)
-- [Usage](#-usage)
-- [Examples](#-examples)
-- [TUI Screenshots](#-tui-screenshots)
-- [Settings](#-settings)
-- [Contributing](#-contributing)
-- [Versioning](#-versioning)
-- [Changelog](#-changelog)
-- [License](#-license)
-- [Acknowledgments](#-acknowledgments)
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Examples](#examples)
+- [TUI Screenshots](#tui-screenshots)
+- [Settings](#settings)
+- [Contributing](#contributing)
+- [Versioning](#versioning)
+- [Changelog](#changelog)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ## **Installation**
 
