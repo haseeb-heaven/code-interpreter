@@ -29,6 +29,7 @@ from libs.safety_manager import ExecutionSafetyManager
 MAX_OUTPUT = 10_000_000  # 10 MB
 MAX_TIMEOUT = 120  # 2 minutes (safe mode only)
 
+
 def _limit_resources():
 	"""Apply basic resource limits in the child process (Unix only). Safe mode only."""
 	if resource is None:
@@ -45,6 +46,7 @@ def _limit_resources():
 			pass
 	except Exception:
 		pass
+
 
 # Common GitHub-flavored markdown fence language tags; first line after ``` is stripped when it matches.
 _FENCE_LANGUAGE_TAGS = frozenset({
@@ -134,6 +136,7 @@ class CodeInterpreter:
 
 		cwd = getattr(sandbox_context, "cwd", None)
 		allowed_keys = {"PATH", "HOME", "LANG"}
+
 		if hasattr(sandbox_context, "env"):
 			provided_env = getattr(sandbox_context, "env")
 			if os.name == "nt":
@@ -159,21 +162,19 @@ class CodeInterpreter:
 			kwargs["creationflags"] = creationflags
 		else:
 			kwargs["start_new_session"] = True
+
 		return kwargs
 
 	def _normalize_command(self, command: str) -> str:
 		command = command.strip()
-
 		command_lower = command.lower()
 
 		# WINDOWS / GENERIC FILE LISTING
 		if re.search(r'\b(dir|ls|get-childitem)\b', command_lower):
 			if ".txt" in command_lower:
-
 				# extract path
 				match = re.search(r"(?:from|path)?\s*['\"]?([a-zA-Z]:[\\/][^'\"]+)['\"]?", command)
 				path = match.group(1) if match else "."
-
 				return (
 					f'python -c "import pathlib; '
 					f'print(\'\\n\'.join(str(p) for p in pathlib.Path(r\'{path}\').rglob(\'*.txt\')))"'
@@ -328,10 +329,12 @@ class CodeInterpreter:
 
 			elif shell == "applescript":
 				args = ["osascript", "-"]
+
 				if os.name != "nt":
 					process = subprocess.Popen(args, stdin=subprocess.PIPE, **popen_kwargs, **posix_extra)
 				else:
 					process = subprocess.Popen(args, stdin=subprocess.PIPE, **popen_kwargs)
+
 				try:
 					stdout_val, stderr_val = process.communicate(input=script.encode(), timeout=timeout)
 				except subprocess.TimeoutExpired:
@@ -398,6 +401,7 @@ class CodeInterpreter:
 
 			self.logger.error(f"{language.capitalize()} compiler not found.")
 			return False
+
 		except Exception as exception:
 			self.logger.error(f"Error occurred while checking compilers: {exception}")
 			raise Exception(f"Error occurred while checking compilers: {exception}")
@@ -420,6 +424,7 @@ class CodeInterpreter:
 			with open(filename, 'w') as file:
 				file.write(code)
 				self.logger.info(f"Code saved successfully to {filename}.")
+
 		except Exception as exception:
 			self.logger.error(f"Error occurred while saving code to file: {exception}")
 			raise Exception(f"Error occurred while saving code to file: {exception}")
@@ -458,6 +463,7 @@ class CodeInterpreter:
 			else:
 				self.logger.info("No special characters found in the code. Returning the original code.")
 				return code
+
 		except Exception as exception:
 			self.logger.error(f"Error occurred while extracting code: {exception}")
 			raise Exception(f"Error occurred while extracting code: {exception}")
@@ -536,9 +542,11 @@ class CodeInterpreter:
 					os.close(fd)
 					raise
 				args = [exec_bin, temp_code_path]
+
 			elif language == "javascript":
 				exec_bin = shutil.which("node") or "node"
 				args = [exec_bin, "-e", code]
+
 			else:
 				self.logger.info("Unsupported language.")
 				raise Exception("Unsupported language.")
@@ -551,15 +559,19 @@ class CodeInterpreter:
 			stdout, stderr = process.communicate(timeout=timeout)
 			stdout_output = stdout.decode("utf-8", errors='replace') if stdout else ""
 			stderr_output = stderr.decode("utf-8", errors='replace') if stderr else ""
+
 			if len(stdout_output) > MAX_OUTPUT:
 				stdout_output = stdout_output[:MAX_OUTPUT]
 			if len(stderr_output) > MAX_OUTPUT:
 				stderr_output = stderr_output[:MAX_OUTPUT]
+
 			if language == "python":
 				self.logger.debug(f"Python Output execution: {stdout_output}, Errors: {stderr_output}")
 			else:
 				self.logger.debug(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
+
 			return stdout_output, stderr_output
+
 		except subprocess.TimeoutExpired:
 			if process:
 				_kill_process_group(process)
@@ -568,6 +580,7 @@ class CodeInterpreter:
 				except Exception:
 					pass
 			return None, "Execution timed out."
+
 		finally:
 			# Clean up temp code file if created.
 			if temp_code_path:
@@ -576,6 +589,7 @@ class CodeInterpreter:
 						os.remove(temp_code_path)
 				except Exception:
 					pass
+
 			# Only clean up sandbox dir in SAFE mode when we created it.
 			if (not unsafe) and (sandbox_context is None) and 'safe_dir' in locals() and safe_dir:
 				try:
@@ -630,6 +644,7 @@ class CodeInterpreter:
 		except Exception as exception:
 			self.logger.error(f"Error in executing script: {traceback.format_exc()}")
 			error = str(exception)
+
 		finally:
 			return output, error
 
