@@ -69,17 +69,22 @@ class ExecutionSafetyManager:
 	# blocked sys.stdout.write(), buf.write(), socket.write(), etc.
 	# The open()-mode patterns below already catch file writes via open().
 	# pathlib / JS / pandas patterns are kept as they are unambiguous.
+	#
+	# SYNTAX FIX: patterns containing a quote character class are written as
+	# single-quoted raw strings  r'...'  so that ['"] is unambiguous.
+	# Using r"...['\""]..." caused the bare trailing `"` to prematurely close
+	# the outer double-quoted string → E999 SyntaxError at line 74.
 	_WRITE_PATTERNS = [
 		# open() explicit write modes — text and binary variants with optional '+'
-		r"open\s*\([^)]*['\""]w[btax]?\+?['\"]" ,
-		r"open\s*\([^)]*['\""]a[btx]?\+?['\"]"  ,
-		r"open\s*\([^)]*['\""]x[bt]?\+?['\"]"   ,
-		r"open\s*\([^)]*['\""]r[bt]?\+['\"]"    ,
+		r'open\s*\([^)]*[\'"]w[btax]?\+?[\'"]',
+		r'open\s*\([^)]*[\'"]a[btx]?\+?[\'"]',
+		r'open\s*\([^)]*[\'"]x[bt]?\+?[\'"]',
+		r'open\s*\([^)]*[\'"]r[bt]?\+[\'"]',
 		# keyword mode= argument
-		r"open\s*\([^)]*mode\s*=\s*['\""]w[btax]?\+?"  ,
-		r"open\s*\([^)]*mode\s*=\s*['\""]a[btx]?\+?"  ,
-		r"open\s*\([^)]*mode\s*=\s*['\""]x[bt]?\+?"  ,
-		r"open\s*\([^)]*mode\s*=\s*['\""]r[bt]?\+"  ,
+		r'open\s*\([^)]*mode\s*=\s*[\'"]w[btax]?\+?',
+		r'open\s*\([^)]*mode\s*=\s*[\'"]a[btx]?\+?',
+		r'open\s*\([^)]*mode\s*=\s*[\'"]x[bt]?\+?',
+		r'open\s*\([^)]*mode\s*=\s*[\'"]r[bt]?\+',
 		# pathlib — unambiguous file-write APIs
 		r"\.write_text\s*\(",
 		r"\.write_bytes\s*\(",
@@ -89,11 +94,11 @@ class ExecutionSafetyManager:
 		r"\bappendFile\s*\(",
 		r"\bappendFileSync\s*\(",
 		# pandas / DataFrame export with path argument
-		r"\.to_csv\s*\([^)]*['\""/]",
-		r"\.to_json\s*\([^)]*['\""/]",
-		r"\.to_html\s*\([^)]*['\""/]",
-		r"\.to_excel\s*\([^)]*['\""/]",
-		r"\.to_parquet\s*\([^)]*['\""/]",
+		r'\.to_csv\s*\([^)]*[\'"/]',
+		r'\.to_json\s*\([^)]*[\'"/]',
+		r'\.to_html\s*\([^)]*[\'"/]',
+		r'\.to_excel\s*\([^)]*[\'"/]',
+		r'\.to_parquet\s*\([^)]*[\'"/]',
 	]
 
 	# BUG FIX (test_blocks_write_function_with_absolute_path):
