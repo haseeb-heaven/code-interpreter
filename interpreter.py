@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-*
+# -*- coding: utf-8 -*-
 """
 This is the main file for the Code-Interpreter.
 It handles command line arguments and initializes the Interpreter.
@@ -11,11 +11,11 @@ Command line arguments:
 --version, -v: Displays the version of the program.
 --lang, -l: Sets the interpreter language. Default is 'python'.
 --display_code, -dc: Displays the generated code in the output.
+--sandbox / --no-sandbox: Enable or disable sandbox mode (default: sandbox ON).
 
 Author: HeavenHM
 Date: 2025/01/01
 """
-
 from libs.interpreter_lib import Interpreter
 import argparse
 import sys
@@ -41,7 +41,31 @@ def build_parser():
     parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
     parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
     parser.add_argument('--file', '-f', type=str, nargs='?', const='prompt.txt', default=None, help='Sets the file to read the input prompt from')
-    parser.add_argument("--unsafe", action="store_true", help="Allow unsafe execution (write/delete enabled)")
+
+    # Sandbox control: --sandbox (default ON) / --no-sandbox (unsafe, disables sandbox+timers)
+    sandbox_group = parser.add_mutually_exclusive_group()
+    sandbox_group.add_argument(
+        '--sandbox',
+        dest='sandbox',
+        action='store_true',
+        default=True,
+        help='Enable sandbox mode with resource limits and timeouts (default: ON)'
+    )
+    sandbox_group.add_argument(
+        '--no-sandbox',
+        dest='sandbox',
+        action='store_false',
+        help='Disable sandbox: no timeouts, no resource limits, full system access (UNSAFE)'
+    )
+
+    # Legacy --unsafe flag kept for backwards compatibility (maps to --no-sandbox)
+    parser.add_argument(
+        "--unsafe",
+        action='store_true',
+        default=False,
+        help=argparse.SUPPRESS  # hidden; use --no-sandbox instead
+    )
+
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument('--cli', action='store_true', default=False, help='Launch the classic interactive CLI')
     mode_group.add_argument('--tui', action='store_true', default=False, help='Launch the selector-based terminal UI')
@@ -53,13 +77,18 @@ def _get_default_model():
 
 
 def prepare_args(args, argv):
+    # --unsafe is a legacy alias for --no-sandbox
+    if getattr(args, 'unsafe', False):
+        args.sandbox = False
+
+    # sandbox=False means unsafe execution
+    args.unsafe = not args.sandbox
+
     no_runtime_args = len(argv) <= 1
     if no_runtime_args and not args.cli and not args.tui:
         args.tui = True
-
     if args.tui:
         return TerminalUI().launch(args)
-
     if not args.mode:
         args.mode = 'code'
     if not args.model:
@@ -73,13 +102,10 @@ def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv[1:])
     warnings.filterwarnings("ignore")
-
     if args.upgrade:
         UtilityManager.upgrade_interpreter()
         return
-
     args = prepare_args(args, argv)
-
     interpreter = Interpreter(args)
     interpreter.interpreter_main(INTERPRETER_VERSION)
 
@@ -91,11 +117,8 @@ if __name__ == "__main__":
         pass
     except Exception as exception:
         if ".env file" in str(exception):
-            display_markdown_message("Interpreter is not setup properly. Please follow these steps \
-            to setup the interpreter:\n\
-            1. Create a .env file in the root directory of the project.\n\
-            2. Add the required API keys to the .env file or copy them from .env.example.\n\
-            3. Run the interpreter again.")
+            display_markdown_message("Interpreter is not setup properly. Please follow these steps \\
+ to setup the interpreter:\\n\\ 1. Create a .env file in the root directory of the project.\\n\\ 2. Add the required API keys to the .env file or copy them from .env.example.\\n\\ 3. Run the interpreter again.")
         else:
             display_markdown_message(f"An error occurred interpreter main: {exception}")
-            traceback.print_exc()
+        traceback.print_exc()
