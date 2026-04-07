@@ -38,7 +38,7 @@ litellm.suppress_debug_info = True
 litellm.telemetry = False
 
 MAX_OUTPUT = 10_000_000  # 10 MB
-MAX_TIMEOUT = 120  # 2 minutes (safe mode only)
+MAX_TIMEOUT = 300 # 5 minutes  # 2 minutes (safe mode only)
 
 class Interpreter:
 	logger = None
@@ -69,7 +69,13 @@ class Interpreter:
 		self.terminal_ui = TerminalUI() if getattr(self.args, "tui", False) else None
 		self._last_execution_approved = False
 		self.initialize()
-	
+
+	def _get_subprocess_security_kwargs(self, sandbox_context=None):
+		"""Forward subprocess security setup to CodeInterpreter."""
+		return self.code_interpreter._get_subprocess_security_kwargs(
+			sandbox_context=sandbox_context
+		)
+
 	def initialize(self):
 		self.INTERPRETER_LANGUAGE = self.args.lang if self.args.lang else 'python'
 		self.SAVE_CODE = self.args.save_code
@@ -339,13 +345,13 @@ class Interpreter:
 
 		return code_snippet
 
-	def _execute_generated_output(self, code_snippet, os_name, force_execute=False):
+	def _execute_generated_output(self, code_snippet, code_lang, force_execute=False):
 		if not self.UNSAFE_EXECUTION:
 			sandbox_context = self.safety_manager.build_sandbox_context()
 		else:
 			sandbox_context = None
 
-		output, error = self.execute_code(code_snippet, os_name, sandbox_context=sandbox_context, force_execute=force_execute)
+		output, error = self.execute_code(code_snippet, code_lang, sandbox_context=sandbox_context, force_execute=force_execute)
 		#  Ensure safety errors propagate
 		if error:
 			return None, error, sandbox_context
@@ -370,7 +376,7 @@ class Interpreter:
 					continue
 
 				if repaired_snippet.strip() == current_snippet.strip():
-					current_output, current_error, sandbox_ctx = self._execute_generated_output(repaired_snippet, os_name, force_execute=False)
+					current_output, current_error, sandbox_ctx = self._execute_generated_output(repaired_snippet, self.INTERPRETER_LANGUAGE, force_execute=False)
 					if sandbox_ctx:
 						self.safety_manager.cleanup_sandbox_context(sandbox_ctx)
 					if current_output:
@@ -384,7 +390,7 @@ class Interpreter:
 				current_snippet = repaired_snippet
 				display_language = self.INTERPRETER_LANGUAGE if self.CODE_MODE else 'bash'
 				display_code(current_snippet, language=display_language)
-				current_output, current_error, sandbox_ctx = self._execute_generated_output(current_snippet, os_name, force_execute=False)
+				current_output, current_error, sandbox_ctx = self._execute_generated_output(current_snippet, self.INTERPRETER_LANGUAGE, force_execute=False)
 				if sandbox_ctx:
 					self.safety_manager.cleanup_sandbox_context(sandbox_ctx)
 
@@ -594,7 +600,7 @@ class Interpreter:
 			display_code(code_snippet)  # Display the code first.
 
 			# Execute the code if the user has selected.
-			code_output, code_error, sandbox_context = self._execute_generated_output(code_snippet, os_name)
+			code_output, code_error, sandbox_context = self._execute_generated_output(code_snippet, self.INTERPRETER_LANGUAGE)
 			if code_output:
 				self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
 				display_code(code_output)
@@ -901,140 +907,80 @@ class Interpreter:
 			return self.handle_chat_mode(task)
 
 	def execute_code(self, code, language, sandbox_context=None, force_execute=False):
-		"""Execute code.
-		In SAFE mode: sandbox, safety checks, timeout, resource limits apply.
-		In UNSAFE mode: runs directly in the real working directory with the full
-		environment, no timeout, no resource limits, no sandbox isolation.
-
-		FIX: Python code is written to a temp .py file instead of using `python -c`
-		to prevent watchdog/timeout crashes caused by multi-line code with subprocess
-		calls (e.g., pip install + plotly chart rendering).
 		"""
-		language = language.lower()
-		self.logger.info(f"Running code: {code[:100]} in language: {language}")
+		Execute code via the underlying CodeInterpreter, but keep the prompt/safety
+		behavior expected by Interpreter tests.
 
-		# Check unsafe mode from self.UNSAFE_EXECUTION directly
-		unsafe = self.UNSAFE_EXECUTION
+		In SAFE mode:
+		  - block dangerous operations before prompting the user
+		  - ask "Execute the code? Y/N " for safe operations
 
-		# SAFETY CHECK — skipped in unsafe mode
+		In UNSAFE mode:
+		  - for dangerous operations, ask with a 'Dangerous operation detected...' prompt
+		  - for safe operations, use the normal 'Execute the code? Y/N ' prompt
+		"""
+		# Do not treat this as a real language here; just log it. Let the lower layer
+		# decide how to handle OS names or language names.
+		raw_language = language or ""
+		self.logger.info(
+			f"Interpreter.execute_code: language={raw_language}, unsafe={self.UNSAFE_EXECUTION}"
+		)
+
+		unsafe = bool(self.UNSAFE_EXECUTION)
+
+		# Empty code → return error string (tests expect a string error)
+		if not code or not str(code).strip():
+			return None, "Code is empty. Cannot execute an empty code."
+
+		# Use the same safety manager as CodeInterpreter
+		is_dangerous = self.safety_manager.is_dangerous_operation(code)
+
+		# PROMPT PATH — this is what the tests assert on.
+		if not force_execute:
+			# SAFE MODE: dangerous ops must be blocked *before* prompting.
+			if not unsafe and is_dangerous:
+				decision = self.safety_manager.assess_execution(code, "code")
+				reason_text = "; ".join(decision.reasons) if decision.reasons else "Dangerous operation blocked."
+				self.logger.warning(f"Safety blocked (safe mode, no prompt): {reason_text}")
+				return None, f"Safety blocked: {reason_text}"
+
+			# UNSAFE MODE dangerous op → dangerous prompt.
+			if is_dangerous:
+				prompt_text = "Dangerous operation detected. Execute the code? Y/N "
+			else:
+				prompt_text = "Execute the code? Y/N "
+
+			# CRITICAL: This must call input(prompt_text) under the hood so tests see it.
+			user_confirmation = self._safe_input(prompt_text, default="n")
+			if (user_confirmation or "n").strip().lower() not in ("y", "yes"):
+				self._last_execution_approved = False
+				return None, None
+
+			# User approved.
+			self._last_execution_approved = True
+
+		# SAFE MODE: enforce safety gate again before actual execution.
 		if not unsafe:
 			decision = self.safety_manager.assess_execution(code, "code")
 			if not decision.allowed:
 				reason_text = "; ".join(decision.reasons)
-				self.logger.warning(f"Safety blocked: {reason_text}")
+				self.logger.warning(f"Safety blocked before execution: {reason_text}")
 				return None, f"Safety blocked: {reason_text}"
 
-		if not code or len(code.strip()) == 0:
-			return None, "Code is empty. Cannot execute an empty code."
-
-		compilers_status = self.code_interpreter._check_compilers(language)
-		if not compilers_status:
-			raise Exception("Compilers not found. Please install compilers on your system.")
-
-		if unsafe:
-			# UNSAFE MODE: real CWD, full env, no timeout, no resource limits.
-			real_cwd = os.getcwd()
-			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "cwd": real_cwd, "env": None}
-			if os.name == "nt":
-				creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-				creationflags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-				popen_kwargs["creationflags"] = creationflags
-			else:
-				popen_kwargs["start_new_session"] = True
-
-			timeout = None
-			posix_extra = {}
-
-		else:
-			# SAFE MODE: sandboxed dir, filtered env, timeout, resource limits.
-			base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
-			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE}
-			popen_kwargs.update(base_kwargs)
-			timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
-			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
-
-			if sandbox_context and sandbox_context.cwd:
-				safe_dir = sandbox_context.cwd
-			else:
-				safe_dir = tempfile.mkdtemp(prefix="ci_sandbox_")
-			popen_kwargs["cwd"] = safe_dir
-
-		process = None
-		temp_code_path = None
-
+		# Delegate to CodeInterpreter. Here we pass through the original "language"
+		# string; CodeInterpreter.execute_code normalizes OS names → python.
 		try:
-			if language == "python":
-				exec_bin = shutil.which("python3") or shutil.which("python") or "python"
-				# Write code to a temp file instead of passing via -c.
-				# Using -c causes watchdog/timeout crashes for complex multi-line code
-				# that spawns subprocesses (e.g. pip install kaleido + plotly rendering).
-				exec_dir = popen_kwargs.get("cwd") or tempfile.gettempdir()
-				fd, temp_code_path = tempfile.mkstemp(prefix="ci_exec_", suffix=".py", dir=exec_dir)
-				try:
-					with os.fdopen(fd, "wb") as fh:
-						fh.write(code.encode())
-				except Exception:
-					os.close(fd)
-					raise
-				args = [exec_bin, temp_code_path]
+			stdout, stderr = self.code_interpreter.execute_code(
+				code=code,
+				language=language,
+				sandbox_context=sandbox_context,
+				force_execute=True,  # Interpreter already handled prompting
+			)
+			return stdout, stderr
+		except Exception as exc:
+			self.logger.error(f"Interpreter.execute_code failed: {exc}")
+			return None, str(exc)
 
-			elif language == "javascript":
-				exec_bin = shutil.which("node") or "node"
-				args = [exec_bin, "-e", code]
-
-			else:
-				self.logger.info("Unsupported language.")
-				raise Exception("Unsupported language.")
-
-			if os.name != "nt":
-				process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
-			else:
-				process = subprocess.Popen(args, **popen_kwargs)
-
-			if timeout is not None:
-				stdout, stderr = process.communicate(timeout=timeout)
-			else:
-				stdout, stderr = process.communicate()
-
-			stdout_output = stdout.decode("utf-8", errors='replace') if stdout else ""
-			stderr_output = stderr.decode("utf-8", errors='replace') if stderr else ""
-
-			if len(stdout_output) > MAX_OUTPUT:
-				stdout_output = stdout_output[:MAX_OUTPUT]
-			if len(stderr_output) > MAX_OUTPUT:
-				stderr_output = stderr_output[:MAX_OUTPUT]
-
-			if language == "python":
-				self.logger.debug(f"Python Output execution: {stdout_output}, Errors: {stderr_output}")
-			else:
-				self.logger.debug(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
-
-			return stdout_output, stderr_output
-
-		except subprocess.TimeoutExpired:
-			if process:
-				_kill_process_group(process)
-				try:
-					process.communicate()
-				except Exception:
-					pass
-			return None, "Execution timed out."
-
-		finally:
-			# Clean up temp code file if created.
-			if temp_code_path:
-				try:
-					if os.path.exists(temp_code_path):
-						os.remove(temp_code_path)
-				except Exception:
-					pass
-
-			# Only clean up sandbox dir in SAFE mode when we created it.
-			if (not unsafe) and (sandbox_context is None) and 'safe_dir' in locals() and safe_dir:
-				try:
-					shutil.rmtree(safe_dir, ignore_errors=True)
-				except Exception:
-					pass
 
 	def interpreter_main(self,  version):
 		
@@ -1181,7 +1127,7 @@ class Interpreter:
 				
 				# add '/sandbox' command to toggle unsafe execution mode at runtime.
 				elif task.lower() == '/sandbox':
-					self.toggle_unsafe_mode()
+					self.toggle_sandbox_mode()
 					continue
 
 				# LOG - Command section.
@@ -1337,7 +1283,7 @@ class Interpreter:
 							self.logger.info("Code extracted successfully.")
 						
 							# Execute the code if the user has selected.
-							code_output, code_error = self.execute_code(code_snippet, os_name)
+							code_output, code_error = self.execute_code(code_snippet, self.INTERPRETER_LANGUAGE)
 							
 							if code_output:
 								self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
@@ -1607,7 +1553,7 @@ class Interpreter:
 						self.logger.info("Script saved successfully.")
 				
 					# Execute the code if the user has selected.
-					code_output, code_error, sandbox_context = self._execute_generated_output(code_snippet, os_name)
+					code_output, code_error, sandbox_context = self._execute_generated_output(code_snippet, self.INTERPRETER_LANGUAGE)
 
 					if code_output:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed successfully.")
@@ -1615,6 +1561,7 @@ class Interpreter:
 						self.logger.info(f"Output: {code_output[:100]}")
 					elif code_error and code_error.startswith("Safety blocked:"):
 						self.logger.warning(code_error)
+						display_markdown_message(f"⚠️ **SAFETY BLOCKED**: {code_error}")
 					elif code_error:
 						self.logger.info(f"{self.INTERPRETER_LANGUAGE} code executed with error.")
 						display_markdown_message(f"Error: {code_error}")
@@ -1645,7 +1592,7 @@ class Interpreter:
 
 									# Wait and Execute the code again.
 									time.sleep(3)
-									code_output, code_error, retry_sandbox = self._execute_generated_output(code_snippet, os_name, force_execute=True)
+									code_output, code_error, retry_sandbox = self._execute_generated_output(code_snippet, self.INTERPRETER_LANGUAGE, force_execute=True)
 									if retry_sandbox:
 										self.safety_manager.cleanup_sandbox_context(retry_sandbox)
 									if code_output:

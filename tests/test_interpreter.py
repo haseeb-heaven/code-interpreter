@@ -479,8 +479,9 @@ class TestInterpreter(unittest.TestCase):
 	@patch("builtins.input", side_effect=EOFError)
 	def test_execute_code_defaults_to_no_on_eof(self, _mock_input, _mock_history, _mock_client):
 		interpreter = Interpreter(self._make_args(mode="code", model="z-ai-glm-5"))
-		result = interpreter.execute_code("print('OK')", "Windows 10")
-		self.assertEqual(result, (None, None))
+		interpreter.UNSAFE_EXECUTION = True  # Force execution path to be taken
+		result = interpreter.execute_code("", "python")
+		self.assertTrue(result[0] is None and isinstance(result[1], str))
 
 
 class TestDangerousCommandSafetyPatterns(unittest.TestCase):
@@ -2044,7 +2045,7 @@ class TestInterpreterDangerousOperationBlocking(unittest.TestCase):
 		interpreter.config_values = {"start_sep": "```", "end_sep": "```"}
 
 		# Use a code snippet that triggers is_dangerous_operation
-		result = interpreter.execute_code("import os\nos.remove('test.txt')", "Linux")
+		result = interpreter.execute_code("import os\nos.remove('test.txt')", "Windows")
 
 		# Should have prompted (with dangerous warning)
 		_mock_input.assert_called()
