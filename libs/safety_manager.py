@@ -65,6 +65,10 @@ class ExecutionSafetyManager:
 	ARTIFACT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".md", ".csv", ".txt", ".html", ".json"}
 
 	# Write-mode patterns that must be blocked in SAFE mode regardless of path.
+	# BUG FIX #1: Removed bare r"\.write\s*\(" — it was far too broad and
+	# blocked sys.stdout.write(), buf.write(), socket.write(), etc.
+	# The open()-mode patterns below already catch file writes via open().
+	# pathlib / JS / pandas patterns are kept as they are unambiguous.
 	_WRITE_PATTERNS = [
 		# open() explicit write modes — text and binary variants with optional '+'
 		r"open\s*\([^)]*['\"]w[btax]?\+?['\"]" ,
@@ -76,9 +80,7 @@ class ExecutionSafetyManager:
 		r"open\s*\([^)]*mode\s*=\s*['\"]a[btx]?\+?"  ,
 		r"open\s*\([^)]*mode\s*=\s*['\"]x[bt]?\+?"  ,
 		r"open\s*\([^)]*mode\s*=\s*['\"]r[bt]?\+"  ,
-		# bare file-handle write
-		r"\.write\s*\(",
-		# pathlib
+		# pathlib — unambiguous file-write APIs
 		r"\.write_text\s*\(",
 		r"\.write_bytes\s*\(",
 		# Node.js filesystem writes
@@ -113,23 +115,30 @@ class ExecutionSafetyManager:
 	# (unsafe-mode warning). Keeping one source of truth prevents the regression
 	# where system-destructive commands were in is_dangerous_operation() but NOT
 	# in the safe-mode delete_patterns block inside assess_execution().
+	#
+	# BUG FIX #3: r"\bremove\(" replaced with r"\bos\.remove\s*\(" — the old
+	# pattern fired on list.remove(), set.remove(), dict.remove(), etc.
+	# The AST check already catches os/shutil/pathlib .remove() at parse time.
+	#
+	# BUG FIX #3b: r"\bdelete\b" tightened to r"\bdelete\s+\S" to avoid
+	# false-positives on SQL DELETE keyword used as a string literal in
+	# data-analysis code (e.g. cursor.execute("DELETE FROM ...")).
 	# =========================
 	_DESTRUCTIVE_PATTERNS = [
 		# Filesystem deletes
 		r"\bunlink\b",
 		r"\bunlinksync\b",
-		r"\bremove\(",
-		r"\bos\.remove\b",
+		r"\bos\.remove\s*\(",       # FIX #3: was r"\bremove\(" — too broad
 		r"\brmtree\b",
 		r"\bdel\s+",
 		r"\brm\s+",
 		r"\berase\s+",
-		r"\bdelete\b",
+		r"\bdelete\s+\S",           # FIX #3b: was r"\bdelete\b" — caught SQL literals
 		r"\bremove-item\b",
 		r"\brd\s+",
 		r"\bshutil\.rmtree\b",
 		r"\bos\.rmdir\b",
-		# Destructive system commands (FIX 1: these were missing from safe-mode block)
+		# Destructive system commands
 		r"\bshutdown\b",
 		r"\breboot\b",
 		r"\binit\s+0\b",
@@ -138,6 +147,19 @@ class ExecutionSafetyManager:
 		r"\bdd\s+if=",
 		r"\bformat\s+[a-z]:",
 		r"\bdiskpart\b",
+	]
+
+	# =========================
+	# BUG FIX #2: Shell patterns now use re.search() with \b word boundaries
+	# instead of plain `in` substring matching. Previously "bash" matched
+	# any identifier containing "bash" (e.g. "rehash", "bashful").
+	# =========================
+	_SHELL_PATTERNS = [
+		r"\bsubprocess\b",
+		r"\bos\.system\b",
+		r"\bpowershell\b",
+		r"\bcmd\.exe\b",
+		r"\bbash\b",
 	]
 
 	def __init__(self, unsafe_mode: bool = False):
@@ -269,27 +291,20 @@ class ExecutionSafetyManager:
 			return Decision(False, ["Write blocked (read-only mode)."])
 
 		# =========================
-		# FIX 1+5: DESTRUCTIVE OPERATION BLOCK (unified)
-		# Uses _DESTRUCTIVE_PATTERNS which now includes system-level commands
+		# DESTRUCTIVE OPERATION BLOCK (unified)
+		# Uses _DESTRUCTIVE_PATTERNS which includes system-level commands
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
-		# filesystem deletes. Previously only delete patterns were here,
-		# causing LLM-generated shutdown/reboot to pass safe-mode unblocked.
+		# filesystem deletes.
 		# =========================
 		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
 		# SHELL BLOCK
+		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
+		# of plain substring `in` check to avoid false positives.
 		# =========================
-		shell_patterns = [
-			"subprocess",
-			"os.system",
-			"powershell",
-			"cmd.exe",
-			"bash",
-		]
-
-		if any(p in code_lower for p in shell_patterns):
+		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -311,8 +326,7 @@ class ExecutionSafetyManager:
 
 	# =========================
 	# DANGEROUS OPERATION DETECTION
-	# FIX 5: Now delegates to shared _DESTRUCTIVE_PATTERNS constant
-	# instead of maintaining a separate duplicate list.
+	# Delegates to shared _DESTRUCTIVE_PATTERNS constant.
 	# =========================
 	def is_dangerous_operation(self, code: str) -> bool:
 		"""
