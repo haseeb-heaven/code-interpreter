@@ -572,9 +572,10 @@ class CodeInterpreter:
 			# Normalize command (convert shell-like commands → python -c)
 			command = self._normalize_command(command)
 
-			#  HARD BLOCK (real-world safety)
-			if not getattr(self, "UNSAFE_EXECUTION", False):
-				if any(k in command for k in ["unlink(", "remove(", "rmtree", "del ", "rm "]):
+			# HARD BLOCK (real-world safety): use safety_manager.unsafe_mode so
+			# that --unsafe flag correctly bypasses this guard at runtime.
+			if not self.safety_manager.unsafe_mode:
+				if any(k in command for k in ["unlink(", "os.remove(", "rmtree", "del ", "rm "]):
 					return None, "Blocked: destructive operation (LLM safety)."
 
 			# Build safe invocation (no shell)
