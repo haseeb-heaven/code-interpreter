@@ -6,7 +6,6 @@ VERSION_FILE="VERSION"
 CHANGELOG_FILE="CHANGELOG.md"
 DEFAULT_BUMP="patch"
 
-
 confirm() {
   local prompt="${1:-Are you sure?}"
   read -r -p "⚠️ ${prompt} (y/N): " choice
@@ -16,7 +15,6 @@ confirm() {
   esac
 }
 
-
 require_cmd() {
   local cmd="$1"
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -24,7 +22,6 @@ require_cmd() {
     exit 1
   fi
 }
-
 
 get_current_branch() {
   local branch
@@ -41,7 +38,6 @@ get_current_branch() {
 
   echo "$branch"
 }
-
 
 bump_version() {
   local version="$1"
@@ -80,7 +76,6 @@ bump_version() {
   echo "v${major}.${minor}.${patch}"
 }
 
-
 get_commits_since_last_tag() {
   local last_tag commits
 
@@ -98,7 +93,6 @@ get_commits_since_last_tag() {
 
   echo "$commits"
 }
-
 
 update_changelog() {
   local version="$1"
@@ -118,7 +112,6 @@ update_changelog() {
 
   mv "$tmp_file" "$CHANGELOG_FILE"
 }
-
 
 main() {
   require_cmd git
@@ -172,6 +165,5 @@ main() {
 
   echo "✅ Done: $new_version on branch $current_branch"
 }
-
 
 main "$@"
