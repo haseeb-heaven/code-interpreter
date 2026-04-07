@@ -467,6 +467,10 @@ class CodeInterpreter:
 		In SAFE mode: sandbox, safety checks, timeout, resource limits apply.
 		In UNSAFE mode: runs directly in the real working directory with the full
 		environment, no timeout, no resource limits, no sandbox isolation.
+
+		FIX: Python code is written to a temp .py file instead of using `python -c`
+		to prevent watchdog/timeout crashes caused by multi-line code with subprocess
+		calls (e.g., pip install + plotly chart rendering).
 		"""
 		language = language.lower()
 		self.logger.info(f"Running code: {code[:100]} in language: {language}")
@@ -515,10 +519,23 @@ class CodeInterpreter:
 			popen_kwargs["cwd"] = safe_dir
 
 		process = None
+		temp_code_path = None
+
 		try:
 			if language == "python":
 				exec_bin = shutil.which("python3") or shutil.which("python") or "python"
-				args = [exec_bin, "-c", code]
+				# Write code to a temp file instead of passing via -c.
+				# Using -c causes watchdog/timeout crashes for complex multi-line code
+				# that spawns subprocesses (e.g. pip install kaleido + plotly rendering).
+				exec_dir = popen_kwargs.get("cwd") or tempfile.gettempdir()
+				fd, temp_code_path = tempfile.mkstemp(prefix="ci_exec_", suffix=".py", dir=exec_dir)
+				try:
+					with os.fdopen(fd, "wb") as fh:
+						fh.write(code.encode())
+				except Exception:
+					os.close(fd)
+					raise
+				args = [exec_bin, temp_code_path]
 			elif language == "javascript":
 				exec_bin = shutil.which("node") or "node"
 				args = [exec_bin, "-e", code]
@@ -552,7 +569,14 @@ class CodeInterpreter:
 					pass
 			return None, "Execution timed out."
 		finally:
-			# Only clean up in SAFE mode when we created the sandbox dir.
+			# Clean up temp code file if created.
+			if temp_code_path:
+				try:
+					if os.path.exists(temp_code_path):
+						os.remove(temp_code_path)
+				except Exception:
+					pass
+			# Only clean up sandbox dir in SAFE mode when we created it.
 			if (not unsafe) and (sandbox_context is None) and 'safe_dir' in locals() and safe_dir:
 				try:
 					shutil.rmtree(safe_dir, ignore_errors=True)
