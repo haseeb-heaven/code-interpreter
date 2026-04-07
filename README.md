@@ -284,6 +284,17 @@ After entering the session, generated code and execution output remain inside th
 
 ![TUI output](resources/interpreter-tui-output.png)
 
+### Sandbox Security
+You can enable or disable sandbox mode directly from the terminal session. This makes it easy to switch between the safer isolated runtime and unrestricted execution when needed.
+
+![TUI sandbox enable](resources/interpreter-sandbox-enable.png)
+
+When sandbox mode is enabled, commands and generated code run with the same safer execution constraints used by the CLI.
+
+![TUI sandbox disable](resources/interpreter-sandbox-disable.png)
+
+When sandbox mode is disabled, execution runs in unsafe mode without sandbox restrictions, intended only for trusted local workflows.
+
 # Interpreter Commands 🖥️
 
 Here are the available commands:
@@ -306,6 +317,7 @@ Here are the available commands:
 - ⏫ `/upgrade` - Upgrade the interpreter.
 - 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
 - 🐞 `/debug` - Toggle Debug mode for debugging.
+- 📦 `/sandbox` - Toggles secure sandbox System.
 
 
 ## ⚙️ **Settings**
