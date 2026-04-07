@@ -548,7 +548,13 @@ class CodeInterpreter:
 			else:
 				process = subprocess.Popen(args, **popen_kwargs)
 
-			stdout, stderr = process.communicate(timeout=timeout)
+			# Only apply timeout if one is set (no watchdog in unsafe mode)
+			if timeout is not None:
+				stdout, stderr = process.communicate(timeout=timeout)
+
+			else:
+				stdout, stderr = process.communicate()
+
 			stdout_output = stdout.decode("utf-8", errors='replace') if stdout else ""
 			stderr_output = stderr.decode("utf-8", errors='replace') if stderr else ""
 			if len(stdout_output) > MAX_OUTPUT:
@@ -687,7 +693,12 @@ class CodeInterpreter:
 				else:
 					process = subprocess.Popen(args, **popen_kwargs)
 
-				stdout, stderr = process.communicate(timeout=timeout)
+				# Only apply timeout if one is set (no watchdog in unsafe mode)
+				if timeout is not None:
+					stdout, stderr = process.communicate(timeout=timeout)
+					
+				else:
+					stdout, stderr = process.communicate()
 
 				stdout_decoded = stdout.decode("utf-8", errors="ignore") if stdout else ""
 				stderr_decoded = stderr.decode("utf-8", errors="ignore") if stderr else ""

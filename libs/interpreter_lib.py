@@ -13,13 +13,14 @@ This file contains the `Interpreter` class which is responsible for:
 
 import os
 import subprocess
+import tempfile
 import time
 import json
 import litellm  # Main libray for LLM's
 from typing import List
 import requests
 import re
-from libs.code_interpreter import CodeInterpreter
+from libs.code_interpreter import CodeInterpreter, _kill_process_group , _limit_resources
 from libs.history_manager import History
 from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
@@ -35,6 +36,9 @@ from rich.console import Console
 litellm.set_verbose = False
 litellm.suppress_debug_info = True
 litellm.telemetry = False
+
+MAX_OUTPUT = 10_000_000  # 10 MB
+MAX_TIMEOUT = 120  # 2 minutes (safe mode only)
 
 class Interpreter:
 	logger = None
@@ -641,46 +645,52 @@ class Interpreter:
 			completion_kwargs["extra_headers"] = extra_headers
 		return litellm.completion(self.INTERPRETER_MODEL, **completion_kwargs)
 
-	def toggle_unsafe_mode(self):
-		"""Toggle unsafe execution mode at runtime.
+
+	def toggle_sandbox_mode(self):
+		"""Toggle sandbox mode with safety confirmation.
 		
-		When UNSAFE MODE is ON:
-		  - No sandbox directory isolation
-		  - No execution timeout
-		  - No resource limits (CPU/memory)
-		  - No safety checks on generated code
-		  - Runs in real CWD with full environment
+		Sandbox ON = SAFE MODE (sandboxed, timeouts, resource limits)
+		Sandbox OFF = UNSAFE MODE (no sandbox, no limits, full access)
 		
-		When SAFE MODE is ON (default):
-		  - Sandboxed temp directory
-		  - MAX_TIMEOUT (120s) enforced
-		  - Resource limits applied (Unix)
-		  - Safety assessment on all code before execution
+		When turning sandbox OFF, prompts for confirmation.
 		"""
-
-		self.UNSAFE_EXECUTION = not self.UNSAFE_EXECUTION
-
-
-		# ask for Prompt Yes/No confirmation before toggling the mode.
-		if self.UNSAFE_EXECUTION:
-			confirmation = self._safe_input("Are you sure you want to turn off sandbox security? (Y/N): ", default="N")
-			if confirmation.lower() != "y":
-				display_markdown_message("Unsafe mode toggle cancelled.")
-				return self.UNSAFE_EXECUTION
+		sandbox_currently_on = not self.UNSAFE_EXECUTION
 		
-		# Sync state to safety_manager and code_interpreter
-		self.safety_manager.unsafe_mode = self.UNSAFE_EXECUTION
-		self.code_interpreter.UNSAFE_EXECUTION = self.UNSAFE_EXECUTION
-		
-		if self.UNSAFE_EXECUTION:
-			status_msg = "**UNSAFE MODE ENABLED** — sandbox, timers, and resource limits are **disabled**.\nCode runs directly in your working directory with full environment access."
-			self.logger.warning("Unsafe execution mode ENABLED by /unsafe command.")
+		if sandbox_currently_on:
+			warning_msg = (
+				"\n⚠️  **WARNING: DISABLING SANDBOX MODE** ⚠️\n\n"
+				"Turning OFF sandbox will enable UNSAFE MODE which:\n"
+				"- Removes all security isolation\n"
+				"- Disables execution timeouts\n"
+				"- Removes resource limits\n"
+				"- Allows full system access\n"
+				"- Runs code directly in your working directory\n\n"
+				"**This can be dangerous if executing untrusted code!**\n"
+			)
+			display_markdown_message(warning_msg)
+			
+			confirmation = self._safe_input("Are you sure you want to DISABLE sandbox? (yes/no): ", default="no").strip().lower()
+			
+			if confirmation not in ['yes', 'y']:
+				display_markdown_message("✓ Sandbox remains **ENABLED** (SAFE MODE active).")
+				return not self.UNSAFE_EXECUTION
+			
+			self.UNSAFE_EXECUTION = True
+			self.safety_manager.unsafe_mode = True
+			self.code_interpreter.UNSAFE_EXECUTION = True
+			
+			status_msg = "⚠️ **SANDBOX DISABLED** — UNSAFE MODE is now active. No timeouts, no limits, full system access."
+			self.logger.warning("Sandbox mode DISABLED by /sandbox command.")
 		else:
-			status_msg = "**SAFE MODE ENABLED** — sandbox, timers, and resource limits are **active**."
-			self.logger.info("Safe execution mode ENABLED by /unsafe command.")
+			self.UNSAFE_EXECUTION = False
+			self.safety_manager.unsafe_mode = False
+			self.code_interpreter.UNSAFE_EXECUTION = False
+			
+			status_msg = "✅ **SANDBOX ENABLED** — SAFE MODE is now active with timeouts and resource limits."
+			self.logger.info("Sandbox mode ENABLED by /sandbox command.")
 		
 		display_markdown_message(status_msg)
-		return self.UNSAFE_EXECUTION
+		return not self.UNSAFE_EXECUTION
 
 	def _generate_browser_use_content(self, message, messages, config_values):
 		api_key = os.getenv("BROWSER_USE_API_KEY")
@@ -890,71 +900,141 @@ class Interpreter:
 			self.logger.info("Getting chat prompt.")
 			return self.handle_chat_mode(task)
 
-	def execute_code(self,  extracted_code, os_name, sandbox_context=None, force_execute=False):
-		# If the interpreter mode is Vision, do not execute the code.
-		if self.INTERPRETER_MODE in ['vision', 'chat']:
-			return None, None
-		
-		# 🔥 DANGEROUS OPERATION HANDLING
-		is_dangerous = self.safety_manager.is_dangerous_operation(extracted_code)
-		
-		# SAFE MODE → BLOCK
-		if is_dangerous and not self.UNSAFE_EXECUTION:
-			display_markdown_message("❌ Dangerous operation blocked in SAFE MODE.")
-			return None, "Safety blocked: dangerous operation"
-		
-		# SINGLE PROMPT FLOW
-		if force_execute or self.EXECUTE_CODE:
-			execute = 'y'
+	def execute_code(self, code, language, sandbox_context=None, force_execute=False):
+		"""Execute code.
+		In SAFE mode: sandbox, safety checks, timeout, resource limits apply.
+		In UNSAFE mode: runs directly in the real working directory with the full
+		environment, no timeout, no resource limits, no sandbox isolation.
+
+		FIX: Python code is written to a temp .py file instead of using `python -c`
+		to prevent watchdog/timeout crashes caused by multi-line code with subprocess
+		calls (e.g., pip install + plotly chart rendering).
+		"""
+		language = language.lower()
+		self.logger.info(f"Running code: {code[:100]} in language: {language}")
+
+		# Check unsafe mode from self.UNSAFE_EXECUTION directly
+		unsafe = self.UNSAFE_EXECUTION
+
+		# SAFETY CHECK — skipped in unsafe mode
+		if not unsafe:
+			decision = self.safety_manager.assess_execution(code, "code")
+			if not decision.allowed:
+				reason_text = "; ".join(decision.reasons)
+				self.logger.warning(f"Safety blocked: {reason_text}")
+				return None, f"Safety blocked: {reason_text}"
+
+		if not code or len(code.strip()) == 0:
+			return None, "Code is empty. Cannot execute an empty code."
+
+		compilers_status = self.code_interpreter._check_compilers(language)
+		if not compilers_status:
+			raise Exception("Compilers not found. Please install compilers on your system.")
+
+		if unsafe:
+			# UNSAFE MODE: real CWD, full env, no timeout, no resource limits.
+			real_cwd = os.getcwd()
+			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "cwd": real_cwd, "env": None}
+			if os.name == "nt":
+				creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+				creationflags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+				popen_kwargs["creationflags"] = creationflags
+			else:
+				popen_kwargs["start_new_session"] = True
+
+			timeout = None
+			posix_extra = {}
+
 		else:
-			try:
-				if is_dangerous:
-					execute = input("⚠️ Dangerous operation. Continue? (Y/N): ")
-				else:
-					execute = input("Execute the code? (Y/N): ")
-			except EOFError:
-				execute = 'n'
-		
-		self._last_execution_approved = execute.lower() == 'y'
-		
-		if execute.lower() == 'y':
-			try:
-				code_output, code_error = "", ""
+			# SAFE MODE: sandboxed dir, filtered env, timeout, resource limits.
+			base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
+			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE}
+			popen_kwargs.update(base_kwargs)
+			timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
+			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
 
-				if self.SCRIPT_MODE:
-					code_output, code_error = self.code_interpreter.execute_script(
-						script=extracted_code, os_type=os_name, sandbox_context=sandbox_context
-					)
+			if sandbox_context and sandbox_context.cwd:
+				safe_dir = sandbox_context.cwd
+			else:
+				safe_dir = tempfile.mkdtemp(prefix="ci_sandbox_")
+			popen_kwargs["cwd"] = safe_dir
 
-				elif self.COMMAND_MODE:
-					code_output, code_error = self.code_interpreter.execute_command(
-						command=extracted_code, sandbox_context=sandbox_context
-					)
+		process = None
+		temp_code_path = None
 
-				elif self.CODE_MODE:
-					code_output, code_error = self.code_interpreter.execute_code(
-						code=extracted_code, language=self.INTERPRETER_LANGUAGE, sandbox_context=sandbox_context
-					)
+		try:
+			if language == "python":
+				exec_bin = shutil.which("python3") or shutil.which("python") or "python"
+				# Write code to a temp file instead of passing via -c.
+				# Using -c causes watchdog/timeout crashes for complex multi-line code
+				# that spawns subprocesses (e.g. pip install kaleido + plotly rendering).
+				exec_dir = popen_kwargs.get("cwd") or tempfile.gettempdir()
+				fd, temp_code_path = tempfile.mkstemp(prefix="ci_exec_", suffix=".py", dir=exec_dir)
+				try:
+					with os.fdopen(fd, "wb") as fh:
+						fh.write(code.encode())
+				except Exception:
+					os.close(fd)
+					raise
+				args = [exec_bin, temp_code_path]
 
-				#  CRITICAL FIX — SHOW ERROR IN UI
-				if code_error:
-					display_markdown_message(f" {code_error}")
-					return None, code_error
+			elif language == "javascript":
+				exec_bin = shutil.which("node") or "node"
+				args = [exec_bin, "-e", code]
 
-				if code_output:
-					return code_output, None
+			else:
+				self.logger.info("Unsupported language.")
+				raise Exception("Unsupported language.")
 
-				return None, None
+			if os.name != "nt":
+				process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
+			else:
+				process = subprocess.Popen(args, **popen_kwargs)
 
-			except Exception as exception:
-				self.logger.error(f"Error occurred while executing code: {str(exception)}")
-				display_markdown_message(f" {str(exception)}")
-				return None, str(exception)
-			except Exception as exception:
-				self.logger.error(f"Error occurred while executing code: {str(exception)}")
-				return None, str(exception)  # Return error message as second element of tuple
-		else:
-			return None, None  # Return None, None if user chooses not to execute the code
+			if timeout is not None:
+				stdout, stderr = process.communicate(timeout=timeout)
+			else:
+				stdout, stderr = process.communicate()
+
+			stdout_output = stdout.decode("utf-8", errors='replace') if stdout else ""
+			stderr_output = stderr.decode("utf-8", errors='replace') if stderr else ""
+
+			if len(stdout_output) > MAX_OUTPUT:
+				stdout_output = stdout_output[:MAX_OUTPUT]
+			if len(stderr_output) > MAX_OUTPUT:
+				stderr_output = stderr_output[:MAX_OUTPUT]
+
+			if language == "python":
+				self.logger.debug(f"Python Output execution: {stdout_output}, Errors: {stderr_output}")
+			else:
+				self.logger.debug(f"JavaScript Output execution: {stdout_output}, Errors: {stderr_output}")
+
+			return stdout_output, stderr_output
+
+		except subprocess.TimeoutExpired:
+			if process:
+				_kill_process_group(process)
+				try:
+					process.communicate()
+				except Exception:
+					pass
+			return None, "Execution timed out."
+
+		finally:
+			# Clean up temp code file if created.
+			if temp_code_path:
+				try:
+					if os.path.exists(temp_code_path):
+						os.remove(temp_code_path)
+				except Exception:
+					pass
+
+			# Only clean up sandbox dir in SAFE mode when we created it.
+			if (not unsafe) and (sandbox_context is None) and 'safe_dir' in locals() and safe_dir:
+				try:
+					shutil.rmtree(safe_dir, ignore_errors=True)
+				except Exception:
+					pass
 
 	def interpreter_main(self,  version):
 		
