@@ -27,10 +27,10 @@ from libs.safety_manager import ExecutionSafetyManager
 
 # Maximum stdout/stderr to capture (characters) to avoid unbounded memory use
 MAX_OUTPUT = 10_000_000  # 10 MB
-MAX_TIMEOUT = 120  # 2 minutes
+MAX_TIMEOUT = 120  # 2 minutes (safe mode only)
 
 def _limit_resources():
-	"""Apply basic resource limits in the child process (Unix only)."""
+	"""Apply basic resource limits in the child process (Unix only). Safe mode only."""
 	if resource is None:
 		return
 	try:
@@ -115,6 +115,10 @@ class CodeInterpreter:
 			self.safety_manager = safety_manager
 
 		self.UNSAFE_EXECUTION = self.safety_manager.unsafe_mode if self.safety_manager else False
+
+	def _is_unsafe(self) -> bool:
+		"""Live check of unsafe mode — honours runtime toggles via /unsafe command."""
+		return bool(getattr(self.safety_manager, 'unsafe_mode', False))
 
 	def _get_subprocess_security_kwargs(self, sandbox_context=None):
 		if sandbox_context is None:
@@ -232,26 +236,47 @@ class CodeInterpreter:
 				raise ValueError(f"Invalid command format: {command}") from e
 
 	def _execute_script(self, script: str, shell: str, sandbox_context=None):
-		"""Execute a script in an isolated temp directory with basic resource limits."""
+		"""Execute a script.
+		In SAFE mode: isolated temp dir, resource limits, and timeout apply.
+		In UNSAFE mode: no sandbox, no timeout, full system access.
+		"""
 		stdout_decoded = stderr_decoded = None
 		process = None
 		safe_dir = None
 		temp_script_path = None
+
+		unsafe = self._is_unsafe()
+
 		try:
 			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE}
-			base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
-			popen_kwargs.update(base_kwargs)
 
-			safe_dir = sandbox_context.cwd if sandbox_context else tempfile.mkdtemp(prefix="ci_sandbox_")
-			popen_kwargs["cwd"] = safe_dir
+			if unsafe:
+				# UNSAFE MODE: run in the real CWD, inherit the full environment,
+				# no timeout, no resource limits.
+				safe_dir = os.getcwd()
+				popen_kwargs["cwd"] = safe_dir
+				popen_kwargs["env"] = None  # inherit full env
+				if os.name == "nt":
+					creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+					creationflags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+					popen_kwargs["creationflags"] = creationflags
+				else:
+					popen_kwargs["start_new_session"] = True
+				timeout = None  # no timeout in unsafe mode
+				posix_extra = {}  # no resource limits in unsafe mode
+			else:
+				# SAFE MODE: sandboxed dir, filtered env, timeout, resource limits.
+				base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
+				popen_kwargs.update(base_kwargs)
+				safe_dir = sandbox_context.cwd if sandbox_context else tempfile.mkdtemp(prefix="ci_sandbox_")
+				popen_kwargs["cwd"] = safe_dir
+				timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
+				posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
 
-			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
-			timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
-
-			# SAFETY CHECK (centralized)
-			decision = self.safety_manager.assess_execution(script, "script")
-			if not self.safety_manager.unsafe_mode and not decision.allowed:
-				return None, f"Safety blocked: {'; '.join(decision.reasons)}"
+				# SAFETY CHECK (safe mode only)
+				decision = self.safety_manager.assess_execution(script, "script")
+				if not decision.allowed:
+					return None, f"Safety blocked: {'; '.join(decision.reasons)}"
 
 			if shell == "python":
 				fd, temp_script_path = tempfile.mkstemp(prefix="ci_py_", suffix=".py", dir=safe_dir)
@@ -348,7 +373,8 @@ class CodeInterpreter:
 			except Exception:
 				pass
 
-			if (sandbox_context is None) and safe_dir and os.path.exists(safe_dir):
+			# Only clean up the sandbox dir in SAFE mode (we created it).
+			if (not unsafe) and (sandbox_context is None) and safe_dir and os.path.exists(safe_dir):
 				shutil.rmtree(safe_dir, ignore_errors=True)
 
 	def _check_compilers(self, language):
@@ -437,17 +463,23 @@ class CodeInterpreter:
 			raise Exception(f"Error occurred while extracting code: {exception}")
 
 	def execute_code(self, code, language, sandbox_context=None):
-		# Run code in an isolated temp directory with resource limits and
-		# safe subprocess argv usage to avoid shell injection.
+		"""Execute code.
+		In SAFE mode: sandbox, safety checks, timeout, resource limits apply.
+		In UNSAFE mode: runs directly in the real working directory with the full
+		environment, no timeout, no resource limits, no sandbox isolation.
+		"""
 		language = language.lower()
 		self.logger.info(f"Running code: {code[:100]} in language: {language}")
 
-		# SAFETY CHECK
-		decision = self.safety_manager.assess_execution(code, "code")
-		if not decision.allowed:
-			reason_text = "; ".join(decision.reasons)
-			self.logger.warning(f"Safety blocked: {reason_text}")
-			return None, f"Safety blocked: {reason_text}"
+		unsafe = self._is_unsafe()
+
+		# SAFETY CHECK — skipped in unsafe mode
+		if not unsafe:
+			decision = self.safety_manager.assess_execution(code, "code")
+			if not decision.allowed:
+				reason_text = "; ".join(decision.reasons)
+				self.logger.warning(f"Safety blocked: {reason_text}")
+				return None, f"Safety blocked: {reason_text}"
 
 		if not code or len(code.strip()) == 0:
 			return None, "Code is empty. Cannot execute an empty code."
@@ -456,17 +488,31 @@ class CodeInterpreter:
 		if not compilers_status:
 			raise Exception("Compilers not found. Please install compilers on your system.")
 
-		base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
-		timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
-
-		if sandbox_context and sandbox_context.cwd:
-			safe_dir = sandbox_context.cwd
+		if unsafe:
+			# UNSAFE MODE: real CWD, full env, no timeout, no resource limits.
+			real_cwd = os.getcwd()
+			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE, "cwd": real_cwd, "env": None}
+			if os.name == "nt":
+				creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+				creationflags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+				popen_kwargs["creationflags"] = creationflags
+			else:
+				popen_kwargs["start_new_session"] = True
+			timeout = None
+			posix_extra = {}
 		else:
-			safe_dir = tempfile.mkdtemp(prefix="ci_sandbox_")
+			# SAFE MODE: sandboxed dir, filtered env, timeout, resource limits.
+			base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
+			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE}
+			popen_kwargs.update(base_kwargs)
+			timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
+			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
 
-		base_kwargs["cwd"] = safe_dir
-
-		posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
+			if sandbox_context and sandbox_context.cwd:
+				safe_dir = sandbox_context.cwd
+			else:
+				safe_dir = tempfile.mkdtemp(prefix="ci_sandbox_")
+			popen_kwargs["cwd"] = safe_dir
 
 		process = None
 		try:
@@ -481,9 +527,9 @@ class CodeInterpreter:
 				raise Exception("Unsupported language.")
 
 			if os.name != "nt":
-				process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **base_kwargs, **posix_extra)
+				process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
 			else:
-				process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **base_kwargs)
+				process = subprocess.Popen(args, **popen_kwargs)
 
 			stdout, stderr = process.communicate(timeout=timeout)
 			stdout_output = stdout.decode("utf-8", errors='replace') if stdout else ""
@@ -506,7 +552,8 @@ class CodeInterpreter:
 					pass
 			return None, "Execution timed out."
 		finally:
-			if (sandbox_context is None) and safe_dir:
+			# Only clean up in SAFE mode when we created the sandbox dir.
+			if (not unsafe) and (sandbox_context is None) and 'safe_dir' in locals() and safe_dir:
 				try:
 					shutil.rmtree(safe_dir, ignore_errors=True)
 				except Exception:
@@ -520,20 +567,23 @@ class CodeInterpreter:
 			if not os_type:
 				raise ValueError("OS type must be provided.")
 
-			decision = self.safety_manager.assess_execution(script, "script")
-			if not decision.allowed:
-				reason_text = "; ".join(decision.reasons)
-				self.logger.error(f"Execution blocked by safety policy: {reason_text}")
-				return None, f"Safety blocked: {reason_text}"
+			unsafe = self._is_unsafe()
+
+			# SAFETY CHECK — skipped in unsafe mode
+			if not unsafe:
+				decision = self.safety_manager.assess_execution(script, "script")
+				if not decision.allowed:
+					reason_text = "; ".join(decision.reasons)
+					self.logger.error(f"Execution blocked by safety policy: {reason_text}")
+					return None, f"Safety blocked: {reason_text}"
 
 			self.logger.info(f"Attempting to execute script: {script[:50]}")
 
-			if re.search(r'(C:\\|/etc/|/usr/|/var/)', script):
-				return None, "Access to system paths is restricted."
+			if not unsafe:
+				if re.search(r'(C:\\|/etc/|/usr/|/var/)', script):
+					return None, "Access to system paths is restricted."
 
 			# Use ast.parse() to reliably detect Python code.
-			# The old regex heuristic (_PYTHON_CODE_PATTERNS) false-positived on
-			# bash constructs like 'for x in *.txt; do ... done'.
 			is_python = _is_python_code(script)
 
 			if 'darwin' in os_type.lower() or 'macos' in os_type.lower():
@@ -564,17 +614,19 @@ class CodeInterpreter:
 			if not command:
 				raise ValueError("Command must be provided.")
 
-			# SAFETY CHECK (centralized)
-			decision = self.safety_manager.assess_execution(command, "command")
-			if not decision.allowed:
-				return None, f"Safety blocked: {'; '.join(decision.reasons)}"
+			unsafe = self._is_unsafe()
+
+			# SAFETY CHECK — skipped in unsafe mode
+			if not unsafe:
+				decision = self.safety_manager.assess_execution(command, "command")
+				if not decision.allowed:
+					return None, f"Safety blocked: {'; '.join(decision.reasons)}"
 
 			# Normalize command (convert shell-like commands → python -c)
 			command = self._normalize_command(command)
 
-			# HARD BLOCK (real-world safety): use safety_manager.unsafe_mode so
-			# that --unsafe flag correctly bypasses this guard at runtime.
-			if not self.safety_manager.unsafe_mode:
+			# Hard block destructive ops in SAFE mode only
+			if not unsafe:
 				if any(k in command for k in ["unlink(", "os.remove(", "rmtree", "del ", "rm "]):
 					return None, "Blocked: destructive operation (LLM safety)."
 
@@ -583,18 +635,29 @@ class CodeInterpreter:
 
 			# Subprocess config
 			popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.PIPE}
-			base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
-			popen_kwargs.update(base_kwargs)
 
-			# Resource limits (POSIX only)
-			posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
-
-			timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
+			if unsafe:
+				# UNSAFE MODE: real CWD, full env, no timeout, no resource limits.
+				popen_kwargs["cwd"] = os.getcwd()
+				popen_kwargs["env"] = None
+				if os.name == "nt":
+					creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+					creationflags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+					popen_kwargs["creationflags"] = creationflags
+				else:
+					popen_kwargs["start_new_session"] = True
+				timeout = None
+				posix_extra = {}
+			else:
+				# SAFE MODE: sandboxed dir, filtered env, timeout, resource limits.
+				base_kwargs = self._get_subprocess_security_kwargs(sandbox_context)
+				popen_kwargs.update(base_kwargs)
+				posix_extra = {"preexec_fn": _limit_resources} if os.name != "nt" else {}
+				timeout = getattr(sandbox_context, "timeout_seconds", MAX_TIMEOUT) if sandbox_context else MAX_TIMEOUT
 
 			process = None
 
 			try:
-				# Execute command safely (NO shell=True)
 				if os.name != "nt":
 					process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
 				else:
@@ -614,7 +677,6 @@ class CodeInterpreter:
 
 			except subprocess.TimeoutExpired:
 				if process:
-					# Fix: kill entire process group so session children don't survive
 					_kill_process_group(process)
 					try:
 						process.communicate()
