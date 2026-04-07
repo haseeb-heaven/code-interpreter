@@ -1,8 +1,8 @@
-# Interpreter 3.2.0 Latest
+# Interpreter 3.2.2 Latest
 
 @haseeb-heaven haseeb-heaven released this Apr 7, 2026
 
-**3.2.0**
+**3.2.2**
 
 ---
 
@@ -17,6 +17,7 @@
 ---
 
 ## 📜 Changelog:
+* v3.2.2 - Added **sandbox mode (default ON)** with */sandbox* and */unsafe* toggles, replaced *--unsafe* with **--sandbox / --no-sandbox**, improved *subprocess security delegation*, increased **SAFE timeout to 300s**, fixed *watchdog timer issues*, strengthened *safe-mode protection* (file write bypasses, absolute path escapes, destructive commands), added **process-group kill on timeout**, improved *Python detection using AST parsing*, fixed multiple *security vulnerabilities (P0/P1/P2)*, cleaned execution logic and temp file handling, and improved *build_release.sh* with better error handling
 
 * v3.2.0 - Added sandbox mode (default ON) with `/sandbox` and `/unsafe` toggles, improved subprocess security delegation, increased SAFE timeout to 300s, fixed watchdog timer issues, strengthened safe-mode pattern detection (write bypasses, absolute path escapes, destructive commands), added process-group kill on timeout, improved Python detection via `ast.parse`, cleaned execution flow formatting, and enhanced build_release.sh with robust helpers and error handling.
 * v3.1.x - Fixed syntax errors in safety patterns, resolved test failures, added missing config files, improved unsafe mode handling via `safety_manager`, and applied CodeRabbit auto-fixes and unit tests.
