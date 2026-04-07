@@ -71,15 +71,15 @@ class ExecutionSafetyManager:
 	# pathlib / JS / pandas patterns are kept as they are unambiguous.
 	_WRITE_PATTERNS = [
 		# open() explicit write modes — text and binary variants with optional '+'
-		r"open\s*\([^)]*['\"]w[btax]?\+?['\"]" ,
-		r"open\s*\([^)]*['\"]a[btx]?\+?['\"]"  ,
-		r"open\s*\([^)]*['\"]x[bt]?\+?['\"]"   ,
-		r"open\s*\([^)]*['\"]r[bt]?\+['\"]"    ,
+		r"open\s*\([^)]*['\""]w[btax]?\+?['\"]" ,
+		r"open\s*\([^)]*['\""]a[btx]?\+?['\"]"  ,
+		r"open\s*\([^)]*['\""]x[bt]?\+?['\"]"   ,
+		r"open\s*\([^)]*['\""]r[bt]?\+['\"]"    ,
 		# keyword mode= argument
-		r"open\s*\([^)]*mode\s*=\s*['\"]w[btax]?\+?"  ,
-		r"open\s*\([^)]*mode\s*=\s*['\"]a[btx]?\+?"  ,
-		r"open\s*\([^)]*mode\s*=\s*['\"]x[bt]?\+?"  ,
-		r"open\s*\([^)]*mode\s*=\s*['\"]r[bt]?\+"  ,
+		r"open\s*\([^)]*mode\s*=\s*['\""]w[btax]?\+?"  ,
+		r"open\s*\([^)]*mode\s*=\s*['\""]a[btx]?\+?"  ,
+		r"open\s*\([^)]*mode\s*=\s*['\""]x[bt]?\+?"  ,
+		r"open\s*\([^)]*mode\s*=\s*['\""]r[bt]?\+"  ,
 		# pathlib — unambiguous file-write APIs
 		r"\.write_text\s*\(",
 		r"\.write_bytes\s*\(",
@@ -89,11 +89,22 @@ class ExecutionSafetyManager:
 		r"\bappendFile\s*\(",
 		r"\bappendFileSync\s*\(",
 		# pandas / DataFrame export with path argument
-		r"\.to_csv\s*\([^)]*['\"/]",
-		r"\.to_json\s*\([^)]*['\"/]",
-		r"\.to_html\s*\([^)]*['\"/]",
-		r"\.to_excel\s*\([^)]*['\"/]",
-		r"\.to_parquet\s*\([^)]*['\"/]",
+		r"\.to_csv\s*\([^)]*['\""/]",
+		r"\.to_json\s*\([^)]*['\""/]",
+		r"\.to_html\s*\([^)]*['\""/]",
+		r"\.to_excel\s*\([^)]*['\""/]",
+		r"\.to_parquet\s*\([^)]*['\""/]",
+	]
+
+	# BUG FIX (test_blocks_write_function_with_absolute_path):
+	# When code opens a file handle (any mode, including 'r') and then calls
+	# .write() on that handle, the operation must be blocked if the open()
+	# references an absolute path.  We keep this pattern SEPARATE from
+	# _WRITE_PATTERNS so it is only evaluated in the combined absolute-path
+	# write check — preventing false positives like sys.stdout.write() on
+	# purely relative / non-file code paths.
+	_WRITE_ON_HANDLE_PATTERNS = [
+		r"\.write\s*\(",
 	]
 
 	# Sensitive POSIX system path prefixes that are ALWAYS blocked (even for reads).
@@ -116,9 +127,11 @@ class ExecutionSafetyManager:
 	# where system-destructive commands were in is_dangerous_operation() but NOT
 	# in the safe-mode delete_patterns block inside assess_execution().
 	#
-	# BUG FIX #3: r"\bremove\(" replaced with r"\bos\.remove\s*\(" — the old
+	# BUG FIX #3: r"\bremove\(" replaced with r"os\.remove\s*\(" — the old
 	# pattern fired on list.remove(), set.remove(), dict.remove(), etc.
-	# The AST check already catches os/shutil/pathlib .remove() at parse time.
+	# Also dropped the leading \b because in raw strings (e.g. r"import os\nos.remove()")
+	# the literal \n means 'n' precedes 'o' — both word chars — so \b never fires.
+	# The dot anchor in "os\.remove" is already sufficient and more reliable.
 	#
 	# BUG FIX #3b: r"\bdelete\b" tightened to r"\bdelete\s+\S" to avoid
 	# false-positives on SQL DELETE keyword used as a string literal in
@@ -128,12 +141,12 @@ class ExecutionSafetyManager:
 		# Filesystem deletes
 		r"\bunlink\b",
 		r"\bunlinksync\b",
-		r"\bos\.remove\s*\(",       # FIX #3: was r"\bremove\(" — too broad
+		r"os\.remove\s*\(",          # FIX: dropped leading \b — dot is sufficient anchor
 		r"\brmtree\b",
 		r"\bdel\s+",
 		r"\brm\s+",
 		r"\berase\s+",
-		r"\bdelete\s+\S",           # FIX #3b: was r"\bdelete\b" — caught SQL literals
+		r"\bdelete\s+\S",            # FIX #3b: was r"\bdelete\b" — caught SQL literals
 		r"\bremove-item\b",
 		r"\brd\s+",
 		r"\bshutil\.rmtree\b",
@@ -211,6 +224,18 @@ class ExecutionSafetyManager:
 		blocked in SAFE mode.
 		"""
 		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+
+	# =========================
+	# WRITE-ON-HANDLE DETECTION
+	# Only used when code is already known to reference an absolute path.
+	# Catches: open('C:\\file', 'r') followed by f.write('data')
+	# Without triggering on sys.stdout.write() in safe relative-path code.
+	# =========================
+	def _has_write_on_handle(self, code: str) -> bool:
+		"""Return True if *code* calls .write() on any object (handle check).
+		This is intentionally only evaluated when an absolute path is present.
+		"""
+		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -313,7 +338,11 @@ class ExecutionSafetyManager:
 		if self._is_sensitive_posix_path(code):
 			return Decision(False, ["Host filesystem access blocked (sensitive system path)."])
 
-		if self._is_host_absolute_path(code) and self._has_write_operation(code):
+		# Block if code references an absolute path AND performs any write —
+		# including .write() on a handle opened in read mode (e.g. open(...,'r') + f.write()).
+		if self._is_host_absolute_path(code) and (
+			self._has_write_operation(code) or self._has_write_on_handle(code)
+		):
 			return Decision(False, ["Host filesystem access blocked (absolute path write)."])
 
 		# =========================
