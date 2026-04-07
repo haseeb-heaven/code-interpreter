@@ -641,6 +641,47 @@ class Interpreter:
 			completion_kwargs["extra_headers"] = extra_headers
 		return litellm.completion(self.INTERPRETER_MODEL, **completion_kwargs)
 
+	def toggle_unsafe_mode(self):
+		"""Toggle unsafe execution mode at runtime.
+		
+		When UNSAFE MODE is ON:
+		  - No sandbox directory isolation
+		  - No execution timeout
+		  - No resource limits (CPU/memory)
+		  - No safety checks on generated code
+		  - Runs in real CWD with full environment
+		
+		When SAFE MODE is ON (default):
+		  - Sandboxed temp directory
+		  - MAX_TIMEOUT (120s) enforced
+		  - Resource limits applied (Unix)
+		  - Safety assessment on all code before execution
+		"""
+
+		self.UNSAFE_EXECUTION = not self.UNSAFE_EXECUTION
+
+
+		# ask for Prompt Yes/No confirmation before toggling the mode.
+		if self.UNSAFE_EXECUTION:
+			confirmation = self._safe_input("Are you sure you want to turn off sandbox security? (Y/N): ", default="N")
+			if confirmation.lower() != "y":
+				display_markdown_message("Unsafe mode toggle cancelled.")
+				return self.UNSAFE_EXECUTION
+		
+		# Sync state to safety_manager and code_interpreter
+		self.safety_manager.unsafe_mode = self.UNSAFE_EXECUTION
+		self.code_interpreter.UNSAFE_EXECUTION = self.UNSAFE_EXECUTION
+		
+		if self.UNSAFE_EXECUTION:
+			status_msg = "**UNSAFE MODE ENABLED** — sandbox, timers, and resource limits are **disabled**.\nCode runs directly in your working directory with full environment access."
+			self.logger.warning("Unsafe execution mode ENABLED by /unsafe command.")
+		else:
+			status_msg = "**SAFE MODE ENABLED** — sandbox, timers, and resource limits are **active**."
+			self.logger.info("Safe execution mode ENABLED by /unsafe command.")
+		
+		display_markdown_message(status_msg)
+		return self.UNSAFE_EXECUTION
+
 	def _generate_browser_use_content(self, message, messages, config_values):
 		api_key = os.getenv("BROWSER_USE_API_KEY")
 		if not api_key:
@@ -1056,6 +1097,11 @@ class Interpreter:
 				elif task.lower().startswith('/shell'):
 					# The /shell feature has been intentionally removed. Inform the user.
 					display_markdown_message("The '/shell' command has been removed for security reasons.")
+					continue
+				
+				# add '/sandbox' command to toggle unsafe execution mode at runtime.
+				elif task.lower() == '/sandbox':
+					self.toggle_unsafe_mode()
 					continue
 
 				# LOG - Command section.

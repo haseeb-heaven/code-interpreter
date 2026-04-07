@@ -44,19 +44,23 @@ def build_parser():
 
 	# Sandbox control: --sandbox (default ON) / --no-sandbox (unsafe, disables sandbox+timers)
 	sandbox_group = parser.add_mutually_exclusive_group()
+
 	sandbox_group.add_argument(
-		'--sandbox',
-		dest='sandbox',
-		action='store_true',
-		default=True,
-		help='Enable sandbox mode with resource limits and timeouts (default: ON)'
+	    '--sandbox',
+	    dest='sandbox',
+	    action='store_true',
+	    help='Enable sandbox mode (default: ON)'
 	)
+
 	sandbox_group.add_argument(
-		'--no-sandbox',
-		dest='sandbox',
-		action='store_false',
-		help='Disable sandbox: no timeouts, no resource limits, full system access (UNSAFE)'
+	    '--no-sandbox',
+	    dest='sandbox',
+	    action='store_false',
+	    help='Disable sandbox (UNSAFE)'
 	)
+
+	# Set default to sandbox mode ON
+	parser.set_defaults(sandbox=True)
 
 	# Legacy --unsafe flag kept for backwards compatibility (maps to --no-sandbox)
 	parser.add_argument(
