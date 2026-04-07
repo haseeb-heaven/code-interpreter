@@ -140,6 +140,39 @@ python interpreter.py -md 'code' -m 'gpt-4o' -dc
 - 🤝 Integrates with HuggingFace, OpenAI, Gemini, etc.
 - 🎯 Versatile tasks: file ops, image/video editing, data analysis
 
+## 🛡️ **Safety Features**
+
+### Mode Indicator
+The interpreter displays the current safety mode in the session banner:
+- **[SAFE MODE]** - Default mode with safety restrictions enabled (green)
+- **[UNSAFE MODE ⚠️]** - Unrestricted mode (red with warning emoji)
+
+To enable unsafe mode, use the `--unsafe` flag:
+```bash
+interpreter --unsafe
+```
+
+### Dangerous Operation Handling
+The interpreter handles dangerous operations with a single confirmation prompt:
+
+**SAFE MODE:**
+- Dangerous operations are **blocked entirely** (no confirmation prompt)
+- You will see: `❌ Dangerous operation blocked in SAFE MODE.`
+- No file deletion or modification operations are allowed
+
+**UNSAFE MODE:**
+- Single prompt for ALL operations (safe or dangerous)
+- Safe operations: `Execute the code? (Y/N):`
+- Dangerous operations: `⚠️ Dangerous operation. Continue? (Y/N):`
+- Operations execute only if you confirm with 'Y'
+
+To enable unsafe mode, use the `--unsafe` flag:
+```bash
+interpreter --unsafe
+```
+
+**Warning:** Use unsafe mode with caution! Dangerous operations can delete or modify your files.
+
 ## 🛠️ **Usage**
 
 To use Code-Interpreter, use the following command options:
@@ -251,6 +284,17 @@ After entering the session, generated code and execution output remain inside th
 
 ![TUI output](resources/interpreter-tui-output.png)
 
+### Sandbox Security
+You can enable or disable sandbox mode directly from the terminal session. This makes it easy to switch between the safer isolated runtime and unrestricted execution when needed.
+
+![TUI sandbox enable](resources/interpreter-sandbox-enable.png)
+
+When sandbox mode is enabled, commands and generated code run with the same safer execution constraints used by the CLI.
+
+![TUI sandbox disable](resources/interpreter-sandbox-disable.png)
+
+When sandbox mode is disabled, execution runs in unsafe mode without sandbox restrictions, intended only for trusted local workflows.
+
 # Interpreter Commands 🖥️
 
 Here are the available commands:
@@ -273,6 +317,7 @@ Here are the available commands:
 - ⏫ `/upgrade` - Upgrade the interpreter.
 - 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
 - 🐞 `/debug` - Toggle Debug mode for debugging.
+- 📦 `/sandbox` - Toggles secure sandbox System.
 
 
 ## ⚙️ **Settings**
@@ -321,9 +366,11 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 ## 📌 **Versioning**
 
-Current version: **3.1.0**
+Current version: **3.2.1**
 
 Quick highlights:
+- **v3.2.1** - Added sandbox security, improved Code Interpreter architecture, fixed execution language routing, restored sandbox toggle compatibility, added subprocess security delegation, and improved safe-mode timeout handling.
+- **v3.2.0** - Added mode indicator ([SAFE MODE] or [UNSAFE MODE ⚠️]) in session banner, implemented strict safety blocking for dangerous operations in SAFE MODE, added single confirmation prompt for operations in UNSAFE MODE.
 - **v3.1.0** - Added OpenRouter free-model aliases, made `openrouter/free` the default OpenRouter selection, improved simple-task code generation, added fresh TUI screenshots, and prepared release packaging assets.
 - **v3.0.0** - Added a default execution safety sandbox, dangerous command/code circuit breaker, bounded ReACT-style repair retries after failures, clearer execution feedback, and polished CLI/TUI runtime output.
 - **v2.4.1** - Added NVIDIA, Z AI, Browser Use, `.env.example`, and `--cli` / `--tui` startup flows.

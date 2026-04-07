@@ -7,6 +7,8 @@ __pycache__/
 
 # Log files
 *.log
+/logs/
+logs/*
 
 # macOS system files
 .DS_Store
@@ -63,3 +65,5 @@ gemini_models.txt
 Thumbs.db
 ehthumbs.db
 desktop.ini
+*.ps1
+*.cmd

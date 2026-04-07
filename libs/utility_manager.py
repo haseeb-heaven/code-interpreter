@@ -277,6 +277,7 @@ class UtilityManager:
 			"/debug - Switch between debug and silent mode.\n"
 			"/prompt - Switch input prompt mode between file and prompt.\n"
 			"/upgrade - Upgrade the interpreter.\n"
+			"/sandbox - Toggle sandbox mode at runtime.\n"
 		)
 		display_markdown_message(msg)
 	def display_version(self, version):
