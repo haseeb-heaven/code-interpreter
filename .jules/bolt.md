@@ -1,0 +1,3 @@
+## 2025-05-18 - Pre-compile Regex in Safety Checking Loops
+**Learning:** In safety-critical or high-throughput loops, defining regular expressions with `re.search` inside the method call forces the regex to be compiled on every invocation, causing unnecessary overhead.
+**Action:** Always pre-compile regular expressions using `re.compile()` as class-level attributes to improve performance, particularly in repeated code execution and validation paths.
