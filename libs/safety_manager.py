@@ -4,7 +4,7 @@ import ast
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 
 # =========================
@@ -76,29 +76,29 @@ class ExecutionSafetyManager:
 	# the outer double-quoted string → E999 SyntaxError at line 74.
 	_WRITE_PATTERNS = [
 		# open() explicit write modes — text and binary variants with optional '+'
-		r'open\s*\([^)]*[\'"]w[btax]?\+?[\'"]',
-		r'open\s*\([^)]*[\'"]a[btx]?\+?[\'"]',
-		r'open\s*\([^)]*[\'"]x[bt]?\+?[\'"]',
-		r'open\s*\([^)]*[\'"]r[bt]?\+[\'"]',
+		re.compile(r"open\s*\([^)]*['\"]w[btax]?\+?['\"]", re.IGNORECASE),
+		re.compile(r"open\s*\([^)]*['\"]a[btx]?\+?['\"]", re.IGNORECASE),
+		re.compile(r"open\s*\([^)]*['\"]x[bt]?\+?['\"]", re.IGNORECASE),
+		re.compile(r"open\s*\([^)]*['\"]r[bt]?\+['\"]", re.IGNORECASE),
 		# keyword mode= argument
-		r'open\s*\([^)]*mode\s*=\s*[\'"]w[btax]?\+?',
-		r'open\s*\([^)]*mode\s*=\s*[\'"]a[btx]?\+?',
-		r'open\s*\([^)]*mode\s*=\s*[\'"]x[bt]?\+?',
-		r'open\s*\([^)]*mode\s*=\s*[\'"]r[bt]?\+',
+		re.compile(r"open\s*\([^)]*mode\s*=\s*['\"]w[btax]?\+?", re.IGNORECASE),
+		re.compile(r"open\s*\([^)]*mode\s*=\s*['\"]a[btx]?\+?", re.IGNORECASE),
+		re.compile(r"open\s*\([^)]*mode\s*=\s*['\"]x[bt]?\+?", re.IGNORECASE),
+		re.compile(r"open\s*\([^)]*mode\s*=\s*['\"]r[bt]?\+", re.IGNORECASE),
 		# pathlib — unambiguous file-write APIs
-		r"\.write_text\s*\(",
-		r"\.write_bytes\s*\(",
+		re.compile(r"\.write_text\s*\(", re.IGNORECASE),
+		re.compile(r"\.write_bytes\s*\(", re.IGNORECASE),
 		# Node.js filesystem writes
-		r"\bwriteFile\s*\(",
-		r"\bwriteFileSync\s*\(",
-		r"\bappendFile\s*\(",
-		r"\bappendFileSync\s*\(",
+		re.compile(r"\bwriteFile\s*\(", re.IGNORECASE),
+		re.compile(r"\bwriteFileSync\s*\(", re.IGNORECASE),
+		re.compile(r"\bappendFile\s*\(", re.IGNORECASE),
+		re.compile(r"\bappendFileSync\s*\(", re.IGNORECASE),
 		# pandas / DataFrame export with path argument
-		r'\.to_csv\s*\([^)]*[\'"/]',
-		r'\.to_json\s*\([^)]*[\'"/]',
-		r'\.to_html\s*\([^)]*[\'"/]',
-		r'\.to_excel\s*\([^)]*[\'"/]',
-		r'\.to_parquet\s*\([^)]*[\'"/]',
+		re.compile(r"\.to_csv\s*\([^)]*['\"/]", re.IGNORECASE),
+		re.compile(r"\.to_json\s*\([^)]*['\"/]", re.IGNORECASE),
+		re.compile(r"\.to_html\s*\([^)]*['\"/]", re.IGNORECASE),
+		re.compile(r"\.to_excel\s*\([^)]*['\"/]", re.IGNORECASE),
+		re.compile(r"\.to_parquet\s*\([^)]*['\"/]", re.IGNORECASE),
 	]
 
 	# BUG FIX (test_blocks_write_function_with_absolute_path):
@@ -109,17 +109,17 @@ class ExecutionSafetyManager:
 	# write check — preventing false positives like sys.stdout.write() on
 	# purely relative / non-file code paths.
 	_WRITE_ON_HANDLE_PATTERNS = [
-		r"\.write\s*\(",
+		re.compile(r"\.write\s*\(", re.IGNORECASE),
 	]
 
 	# Sensitive POSIX system path prefixes that are ALWAYS blocked (even for reads).
 	_SENSITIVE_POSIX_PREFIXES = [
-		r"/etc/\w+",
-		r"/root/\w+",
-		r"/proc/\w+",
-		r"/sys/\w+",
-		r"/dev/\w+",
-		r"/boot/\w+",
+		re.compile(r"/etc/\w+", re.IGNORECASE),
+		re.compile(r"/root/\w+", re.IGNORECASE),
+		re.compile(r"/proc/\w+", re.IGNORECASE),
+		re.compile(r"/sys/\w+", re.IGNORECASE),
+		re.compile(r"/dev/\w+", re.IGNORECASE),
+		re.compile(r"/boot/\w+", re.IGNORECASE),
 	]
 
 	# Known-dangerous call targets for .remove() / .unlink() / .rmtree().
@@ -144,27 +144,27 @@ class ExecutionSafetyManager:
 	# =========================
 	_DESTRUCTIVE_PATTERNS = [
 		# Filesystem deletes
-		r"\bunlink\b",
-		r"\bunlinksync\b",
-		r"os\.remove\s*\(",          # FIX: dropped leading \b — dot is sufficient anchor
-		r"\brmtree\b",
-		r"\bdel\s+",
-		r"\brm\s+",
-		r"\berase\s+",
-		r"\bdelete\s+\S",            # FIX #3b: was r"\bdelete\b" — caught SQL literals
-		r"\bremove-item\b",
-		r"\brd\s+",
-		r"\bshutil\.rmtree\b",
-		r"\bos\.rmdir\b",
+		re.compile(r"\bunlink\b"),
+		re.compile(r"\bunlinksync\b"),
+		re.compile(r"os\.remove\s*\("),          # FIX: dropped leading \b — dot is sufficient anchor
+		re.compile(r"\brmtree\b"),
+		re.compile(r"\bdel\s+"),
+		re.compile(r"\brm\s+"),
+		re.compile(r"\berase\s+"),
+		re.compile(r"\bdelete\s+\S"),            # FIX #3b: was r"\bdelete\b" — caught SQL literals
+		re.compile(r"\bremove-item\b"),
+		re.compile(r"\brd\s+"),
+		re.compile(r"\bshutil\.rmtree\b"),
+		re.compile(r"\bos\.rmdir\b"),
 		# Destructive system commands
-		r"\bshutdown\b",
-		r"\breboot\b",
-		r"\binit\s+0\b",
-		r"\binit\s+6\b",
-		r"\bmkfs\b",
-		r"\bdd\s+if=",
-		r"\bformat\s+[a-z]:",
-		r"\bdiskpart\b",
+		re.compile(r"\bshutdown\b"),
+		re.compile(r"\breboot\b"),
+		re.compile(r"\binit\s+0\b"),
+		re.compile(r"\binit\s+6\b"),
+		re.compile(r"\bmkfs\b"),
+		re.compile(r"\bdd\s+if="),
+		re.compile(r"\bformat\s+[a-z]:"),
+		re.compile(r"\bdiskpart\b"),
 	]
 
 	# =========================
@@ -173,12 +173,35 @@ class ExecutionSafetyManager:
 	# any identifier containing "bash" (e.g. "rehash", "bashful").
 	# =========================
 	_SHELL_PATTERNS = [
-		r"\bsubprocess\b",
-		r"\bos\.system\b",
-		r"\bpowershell\b",
-		r"\bcmd\.exe\b",
-		r"\bbash\b",
+		re.compile(r"\bsubprocess\b"),
+		re.compile(r"\bos\.system\b"),
+		re.compile(r"\bpowershell\b"),
+		re.compile(r"\bcmd\.exe\b"),
+		re.compile(r"\bbash\b"),
 	]
+
+	# Patterns used in _is_host_absolute_path and other checks
+	_POSIX_SYSTEM_PREFIXES = [
+		re.compile(r"/etc/\w+", re.IGNORECASE),
+		re.compile(r"/tmp/\w+", re.IGNORECASE),
+		re.compile(r"/var/\w+", re.IGNORECASE),
+		re.compile(r"/usr/\w+", re.IGNORECASE),
+		re.compile(r"/root/\w+", re.IGNORECASE),
+		re.compile(r"/home/\w+/", re.IGNORECASE),
+		re.compile(r"/proc/\w+", re.IGNORECASE),
+		re.compile(r"/sys/\w+", re.IGNORECASE),
+		re.compile(r"/dev/\w+", re.IGNORECASE),
+		re.compile(r"/boot/\w+", re.IGNORECASE),
+		re.compile(r"/opt/\w+", re.IGNORECASE),
+		re.compile(r"/mnt/\w+", re.IGNORECASE),
+		re.compile(r"/media/\w+", re.IGNORECASE),
+	]
+
+	_WINDOWS_DRIVE_PATTERN = re.compile(r"[a-z]:[\\/]", re.IGNORECASE)
+	_QUOTED_POSIX_ABS_PATTERN = re.compile(r"""["']/[^"'\s]""")
+	_OPEN_ARGS_PATTERN = re.compile(r"open\s*\(\s*([\"'][^\"']+[\"'])", re.IGNORECASE)
+	_OPEN_ABS_PATH_PATTERN = re.compile(r"[a-zA-Z]:[\\/]")
+	_RD_SQ_Q_PATTERN = re.compile(r"\brd\s+/s\s+/q\b", re.IGNORECASE)
 
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
@@ -228,7 +251,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_PATTERNS)
 
 	# =========================
 	# WRITE-ON-HANDLE DETECTION
@@ -240,7 +263,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* calls .write() on any object (handle check).
 		This is intentionally only evaluated when an absolute path is present.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_ON_HANDLE_PATTERNS)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -248,44 +271,29 @@ class ExecutionSafetyManager:
 	def _is_host_absolute_path(self, code: str) -> bool:
 		"""Return True if *code* references a host absolute path."""
 		# Windows drive-letter path
-		if re.search(r"[a-z]:[\\/]", code.lower()):
+		if self._WINDOWS_DRIVE_PATTERN.search(code):
 			return True
 
 		# Quoted POSIX absolute path: '/...' or "/..."
-		if re.search(r"""["']/[^"'\s]""", code):
+		if self._QUOTED_POSIX_ABS_PATTERN.search(code):
 			return True
 
 		# Unquoted well-known POSIX system directory prefixes
-		_posix_system_prefixes = [
-			r"/etc/\w+",
-			r"/tmp/\w+",
-			r"/var/\w+",
-			r"/usr/\w+",
-			r"/root/\w+",
-			r"/home/\w+/",
-			r"/proc/\w+",
-			r"/sys/\w+",
-			r"/dev/\w+",
-			r"/boot/\w+",
-			r"/opt/\w+",
-			r"/mnt/\w+",
-			r"/media/\w+",
-		]
-		if any(re.search(p, code, re.IGNORECASE) for p in _posix_system_prefixes):
+		if any(p.search(code) for p in self._POSIX_SYSTEM_PREFIXES):
 			return True
 
 		# open() call whose first positional argument is an absolute path string
-		open_args = re.findall(r"open\s*\(\s*([\"'][^\"']+[\"'])", code, re.IGNORECASE)
+		open_args = self._OPEN_ARGS_PATTERN.findall(code)
 		for arg in open_args:
 			path = arg.strip("'\"")
-			if path.startswith("/") or re.match(r"[a-zA-Z]:[\\/]", path):
+			if path.startswith("/") or self._OPEN_ABS_PATH_PATTERN.match(path):
 				return True
 
 		return False
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
 		"""Return True if *code* references a sensitive POSIX system path."""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+		return any(p.search(code) for p in self._SENSITIVE_POSIX_PREFIXES)
 
 	# =========================
 	# MAIN CHECK
@@ -297,7 +305,7 @@ class ExecutionSafetyManager:
 		code_lower = code.lower()
 
 		#  HARD BLOCK WINDOWS RECURSIVE DELETE (CRITICAL FIX)
-		if re.search(r"\brd\s+/s\s+/q\b", code_lower):
+		if self._RD_SQ_Q_PATTERN.search(code_lower):
 			return Decision(False, ["Recursive deletion is blocked."])
 
 		#  UNSAFE MODE - still detect dangerous operations but allow with warnings
@@ -326,7 +334,7 @@ class ExecutionSafetyManager:
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
 		# filesystem deletes.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+		if any(p.search(code_lower) for p in self._DESTRUCTIVE_PATTERNS):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
@@ -334,7 +342,7 @@ class ExecutionSafetyManager:
 		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
 		# of plain substring `in` check to avoid false positives.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
+		if any(p.search(code_lower) for p in self._SHELL_PATTERNS):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -370,7 +378,7 @@ class ExecutionSafetyManager:
 		if not code or not code.strip():
 			return False
 		code_lower = code.lower()
-		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
+		return any(p.search(code_lower) for p in self._DESTRUCTIVE_PATTERNS)
 
 	# =========================
 	# ARTIFACT EXPORT
