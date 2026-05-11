@@ -1,0 +1,3 @@
+## 2026-04-10 - TUI Keyboard Traps and Shortcut Hints
+**Learning:** Terminal UIs using raw input mode can create keyboard traps if standard interrupt bytes like `\x03` (Ctrl-C) aren't explicitly handled to exit loops. Users stuck in these loops without clear visible shortcut hints (like "Esc/Ctrl-C to cancel") experience frustration. Additionally, fallback prompts for non-TTY environments must explicitly state their acceptable choices, otherwise it creates an inaccessible guessing game.
+**Action:** When creating raw TTY interactive loops, always map the `\x03` interrupt byte to a cancel/exit action, clearly document the shortcut keys in the UI footer, and provide explicit choices arrays to text-based prompt fallbacks.
