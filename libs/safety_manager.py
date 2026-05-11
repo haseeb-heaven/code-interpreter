@@ -74,7 +74,7 @@ class ExecutionSafetyManager:
 	# single-quoted raw strings  r'...'  so that ['"] is unambiguous.
 	# Using r"...['\""]..." caused the bare trailing `"` to prematurely close
 	# the outer double-quoted string → E999 SyntaxError at line 74.
-	_WRITE_PATTERNS = [
+	_WRITE_PATTERNS = [re.compile(p, flags=re.IGNORECASE) for p in [
 		# open() explicit write modes — text and binary variants with optional '+'
 		r'open\s*\([^)]*[\'"]w[btax]?\+?[\'"]',
 		r'open\s*\([^)]*[\'"]a[btx]?\+?[\'"]',
@@ -99,7 +99,7 @@ class ExecutionSafetyManager:
 		r'\.to_html\s*\([^)]*[\'"/]',
 		r'\.to_excel\s*\([^)]*[\'"/]',
 		r'\.to_parquet\s*\([^)]*[\'"/]',
-	]
+	]]
 
 	# BUG FIX (test_blocks_write_function_with_absolute_path):
 	# When code opens a file handle (any mode, including 'r') and then calls
@@ -108,19 +108,19 @@ class ExecutionSafetyManager:
 	# _WRITE_PATTERNS so it is only evaluated in the combined absolute-path
 	# write check — preventing false positives like sys.stdout.write() on
 	# purely relative / non-file code paths.
-	_WRITE_ON_HANDLE_PATTERNS = [
+	_WRITE_ON_HANDLE_PATTERNS = [re.compile(p, flags=re.IGNORECASE) for p in [
 		r"\.write\s*\(",
-	]
+	]]
 
 	# Sensitive POSIX system path prefixes that are ALWAYS blocked (even for reads).
-	_SENSITIVE_POSIX_PREFIXES = [
+	_SENSITIVE_POSIX_PREFIXES = [re.compile(p, flags=re.IGNORECASE) for p in [
 		r"/etc/\w+",
 		r"/root/\w+",
 		r"/proc/\w+",
 		r"/sys/\w+",
 		r"/dev/\w+",
 		r"/boot/\w+",
-	]
+	]]
 
 	# Known-dangerous call targets for .remove() / .unlink() / .rmtree().
 	_DANGEROUS_ATTR_OWNERS = frozenset({"os", "shutil", "pathlib", "path"})
@@ -142,7 +142,7 @@ class ExecutionSafetyManager:
 	# false-positives on SQL DELETE keyword used as a string literal in
 	# data-analysis code (e.g. cursor.execute("DELETE FROM ...")).
 	# =========================
-	_DESTRUCTIVE_PATTERNS = [
+	_DESTRUCTIVE_PATTERNS = [re.compile(p) for p in [
 		# Filesystem deletes
 		r"\bunlink\b",
 		r"\bunlinksync\b",
@@ -165,20 +165,36 @@ class ExecutionSafetyManager:
 		r"\bdd\s+if=",
 		r"\bformat\s+[a-z]:",
 		r"\bdiskpart\b",
-	]
+	]]
 
 	# =========================
 	# BUG FIX #2: Shell patterns now use re.search() with \b word boundaries
 	# instead of plain `in` substring matching. Previously "bash" matched
 	# any identifier containing "bash" (e.g. "rehash", "bashful").
 	# =========================
-	_SHELL_PATTERNS = [
+	_SHELL_PATTERNS = [re.compile(p) for p in [
 		r"\bsubprocess\b",
 		r"\bos\.system\b",
 		r"\bpowershell\b",
 		r"\bcmd\.exe\b",
 		r"\bbash\b",
-	]
+	]]
+
+	_POSIX_SYSTEM_PREFIXES = [re.compile(p, flags=re.IGNORECASE) for p in [
+		r"/etc/\w+",
+		r"/tmp/\w+",
+		r"/var/\w+",
+		r"/usr/\w+",
+		r"/root/\w+",
+		r"/home/\w+/",
+		r"/proc/\w+",
+		r"/sys/\w+",
+		r"/dev/\w+",
+		r"/boot/\w+",
+		r"/opt/\w+",
+		r"/mnt/\w+",
+		r"/media/\w+",
+	]]
 
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
@@ -228,7 +244,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_PATTERNS)
 
 	# =========================
 	# WRITE-ON-HANDLE DETECTION
@@ -240,7 +256,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* calls .write() on any object (handle check).
 		This is intentionally only evaluated when an absolute path is present.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_ON_HANDLE_PATTERNS)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -256,22 +272,7 @@ class ExecutionSafetyManager:
 			return True
 
 		# Unquoted well-known POSIX system directory prefixes
-		_posix_system_prefixes = [
-			r"/etc/\w+",
-			r"/tmp/\w+",
-			r"/var/\w+",
-			r"/usr/\w+",
-			r"/root/\w+",
-			r"/home/\w+/",
-			r"/proc/\w+",
-			r"/sys/\w+",
-			r"/dev/\w+",
-			r"/boot/\w+",
-			r"/opt/\w+",
-			r"/mnt/\w+",
-			r"/media/\w+",
-		]
-		if any(re.search(p, code, re.IGNORECASE) for p in _posix_system_prefixes):
+		if any(p.search(code) for p in self._POSIX_SYSTEM_PREFIXES):
 			return True
 
 		# open() call whose first positional argument is an absolute path string
@@ -285,7 +286,7 @@ class ExecutionSafetyManager:
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
 		"""Return True if *code* references a sensitive POSIX system path."""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+		return any(p.search(code) for p in self._SENSITIVE_POSIX_PREFIXES)
 
 	# =========================
 	# MAIN CHECK
@@ -326,7 +327,7 @@ class ExecutionSafetyManager:
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
 		# filesystem deletes.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+		if any(p.search(code_lower) for p in self._DESTRUCTIVE_PATTERNS):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
@@ -334,7 +335,7 @@ class ExecutionSafetyManager:
 		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
 		# of plain substring `in` check to avoid false positives.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
+		if any(p.search(code_lower) for p in self._SHELL_PATTERNS):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -370,7 +371,7 @@ class ExecutionSafetyManager:
 		if not code or not code.strip():
 			return False
 		code_lower = code.lower()
-		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
+		return any(p.search(code_lower) for p in self._DESTRUCTIVE_PATTERNS)
 
 	# =========================
 	# ARTIFACT EXPORT
