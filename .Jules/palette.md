@@ -1,0 +1,3 @@
+## 2025-05-18 - TUI Keyboard Traps
+**Learning:** In terminal UI (TUI) environments, standard web-specific UX concepts need terminal equivalents. Using explicit prompt choices, clear shortcut hints ('Esc/Ctrl-C to cancel'), and mapping standard interrupt bytes (`\x03`) to exit actions in raw mode is essential to prevent keyboard traps.
+**Action:** When implementing terminal UIs with raw mode input, ensure standard interrupt bytes (`\x03`) are explicitly handled and mapped to an escape or exit action, and provide clear hints to the user.
