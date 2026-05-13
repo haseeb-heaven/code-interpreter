@@ -186,10 +186,19 @@ class UtilityManager:
 		if not file_name:
 			return None
 
+		cwd = os.path.abspath(os.getcwd())
 		# Check if the file path is absolute. If not, prepend the current working directory
 		if not os.path.isabs(file_name):
-			return os.path.join(os.getcwd(), file_name)
-		return file_name
+			full_path = os.path.abspath(os.path.join(cwd, file_name))
+		else:
+			full_path = os.path.abspath(file_name)
+
+		# Security check: Ensure the path is within the current working directory
+		if not full_path.startswith(cwd):
+			self.logger.warning(f"Path traversal attempt blocked: {file_name}")
+			return None
+
+		return full_path
 	
 	def read_csv_headers(self, file_path):
 		try:
