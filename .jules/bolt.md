@@ -1,0 +1,3 @@
+## 2024-05-24 - Pre-compile Regexes in Safety Paths
+**Learning:** Repeatedly evaluating `re.search` inside critical code paths (like `ExecutionSafetyManager.assess_execution` loops) creates measurable overhead. `re.compile` should be applied at the class level for collections of regular expressions. Furthermore, inside a class definition, generator expressions converted to tuples (`tuple(re.compile(p) for p in _PATTERNS)`) must be used instead of list comprehensions to prevent `NameError`.
+**Action:** Always pre-compile regular expressions using `re.compile()` as class attributes when evaluating strings in high-throughput or iterative operations, especially in safety-critical validation routines. Use generator-to-tuple syntax for comprehensions inside the class body.
