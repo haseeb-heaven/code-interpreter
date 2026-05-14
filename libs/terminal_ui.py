@@ -25,7 +25,7 @@ class TerminalUI:
                 return mapping.get(extended, extended)
             if key == '\r':
                 return 'enter'
-            if key == '\x1b':
+            if key in ('\x1b', '\x03'):
                 return 'escape'
             return key
 
@@ -41,6 +41,8 @@ class TerminalUI:
                 next_chars = sys.stdin.read(2)
                 mapping = {'[A': 'up', '[B': 'down', '[D': 'left', '[C': 'right'}
                 return mapping.get(next_chars, 'escape')
+            if key == '\x03':
+                return 'escape'
             if key in ('\r', '\n'):
                 return 'enter'
             return key
@@ -67,7 +69,7 @@ class TerminalUI:
             style = 'bold green' if index == selected_index else ''
             table.add_row(marker, label, style=style)
 
-        footer = help_text or 'Use Up/Down arrows and Enter to select.'
+        footer = help_text or 'Use Up/Down arrows and Enter to select. Esc/Ctrl-C to cancel.'
         self.console.print(Panel.fit(footer, title='Interpreter TUI', border_style='green'))
         self.console.print(f"[bold cyan]{title}[/bold cyan]")
         self.console.print(table)
