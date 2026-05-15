@@ -180,6 +180,34 @@ class ExecutionSafetyManager:
 		r"\bbash\b",
 	]
 
+	# Pre-compiled regular expressions for improved performance.
+	# Compiling these at the class level eliminates the overhead of compiling
+	# them repeatedly on every call to `assess_execution`.
+	_COMPILED_WRITE_PATTERNS = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_PATTERNS)
+	_COMPILED_WRITE_ON_HANDLE_PATTERNS = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_ON_HANDLE_PATTERNS)
+	_COMPILED_SENSITIVE_POSIX_PREFIXES = tuple(re.compile(p, re.IGNORECASE) for p in _SENSITIVE_POSIX_PREFIXES)
+	_COMPILED_DESTRUCTIVE_PATTERNS = tuple(re.compile(p) for p in _DESTRUCTIVE_PATTERNS)
+	_COMPILED_SHELL_PATTERNS = tuple(re.compile(p) for p in _SHELL_PATTERNS)
+	_COMPILED_HOST_ABSOLUTE_PATH_WIN = re.compile(r"[a-z]:[\\/]", re.IGNORECASE)
+	_COMPILED_HOST_ABSOLUTE_PATH_POSIX = re.compile(r"""["']/[^"'\s]""")
+	_COMPILED_POSIX_SYSTEM_PREFIXES = tuple(re.compile(p, re.IGNORECASE) for p in [
+		r"/etc/\w+",
+		r"/tmp/\w+",
+		r"/var/\w+",
+		r"/usr/\w+",
+		r"/root/\w+",
+		r"/home/\w+/",
+		r"/proc/\w+",
+		r"/sys/\w+",
+		r"/dev/\w+",
+		r"/boot/\w+",
+		r"/opt/\w+",
+		r"/mnt/\w+",
+		r"/media/\w+",
+	])
+	_COMPILED_OPEN_ARGS = re.compile(r"open\s*\(\s*([\"'][^\"']+[\"'])", re.IGNORECASE)
+	_COMPILED_RD_SQ = re.compile(r"\brd\s+/s\s+/q\b")
+
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
 
@@ -228,7 +256,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+		return any(p.search(code) for p in self._COMPILED_WRITE_PATTERNS)
 
 	# =========================
 	# WRITE-ON-HANDLE DETECTION
@@ -240,7 +268,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* calls .write() on any object (handle check).
 		This is intentionally only evaluated when an absolute path is present.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
+		return any(p.search(code) for p in self._COMPILED_WRITE_ON_HANDLE_PATTERNS)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -248,44 +276,29 @@ class ExecutionSafetyManager:
 	def _is_host_absolute_path(self, code: str) -> bool:
 		"""Return True if *code* references a host absolute path."""
 		# Windows drive-letter path
-		if re.search(r"[a-z]:[\\/]", code.lower()):
+		if self._COMPILED_HOST_ABSOLUTE_PATH_WIN.search(code):
 			return True
 
 		# Quoted POSIX absolute path: '/...' or "/..."
-		if re.search(r"""["']/[^"'\s]""", code):
+		if self._COMPILED_HOST_ABSOLUTE_PATH_POSIX.search(code):
 			return True
 
 		# Unquoted well-known POSIX system directory prefixes
-		_posix_system_prefixes = [
-			r"/etc/\w+",
-			r"/tmp/\w+",
-			r"/var/\w+",
-			r"/usr/\w+",
-			r"/root/\w+",
-			r"/home/\w+/",
-			r"/proc/\w+",
-			r"/sys/\w+",
-			r"/dev/\w+",
-			r"/boot/\w+",
-			r"/opt/\w+",
-			r"/mnt/\w+",
-			r"/media/\w+",
-		]
-		if any(re.search(p, code, re.IGNORECASE) for p in _posix_system_prefixes):
+		if any(p.search(code) for p in self._COMPILED_POSIX_SYSTEM_PREFIXES):
 			return True
 
 		# open() call whose first positional argument is an absolute path string
-		open_args = re.findall(r"open\s*\(\s*([\"'][^\"']+[\"'])", code, re.IGNORECASE)
-		for arg in open_args:
-			path = arg.strip("'\"")
-			if path.startswith("/") or re.match(r"[a-zA-Z]:[\\/]", path):
+		open_args = self._COMPILED_OPEN_ARGS.findall(code)
+		for path in open_args:
+			path_stripped = path.strip("'\"")
+			if path_stripped.startswith("/") or re.match(r"[a-zA-Z]:[\\/]", path_stripped):
 				return True
 
 		return False
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
 		"""Return True if *code* references a sensitive POSIX system path."""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+		return any(p.search(code) for p in self._COMPILED_SENSITIVE_POSIX_PREFIXES)
 
 	# =========================
 	# MAIN CHECK
@@ -297,7 +310,7 @@ class ExecutionSafetyManager:
 		code_lower = code.lower()
 
 		#  HARD BLOCK WINDOWS RECURSIVE DELETE (CRITICAL FIX)
-		if re.search(r"\brd\s+/s\s+/q\b", code_lower):
+		if self._COMPILED_RD_SQ.search(code_lower):
 			return Decision(False, ["Recursive deletion is blocked."])
 
 		#  UNSAFE MODE - still detect dangerous operations but allow with warnings
@@ -326,7 +339,7 @@ class ExecutionSafetyManager:
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
 		# filesystem deletes.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+		if any(p.search(code_lower) for p in self._COMPILED_DESTRUCTIVE_PATTERNS):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
@@ -334,7 +347,7 @@ class ExecutionSafetyManager:
 		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
 		# of plain substring `in` check to avoid false positives.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
+		if any(p.search(code_lower) for p in self._COMPILED_SHELL_PATTERNS):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -370,7 +383,7 @@ class ExecutionSafetyManager:
 		if not code or not code.strip():
 			return False
 		code_lower = code.lower()
-		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
+		return any(p.search(code_lower) for p in self._COMPILED_DESTRUCTIVE_PATTERNS)
 
 	# =========================
 	# ARTIFACT EXPORT
