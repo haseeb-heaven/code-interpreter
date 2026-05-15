@@ -61,14 +61,14 @@ class UtilityManager:
 					self.logger.info(f"{file} removed successfully")
 			except Exception as e:
 				print(f"Error in removing {file}: {str(e)}")
-	
+
 	def _extract_content(self, output):
 		try:
 			return output['choices'][0]['message']['content']
 		except (KeyError, TypeError) as e:
 			self.logger.error(f"Error extracting content: {str(e)}")
 			raise
-	
+
 	def get_os_platform(self):
 		try:
 			os_info = platform.uname()
@@ -106,22 +106,22 @@ class UtilityManager:
 				except ImportError:
 					self.logger.info("Readline support is unavailable. Continuing without input history.")
 					return False
-				
+
 			histfile = os.path.join(os.path.expanduser("~"), ".python_history")
-			
+
 			# Check if histfile exists before trying to read it
 			if os.path.exists(histfile):
 				readline.read_history_file(histfile)
-			
+
 			# Save history to file on exit
 			import atexit
 			atexit.register(readline.write_history_file, histfile)
 			return True
-			
+
 		except FileNotFoundError:
 			self.logger.info("History file not found. Continuing without persisted input history.")
 			return False
-		
+
 		except AttributeError:
 			# Handle error on Windows where pyreadline doesn't have read_history_file
 			self.logger.info("Readline history is not supported on this platform. Continuing without input history.")
@@ -186,11 +186,26 @@ class UtilityManager:
 		if not file_name:
 			return None
 
+		cwd = os.getcwd()
+
 		# Check if the file path is absolute. If not, prepend the current working directory
 		if not os.path.isabs(file_name):
-			return os.path.join(os.getcwd(), file_name)
-		return file_name
-	
+			full_path = os.path.abspath(os.path.join(cwd, file_name))
+		else:
+			full_path = os.path.abspath(file_name)
+
+		# Security check: Ensure the resolved path does not traverse outside the current working directory
+		try:
+			if os.path.commonpath([cwd, full_path]) != cwd:
+				self.logger.warning(f"Path Traversal attempt blocked: {file_name}")
+				return None
+		except ValueError:
+			# Handles edge cases where paths are on different drives in Windows
+			self.logger.warning(f"Invalid path encountered during boundary check: {file_name}")
+			return None
+
+		return full_path
+
 	def read_csv_headers(self, file_path):
 		try:
 			with open(file_path, newline='') as csvfile:
@@ -208,7 +223,7 @@ class UtilityManager:
 		try:
 			self.logger.info("Starting to read last code history.")
 			output_folder = "output"
-			
+
 			extensions = {
 				"code": {
 					"python": ['.py'],
@@ -246,7 +261,7 @@ class UtilityManager:
 					with open(latest_file, "r") as code_file:
 						code = code_file.read()
 						return latest_file, code
-			
+
 			return None, None
 
 		except Exception as exception:
@@ -280,12 +295,13 @@ class UtilityManager:
 			"/sandbox - Toggle sandbox mode at runtime.\n"
 		)
 		display_markdown_message(msg)
+
 	def display_version(self, version):
 		display_markdown_message(f"Interpreter - v{version}")
 
 	def clear_screen(self):
 		os.system('cls' if os.name == 'nt' else 'clear')
-	
+
 	def create_file(self, file_path):
 		try:
 			with open(file_path, "w") as file:
@@ -293,7 +309,7 @@ class UtilityManager:
 		except Exception as exception:
 			self.logger.error(f"Error in creating file: {str(exception)}")
 			raise
-		
+
 	def read_file(self, file_path):
 		try:
 			with open(file_path, "r") as file:
@@ -301,7 +317,7 @@ class UtilityManager:
 		except Exception as exception:
 			self.logger.error(f"Error in reading file: {str(exception)}")
 			raise
-	
+
 	def write_file(self, file_path, content):
 		try:
 			with open(file_path, "w") as file:
@@ -309,9 +325,9 @@ class UtilityManager:
 		except Exception as exception:
 			self.logger.error(f"Error in writing file: {str(exception)}")
 			raise
-	
+
 	# method to download file from Web and save it
-	
+
 	@staticmethod
 	def _download_file(url, file_name):
 		try:
@@ -320,7 +336,7 @@ class UtilityManager:
 			logger.info(f"Downloading file: {url}")
 			response = requests.get(url, allow_redirects=True)
 			response.raise_for_status()
-			
+
 			with open(file_name, 'wb') as file:
 				file.write(response.content)
 				logger.info("Reuquirements.txt file downloaded.")
@@ -336,11 +352,11 @@ class UtilityManager:
 		# Download the requirements file
 		file_url = 'https://raw.githubusercontent.com/haseeb-heaven/code-interpreter/main/requirements.txt'
 		requirements_file_downloaded = UtilityManager._download_file(file_url, 'requirements.txt')
-		
+
 		# Commands to execute.
 		command_pip_upgrade = 'pip install open-code-interpreter --upgrade'
 		command_pip_requirements = 'pip install -r requirements.txt --upgrade'
-		
+
 		# Execute the commands.
 		command_output, _ = code_interpreter.execute_command(command_pip_upgrade)
 		display_markdown_message("Command Upgrade executed successfully.")
@@ -350,7 +366,7 @@ class UtilityManager:
 		else:
 			logger.warn("Requirements file not downloaded.")
 			display_markdown_message("Warning: Requirements file not downloaded.")
-		
+
 		if command_output:
 			logger.info("Command executed successfully.")
 			display_code(command_output)

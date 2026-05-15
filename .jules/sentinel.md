@@ -1,0 +1,4 @@
+## 2024-05-15 - Prevent Path Traversal in utility_manager.py
+**Vulnerability:** Path traversal in file path extraction. `utility_manager.get_full_file_path` concatenated `cwd` with user-supplied inputs using `os.path.join`, permitting relative traversals (e.g., `../../../etc/passwd`).
+**Learning:** `os.path.join` does not sanitize backwards traversal components like `..`. When dynamically resolving paths relative to a working directory, strict sandbox boundaries are necessary to prevent the user from escaping to sensitive file systems.
+**Prevention:** Always enforce path resolution by normalizing inputs using `os.path.abspath(os.path.join(cwd, file_name))` and assert they are within expected directories through boundary checks using `os.path.commonpath([cwd, full_path]) == cwd`. Also gracefully handle cases like Windows paths on different drives by catching `ValueError`.
