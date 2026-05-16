@@ -1,0 +1,4 @@
+## 2024-05-18 - Path Traversal bypass via arbitrary absolute paths
+**Vulnerability:** `utility_manager.py`'s `get_full_file_path` allowed resolving arbitrary absolute paths like `/etc/passwd` directly, bypassing intended directory restrictions.
+**Learning:** Checking for `os.path.isabs` and directly returning the path or simply prepending `os.getcwd()` to relative paths does not sufficiently constrain file access. It allows attackers to traverse outside the expected sandbox.
+**Prevention:** Always restrict resolved paths to a trusted boundary (e.g., `cwd`) by explicitly converting both relative and absolute inputs to absolute paths (`os.path.abspath`) and using `os.path.commonpath([cwd, full_path]) == cwd` to enforce boundary constraints. Also ensure `ValueError` is handled if paths span different drives on Windows.
