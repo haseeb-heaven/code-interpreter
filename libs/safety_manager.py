@@ -4,7 +4,7 @@ import ast
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 
 # =========================
@@ -62,7 +62,8 @@ class ExecutionSafetyManager:
 	]
 
 	# Artifact extensions that callers care about (plots, tables, reports)
-	ARTIFACT_EXTENSIONS = {".png", ".jpg", ".jpeg", ".svg", ".md", ".csv", ".txt", ".html", ".json"}
+	ARTIFACT_EXTENSIONS = {".png", ".jpg", ".jpeg",
+									".svg",	".md",	".csv",	".txt",	".html",	".json"}
 
 	# Write-mode patterns that must be blocked in SAFE mode regardless of path.
 	# BUG FIX #1: Removed bare r"\.write\s*\(" — it was far too broad and
@@ -101,6 +102,10 @@ class ExecutionSafetyManager:
 		r'\.to_parquet\s*\([^)]*[\'"/]',
 	]
 
+	# Pre-compile regexes as class attributes to minimize overhead in safety-critical loops
+	_COMPILED_WRITE_PATTERNS = tuple(re.compile(
+		p, re.IGNORECASE) for p in _WRITE_PATTERNS)
+
 	# BUG FIX (test_blocks_write_function_with_absolute_path):
 	# When code opens a file handle (any mode, including 'r') and then calls
 	# .write() on that handle, the operation must be blocked if the open()
@@ -111,6 +116,8 @@ class ExecutionSafetyManager:
 	_WRITE_ON_HANDLE_PATTERNS = [
 		r"\.write\s*\(",
 	]
+	_COMPILED_WRITE_ON_HANDLE_PATTERNS = tuple(re.compile(
+		p, re.IGNORECASE) for p in _WRITE_ON_HANDLE_PATTERNS)
 
 	# Sensitive POSIX system path prefixes that are ALWAYS blocked (even for reads).
 	_SENSITIVE_POSIX_PREFIXES = [
@@ -121,6 +128,8 @@ class ExecutionSafetyManager:
 		r"/dev/\w+",
 		r"/boot/\w+",
 	]
+	_COMPILED_SENSITIVE_POSIX_PREFIXES = tuple(re.compile(
+		p, re.IGNORECASE) for p in _SENSITIVE_POSIX_PREFIXES)
 
 	# Known-dangerous call targets for .remove() / .unlink() / .rmtree().
 	_DANGEROUS_ATTR_OWNERS = frozenset({"os", "shutil", "pathlib", "path"})
@@ -146,12 +155,13 @@ class ExecutionSafetyManager:
 		# Filesystem deletes
 		r"\bunlink\b",
 		r"\bunlinksync\b",
-		r"os\.remove\s*\(",          # FIX: dropped leading \b — dot is sufficient anchor
+		# FIX: dropped leading \b — dot is sufficient anchor
+		r"os\.remove\s*\(",
 		r"\brmtree\b",
 		r"\bdel\s+",
 		r"\brm\s+",
 		r"\berase\s+",
-		r"\bdelete\s+\S",            # FIX #3b: was r"\bdelete\b" — caught SQL literals
+		r"\bdelete\s+\S",			# FIX #3b: was r"\bdelete\b" — caught SQL literals
 		r"\bremove-item\b",
 		r"\brd\s+",
 		r"\bshutil\.rmtree\b",
@@ -166,6 +176,8 @@ class ExecutionSafetyManager:
 		r"\bformat\s+[a-z]:",
 		r"\bdiskpart\b",
 	]
+	_COMPILED_DESTRUCTIVE_PATTERNS = tuple(
+		re.compile(p) for p in _DESTRUCTIVE_PATTERNS)
 
 	# =========================
 	# BUG FIX #2: Shell patterns now use re.search() with \b word boundaries
@@ -179,6 +191,35 @@ class ExecutionSafetyManager:
 		r"\bcmd\.exe\b",
 		r"\bbash\b",
 	]
+	_COMPILED_SHELL_PATTERNS = tuple(re.compile(p) for p in _SHELL_PATTERNS)
+
+	# Pre-compiled inline regex patterns
+	_COMPILED_WIN_DRIVE = re.compile(r"[a-z]:[\\\\/]")  # used with .lower()
+	_COMPILED_POSIX_ABS = re.compile(r"""["']/[^"'\s]""")
+
+	_POSIX_SYSTEM_PREFIXES = [
+		r"/etc/\w+",
+		r"/tmp/\w+",
+		r"/var/\w+",
+		r"/usr/\w+",
+		r"/root/\w+",
+		r"/home/\w+/",
+		r"/proc/\w+",
+		r"/sys/\w+",
+		r"/dev/\w+",
+		r"/boot/\w+",
+		r"/opt/\w+",
+		r"/mnt/\w+",
+		r"/media/\w+",
+	]
+	_COMPILED_POSIX_SYSTEM_PREFIXES = tuple(re.compile(
+		p, re.IGNORECASE) for p in _POSIX_SYSTEM_PREFIXES)
+
+	_COMPILED_OPEN_ARGS = re.compile(
+		r"open\s*\(\s*([\"\'][^\"\']+[\"\'])", re.IGNORECASE)
+	_COMPILED_OPEN_PATH_WIN_DRIVE = re.compile(r"[a-zA-Z]:[\\\\/]")
+
+	_COMPILED_RD_CMD = re.compile(r"\brd\s+/s\s+/q\b")
 
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
@@ -205,14 +246,16 @@ class ExecutionSafetyManager:
 						elif isinstance(node.func.value, ast.Attribute):
 							owner_name = node.func.value.attr.lower()
 						if owner_name in self._DANGEROUS_ATTR_OWNERS or owner_name == "":
-							reasons.append(f"AST: deletion blocked ({owner_name or 'unknown'}.{attr}).")
+							reasons.append(
+								f"AST: deletion blocked ({owner_name or 'unknown'}.{attr}).")
 
 				# getattr obfuscation
 				if isinstance(node.func, ast.Name) and node.func.id == "getattr":
 					if len(node.args) >= 2:
 						if isinstance(node.args[1], ast.Constant):
 							if node.args[1].value in ["remove", "unlink", "rmtree"]:
-								reasons.append("AST: obfuscated deletion blocked.")
+								reasons.append(
+									"AST: obfuscated deletion blocked.")
 
 				# eval / exec
 				if isinstance(node.func, ast.Name):
@@ -228,7 +271,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+		return any(p.search(code) for p in self._COMPILED_WRITE_PATTERNS)
 
 	# =========================
 	# WRITE-ON-HANDLE DETECTION
@@ -240,7 +283,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* calls .write() on any object (handle check).
 		This is intentionally only evaluated when an absolute path is present.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
+		return any(p.search(code) for p in self._COMPILED_WRITE_ON_HANDLE_PATTERNS)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -248,44 +291,29 @@ class ExecutionSafetyManager:
 	def _is_host_absolute_path(self, code: str) -> bool:
 		"""Return True if *code* references a host absolute path."""
 		# Windows drive-letter path
-		if re.search(r"[a-z]:[\\/]", code.lower()):
+		if self._COMPILED_WIN_DRIVE.search(code.lower()):
 			return True
 
 		# Quoted POSIX absolute path: '/...' or "/..."
-		if re.search(r"""["']/[^"'\s]""", code):
+		if self._COMPILED_POSIX_ABS.search(code):
 			return True
 
 		# Unquoted well-known POSIX system directory prefixes
-		_posix_system_prefixes = [
-			r"/etc/\w+",
-			r"/tmp/\w+",
-			r"/var/\w+",
-			r"/usr/\w+",
-			r"/root/\w+",
-			r"/home/\w+/",
-			r"/proc/\w+",
-			r"/sys/\w+",
-			r"/dev/\w+",
-			r"/boot/\w+",
-			r"/opt/\w+",
-			r"/mnt/\w+",
-			r"/media/\w+",
-		]
-		if any(re.search(p, code, re.IGNORECASE) for p in _posix_system_prefixes):
+		if any(p.search(code) for p in self._COMPILED_POSIX_SYSTEM_PREFIXES):
 			return True
 
 		# open() call whose first positional argument is an absolute path string
-		open_args = re.findall(r"open\s*\(\s*([\"'][^\"']+[\"'])", code, re.IGNORECASE)
+		open_args = self._COMPILED_OPEN_ARGS.findall(code)
 		for arg in open_args:
 			path = arg.strip("'\"")
-			if path.startswith("/") or re.match(r"[a-zA-Z]:[\\/]", path):
+			if path.startswith("/") or self._COMPILED_OPEN_PATH_WIN_DRIVE.match(path):
 				return True
 
 		return False
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
 		"""Return True if *code* references a sensitive POSIX system path."""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+		return any(p.search(code) for p in self._COMPILED_SENSITIVE_POSIX_PREFIXES)
 
 	# =========================
 	# MAIN CHECK
@@ -297,7 +325,7 @@ class ExecutionSafetyManager:
 		code_lower = code.lower()
 
 		#  HARD BLOCK WINDOWS RECURSIVE DELETE (CRITICAL FIX)
-		if re.search(r"\brd\s+/s\s+/q\b", code_lower):
+		if self._COMPILED_RD_CMD.search(code_lower):
 			return Decision(False, ["Recursive deletion is blocked."])
 
 		#  UNSAFE MODE - still detect dangerous operations but allow with warnings
@@ -326,7 +354,7 @@ class ExecutionSafetyManager:
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
 		# filesystem deletes.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+		if any(p.search(code_lower) for p in self._COMPILED_DESTRUCTIVE_PATTERNS):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
@@ -334,7 +362,7 @@ class ExecutionSafetyManager:
 		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
 		# of plain substring `in` check to avoid false positives.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
+		if any(p.search(code_lower) for p in self._COMPILED_SHELL_PATTERNS):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -346,7 +374,8 @@ class ExecutionSafetyManager:
 		# Block if code references an absolute path AND performs any write —
 		# including .write() on a handle opened in read mode (e.g. open(...,'r') + f.write()).
 		if self._is_host_absolute_path(code) and (
-			self._has_write_operation(code) or self._has_write_on_handle(code)
+				self._has_write_operation(
+					code) or self._has_write_on_handle(code)
 		):
 			return Decision(False, ["Host filesystem access blocked (absolute path write)."])
 
@@ -370,15 +399,15 @@ class ExecutionSafetyManager:
 		if not code or not code.strip():
 			return False
 		code_lower = code.lower()
-		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
+		return any(p.search(code_lower) for p in self._COMPILED_DESTRUCTIVE_PATTERNS)
 
 	# =========================
 	# ARTIFACT EXPORT
 	# =========================
 	def export_artifacts(
-		self,
-		context: "SandboxContext | None",
-		dest_dir: Optional[str] = None,
+			self,
+			context: "SandboxContext | None",
+			dest_dir: Optional[str] = None,
 	) -> Dict[str, str]:
 		"""Copy generated artifact files out of the sandbox before cleanup."""
 		if not context or not context.cwd or not os.path.isdir(context.cwd):
