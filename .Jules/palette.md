@@ -1,0 +1,3 @@
+## 2026-05-16 - Terminal Raw Mode Keyboard Traps
+**Learning:** In terminal UIs using raw mode (like via `tty.setraw()`), standard interrupt signals (like `\x03` for Ctrl-C) are not automatically processed by the OS to exit the program. If not explicitly handled in the key-reading logic, this creates a frustrating keyboard trap where users cannot cancel out of menus.
+**Action:** Always map standard interrupt bytes (e.g., `\x03` for Ctrl-C) to an explicit exit/cancel action (like `'escape'`) when implementing custom raw mode keyboard handlers in TUI components. Add explicit shortcut hints to the UI to make these cancel options clear.
