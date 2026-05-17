@@ -1,0 +1,4 @@
+## 2024-05-17 - Path Traversal Vulnerability in `UtilityManager.get_full_file_path`
+**Vulnerability:** A Path Traversal risk existed in `get_full_file_path` when resolving user-provided relative paths, due to `os.path.join(os.getcwd(), file_name)` failing to normalize paths starting with `../` and returning them without a boundary check.
+**Learning:** Standard library `os.path.join` doesn't enforce sandboxing by itself and requires explicitly bounding the output path by verifying it starts with `os.getcwd()` or using `os.path.commonpath`.
+**Prevention:** Always convert file paths to their absolute canonical form (`os.path.abspath`) and validate the resulting path shares a common path (`os.path.commonpath`) exactly matching the expected root directory to ensure it doesn't escape the boundary. Catch `ValueError` since `commonpath` will raise on Windows if paths are on different drives.
