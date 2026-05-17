@@ -1,0 +1,3 @@
+## 2025-05-17 - TUI Keyboard Traps
+**Learning:** In raw TUI modes that bypass standard terminal I/O (using termios/tty.setraw), standard interrupt signals like `\x03` (Ctrl-C) are processed as regular string characters instead of raising a `KeyboardInterrupt`. If these aren't explicitly checked and handled in the application loop, users encounter a keyboard trap where they cannot exit the interface using standard, expected shortcuts.
+**Action:** Always map standard interrupt bytes (like `\x03`) to the appropriate exit/cancel action and explicitly document the exit strategy in the UI ("Esc/Ctrl-C to cancel") when building raw TUI prompts.
