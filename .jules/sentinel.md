@@ -1,0 +1,4 @@
+## 2024-05-30 - Path Traversal bypass with absolute paths
+**Vulnerability:** Path Traversal via absolute paths bypassing relative check
+**Learning:** Checking `if not os.path.isabs(file_name)` to selectively enforce traversal checks leaves the application vulnerable to direct absolute path access (e.g. `/etc/passwd`). Furthermore, failing open on `commonpath` exceptions like `ValueError` (which occurs for different drives on Windows) could inadvertently permit traversal.
+**Prevention:** Always normalize user-provided paths (whether relative or absolute) to an absolute path using `os.path.abspath`, then enforce a strict boundary constraint (e.g. `os.path.commonpath([cwd, full_path]) == cwd`) to ensure the resultant path resides within the intended directory. Fail securely by blocking access on any `ValueError`.
