@@ -1,0 +1,3 @@
+## 2025-02-20 - Precompile regexes for safety critical loops
+**Learning:** In code interpretation systems where safety checks are executed multiple times across arbitrary user code, repetitive compilation of the same regular expressions introduces a substantial performance overhead. This is particularly prevalent in `_has_write_operation` and similar safety detection pathways.
+**Action:** Always precompile sets of regex patterns (e.g. `_WRITE_PATTERNS`) at the class scope level using `re.compile`, and utilize `.search(code)` during runtime evaluations. Use generator expressions cast to a `tuple` to dodge scoping bugs (like `NameError`) inherent to list comprehensions inside Python classes.
