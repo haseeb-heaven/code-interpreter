@@ -1,0 +1,4 @@
+## 2024-05-18 - Path Traversal in utility_manager.py
+**Vulnerability:** The `get_full_file_path` method in `libs/utility_manager.py` did not properly validate user-supplied file names, allowing both absolute and relative path traversal attacks (e.g., `../../etc/passwd` or `/etc/passwd`).
+**Learning:** `os.path.isabs` and simply prepending the current working directory to relative paths is insufficient for path security, as standard resolution functions evaluate relative traversals outside the original directory.
+**Prevention:** Always convert all incoming file paths to absolute paths using `os.path.abspath`, then validate that the resolved absolute path still resides within the intended directory sandbox using a boundary check like `os.path.commonpath([cwd, full_path]) == cwd`. Re-raise exceptions properly to prevent silent bypasses.

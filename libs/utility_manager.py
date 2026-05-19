@@ -186,10 +186,22 @@ class UtilityManager:
 		if not file_name:
 			return None
 
-		# Check if the file path is absolute. If not, prepend the current working directory
-		if not os.path.isabs(file_name):
-			return os.path.join(os.getcwd(), file_name)
-		return file_name
+		cwd = os.getcwd()
+		# Convert all inputs to absolute paths to resolve any relative segments (like ../)
+		full_path = os.path.abspath(os.path.join(cwd, file_name))
+
+		# Prevent Path Traversal by enforcing boundary check
+		try:
+			if os.path.commonpath([cwd, full_path]) != cwd:
+				raise ValueError(f"Path traversal detected: {file_name}")
+		except ValueError as e:
+			# If commonpath raises ValueError because paths are on different drives (Windows)
+			# or mixes absolute and relative, it's a traversal attempt.
+			if "paths are on different drives" in str(e).lower() or "mixes absolute and relative" in str(e).lower():
+				raise ValueError(f"Path traversal detected: {file_name}")
+			raise
+
+		return full_path
 	
 	def read_csv_headers(self, file_path):
 		try:
