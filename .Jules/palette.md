@@ -1,0 +1,3 @@
+## 2024-05-19 - Terminal UI Micro-UX Improvements
+**Learning:** Web UX concepts like explicitly displaying available choices to the user and preventing keyboard traps translate directly to TUI environments. Users in headless/non-tty modes need visible prompt choices (via `rich.prompt.Prompt.ask(..., choices=...)`), and raw interactive modes must map interrupt bytes like `\x03` (Ctrl-C) to exit/cancel actions to prevent users from getting stuck.
+**Action:** Always verify that TUI components provide clear choice lists in fallback modes and map standard terminal interrupt signals safely when reading raw byte inputs.
