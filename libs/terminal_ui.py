@@ -43,6 +43,8 @@ class TerminalUI:
                 return mapping.get(next_chars, 'escape')
             if key in ('\r', '\n'):
                 return 'enter'
+            if key == '\x03':
+                return 'escape'
             return key
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
@@ -67,7 +69,7 @@ class TerminalUI:
             style = 'bold green' if index == selected_index else ''
             table.add_row(marker, label, style=style)
 
-        footer = help_text or 'Use Up/Down arrows and Enter to select.'
+        footer = help_text or 'Use Up/Down arrows and Enter to select. Esc/Ctrl-C to cancel.'
         self.console.print(Panel.fit(footer, title='Interpreter TUI', border_style='green'))
         self.console.print(f"[bold cyan]{title}[/bold cyan]")
         self.console.print(table)
