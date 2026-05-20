@@ -186,10 +186,19 @@ class UtilityManager:
 		if not file_name:
 			return None
 
-		# Check if the file path is absolute. If not, prepend the current working directory
-		if not os.path.isabs(file_name):
-			return os.path.join(os.getcwd(), file_name)
-		return file_name
+		cwd = os.path.abspath(os.getcwd())
+		full_path = os.path.abspath(os.path.join(cwd, file_name))
+
+		try:
+			common_path = os.path.commonpath([cwd, full_path])
+		except ValueError as e:
+			# Raised on Windows when paths are on different drives
+			raise ValueError(f"Security Error: Path traversal attempt detected: {file_name}") from e
+
+		if common_path != cwd:
+			raise ValueError(f"Security Error: Path traversal attempt detected: {file_name}")
+
+		return full_path
 	
 	def read_csv_headers(self, file_path):
 		try:
