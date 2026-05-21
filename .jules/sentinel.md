@@ -1,0 +1,4 @@
+## 2026-05-21 - Path Traversal Vulnerability Fix
+**Vulnerability:** The `UtilityManager.get_full_file_path` method allowed path traversal because it prepended the current working directory to relative paths but failed to validate that the resolved absolute path remained within the original working directory boundary. This allowed arbitrary file access.
+**Learning:** Resolving paths via `os.path.abspath` and performing a strict boundary check using `os.path.commonpath` is necessary to prevent traversal (bypasses like `../../` or absolute paths `/etc/passwd`).
+**Prevention:** Always convert user-provided paths to absolute paths and enforce bounds checking using `os.path.commonpath([base_dir, resolved_path]) == base_dir` before proceeding with file operations. Handle drive letter mismatches on Windows by catching `ValueError` appropriately.

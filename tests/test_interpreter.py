@@ -29,6 +29,37 @@ def _read_hf_model(config_path: Path) -> str:
 
 
 
+class TestUtilityManager(unittest.TestCase):
+	def setUp(self):
+		self.utility_manager = UtilityManager()
+
+	def test_get_full_file_path_traversal(self):
+		cwd = os.getcwd()
+
+		# Test valid paths
+		self.assertEqual(
+			self.utility_manager.get_full_file_path("foo.txt"),
+			os.path.join(cwd, "foo.txt")
+		)
+		self.assertEqual(
+			self.utility_manager.get_full_file_path(os.path.join(cwd, "foo.txt")),
+			os.path.join(cwd, "foo.txt")
+		)
+
+		# Test invalid paths (traversal)
+		with self.assertRaises(ValueError) as context:
+			self.utility_manager.get_full_file_path("../foo.txt")
+		self.assertTrue("Path traversal detected" in str(context.exception))
+
+		with self.assertRaises(ValueError) as context:
+			self.utility_manager.get_full_file_path("../../etc/passwd")
+		self.assertTrue("Path traversal detected" in str(context.exception))
+
+		with self.assertRaises(ValueError) as context:
+			self.utility_manager.get_full_file_path("/etc/passwd")
+		self.assertTrue("Path traversal detected" in str(context.exception))
+
+
 class TestInterpreter(unittest.TestCase):
 	def _make_args(self, mode="code", model="code-llama"):
 		return Namespace(
