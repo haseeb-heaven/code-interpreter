@@ -1,0 +1,3 @@
+## 2024-05-23 - Prevent TUI Keyboard Traps and Improve Headless Prompts
+**Learning:** TUI raw mode environments map standard OS interrupts like Ctrl-C (`\x03`) to literal bytes, creating keyboard traps if not handled. Also, headless terminal prompts can hide available choices if not explicitly rendered, and relying on `Prompt.ask(choices=...)` enforces strict matching which breaks custom case-insensitivity logic.
+**Action:** Always map `\x03` to `KeyboardInterrupt` alongside Escape, explicitly document cancellation shortcuts in UI panels, and manually interpolate choices into prompt strings (`[{'|'.join(options)}]`) to retain custom validation flexibility while guiding users.
