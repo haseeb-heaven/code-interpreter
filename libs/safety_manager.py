@@ -74,7 +74,7 @@ class ExecutionSafetyManager:
 	# single-quoted raw strings  r'...'  so that ['"] is unambiguous.
 	# Using r"...['\""]..." caused the bare trailing `"` to prematurely close
 	# the outer double-quoted string → E999 SyntaxError at line 74.
-	_WRITE_PATTERNS = [
+	_WRITE_PATTERNS_RAW = [
 		# open() explicit write modes — text and binary variants with optional '+'
 		r'open\s*\([^)]*[\'"]w[btax]?\+?[\'"]',
 		r'open\s*\([^)]*[\'"]a[btx]?\+?[\'"]',
@@ -108,12 +108,12 @@ class ExecutionSafetyManager:
 	# _WRITE_PATTERNS so it is only evaluated in the combined absolute-path
 	# write check — preventing false positives like sys.stdout.write() on
 	# purely relative / non-file code paths.
-	_WRITE_ON_HANDLE_PATTERNS = [
+	_WRITE_ON_HANDLE_PATTERNS_RAW = [
 		r"\.write\s*\(",
 	]
 
 	# Sensitive POSIX system path prefixes that are ALWAYS blocked (even for reads).
-	_SENSITIVE_POSIX_PREFIXES = [
+	_SENSITIVE_POSIX_PREFIXES_RAW = [
 		r"/etc/\w+",
 		r"/root/\w+",
 		r"/proc/\w+",
@@ -142,7 +142,7 @@ class ExecutionSafetyManager:
 	# false-positives on SQL DELETE keyword used as a string literal in
 	# data-analysis code (e.g. cursor.execute("DELETE FROM ...")).
 	# =========================
-	_DESTRUCTIVE_PATTERNS = [
+	_DESTRUCTIVE_PATTERNS_RAW = [
 		# Filesystem deletes
 		r"\bunlink\b",
 		r"\bunlinksync\b",
@@ -172,13 +172,19 @@ class ExecutionSafetyManager:
 	# instead of plain `in` substring matching. Previously "bash" matched
 	# any identifier containing "bash" (e.g. "rehash", "bashful").
 	# =========================
-	_SHELL_PATTERNS = [
+	_SHELL_PATTERNS_RAW = [
 		r"\bsubprocess\b",
 		r"\bos\.system\b",
 		r"\bpowershell\b",
 		r"\bcmd\.exe\b",
 		r"\bbash\b",
 	]
+
+	_WRITE_PATTERNS = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_PATTERNS_RAW)
+	_WRITE_ON_HANDLE_PATTERNS = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_ON_HANDLE_PATTERNS_RAW)
+	_SENSITIVE_POSIX_PREFIXES = tuple(re.compile(p, re.IGNORECASE) for p in _SENSITIVE_POSIX_PREFIXES_RAW)
+	_DESTRUCTIVE_PATTERNS = tuple(re.compile(p) for p in _DESTRUCTIVE_PATTERNS_RAW)
+	_SHELL_PATTERNS = tuple(re.compile(p) for p in _SHELL_PATTERNS_RAW)
 
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
@@ -228,7 +234,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_PATTERNS)
 
 	# =========================
 	# WRITE-ON-HANDLE DETECTION
@@ -240,7 +246,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* calls .write() on any object (handle check).
 		This is intentionally only evaluated when an absolute path is present.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_ON_HANDLE_PATTERNS)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -285,7 +291,7 @@ class ExecutionSafetyManager:
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
 		"""Return True if *code* references a sensitive POSIX system path."""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+		return any(p.search(code) for p in self._SENSITIVE_POSIX_PREFIXES)
 
 	# =========================
 	# MAIN CHECK
@@ -326,7 +332,7 @@ class ExecutionSafetyManager:
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
 		# filesystem deletes.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+		if any(p.search(code_lower) for p in self._DESTRUCTIVE_PATTERNS):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
@@ -334,7 +340,7 @@ class ExecutionSafetyManager:
 		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
 		# of plain substring `in` check to avoid false positives.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
+		if any(p.search(code_lower) for p in self._SHELL_PATTERNS):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -370,7 +376,7 @@ class ExecutionSafetyManager:
 		if not code or not code.strip():
 			return False
 		code_lower = code.lower()
-		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
+		return any(p.search(code_lower) for p in self._DESTRUCTIVE_PATTERNS)
 
 	# =========================
 	# ARTIFACT EXPORT
