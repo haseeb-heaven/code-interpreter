@@ -67,7 +67,7 @@ class TerminalUI:
             style = 'bold green' if index == selected_index else ''
             table.add_row(marker, label, style=style)
 
-        footer = help_text or 'Use Up/Down arrows and Enter to select.'
+        footer = help_text or 'Use Up/Down arrows and Enter to select. (Esc/Ctrl-C to cancel)'
         self.console.print(Panel.fit(footer, title='Interpreter TUI', border_style='green'))
         self.console.print(f"[bold cyan]{title}[/bold cyan]")
         self.console.print(table)
@@ -76,7 +76,7 @@ class TerminalUI:
     def _select_option(self, title, options, default, help_text=None):
         if not sys.stdin.isatty():
             default_choice = default if default in options else options[0]
-            answer = Prompt.ask(f"{title}", default=default_choice).strip()
+            answer = Prompt.ask(f"{title} \\[{'|'.join(options)}]", default=default_choice).strip()
             if answer in options:
                 return answer
             for option in options:
@@ -99,7 +99,7 @@ class TerminalUI:
                 selected_index = (selected_index + 1) % len(options)
             elif key == 'enter':
                 return options[selected_index]
-            elif key == 'escape':
+            elif key in ('escape', '\x03'):
                 raise KeyboardInterrupt('Selection cancelled by user.')
             elif isinstance(key, str) and len(key) == 1:
                 lowered = key.lower()

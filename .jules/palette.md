@@ -1,0 +1,3 @@
+## 2024-05-25 - Terminal UI Keyboard Traps and Explicit Prompts
+**Learning:** Web-specific UX concepts like clear affordances and avoiding keyboard traps translate directly to TUI design. Using explicit prompt choices (via `rich` Prompt.ask), displaying clear shortcut hints ('Esc/Ctrl-C to cancel'), and manually handling interrupt bytes (`\x03`) in raw mode are critical to ensure accessibility and prevent users from getting stuck.
+**Action:** Always visually surface available options in headless/fallback prompts and ensure standard interrupt signals (`\x03`) are explicitly mapped to exit actions when operating in raw TTY mode.
