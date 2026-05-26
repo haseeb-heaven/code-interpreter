@@ -1,0 +1,3 @@
+## 2024-05-23 - [Pre-compiling Regular Expressions in Safety Manager]
+**Learning:** Repeatedly calling `re.search` with string patterns inside loops or frequently accessed methods (like safety checks on code) introduces unnecessary regex compilation overhead, even with Python's internal regex caching. Also, list comprehensions in class bodies don't have access to the class scope, so `tuple(re.compile(p) for p in _PATTERNS)` should be used.
+**Action:** Always pre-compile regular expressions as class-level attributes (`_COMPILED_PATTERNS = tuple(re.compile(p) for p in _PATTERNS)`) when they are used in high-frequency validation checks or safety loops to reduce execution time overhead.
