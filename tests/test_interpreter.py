@@ -1780,9 +1780,10 @@ class TestPackageManagerRunCommandSafety(unittest.TestCase):
 	@patch("libs.package_manager.os.name", "nt")
 	def test_windows_safe_args_pass_validation(self):
 		with patch("subprocess.check_call", return_value=0) as mock_call:
-			result = self.pm._run_command(["pip", "install", "requests"])
-		# On Windows, args are converted to a single string via list2cmdline
-		mock_call.assert_called_once_with("pip install requests", shell=True)
+			with patch("shutil.which", return_value="pip"):
+				result = self.pm._run_command(["pip", "install", "requests"])
+		# On Windows, args are passed directly with shell=False
+		mock_call.assert_called_once_with(["pip", "install", "requests"], shell=False)
 
 	@patch("libs.package_manager.os.name", "posix")
 	def test_unix_uses_shell_false(self):
@@ -1814,8 +1815,9 @@ class TestPackageManagerRunCommandSafety(unittest.TestCase):
 	def test_windows_called_process_error_is_reraised(self):
 		import subprocess
 		with patch("subprocess.check_call", side_effect=subprocess.CalledProcessError(1, "pip")):
-			with self.assertRaises(subprocess.CalledProcessError):
-				self.pm._run_command(["pip", "install", "requests"])
+			with patch("shutil.which", return_value="pip"):
+				with self.assertRaises(subprocess.CalledProcessError):
+					self.pm._run_command(["pip", "install", "requests"])
 
 
 class TestExecutionSafetyManagerSandbox(unittest.TestCase):
