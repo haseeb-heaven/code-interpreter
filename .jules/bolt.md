@@ -1,0 +1,3 @@
+## 2024-05-29 - Pre-compiling Regex Patterns for Performance
+**Learning:** In the `libs/safety_manager.py`, repeated string-based `re.search()` calls inside hot paths create significant overhead compared to using pre-compiled regex objects (`re.compile`). While building a massive combined `|` joined regex might theoretically be faster, in Python 3, pre-compiling individual patterns into a tuple of `re.Pattern` objects provides the most reliable and readable speedup for list comprehensions with `any()`.
+**Action:** Pre-compile regex lists as class attributes using `tuple(re.compile(p) for p in RAW_PATTERNS)` to optimize hot paths without sacrificing readability.
