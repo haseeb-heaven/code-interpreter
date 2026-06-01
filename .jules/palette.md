@@ -1,0 +1,3 @@
+## 2024-05-30 - Terminal UX Enhancements
+**Learning:** In terminal UI (TUI) environments, web-specific UX concepts translate to terminal equivalents such as using explicit prompt choices, providing clear shortcut hints ('Esc/Ctrl-C to cancel'), and avoiding keyboard traps by mapping standard interrupt bytes (\x03) to exit actions in raw mode. When using rich's Prompt.ask, manually formatting choices (e.g., \[option1|option2]) avoids markup parsing issues while bypassing strict validation that breaks custom case-insensitivity logic.
+**Action:** When building TUI prompts, map \x03 to escape actions to prevent keyboard traps and manually inject explicit choices with escaped brackets into prompt strings.
