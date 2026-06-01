@@ -1,0 +1,3 @@
+## 2025-02-23 - [Pre-compile Regex in Tight Loops]
+**Learning:** In Python, directly executing pre-compiled `re.Pattern` objects (e.g., `p.search(text)`) within tight safety-critical loops avoids regex cache lookup overhead and speeds up the application. Furthermore, list comprehensions at the class-body level don't have access to the class scope, but converting a generator to a tuple (e.g., `tuple(re.compile(p) for p in _PATTERNS)`) safely works around this limitation.
+**Action:** Pre-compile repeated regex checks into `re.Pattern` objects directly as class attributes, and use a generator within a `tuple()` when initializing them from other class variables.
