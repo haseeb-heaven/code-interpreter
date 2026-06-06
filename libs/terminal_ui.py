@@ -25,7 +25,7 @@ class TerminalUI:
                 return mapping.get(extended, extended)
             if key == '\r':
                 return 'enter'
-            if key == '\x1b':
+            if key in ('\x1b', '\x03'):
                 return 'escape'
             return key
 
@@ -43,6 +43,8 @@ class TerminalUI:
                 return mapping.get(next_chars, 'escape')
             if key in ('\r', '\n'):
                 return 'enter'
+            if key == '\x03':
+                return 'escape'
             return key
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
@@ -68,6 +70,7 @@ class TerminalUI:
             table.add_row(marker, label, style=style)
 
         footer = help_text or 'Use Up/Down arrows and Enter to select.'
+        footer += ' (Esc/Ctrl-C to cancel)'
         self.console.print(Panel.fit(footer, title='Interpreter TUI', border_style='green'))
         self.console.print(f"[bold cyan]{title}[/bold cyan]")
         self.console.print(table)
@@ -76,7 +79,7 @@ class TerminalUI:
     def _select_option(self, title, options, default, help_text=None):
         if not sys.stdin.isatty():
             default_choice = default if default in options else options[0]
-            answer = Prompt.ask(f"{title}", default=default_choice).strip()
+            answer = Prompt.ask(f"{title} \\[{'|'.join(options)}]", default=default_choice).strip()
             if answer in options:
                 return answer
             for option in options:
