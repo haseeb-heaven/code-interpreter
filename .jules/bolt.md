@@ -1,0 +1,3 @@
+## 2024-05-24 - Pre-compiling Regex in Class Scope
+**Learning:** In Python 3, list comprehensions inside a class body do not have access to the class's scope, leading to `NameError`. Bypassing Python's internal regex cache by directly executing pre-compiled `re.Pattern` objects (`p.search(text)`) in tight loops yields measurable performance improvements.
+**Action:** Pre-compile regular expressions into a tuple of `re.Pattern` objects using a generator expression (e.g., `tuple(re.compile(p) for p in _PATTERNS)`) at the class level instead of building massive `|` joined strings or relying on the internal cache.
