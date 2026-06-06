@@ -43,7 +43,8 @@ class UtilityManager:
 		try:
 			if os.path.isfile(filename):
 				if platform.system() == "Windows":
-					subprocess.call(['start', filename], shell=True)
+					# Secure: Use os.startfile instead of subprocess.call with shell=True to avoid command injection
+					os.startfile(filename)
 				elif platform.system() == "Darwin":
 					subprocess.call(['open', filename])
 				elif platform.system() == "Linux":
