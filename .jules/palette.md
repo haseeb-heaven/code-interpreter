@@ -1,0 +1,3 @@
+## 2025-06-08 - Added explicit Ctrl-C handling in raw terminal and explicit choice hints
+**Learning:** When dealing with terminal UI in raw mode (`tty.setraw`), regular interrupt signals like `Ctrl-C` are disabled and instead passed through as raw byte `\x03`. Users expect `Ctrl-C` to abort or cancel out of UIs, creating a keyboard trap if not manually mapped. Similarly, non-interactive prompts need explicit visual cues (like choice lists) to be accessible.
+**Action:** Always map standard interrupt bytes (like `\x03`) to an exit/cancel action in custom TUI components. Also manually format prompt choices (e.g., `\\[a|b|c]`) when custom processing prevents using `rich`'s built-in `choices` arg.
