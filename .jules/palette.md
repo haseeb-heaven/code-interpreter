@@ -1,0 +1,3 @@
+## 2024-06-09 - Terminal UI Escape and Interrupt Handling
+**Learning:** Raw terminal UI elements map specific standard interrupt bytes (like `\x03` for Ctrl-C and `\x04` for Ctrl-D) natively. For custom raw interaction loops, these must be explicitly handled. Additionally, rich styling uses brackets as markup, so if you inject options manually into a string for `Prompt.ask` (e.g. `title \[{options}]`) to avoid strict case-sensitive choices, you must escape the brackets to avoid styling issues. Furthermore, shortcut hints like "Esc/Ctrl-C to cancel" should be visible to avoid keyboard traps.
+**Action:** Next time, ensure keyboard interrupts map correctly to exit actions in raw mode, and include clear shortcut hints to make the interface more accessible.
