@@ -180,6 +180,35 @@ class ExecutionSafetyManager:
 		r"\bbash\b",
 	]
 
+	_WRITE_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_PATTERNS)
+	_WRITE_ON_HANDLE_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_ON_HANDLE_PATTERNS)
+	_SENSITIVE_POSIX_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _SENSITIVE_POSIX_PREFIXES)
+	_DESTRUCTIVE_COMPILED = tuple(re.compile(p) for p in _DESTRUCTIVE_PATTERNS)
+	_SHELL_COMPILED = tuple(re.compile(p) for p in _SHELL_PATTERNS)
+
+	_HOST_PATH_WINDOWS_COMPILED = re.compile(r"[a-z]:[\\/]", re.IGNORECASE)
+	_HOST_PATH_POSIX_QUOTED_COMPILED = re.compile(r"""["']/[^"'\s]""")
+
+	_POSIX_SYSTEM_PREFIXES = [
+		r"/etc/\w+",
+		r"/tmp/\w+",
+		r"/var/\w+",
+		r"/usr/\w+",
+		r"/root/\w+",
+		r"/home/\w+/",
+		r"/proc/\w+",
+		r"/sys/\w+",
+		r"/dev/\w+",
+		r"/boot/\w+",
+		r"/opt/\w+",
+		r"/mnt/\w+",
+		r"/media/\w+",
+	]
+	_HOST_PATH_POSIX_SYSTEM_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _POSIX_SYSTEM_PREFIXES)
+
+	_HOST_PATH_OPEN_COMPILED = re.compile(r"open\s*\(\s*([\"'][^\"']+[\"'])", re.IGNORECASE)
+	_HOST_PATH_OPEN_ABS_WINDOWS_COMPILED = re.compile(r"[a-zA-Z]:[\\/]")
+
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
 
@@ -228,7 +257,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_COMPILED)
 
 	# =========================
 	# WRITE-ON-HANDLE DETECTION
@@ -240,7 +269,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* calls .write() on any object (handle check).
 		This is intentionally only evaluated when an absolute path is present.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_ON_HANDLE_COMPILED)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -248,44 +277,28 @@ class ExecutionSafetyManager:
 	def _is_host_absolute_path(self, code: str) -> bool:
 		"""Return True if *code* references a host absolute path."""
 		# Windows drive-letter path
-		if re.search(r"[a-z]:[\\/]", code.lower()):
+		if self._HOST_PATH_WINDOWS_COMPILED.search(code):
 			return True
 
 		# Quoted POSIX absolute path: '/...' or "/..."
-		if re.search(r"""["']/[^"'\s]""", code):
+		if self._HOST_PATH_POSIX_QUOTED_COMPILED.search(code):
 			return True
 
 		# Unquoted well-known POSIX system directory prefixes
-		_posix_system_prefixes = [
-			r"/etc/\w+",
-			r"/tmp/\w+",
-			r"/var/\w+",
-			r"/usr/\w+",
-			r"/root/\w+",
-			r"/home/\w+/",
-			r"/proc/\w+",
-			r"/sys/\w+",
-			r"/dev/\w+",
-			r"/boot/\w+",
-			r"/opt/\w+",
-			r"/mnt/\w+",
-			r"/media/\w+",
-		]
-		if any(re.search(p, code, re.IGNORECASE) for p in _posix_system_prefixes):
+		if any(p.search(code) for p in self._HOST_PATH_POSIX_SYSTEM_COMPILED):
 			return True
 
 		# open() call whose first positional argument is an absolute path string
-		open_args = re.findall(r"open\s*\(\s*([\"'][^\"']+[\"'])", code, re.IGNORECASE)
-		for arg in open_args:
-			path = arg.strip("'\"")
-			if path.startswith("/") or re.match(r"[a-zA-Z]:[\\/]", path):
+		for match in self._HOST_PATH_OPEN_COMPILED.findall(code):
+			path = match.strip("'\"")
+			if path.startswith("/") or self._HOST_PATH_OPEN_ABS_WINDOWS_COMPILED.match(path):
 				return True
 
 		return False
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
 		"""Return True if *code* references a sensitive POSIX system path."""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+		return any(p.search(code) for p in self._SENSITIVE_POSIX_COMPILED)
 
 	# =========================
 	# MAIN CHECK
@@ -326,7 +339,7 @@ class ExecutionSafetyManager:
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
 		# filesystem deletes.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+		if any(p.search(code_lower) for p in self._DESTRUCTIVE_COMPILED):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
@@ -334,7 +347,7 @@ class ExecutionSafetyManager:
 		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
 		# of plain substring `in` check to avoid false positives.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
+		if any(p.search(code_lower) for p in self._SHELL_COMPILED):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -370,7 +383,7 @@ class ExecutionSafetyManager:
 		if not code or not code.strip():
 			return False
 		code_lower = code.lower()
-		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
+		return any(p.search(code_lower) for p in self._DESTRUCTIVE_COMPILED)
 
 	# =========================
 	# ARTIFACT EXPORT
