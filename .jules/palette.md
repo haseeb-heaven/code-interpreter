@@ -1,0 +1,3 @@
+## 2024-06-12 - Prevent keyboard traps in terminal UI
+**Learning:** Terminal applications using raw mode (`tty.setraw`) intercept all keys, including standard interrupt signals like `Ctrl-C` (`\x03`). If this isn't explicitly handled, users can get trapped in UI components (like selectors) without an intuitive way to exit, creating a poor UX and frustrating the user. Providing an explicit visual cue for shortcuts also adds to the micro-UX.
+**Action:** When implementing raw terminal input loops, always map standard interrupt bytes (e.g., `\x03`) to an exit or cancel action. Always provide visible hints for these shortcuts (e.g., 'Esc/Ctrl-C to cancel') in the UI help text.
