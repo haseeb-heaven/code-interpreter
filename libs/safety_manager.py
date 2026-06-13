@@ -180,6 +180,29 @@ class ExecutionSafetyManager:
 		r"\bbash\b",
 	]
 
+	_COMPILED_WRITE_PATTERNS = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_PATTERNS)
+	_COMPILED_WRITE_ON_HANDLE_PATTERNS = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_ON_HANDLE_PATTERNS)
+	_COMPILED_SENSITIVE_POSIX_PREFIXES = tuple(re.compile(p, re.IGNORECASE) for p in _SENSITIVE_POSIX_PREFIXES)
+	_COMPILED_DESTRUCTIVE_PATTERNS = tuple(re.compile(p) for p in _DESTRUCTIVE_PATTERNS)
+	_COMPILED_SHELL_PATTERNS = tuple(re.compile(p) for p in _SHELL_PATTERNS)
+
+	_POSIX_SYSTEM_PREFIXES = (
+		r"/etc/\w+",
+		r"/tmp/\w+",
+		r"/var/\w+",
+		r"/usr/\w+",
+		r"/root/\w+",
+		r"/home/\w+/",
+		r"/proc/\w+",
+		r"/sys/\w+",
+		r"/dev/\w+",
+		r"/boot/\w+",
+		r"/opt/\w+",
+		r"/mnt/\w+",
+		r"/media/\w+",
+	)
+	_COMPILED_POSIX_SYSTEM_PREFIXES = tuple(re.compile(p, re.IGNORECASE) for p in _POSIX_SYSTEM_PREFIXES)
+
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
 
@@ -228,7 +251,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+		return any(p.search(code) for p in self._COMPILED_WRITE_PATTERNS)
 
 	# =========================
 	# WRITE-ON-HANDLE DETECTION
@@ -240,7 +263,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* calls .write() on any object (handle check).
 		This is intentionally only evaluated when an absolute path is present.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
+		return any(p.search(code) for p in self._COMPILED_WRITE_ON_HANDLE_PATTERNS)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -256,22 +279,7 @@ class ExecutionSafetyManager:
 			return True
 
 		# Unquoted well-known POSIX system directory prefixes
-		_posix_system_prefixes = [
-			r"/etc/\w+",
-			r"/tmp/\w+",
-			r"/var/\w+",
-			r"/usr/\w+",
-			r"/root/\w+",
-			r"/home/\w+/",
-			r"/proc/\w+",
-			r"/sys/\w+",
-			r"/dev/\w+",
-			r"/boot/\w+",
-			r"/opt/\w+",
-			r"/mnt/\w+",
-			r"/media/\w+",
-		]
-		if any(re.search(p, code, re.IGNORECASE) for p in _posix_system_prefixes):
+		if any(p.search(code) for p in self._COMPILED_POSIX_SYSTEM_PREFIXES):
 			return True
 
 		# open() call whose first positional argument is an absolute path string
@@ -285,7 +293,7 @@ class ExecutionSafetyManager:
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
 		"""Return True if *code* references a sensitive POSIX system path."""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+		return any(p.search(code) for p in self._COMPILED_SENSITIVE_POSIX_PREFIXES)
 
 	# =========================
 	# MAIN CHECK
@@ -326,7 +334,7 @@ class ExecutionSafetyManager:
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
 		# filesystem deletes.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+		if any(p.search(code_lower) for p in self._COMPILED_DESTRUCTIVE_PATTERNS):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
@@ -334,7 +342,7 @@ class ExecutionSafetyManager:
 		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
 		# of plain substring `in` check to avoid false positives.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
+		if any(p.search(code_lower) for p in self._COMPILED_SHELL_PATTERNS):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -370,7 +378,7 @@ class ExecutionSafetyManager:
 		if not code or not code.strip():
 			return False
 		code_lower = code.lower()
-		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
+		return any(p.search(code_lower) for p in self._COMPILED_DESTRUCTIVE_PATTERNS)
 
 	# =========================
 	# ARTIFACT EXPORT
