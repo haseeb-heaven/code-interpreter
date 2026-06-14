@@ -27,6 +27,8 @@ class TerminalUI:
                 return 'enter'
             if key == '\x1b':
                 return 'escape'
+            if key == '\x03':
+                raise KeyboardInterrupt('Selection cancelled by user.')
             return key
 
         import termios
@@ -43,6 +45,8 @@ class TerminalUI:
                 return mapping.get(next_chars, 'escape')
             if key in ('\r', '\n'):
                 return 'enter'
+            if key == '\x03':
+                raise KeyboardInterrupt('Selection cancelled by user.')
             return key
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
@@ -67,7 +71,7 @@ class TerminalUI:
             style = 'bold green' if index == selected_index else ''
             table.add_row(marker, label, style=style)
 
-        footer = help_text or 'Use Up/Down arrows and Enter to select.'
+        footer = help_text or 'Use Up/Down arrows and Enter to select. Esc/Ctrl-C to cancel.'
         self.console.print(Panel.fit(footer, title='Interpreter TUI', border_style='green'))
         self.console.print(f"[bold cyan]{title}[/bold cyan]")
         self.console.print(table)
@@ -76,7 +80,7 @@ class TerminalUI:
     def _select_option(self, title, options, default, help_text=None):
         if not sys.stdin.isatty():
             default_choice = default if default in options else options[0]
-            answer = Prompt.ask(f"{title}", default=default_choice).strip()
+            answer = Prompt.ask(f"{title} \\[{'|'.join(options)}]", default=default_choice).strip()
             if answer in options:
                 return answer
             for option in options:
@@ -110,7 +114,7 @@ class TerminalUI:
 
     def _select_boolean(self, title, default=False):
         default_choice = 'yes' if default else 'no'
-        choice = self._select_option(title, ['yes', 'no'], default_choice, 'Use Up/Down arrows and Enter to choose.')
+        choice = self._select_option(title, ['yes', 'no'], default_choice, 'Use Up/Down arrows and Enter to choose. Esc/Ctrl-C to cancel.')
         return choice == 'yes'
 
     def select_mode(self, default_mode='code'):
@@ -121,7 +125,7 @@ class TerminalUI:
         default_model = default_model or self.utility_manager.get_default_model_name()
         if default_model not in models:
             default_model = models[0]
-        return self._select_option('Model', models, default_model, 'Use Up/Down arrows, Enter, or type the first letter to jump.')
+        return self._select_option('Model', models, default_model, 'Use Up/Down arrows, Enter, or type the first letter to jump. Esc/Ctrl-C to cancel.')
 
     def select_language(self, default_lang='python'):
         return self._select_option('Language', ['python', 'javascript'], default_lang)

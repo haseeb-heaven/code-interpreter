@@ -1,0 +1,3 @@
+## 2024-05-24 - Raw Mode Terminal Interrupts and Option Formatting
+**Learning:** In headless or non-interactive TUI flows, options need explicit rendering (like `[code|chat]`) because `rich.Prompt`'s `choices` param enforces rigid case-sensitive matching which breaks custom loose matching. Also, when `sys.stdin` is set to raw mode, the default Python `KeyboardInterrupt` handling is bypassed; `\x03` just gets read as a string character, creating a silent keyboard trap if not mapped.
+**Action:** Always manually map standard interrupt bytes (e.g., `\x03`) to exit actions when reading keys in raw terminal mode, and explicitly format prompt strings for options instead of relying solely on strict component parameters.
