@@ -1,0 +1,3 @@
+## 2025-06-19 - Keyboard Interrupt Handling in Raw Terminal Mode
+**Learning:** In terminal UI implementations (like `libs/terminal_ui.py`), mapping standard interrupt bytes (like `\x03` for Ctrl-C) strictly to generic `KeyboardInterrupt` rather than internal UI actions prevents keyboard traps, letting users naturally exit interactive selections with familiar shortcuts. Also, UI prompts should explicitly hint this shortcut (e.g., "(Esc/Ctrl-C to cancel)").
+**Action:** Always ensure terminal input loops in raw mode handle `\x03` to cleanly abort, and provide explicit hints for shortcut keys in UI component footers.
