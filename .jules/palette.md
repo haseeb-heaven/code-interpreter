@@ -1,0 +1,3 @@
+## 2024-06-20 - TUI Prompt Choices and Shortcuts
+**Learning:** In terminal UI environments like this repository, web-specific UX concepts translate to terminal equivalents such as using explicit prompt choices (e.g., via `rich` Prompt.ask), clear shortcut hints ('Esc/Ctrl-C to cancel'), and avoiding keyboard traps by explicitly raising `KeyboardInterrupt` when standard interrupt bytes (`\x03`) are read in raw mode, rather than mapping them to internal UI escape actions.
+**Action:** Always provide explicit keyboard shortcut hints and explicit options for prompts in raw terminal UIs. Ensure `\x03` explicitly raises `KeyboardInterrupt`.
