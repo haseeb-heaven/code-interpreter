@@ -19,6 +19,8 @@ class TerminalUI:
         if os.name == 'nt':
             import msvcrt
             key = msvcrt.getwch()
+            if key == '\x03':
+                raise KeyboardInterrupt('Selection cancelled by user.')
             if key in ('\x00', '\xe0'):
                 extended = msvcrt.getwch()
                 mapping = {'H': 'up', 'P': 'down', 'K': 'left', 'M': 'right'}
@@ -37,6 +39,8 @@ class TerminalUI:
         try:
             tty.setraw(fd)
             key = sys.stdin.read(1)
+            if key == '\x03':
+                raise KeyboardInterrupt('Selection cancelled by user.')
             if key == '\x1b':
                 next_chars = sys.stdin.read(2)
                 mapping = {'[A': 'up', '[B': 'down', '[D': 'left', '[C': 'right'}
