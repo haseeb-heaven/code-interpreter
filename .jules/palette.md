@@ -1,0 +1,3 @@
+## 2024-05-01 - Added explicit Esc/Ctrl-C shortcut hints
+**Learning:** In terminal UI environments handling raw input, standard interrupt bytes like `\x03` must be explicitly caught to trigger `KeyboardInterrupt`, and explicit visible shortcut hints prevent keyboard traps.
+**Action:** Always add explicit shortcut hints ('Esc/Ctrl-C to cancel') and explicitly map standard interrupt bytes to `KeyboardInterrupt` in raw mode loops.
