@@ -1,0 +1,3 @@
+## 2024-06-24 - Prevent terminal keyboard traps and improve prompt discoverability
+**Learning:** Terminal raw modes (`tty.setraw`) trap the Ctrl-C (`\x03`) interrupt byte, effectively creating a keyboard trap where users cannot natively exit the prompt. This breaks fundamental UX expectations. Additionally, generic prompt methods in TUI libraries often obscure available options if choices aren't explicitly formatted into the prompt string.
+**Action:** Always explicitly read and map the `\x03` byte to `KeyboardInterrupt` when building custom raw input loops. For prompts falling back to standard input, explicitly format choices into the prompt text to maintain discoverability without breaking case-insensitive fallback logic.
