@@ -1,0 +1,7 @@
+## 2024-05-24 - Improve non-interactive fallback UI for prompts
+**Learning:** When using `Prompt.ask()` in `rich`, if options are not explicitly displayed to the user in a non-interactive/headless mode, the user won't know what choices are valid. This is particularly problematic in a CLI environment when `sys.stdin.isatty()` evaluates to `False`. The original code did `Prompt.ask(f"{title}", default=default_choice)`, leaving users blind to the choices.
+**Action:** Always format available choices into the prompt text when falling back to standard input, especially when bypassing `rich`'s strict `choices` validation (which we do to support custom case-insensitivity logic). Since `rich` interprets brackets as markup, we must escape them: `f"{title} \\[{'|'.join(options)}]"`.
+
+## 2024-05-24 - Prevent TUI keyboard traps in raw mode
+**Learning:** When reading bytes manually via `sys.stdin.read(1)` in raw TTY mode (e.g., inside `_read_key`), standard interrupt signals like `Ctrl+C` (`\x03`) do not automatically raise `KeyboardInterrupt`. Without explicit handling, these bytes fall through to the default path or are swallowed, trapping the user in the selector loop.
+**Action:** In terminal UI environments reading raw bytes, explicitly check for common interrupt bytes (like `\x03` for `Ctrl+C` and `\x04` for `Ctrl+D`) and either raise `KeyboardInterrupt` or map them to the UI's internal 'escape' / cancel action.
