@@ -1,0 +1,3 @@
+## 2025-02-20 - Terminal Keyboard Trap and Prompt Clarity
+**Learning:** Terminal-based user interfaces often inadvertently create keyboard traps if standard interrupt bytes (like `\x03` for Ctrl-C) are handled identically to regular text inputs during raw mode execution, breaking basic application exit expectations. Also, missing explicit choice displays in fallback prompt views (`rich.prompt`) removes discoverability.
+**Action:** Always map terminal control characters (e.g., `\x03` for Ctrl-C) to explicit `KeyboardInterrupt` handling to prevent keyboard traps. Explicitly pass choices in prompt strings when fallback to text-mode prompts is used.
