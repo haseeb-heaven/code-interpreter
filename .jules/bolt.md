@@ -1,0 +1,3 @@
+## 2025-06-28 - Pre-compile Regex in Safety Manager Tight Loops
+**Learning:** While Python's `re` module internally caches up to 512 compiled regex patterns, bypassing this cache lookup by directly executing pre-compiled `re.Pattern` objects (e.g., `p.search(text)`) yields measurable performance improvements in tight loops, especially when wrapped in `any()`. Additionally, list comprehensions in class bodies don't have access to the class scope, so `tuple(re.compile(p) for p in _PATTERNS)` must be used.
+**Action:** Pre-compile static regex patterns as class-level attributes using tuples and use `p.search()` directly in frequently called validation methods.
