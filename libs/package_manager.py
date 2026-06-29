@@ -173,7 +173,7 @@ class PackageManager:
 		try:
 			api_url = f"https://pypi.org/pypi/{package_name}/json"
 			self.logger.info("API Url is {}".format(api_url))
-			response = requests.get(api_url)
+			response = requests.get(api_url, timeout=10)
 			if response.status_code == 200:
 				return True
 			else:
@@ -186,7 +186,7 @@ class PackageManager:
 		
 	def _check_package_exists_npm(self,  package_name):
 		try:
-			response = requests.get(f"https://registry.npmjs.org/{package_name}")
+			response = requests.get(f"https://registry.npmjs.org/{package_name}", timeout=10)
 			if response.status_code == 200:
 				self.logger.info(f"Package {package_name} exists on npm registry")
 				return True
