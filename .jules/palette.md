@@ -1,0 +1,3 @@
+## 2024-06-30 - TUI Keyboard Traps and Hinting
+**Learning:** In raw terminal UI environments, standard interrupt bytes like `\x03` (Ctrl-C) are not automatically translated into `KeyboardInterrupt`. This creates a keyboard trap where users cannot gracefully cancel out of interactive menus. Furthermore, without explicit UI hints, users don't know how to cancel.
+**Action:** Always intercept standard interrupt bytes in raw terminal mode and explicitly raise `KeyboardInterrupt`, and ensure footer hints explicitly mention how to cancel (e.g. 'Ctrl-C to cancel') to ensure an accessible, frustration-free TUI experience.
