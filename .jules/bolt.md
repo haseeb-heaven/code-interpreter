@@ -1,0 +1,3 @@
+## 2024-05-15 - Pre-compile regex patterns and reorder safety checks in ExecutionSafetyManager
+**Learning:** Compiling regex patterns in list comprehensions with `any()` causes significant overhead due to Python continuously re-evaluating the `re.compile` cache lookup during high-frequency execution in TUI input loops. Furthermore, executing the `ast.parse` check before simple, faster regex operations slows down typical execution blocks needlessly.
+**Action:** Extract all static regex lists into class-level attributes pre-compiled into tuples of `re.Pattern` objects (`tuple(re.compile(p) for p in _PATTERNS)` to avoid scoping issues), and always structure early-return check pipelines to execute simple regex substring/pattern searches before doing heavier AST parsing.
