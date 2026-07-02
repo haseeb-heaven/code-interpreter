@@ -1530,7 +1530,8 @@ class TestExecutionSafetyManagerAstCheck(unittest.TestCase):
 	def test_ast_check_assess_blocks_ast_detected_deletion(self):
 		"""assess_execution should block code with AST-detected deletion."""
 		sm = ExecutionSafetyManager(unsafe_mode=False)
-		code = "import os\nos.remove('file.txt')"
+		# Use dynamic execution to bypass regex but trigger the AST check
+		code = "import os\ncode_str = 'os.' + 'remove(\\'file.txt\\')'\neval(code_str)"
 		decision = sm.assess_execution(code, "code")
 		self.assertFalse(decision.allowed)
 		self.assertTrue(any("AST" in r for r in decision.reasons))
