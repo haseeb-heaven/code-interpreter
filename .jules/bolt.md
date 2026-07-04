@@ -1,0 +1,3 @@
+## 2025-02-23 - Pre-compiled Regular Expressions
+**Learning:** Python's `re` module internally caches up to 512 compiled regex patterns, but bypassing this cache lookup by directly executing pre-compiled `re.Pattern` objects provides measurable performance improvements in tight loops like safety check validations. Storing them as a tuple of patterns defined via a generator expression avoids scoping issues in class definitions.
+**Action:** Use pre-compiled regex `tuple`s at the class level instead of repeatedly calling `re.search()` inside list comprehensions or generators in high-frequency methods.
