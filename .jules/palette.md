@@ -1,0 +1,3 @@
+## 2025-07-06 - Terminal UI Accessibility and Keyboard Traps
+**Learning:** In raw mode, standard interrupt bytes like \x03 (Ctrl-C) are swallowed by read functions and do not trigger KeyboardInterrupt, creating keyboard traps for users. Advertising "Esc" as a cancel action also causes hangs due to partial ANSI sequence matching.
+**Action:** Always explicitly trap and handle \x03 to raise KeyboardInterrupt in raw mode loops, explicitly document "Ctrl-C to cancel" in TUI footer hints, and explicitly format available choices into non-interactive fallback prompts using escaped brackets like \[A|B] for clear visibility.
