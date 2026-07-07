@@ -1,0 +1,3 @@
+## 2025-05-18 - Improve TUI Exit Experience and Raw Mode Safety
+**Learning:** In terminal UI (TUI) environments like this repository, web-specific UX concepts translate to explicit shortcut hints (like 'Ctrl-C to cancel') and avoiding keyboard traps by explicitly handling standard interrupt bytes (`\x03`) when raw mode is used. Reading 'Esc' (`\x1b`) in raw mode followed by a blocking `sys.stdin.read(2)` for ANSI sequences hangs the application.
+**Action:** Always add explicit text hints for cancellation shortcuts (like 'Ctrl-C to cancel'), handle standard raw mode interrupts (`\x03`), and ensure standard prompts show choices explicitly escaping brackets formatting via `\\[options]`.
