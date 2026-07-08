@@ -76,7 +76,7 @@ class TerminalUI:
     def _select_option(self, title, options, default, help_text=None):
         if not sys.stdin.isatty():
             default_choice = default if default in options else options[0]
-            answer = Prompt.ask(f"{title}", default=default_choice).strip()
+            answer = Prompt.ask(f"{title} \\[{'|'.join(options)}]", default=default_choice).strip()
             if answer in options:
                 return answer
             for option in options:
