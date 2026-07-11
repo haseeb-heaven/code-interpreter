@@ -113,6 +113,14 @@
       "env_key": null,
       "tier": "local",
       "notes": "Ollama / LM Studio / local OpenAI-compatible (fully free)"
+    },
+    {
+      "id": "ollama",
+      "config": "local-model",
+      "provider": "ollama",
+      "env_key": null,
+      "tier": "local",
+      "notes": "First-class Ollama via --ollama / --local (auto-detect installed models)"
     }
   ]
 }

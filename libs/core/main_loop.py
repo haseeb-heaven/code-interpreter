@@ -187,6 +187,39 @@ def run_interpreter_main(interp, version):
 				display_markdown_message(f"History is {'enabled' if interp.INTERPRETER_HISTORY else 'disabled'}")
 				continue
 
+			# FILE ATTACH - Local file awareness (#221)
+			elif task.lower().startswith('/file ') or task.lower() == '/file':
+				parts = task.split(maxsplit=1)
+				if len(parts) < 2 or not parts[1].strip():
+					display_markdown_message("Usage: `/file path/to/file.csv`")
+					continue
+				from libs.context.file_context import normalize_paths
+
+				path = parts[1].strip().strip('"').strip("'")
+				interp._attached_files = getattr(interp, "_attached_files", []) or []
+				for p in normalize_paths([path]):
+					if p not in interp._attached_files:
+						interp._attached_files.append(p)
+				display_markdown_message(
+					f"Attached `{path}`. Use `/files` to list or `/clear-files` to detach."
+				)
+				continue
+
+			elif task.lower() in ('/files', '/list-files'):
+				attached = getattr(interp, "_attached_files", []) or []
+				if not attached:
+					display_markdown_message("No files attached. Use `/file path` to attach.")
+				else:
+					from libs.context.file_context import build_file_context
+
+					display_markdown_message(build_file_context(attached))
+				continue
+
+			elif task.lower() in ('/clear-files', '/clearfiles'):
+				interp._attached_files = []
+				display_markdown_message("Cleared all attached files.")
+				continue
+
 			# SESSION - Persistent sessions (#218)
 			elif task.lower() == '/sessions' or task.lower().startswith('/session'):
 				interp.handle_session_command(task)
@@ -651,6 +684,9 @@ def run_interpreter_main(interp, version):
 			else:
 				# Multi-agent pipeline path (--agent)
 				if getattr(interp, "AGENT_MODE", False):
+					from libs.context.file_context import inject_file_context
+
+					task = inject_file_context(task, getattr(interp, "_attached_files", None))
 					display_markdown_message("**Agent pipeline** running: IntentRouter → Planner → SafetyGuard → Executor → Repairer → Verifier → Reviewer")
 					agent_ctx = interp.run_agent_pipeline(task, os_name)
 					code_snippet = agent_ctx.code or None
@@ -696,6 +732,14 @@ def run_interpreter_main(interp, version):
 					continue
 
 				prompt = interp.get_mode_prompt(task, os_name)
+				# Inject attached file context (#221) after mode prompt so absolute paths stick.
+				attached = getattr(interp, "_attached_files", None) or []
+				if attached:
+					from libs.context.file_context import build_file_context
+
+					ctx = build_file_context(attached)
+					if ctx:
+						prompt = f"{ctx}\n\n{prompt}"
 				interp.logger.info(f"Prompt init is '{prompt}'")
 
 				# Check if the prompt is empty.

@@ -221,6 +221,44 @@ def build_parser():
 		default=False,
 		help='Force start a new session (clears existing if --session is also given).',
 	)
+	# Local file awareness + Ollama (#221). Note: --file/-f remains the prompt file.
+	parser.add_argument(
+		'--attach',
+		nargs='+',
+		metavar='PATH',
+		default=None,
+		help=(
+			'Attach local data files to the task context (CSV, TXT, JSON, etc.). '
+			'Absolute paths + previews are injected into the prompt. '
+			'(Prompt-from-file remains --file/-f.)'
+		),
+	)
+	parser.add_argument(
+		'--ollama',
+		nargs='?',
+		const='auto',
+		default=None,
+		metavar='MODEL',
+		help=(
+			'Use a local Ollama model. Omit MODEL to auto-pick from the running '
+			'Ollama instance (e.g. --ollama or --ollama llama3).'
+		),
+	)
+	parser.add_argument(
+		'--list-ollama',
+		action='store_true',
+		default=False,
+		help='List models installed in the local Ollama instance and exit.',
+	)
+	parser.add_argument(
+		'--local',
+		action='store_true',
+		default=False,
+		help=(
+			'Truly local mode: prefer Ollama (auto) and print a privacy banner. '
+			'Combine with --attach for local files + local model.'
+		),
+	)
 	return parser
 
 
@@ -283,6 +321,31 @@ def prepare_args(args, argv):
 	if getattr(args, 'session', None) or getattr(args, 'list_sessions', False) or getattr(args, 'delete_session', None):
 		args.cli = True
 		args.tui = False
+
+	# Truly-local shortcut (#221): Ollama + privacy banner; keep classic CLI.
+	if getattr(args, 'local', False):
+		args.cli = True
+		args.tui = False
+		if getattr(args, 'ollama', None) is None:
+			args.ollama = 'auto'
+
+	# --attach / --ollama imply classic CLI (not TUI)
+	if getattr(args, 'attach', None) or getattr(args, 'ollama', None) is not None:
+		args.cli = True
+		args.tui = False
+
+	# Resolve Ollama before default model selection so -m is not required.
+	if getattr(args, 'ollama', None) is not None:
+		from libs.local.ollama_helper import resolve_ollama_model
+
+		picked = resolve_ollama_model(args.ollama)
+		if not picked:
+			raise SystemExit(1)
+		args.ollama_model_name = picked
+		# Use the existing OpenAI-compatible local config; model name overridden at boot.
+		if not getattr(args, 'model', None):
+			args.model = 'local-model'
+		args.local = True  # ollama path is always local-only
 
 	no_runtime_args = len(argv) <= 1
 	if no_runtime_args and not args.cli and not args.tui:
@@ -361,6 +424,20 @@ def main(argv=None):
 		from libs.free_llms import FreeLLMCatalog
 
 		print(FreeLLMCatalog.load().format_table())
+		return
+	if getattr(args, 'list_ollama', False):
+		from libs.local.ollama_helper import is_ollama_running, list_ollama_models
+
+		if not is_ollama_running():
+			print("Ollama is not running. Start it with: ollama serve")
+			raise SystemExit(1)
+		models = list_ollama_models()
+		if not models:
+			print("No Ollama models installed. Run: ollama pull llama3")
+			raise SystemExit(1)
+		print("Installed Ollama models:")
+		for name in models:
+			print(f"  - {name}")
 		return
 	# Session management flags run before Interpreter boot (no API keys required).
 	if _handle_session_mgmt_flags(args):

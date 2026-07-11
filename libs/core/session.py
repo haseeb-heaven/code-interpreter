@@ -199,6 +199,11 @@ def bootstrap_interpreter(interp) -> None:
 	interp.INTERPRETER_HISTORY = args.history if hasattr(args, "history") else False
 	interp.AGENT_MODE = bool(getattr(args, "agent", False))
 	interp.AUTO_YES = bool(getattr(args, "yes", False))
+	# Attached local files (#221) — CLI --attach and REPL /file commands.
+	from libs.context.file_context import normalize_paths
+
+	interp._attached_files = normalize_paths(getattr(args, "attach", None) or [])
+	interp.LOCAL_ONLY = bool(getattr(args, "local", False) or getattr(args, "ollama", None) is not None)
 	# Structured output (#219) — attach formatter and suppress Rich decorations.
 	from libs.output_formatter import OutputFormatter
 
@@ -236,6 +241,31 @@ def bootstrap_interpreter(interp) -> None:
 
 	interp.system_message = load_system_message(interp.INTERPRETER_MODE, interp.logger)
 	interp.initialize_client()
+
+	# Ollama model override (#221) after config load — keep api_base from local-model.
+	ollama_name = getattr(args, "ollama_model_name", None)
+	if ollama_name:
+		if interp.config_values is None:
+			interp.config_values = {}
+		interp.config_values = dict(interp.config_values)
+		interp.config_values["model"] = ollama_name
+		interp.config_values["provider"] = "ollama"
+		# Prefer OpenAI-compatible Ollama endpoint already in local-model.json.
+		if not interp.config_values.get("api_base"):
+			interp.config_values["api_base"] = "http://localhost:11434/v1"
+		interp.INTERPRETER_MODEL = ollama_name
+		interp.INTERPRETER_MODEL_LABEL = f"ollama/{ollama_name}"
+		interp.logger.info("Ollama model override applied: %s", ollama_name)
+
+	if interp.LOCAL_ONLY:
+		attached = getattr(interp, "_attached_files", []) or []
+		file_note = ", ".join(attached) if attached else "(none)"
+		print(
+			"Running in local-only mode — no data leaves your machine.\n"
+			f"   Model: {interp.INTERPRETER_MODEL_LABEL or interp.INTERPRETER_MODEL} | "
+			f"Files: {file_note}"
+		)
+
 	interp.initialize_mode()
 	try:
 		interp.utility_manager.initialize_readline_history()

@@ -176,6 +176,28 @@ export BROWSER_USE_API_KEY="Your Browser Use API Key"
 
 This Interpreter supports offline models via **LM Studio** and **Ollama**. Follow the steps below:
 
+### Ollama first-class (recommended)
+
+```bash
+# Start Ollama, then auto-pick a local model
+ollama serve
+python interpreter.py --ollama "summarize notes.txt"
+
+# Or pick a specific installed model
+python interpreter.py --ollama llama3 "rename PDFs with today's date"
+
+# List installed Ollama models
+python interpreter.py --list-ollama
+
+# Truly local: local model + attached local files (privacy banner)
+python interpreter.py --local --attach sensitive_data.csv "summarize this for me"
+```
+
+Attach files mid-session with `/file path`, list with `/files`, clear with `/clear-files`.
+(`--file` / `-f` still means "read the task prompt from a file".)
+
+### LM Studio / manual local-model config
+
 - Download any model from [LM Studio](https://lmstudio.ai/) like _Phi-2, Code-Llama, Mistral_.
 - In the app go to **Local Server** option and select the model.
 - Start the server and copy the **URL** (LM-Studio will provide you with the URL).
