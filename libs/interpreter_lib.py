@@ -204,5 +204,37 @@ class Interpreter:
 		)
 		return pipeline.run(task=task, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
 
+	def interpreter_agentic_main(self):
+		"""Run the ReAct agentic loop (Thought → Action → Observation) from langgraph-agents."""
+		from libs.agent.react_controller import ReActController
+
+		try:
+			self.console.print("[bold yellow]Running in ReAct Agentic Mode[/bold yellow]")
+			if self.INTERPRETER_PROMPT_FILE and getattr(self.args, "file", None):
+				try:
+					with open(self.args.file, "r", encoding="utf-8") as file:
+						task = file.read()
+				except Exception as exc:
+					self.logger.error(f"Error reading prompt file: {exc}")
+					return
+			else:
+				task = self._safe_input("Enter your task: ", default="")
+
+			if not (task or "").strip():
+				self.console.print("Task cannot be empty.")
+				return
+
+			max_steps = max(int(getattr(self, "MAX_REPAIR_ATTEMPTS", 3) or 3), 10)
+			controller = ReActController(
+				model_name=self.INTERPRETER_MODEL,
+				api_key=None,
+				unsafe_mode=self.UNSAFE_EXECUTION,
+				log_path="logs/agent_react.jsonl",
+				max_steps=max_steps,
+			)
+			controller.run(task)
+		except KeyboardInterrupt:
+			self.console.print("\n[bold red]Agentic workflow interrupted by user.[/bold red]")
+
 	def interpreter_main(self, version):
 		return run_interpreter_main(self, version)

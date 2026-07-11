@@ -49,7 +49,8 @@ class ModelRouter:
 		model_name = interp.INTERPRETER_MODEL.strip().split("/")[-1]
 
 		# skip init client for local models.(Bug#10)
-		if "local" in interp.INTERPRETER_MODEL:
+		if ("local" in interp.INTERPRETER_MODEL or "ollama" in interp.INTERPRETER_MODEL
+			or str(interp.config_values.get("provider", "")).strip().lower() == "ollama"):
 			interp.logger.info("Skipping client initialization for local model.")
 			api_key = getenv_fn("OPENAI_API_KEY")
 

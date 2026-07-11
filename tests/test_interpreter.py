@@ -270,15 +270,15 @@ class TestInterpreter(unittest.TestCase):
 	def test_legacy_alias_configs_are_mapped_to_modern_targets(self):
 		expected_aliases = {
 			"gpt-3.5-turbo.json": "gpt-4o-mini",
-			"gpt-4.json": "gpt-4",
+			"gpt-4.json": "gpt-4.1",
 			"gpt-o1-mini.json": "o1",
-			"gpt-o1-preview.json": "o1-preview",
+			"gpt-o1-preview.json": "o1",
 			"gemini-pro.json": "gemini/gemini-2.5-pro",
 			"gemini-1.5-pro.json": "gemini/gemini-2.5-pro",
 			"gemini-1.5-flash.json": "gemini/gemini-2.5-flash",
-			"claude-2.json": "claude-2",
-			"claude-2.1.json": "claude-2.1",
-			"claude-3-7-sonnet.json": "claude-3-7-sonnet",
+			"claude-2.json": "claude-sonnet-4-6",
+			"claude-2.1.json": "claude-sonnet-4-6",
+			"claude-3-7-sonnet.json": "claude-sonnet-4-6",
 			"deepseek-coder.json": "deepseek-chat",
 			"groq-mixtral.json": "groq/llama-3.3-70b-versatile",
 			"groq-llama2.json": "groq/llama-3.1-8b-instant",
@@ -1098,7 +1098,7 @@ class TestNewConfigFilesFromPR(unittest.TestCase):
 	# --- New Claude configs ---
 
 	def test_claude_3_7_sonnet_config_maps_to_claude_sonnet_4_6(self):
-		self.assertEqual(self._read_hf_model("claude-3-7-sonnet.json"), "claude-3-7-sonnet")
+		self.assertEqual(self._read_hf_model("claude-3-7-sonnet.json"), "claude-sonnet-4-6")
 
 	def test_claude_3_5_sonnet_config_maps_to_claude_sonnet_4_6(self):
 		self.assertEqual(self._read_hf_model("claude-3-5-sonnet.json"), "claude-sonnet-4-6")
@@ -2075,13 +2075,13 @@ class TestInterpreterDangerousOperationBlocking(unittest.TestCase):
 class TestInterpreterVersionUpdated(unittest.TestCase):
 	"""Tests for the interpreter version update in this PR (3.1.0 → 3.2.2)."""
 
-	def test_interpreter_version_is_3_2_2(self):
-		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.2.2")
+	def test_interpreter_version_is_3_2_3(self):
+		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.2.3")
 
-	def test_version_file_contains_3_2_2(self):
+	def test_version_file_contains_3_2_3(self):
 		version_file = ROOT_DIR / "VERSION"
 		content = version_file.read_text(encoding="utf-8").strip()
-		self.assertEqual(content, "3.2.2")
+		self.assertEqual(content, "3.2.3")
 
 
 if __name__ == "__main__":
