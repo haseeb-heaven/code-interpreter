@@ -231,6 +231,120 @@ class Interpreter:
 			language=getattr(self, "INTERPRETER_LANGUAGE", None) or "python",
 		)
 
+	def record_session_turn(
+		self,
+		task,
+		prompt=None,
+		code_snippet=None,
+		code_output=None,
+		code_error=None,
+		os_name=None,
+	):
+		"""Append one completed turn and auto-save when ``--session`` is active (#218)."""
+		if getattr(self, "session_store", None) is None:
+			return
+		entry = {
+			"assistant": {
+				"task": task,
+				"mode": getattr(self, "INTERPRETER_MODE", None),
+				"os": os_name,
+				"language": getattr(self, "INTERPRETER_LANGUAGE", None),
+				"model": getattr(self, "INTERPRETER_MODEL", None),
+			},
+			"user": prompt if prompt is not None else task,
+			"system": {
+				"code": code_snippet,
+				"output": code_output,
+				"error": code_error,
+			},
+		}
+		history = getattr(self, "conversation_history", None)
+		if history is None:
+			self.conversation_history = []
+			history = self.conversation_history
+		history.append(entry)
+		self._after_turn()
+
+	def _after_turn(self):
+		"""Called after each completed LLM turn. Auto-saves if session is active."""
+		store = getattr(self, "session_store", None)
+		history = getattr(self, "conversation_history", None) or []
+		if store and history:
+			store.save(
+				messages=history,
+				model=str(getattr(self, "INTERPRETER_MODEL", "") or ""),
+			)
+
+	def handle_session_command(self, task: str) -> bool:
+		"""Handle ``/session`` and ``/sessions`` REPL commands. Return True if handled."""
+		import time
+
+		from libs.memory.session_store import SessionStore
+
+		lower = (task or "").strip().lower()
+		if lower == "/sessions":
+			sessions = SessionStore.list_sessions()
+			if not sessions:
+				print("No saved sessions found.")
+			else:
+				print(f"\n{'SESSION ID':<25} {'MESSAGES':>8} {'MODEL':<20} LAST UPDATED")
+				print("-" * 75)
+				for s in sessions:
+					updated = time.strftime(
+						"%Y-%m-%d %H:%M", time.localtime(s["updated_at"] or 0)
+					)
+					print(
+						f"{s['session_id']:<25} {s['message_count']:>8} "
+						f"{s['model']:<20} {updated}"
+					)
+			return True
+
+		if not lower.startswith("/session"):
+			return False
+
+		parts = (task or "").split()
+		sub = parts[1].lower() if len(parts) > 1 else "info"
+		store = getattr(self, "session_store", None)
+
+		if sub == "save":
+			if not store:
+				print("No active session. Start with --session <id>.")
+			else:
+				self._after_turn()
+				print(f"Session '{store.session_id}' saved "
+					  f"({len(getattr(self, 'conversation_history', []) or [])} messages).")
+			return True
+
+		if sub == "clear":
+			if not store:
+				print("No active session. Start with --session <id>.")
+			else:
+				self.conversation_history = []
+				self.history = []
+				store.clear()
+				print(f"Session '{store.session_id}' cleared.")
+			return True
+
+		if sub == "info":
+			if not store:
+				print("No active session. Start with --session <id>.")
+			else:
+				meta = store.get_metadata() or {
+					"session_id": store.session_id,
+					"message_count": len(getattr(self, "conversation_history", []) or []),
+					"model": getattr(self, "INTERPRETER_MODEL", ""),
+					"updated_at": None,
+				}
+				print(
+					f"Session: {meta.get('session_id')} | "
+					f"messages={meta.get('message_count', 0)} | "
+					f"model={meta.get('model', '')}"
+				)
+			return True
+
+		print("Usage: /session save|clear|info  or  /sessions")
+		return True
+
 	def _open_tui_settings(self, setting_type):
 		return open_tui_settings(self, setting_type)
 

@@ -298,6 +298,8 @@ class UtilityManager:
 			"/language - Change the language of the interpreter.\n"
 			"/history - Use history as memory.\n"
 			"/memory show|clear|stats - Inspect or clear context memory.\n"
+			"/session save|clear|info - Manage persistent --session state.\n"
+			"/sessions - List all saved sessions.\n"
 			"/clear - Clear the screen.\n"
 			"/help - Display this help message.\n"
 			"/list - List the available models.\n"

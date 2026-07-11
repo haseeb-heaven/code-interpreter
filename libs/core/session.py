@@ -208,6 +208,32 @@ def bootstrap_interpreter(interp) -> None:
 	# Piped auto-JSON also must not stream tokens onto stdout.
 	if formatter.is_structured and hasattr(args, "stream"):
 		args.stream = False
+
+	# Persistent sessions (#218) — load conversation across runs.
+	interp.session_store = None
+	interp.conversation_history = []
+	session_id = getattr(args, "session", None)
+	if session_id:
+		from libs.memory.session_store import SessionStore
+
+		try:
+			store = SessionStore(session_id)
+		except ValueError as exc:
+			interp.logger.error(f"Invalid session id: {exc}")
+			raise
+		interp.session_store = store
+		interp.conversation_history = store.load()
+		if interp.conversation_history:
+			print(
+				f"Resumed session '{session_id}' — "
+				f"{len(interp.conversation_history)} messages"
+			)
+			# Feed prior turns into the in-process history used by prompts.
+			interp.history = list(interp.conversation_history)
+			interp.INTERPRETER_HISTORY = True
+		else:
+			print(f"Starting new session '{session_id}'.")
+
 	interp.system_message = load_system_message(interp.INTERPRETER_MODE, interp.logger)
 	interp.initialize_client()
 	interp.initialize_mode()

@@ -187,6 +187,11 @@ def run_interpreter_main(interp, version):
 				display_markdown_message(f"History is {'enabled' if interp.INTERPRETER_HISTORY else 'disabled'}")
 				continue
 
+			# SESSION - Persistent sessions (#218)
+			elif task.lower() == '/sessions' or task.lower().startswith('/session'):
+				interp.handle_session_command(task)
+				continue
+
 			# IMAGE - Multimodal attach (#216)
 			elif task.lower().startswith('/image'):
 				parts = task.split(maxsplit=1)
@@ -677,6 +682,14 @@ def run_interpreter_main(interp, version):
 						task, interp.INTERPRETER_MODE, os_name, interp.INTERPRETER_LANGUAGE,
 						task, code_snippet, code_output, interp.INTERPRETER_MODEL,
 					)
+					interp.record_session_turn(
+						task=task,
+						prompt=task,
+						code_snippet=code_snippet,
+						code_output=code_output,
+						code_error=code_error,
+						os_name=os_name,
+					)
 					# Non-interactive file runs are one-shot (CI / scripts).
 					if getattr(interp, "AUTO_YES", False) and interp.INTERPRETER_PROMPT_FILE:
 						break
@@ -788,6 +801,13 @@ def run_interpreter_main(interp, version):
 					display_markdown_message(f"{generated_output}")
 				interp._last_response_was_streamed = False
 				interp.emit_turn_result(result_text=str(generated_output or ""))
+				interp.record_session_turn(
+					task=task,
+					prompt=prompt,
+					code_snippet=None,
+					code_output=str(generated_output or ""),
+					os_name=os_name,
+				)
 				# Non-interactive file runs are one-shot (CI / scripts).
 				if getattr(interp, "AUTO_YES", False) and interp.INTERPRETER_PROMPT_FILE:
 					break
@@ -945,6 +965,14 @@ def run_interpreter_main(interp, version):
 				execution_output=code_output,
 				error=code_error,
 				status="error" if code_error else "success",
+			)
+			interp.record_session_turn(
+				task=task,
+				prompt=prompt,
+				code_snippet=code_snippet,
+				code_output=code_output,
+				code_error=code_error,
+				os_name=os_name,
 			)
 
 			# Non-interactive file runs are one-shot (CI / scripts).

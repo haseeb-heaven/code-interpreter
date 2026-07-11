@@ -42,8 +42,8 @@ Committed to being **free** and **simple** - no downloads or tedious setups requ
 | **TUI (arrow-key UI)** | ✅ Built-in | ❌ | ❌ | ✅ | ❌ | ❌ |
 | **Git auto-commit** | ❌ | ❌ | ✅ Core feature | ❌ | ❌ | ❌ |
 | **IDE integration** | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ✅ VS Code |
-| **Persistent sessions** | 🔜 [Issue #218](https://github.com/haseeb-heaven/code-interpreter/issues/218) | ⚠️ In-process only | ❌ | ❌ | ❌ | ❌ |
-| **Structured output (`--output-format`)** | 🔜 [Issue #219](https://github.com/haseeb-heaven/code-interpreter/issues/219) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Persistent sessions** | ✅ `--session` / `/session` | ⚠️ In-process only | ❌ | ❌ | ❌ | ❌ |
+| **Structured output (`--output-format`)** | ✅ `json` / `markdown` / `plain` | ❌ | ❌ | ❌ | ❌ | ❌ |
 | **pip installable** | ✅ `pip install open-code-interpreter` | ✅ | ✅ | ❌ | ❌ | ❌ |
 | **Windows support** | ✅ Full | ⚠️ Partial | ✅ | ⚠️ Partial | ⚠️ Partial | ✅ |
 | **Best fit** | Multi-model, free/local, safe execution | Natural-language computer control | Git-centric code editing | Fast terminal-native agent | Gemini-native agentic CLI | IDE-first agentic coding |
@@ -288,6 +288,25 @@ JSON schema (stable):
 ```
 
 Use `--no-color` to strip ANSI codes in plain mode.
+
+### Persistent sessions (`--session`)
+Resume named conversations across runs. Sessions are stored under `~/.code-interpreter/sessions/<id>.json`.
+
+```bash
+# Start or resume a named session
+python interpreter.py --cli --session my-project -m local-model
+
+# List / delete sessions (no API keys required)
+python interpreter.py --list-sessions
+python interpreter.py --delete-session old-project
+
+# Wipe and restart a session name
+python interpreter.py --cli --session my-project --new-session
+
+# In-REPL
+#   /session info | save | clear
+#   /sessions
+```
 
 ### Run with sandbox (safe)
 ```bash

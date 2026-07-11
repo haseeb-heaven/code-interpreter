@@ -189,6 +189,34 @@ def build_parser():
 		default=False,
 		help='Disable ANSI color codes in output.',
 	)
+	parser.add_argument(
+		'--session',
+		metavar='SESSION_ID',
+		default=None,
+		help=(
+			'Session name to persist conversation across runs. '
+			'Resumes if session exists, creates new if not. '
+			'Example: --session my-project'
+		),
+	)
+	parser.add_argument(
+		'--list-sessions',
+		action='store_true',
+		default=False,
+		help='List all saved sessions with metadata.',
+	)
+	parser.add_argument(
+		'--delete-session',
+		metavar='SESSION_ID',
+		default=None,
+		help='Delete a saved session by ID.',
+	)
+	parser.add_argument(
+		'--new-session',
+		action='store_true',
+		default=False,
+		help='Force start a new session (clears existing if --session is also given).',
+	)
 	return parser
 
 
@@ -247,6 +275,11 @@ def prepare_args(args, argv):
 	if getattr(args, 'output_format', None) in ('json', 'markdown'):
 		args.stream = False
 
+	# Persistent sessions are CLI-oriented (not TUI)
+	if getattr(args, 'session', None) or getattr(args, 'list_sessions', False) or getattr(args, 'delete_session', None):
+		args.cli = True
+		args.tui = False
+
 	no_runtime_args = len(argv) <= 1
 	if no_runtime_args and not args.cli and not args.tui:
 		args.tui = True
@@ -266,6 +299,50 @@ def prepare_args(args, argv):
 	return args
 
 
+def _handle_session_mgmt_flags(args) -> bool:
+	"""Handle list/delete/new-session flags.
+
+	Returns True when main should exit (list/delete, or invalid new-session).
+	``--new-session`` with ``--session`` clears then returns False so the REPL continues.
+	"""
+	import time
+
+	from libs.memory.session_store import SessionStore
+
+	if getattr(args, 'list_sessions', False):
+		sessions = SessionStore.list_sessions()
+		if not sessions:
+			print("No saved sessions found.")
+		else:
+			print(f"\n{'SESSION ID':<25} {'MESSAGES':>8} {'MODEL':<20} LAST UPDATED")
+			print("-" * 75)
+			for s in sessions:
+				updated = time.strftime("%Y-%m-%d %H:%M", time.localtime(s["updated_at"] or 0))
+				print(f"{s['session_id']:<25} {s['message_count']:>8} {s['model']:<20} {updated}")
+		return True
+
+	if getattr(args, 'delete_session', None):
+		sid = args.delete_session
+		try:
+			deleted = SessionStore.delete_session(sid)
+		except ValueError as exc:
+			print(f"Error: {exc}")
+			return True
+		print(f"Session '{sid}' {'deleted.' if deleted else 'not found.'}")
+		return True
+
+	if getattr(args, 'new_session', False) and getattr(args, 'session', None):
+		try:
+			SessionStore(args.session).clear()
+			print(f"Cleared existing session '{args.session}'. Starting fresh.")
+		except ValueError as exc:
+			print(f"Error: {exc}")
+			return True
+		return False
+
+	return False
+
+
 def main(argv=None):
 	argv = argv or sys.argv
 	parser = build_parser()
@@ -278,6 +355,9 @@ def main(argv=None):
 		from libs.free_llms import FreeLLMCatalog
 
 		print(FreeLLMCatalog.load().format_table())
+		return
+	# Session management flags run before Interpreter boot (no API keys required).
+	if _handle_session_mgmt_flags(args):
 		return
 	args = prepare_args(args, argv)
 	# Code generation modes — write artifacts only, never execute (#212)
