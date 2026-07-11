@@ -1,3 +1,11 @@
+## v3.2.3 (2026-07-11)
+- fix(security): Resolved command injection vulnerability in file opening (`os.startfile`) on Windows.
+- fix(security): Mitigated Path Traversal vulnerability in `UtilityManager.get_full_file_path` with strict boundary checks.
+- fix(stability): Added timeouts to all external `requests.get` calls in PackageManager and UtilityManager to prevent hangs.
+- feat(performance): Optimized `ExecutionSafetyManager` by pre-compiling all regex patterns.
+- feat(ux): Improved Terminal UI fallback prompts with explicit choice brackets for non-TTY environments.
+- test: Expanded test coverage with robust mocks simulating command injection, path traversal, timeouts, and UX changes.
+
 ## v3.2.2 (2026-04-07)
 - Update interpreter: fix _execute_generated_output language usage, restore sandbox toggle alias, add subprocess security delegation, and increase SAFE mode MAX_TIMEOUT to 300s for more robust long‑running code execution
 - fix for watchdog timers issues with sandbox
