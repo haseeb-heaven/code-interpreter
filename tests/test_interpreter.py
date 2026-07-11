@@ -2075,13 +2075,13 @@ class TestInterpreterDangerousOperationBlocking(unittest.TestCase):
 class TestInterpreterVersionUpdated(unittest.TestCase):
 	"""Tests for the interpreter version update in this PR (3.1.0 → 3.2.2)."""
 
-	def test_interpreter_version_is_3_2_2(self):
-		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.2.2")
+	def test_interpreter_version_is_3_2_3(self):
+		self.assertEqual(interpreter_entry.INTERPRETER_VERSION, "3.2.3")
 
-	def test_version_file_contains_3_2_2(self):
+	def test_version_file_contains_3_2_3(self):
 		version_file = ROOT_DIR / "VERSION"
 		content = version_file.read_text(encoding="utf-8").strip()
-		self.assertEqual(content, "3.2.2")
+		self.assertEqual(content, "3.2.3")
 
 
 if __name__ == "__main__":
