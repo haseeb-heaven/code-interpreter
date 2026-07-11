@@ -88,6 +88,10 @@ class TestBootstrapInterpreter(unittest.TestCase):
 			no_color=False,
 			search=False,
 			stream=False,
+			session=None,
+			list_sessions=False,
+			delete_session=None,
+			new_session=False,
 		)
 		interp.initialize_client = MagicMock()
 		interp.initialize_mode = MagicMock()

@@ -97,5 +97,69 @@ class TestBuildCompletionStreamFlag(unittest.TestCase):
 		self.assertTrue(kwargs.get("stream"))
 
 
+class TestStreamingExtras(unittest.TestCase):
+	def test_dict_chunks_and_empty_choices(self):
+		printer = StreamingPrinter(show_stream=False)
+		chunks = [
+			{"choices": []},
+			{"choices": [{"delta": {"content": "A"}, "finish_reason": None}]},
+			{"choices": [{"delta": {"content": "B"}, "finish_reason": "stop"}]},
+		]
+		text, tool_calls = printer.print_stream(chunks)
+		self.assertEqual(text, "AB")
+		self.assertIsNone(tool_calls)
+
+	def test_looks_like_completion_dict(self):
+		self.assertTrue(
+			looks_like_completion_response({"choices": [{"message": {"content": "x"}}]})
+		)
+		self.assertFalse(looks_like_completion_response({"choices": []}))
+		self.assertFalse(looks_like_completion_response(None))
+
+	def test_stream_llm_call_real_stream(self):
+		def completion_fn(model, **kwargs):
+			return [
+				_chunk("Hi"),
+				_chunk("!", finish_reason="stop"),
+			]
+
+		import contextlib
+		import io as _io
+
+		buf = _io.StringIO()
+		with contextlib.redirect_stdout(buf):
+			text, tool_calls = stream_llm_call(
+				completion_fn, "gpt-4o", [{"role": "user", "content": "hi"}], show_stream=False
+			)
+		self.assertEqual(text, "Hi!")
+		self.assertIsNone(tool_calls)
+
+	def test_stream_llm_call_fallback_on_stream_error(self):
+		calls = {"n": 0}
+
+		def completion_fn(model, **kwargs):
+			calls["n"] += 1
+			if kwargs.get("stream"):
+				class Boom:
+					def __iter__(self):
+						raise RuntimeError("stream broke")
+
+				return Boom()
+			return SimpleNamespace(
+				choices=[SimpleNamespace(message=SimpleNamespace(content="ok", tool_calls=None))]
+			)
+
+		import contextlib
+		import io as _io
+
+		buf = _io.StringIO()
+		with contextlib.redirect_stdout(buf):
+			text, _ = stream_llm_call(
+				completion_fn, "gpt-4o", [{"role": "user", "content": "hi"}], show_stream=True
+			)
+		self.assertEqual(text, "ok")
+		self.assertGreaterEqual(calls["n"], 2)
+
+
 if __name__ == "__main__":
 	unittest.main()

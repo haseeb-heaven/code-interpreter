@@ -44,6 +44,10 @@ class TestAPIKeysAndModels(unittest.TestCase):
 		args.stream = False
 		args.mcp = None
 		args.max_context_tokens = 8000
+		args.session = None
+		args.list_sessions = False
+		args.delete_session = None
+		args.new_session = False
 
 		# Mock config reading to return the requested model and provider
 		self.mock_utility_manager.read_config_file.return_value = {"model": model_name, "provider": provider}

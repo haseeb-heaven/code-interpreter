@@ -12,8 +12,21 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-SESSION_DIR = Path.home() / ".code-interpreter" / "sessions"
 _SAFE_SESSION_ID = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def default_session_dir() -> Path:
+	"""Resolve ``~/.code-interpreter/sessions`` (falls back when home is unavailable)."""
+	try:
+		return Path.home() / ".code-interpreter" / "sessions"
+	except Exception:
+		return Path(".code-interpreter") / "sessions"
+
+
+# Mutable module default so tests can ``patch(...SESSION_DIR, tmp)``.
+# Computed at import with a fallback so ``patch.dict(..., clear=True)`` cannot
+# break subsequent imports that load this module.
+SESSION_DIR = default_session_dir()
 
 
 def sanitize_session_id(session_id: str) -> str:

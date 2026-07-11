@@ -123,6 +123,25 @@ class TestInteractiveCliSurface(unittest.TestCase):
 		else:
 			self.assertTrue(True)
 
+	def test_session_flags_on_parser(self):
+		import interpreter as mod
+
+		args = mod.build_parser().parse_args(
+			["--cli", "--yes", "--session", "demo", "--list-sessions"]
+		)
+		self.assertEqual(args.session, "demo")
+		self.assertTrue(args.list_sessions)
+
+	def test_output_format_and_stream_flags(self):
+		import interpreter as mod
+
+		args = mod.build_parser().parse_args(
+			["--cli", "--output-format", "json", "--stream", "--no-color"]
+		)
+		self.assertEqual(args.output_format, "json")
+		self.assertTrue(args.stream)
+		self.assertTrue(args.no_color)
+
 	def test_file_prompt_flag_parses_with_yes(self):
 		"""CLI accepts -f + --yes without launching a long-lived session."""
 		import interpreter as mod

@@ -213,7 +213,7 @@ def bootstrap_interpreter(interp) -> None:
 	interp.session_store = None
 	interp.conversation_history = []
 	session_id = getattr(args, "session", None)
-	if session_id:
+	if session_id and isinstance(session_id, str):
 		from libs.memory.session_store import SessionStore
 
 		try:

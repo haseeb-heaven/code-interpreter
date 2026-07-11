@@ -34,6 +34,11 @@ def make_interpreter_args(**overrides) -> Namespace:
 		mcp=None,
 		max_context_tokens=8000,
 		gemini_style=False,
+		# Persistent sessions (#218) — None/False so MagicMock truthiness cannot activate them.
+		session=None,
+		list_sessions=False,
+		delete_session=None,
+		new_session=False,
 	)
 	for key, value in overrides.items():
 		setattr(args, key, value)

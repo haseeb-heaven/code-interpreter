@@ -63,6 +63,10 @@ class TestInterpreter(unittest.TestCase):
 			stream=False,
 			mcp=None,
 			max_context_tokens=8000,
+			session=None,
+			list_sessions=False,
+			delete_session=None,
+			new_session=False,
 		)
 
 	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
@@ -1914,6 +1918,10 @@ class TestInterpreterUnsafeModeInitialization(unittest.TestCase):
 			stream=False,
 			mcp=None,
 			max_context_tokens=8000,
+			session=None,
+			list_sessions=False,
+			delete_session=None,
+			new_session=False,
 		)
 
 	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
@@ -1981,6 +1989,10 @@ class TestInterpreterModeIndicatorBanner(unittest.TestCase):
 			stream=False,
 			mcp=None,
 			max_context_tokens=8000,
+			session=None,
+			list_sessions=False,
+			delete_session=None,
+			new_session=False,
 		)
 
 	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
@@ -2067,6 +2079,10 @@ class TestInterpreterDangerousOperationBlocking(unittest.TestCase):
 			stream=False,
 			mcp=None,
 			max_context_tokens=8000,
+			session=None,
+			list_sessions=False,
+			delete_session=None,
+			new_session=False,
 		)
 
 	@patch("libs.interpreter_lib.display_markdown_message")

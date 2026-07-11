@@ -68,6 +68,35 @@ class TestPromptBuilder(unittest.TestCase):
 		PromptBuilder(interp).get_script_prompt("backup files", "Linux")
 		self.assertEqual(interp.INTERPRETER_LANGUAGE, "python")
 
+	def test_get_prompt_all_modes(self):
+		for mode in ("code", "script", "command", "vision", "chat"):
+			interp = self._make_interp(mode=mode)
+			messages = PromptBuilder(interp).get_prompt("task", [{"role": "user", "content": "old"}])
+			self.assertIsInstance(messages, list)
+			self.assertGreaterEqual(len(messages), 1)
+
+	def test_get_mode_prompt_script_command_vision(self):
+		interp = self._make_interp(mode="script")
+		self.assertIn("backup", PromptBuilder(interp).get_mode_prompt("backup", "Linux"))
+		interp = self._make_interp(mode="command")
+		self.assertIn("list files", PromptBuilder(interp).get_mode_prompt("list files", "Windows"))
+		interp = self._make_interp(mode="vision")
+		self.assertIn("image.png", PromptBuilder(interp).get_mode_prompt("image.png", "Linux"))
+
+	def test_get_mode_prompt_unknown_returns_none(self):
+		interp = self._make_interp(mode="code")
+		interp.CODE_MODE = False
+		interp.SCRIPT_MODE = False
+		interp.COMMAND_MODE = False
+		interp.VISION_MODE = False
+		interp.CHAT_MODE = False
+		self.assertIsNone(PromptBuilder(interp).get_mode_prompt("x", "Linux"))
+
+	def test_get_code_prompt_normalizes_language(self):
+		interp = self._make_interp(mode="code", language="ruby")
+		PromptBuilder(interp).get_code_prompt("hello", "Linux")
+		self.assertEqual(interp.INTERPRETER_LANGUAGE, "python")
+
 
 if __name__ == "__main__":
 	unittest.main()

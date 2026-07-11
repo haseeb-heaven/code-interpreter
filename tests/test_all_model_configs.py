@@ -153,6 +153,10 @@ class TestAllModelInitializeClient(unittest.TestCase):
 		args.stream = False
 		args.mcp = None
 		args.max_context_tokens = 8000
+		args.session = None
+		args.list_sessions = False
+		args.delete_session = None
+		args.new_session = False
 		self.mock_um.read_config_file.return_value = dict(config)
 		return Interpreter(args)
 
