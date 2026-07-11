@@ -105,12 +105,33 @@ class ModelRouter:
 			api_key_info = {"key_name": "HUGGINGFACE_API_KEY", "prefix": "hf_"}
 
 		api_key_name = api_key_info["key_name"]
-		api_key = getenv_fn(api_key_name)
-		if api_key is None:
-			load_dotenv_fn(dotenv_path=env_path, override=True)
+		from libs.key_manager import KeyManager, provider_from_api_key_name
+
+		# Merge config into KeyManager for RPM / circuit settings
+		km = KeyManager(getenv_fn=getenv_fn, config=interp.config_values or {})
+		# Ensure pools see latest dotenv + any getenv override from callers/tests
+		load_dotenv_fn(dotenv_path=env_path, override=True)
+		km._getenv = getenv_fn
+		km.reload(config=interp.config_values or {})
+		interp._key_manager = km
+
+		provider = provider_from_api_key_name(api_key_name)
+		key_state = km.acquire_key(provider)
+		if key_state is None:
+			# Backwards compatible fallback to bare getenv (no pool / all exhausted at init)
 			api_key = getenv_fn(api_key_name)
-		if not api_key:
-			raise Exception(f"{api_key_name} not found in .env file.")
+			if api_key is None:
+				load_dotenv_fn(dotenv_path=env_path, override=True)
+				api_key = getenv_fn(api_key_name)
+			if not api_key:
+				raise Exception(f"{api_key_name} not found in .env file.")
+			environ[api_key_name] = api_key
+		else:
+			api_key = key_state.value
+			interp._active_provider = provider
+			interp._active_key_state = key_state
+			environ[api_key_name] = api_key
+
 		if api_key_info.get("prefix") and not api_key.startswith(api_key_info["prefix"]):
 			raise Exception(
 				f"{api_key_name} should start with '{api_key_info['prefix']}'. Please check your .env file."
@@ -508,6 +529,70 @@ class ModelRouter:
 	def _log_route(self, model, keys):
 		self.interp.logger.info(f"ModelRouter.route model={model} kwargs_keys={keys}")
 
+	def _prepare_retry_key(self, km, provider: str, api_key_name: str, last_exception):
+		"""Acquire a healthy key or decide whether to proceed / raise exhausted."""
+		key_state = km.acquire_key(provider)
+		if key_state is not None:
+			self.interp._active_provider = provider
+			self.interp._active_key_state = key_state
+			os.environ[api_key_name] = key_state.value
+			if key_state.bucket is not None:
+				try:
+					key_state.bucket.acquire(timeout=2.0)
+				except Exception:
+					pass
+			return key_state
+
+		# Pool exists but every key is unavailable → surface exhaustion (with ETA)
+		if km.has_pool(provider):
+			km.raise_if_exhausted(provider)
+		# No managed pool: backwards-compatible bare-env path
+		return None
+
+	def _record_retry_failure(self, km, provider, key_state, exception, latency_ms):
+		"""Classify failure, update key state, return (err_type, should_retry)."""
+		from libs.key_manager import ErrorClassifier, ErrorType
+
+		err_type = ErrorClassifier.classify(exception)
+		error_text = str(exception)
+		if key_state is not None:
+			km.metrics.log(
+				provider=provider,
+				key_index=key_state.index,
+				latency_ms=latency_ms,
+				success=False,
+				error_type=err_type.value,
+			)
+			if err_type == ErrorType.AUTH:
+				# Permanently isolate this key; caller may rotate to another key.
+				km.record_failure(provider, key_state.index, is_auth=True)
+			elif err_type == ErrorType.FATAL:
+				pass
+			elif err_type == ErrorType.QUOTA:
+				km.record_failure(provider, key_state.index, is_quota=True)
+			elif err_type == ErrorType.TRANSIENT:
+				km.record_failure(
+					provider,
+					key_state.index,
+					is_rate_limit=("429" in error_text.lower() or "rate" in error_text.lower()),
+				)
+
+		# FATAL always surfaces; AUTH retries only when another key may be healthy
+		if err_type == ErrorType.FATAL:
+			return err_type, False
+		if err_type == ErrorType.AUTH:
+			if km.has_pool(provider) and km.get_pool(provider).available_count() > 0:
+				return err_type, True
+			return err_type, False
+		return err_type, True
+
+	@staticmethod
+	def _jitter_backoff_seconds(attempt: int) -> float:
+		import random
+
+		cap = min(30.0, 1.0 * (2 ** attempt))
+		return random.uniform(0.0, cap)
+
 	def generate_content_with_retries(
 		self,
 		message,
@@ -518,22 +603,92 @@ class ModelRouter:
 		sleep_fn: Callable,
 		display_fn: Callable,
 	):
+		from libs.key_manager import KeyManager, provider_from_api_key_name
+
 		interp = self.interp
 		last_exception = None
+		config_values = config_values or interp.config_values or {}
+		km = getattr(interp, "_key_manager", None) or KeyManager(config=config_values)
+		interp._key_manager = km
+
+		api_key_name = self._resolve_api_key_name(config_values)
+		provider = provider_from_api_key_name(api_key_name)
+
 		for attempt in range(1, interp.MAX_LLM_RETRIES + 1):
+			key_state = self._prepare_retry_key(km, provider, api_key_name, last_exception)
+
+			started = time.time()
 			try:
-				return interp.generate_content(
+				result = interp.generate_content(
 					message, chat_history, config_values=config_values, image_file=image_file
 				)
+				latency_ms = (time.time() - started) * 1000.0
+				if key_state is not None:
+					km.record_success(provider, key_state.index)
+					km.metrics.log(
+						provider=provider,
+						key_index=key_state.index,
+						latency_ms=latency_ms,
+						success=True,
+					)
+				return result
 			except Exception as exception:
 				last_exception = exception
-				error_text = str(exception)
-				if attempt >= interp.MAX_LLM_RETRIES or not self.is_retryable_request_error(error_text):
+				latency_ms = (time.time() - started) * 1000.0
+				err_type, should_retry = self._record_retry_failure(
+					km, provider, key_state, exception, latency_ms
+				)
+
+				if attempt >= interp.MAX_LLM_RETRIES or not should_retry:
+					# Prefer AllKeysExhaustedError (with ETA) when the pool is fully dark
+					if km.has_pool(provider):
+						from libs.key_manager import AllKeysExhaustedError
+
+						try:
+							km.raise_if_exhausted(provider)
+						except AllKeysExhaustedError:
+							raise
 					raise
-				display_fn(f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} after transient failure.")
-				sleep_fn(min(attempt, 3))
+
+				display_fn(
+					f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} "
+					f"({err_type.value}) — rotating key / backoff."
+				)
+				sleep_fn(self._jitter_backoff_seconds(attempt))
+
 		if last_exception:
 			raise last_exception
+
+	def _resolve_api_key_name(self, config_values) -> str:
+		"""Mirror initialize_client provider → env key mapping."""
+		interp = self.interp
+		config_provider = str((config_values or {}).get("provider", "")).strip().lower()
+		model = interp.INTERPRETER_MODEL or ""
+		if config_provider == "nvidia":
+			return "NVIDIA_API_KEY"
+		if config_provider in ("z-ai", "zai"):
+			return "Z_AI_API_KEY"
+		if config_provider in ("browser-use", "browser_use"):
+			return "BROWSER_USE_API_KEY"
+		if config_provider == "openrouter":
+			return "OPENROUTER_API_KEY"
+		if model.startswith("nvidia/"):
+			return "NVIDIA_API_KEY"
+		if model.startswith(("glm-", "z-ai/", "zai/")):
+			return "Z_AI_API_KEY"
+		if model.startswith(("bu-", "browser-use/")):
+			return "BROWSER_USE_API_KEY"
+		if model.startswith(("gpt", "o1", "o3", "o4")):
+			return "OPENAI_API_KEY"
+		if model.startswith("groq/") or "groq" in model:
+			return "GROQ_API_KEY"
+		if "claude" in model:
+			return "ANTHROPIC_API_KEY"
+		if "gemini" in model:
+			return "GEMINI_API_KEY"
+		if "deepseek" in model:
+			return "DEEPSEEK_API_KEY"
+		return "HUGGINGFACE_API_KEY"
 
 	async def generate_content_with_retries_async(
 		self,
@@ -545,29 +700,72 @@ class ModelRouter:
 		sleep_fn: Optional[Callable] = None,
 		display_fn: Optional[Callable] = None,
 	):
+		"""Async retry loop with the same key-rotation / jitter resilience as sync."""
+		from libs.key_manager import KeyManager, provider_from_api_key_name
+
 		interp = self.interp
 		last_exception = None
+		config_values = config_values or interp.config_values or {}
+		km = getattr(interp, "_key_manager", None) or KeyManager(config=config_values)
+		interp._key_manager = km
+		api_key_name = self._resolve_api_key_name(config_values)
+		provider = provider_from_api_key_name(api_key_name)
+		_display = display_fn or (lambda *_: None)
+
 		for attempt in range(1, interp.MAX_LLM_RETRIES + 1):
+			key_state = self._prepare_retry_key(km, provider, api_key_name, last_exception)
+
+			started = time.time()
 			try:
 				generate_async = getattr(interp, "generate_content_async", None)
 				if generate_async:
-					return await generate_async(
+					result = await generate_async(
 						message, chat_history, config_values=config_values, image_file=image_file
 					)
-				return await asyncio.to_thread(
-					interp.generate_content, message, chat_history,
-					config_values=config_values, image_file=image_file,
-				)
+				else:
+					result = await asyncio.to_thread(
+						interp.generate_content,
+						message,
+						chat_history,
+						config_values=config_values,
+						image_file=image_file,
+					)
+				latency_ms = (time.time() - started) * 1000.0
+				if key_state is not None:
+					km.record_success(provider, key_state.index)
+					km.metrics.log(
+						provider=provider,
+						key_index=key_state.index,
+						latency_ms=latency_ms,
+						success=True,
+					)
+				return result
 			except Exception as exception:
 				last_exception = exception
-				error_text = str(exception)
-				if attempt >= interp.MAX_LLM_RETRIES or not self.is_retryable_request_error(error_text):
+				latency_ms = (time.time() - started) * 1000.0
+				err_type, should_retry = self._record_retry_failure(
+					km, provider, key_state, exception, latency_ms
+				)
+
+				if attempt >= interp.MAX_LLM_RETRIES or not should_retry:
+					if km.has_pool(provider):
+						from libs.key_manager import AllKeysExhaustedError
+
+						try:
+							km.raise_if_exhausted(provider)
+						except AllKeysExhaustedError:
+							raise
 					raise
-				if display_fn:
-					display_fn(f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} after transient failure.")
+
+				_display(
+					f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} "
+					f"({err_type.value}) — rotating key / backoff."
+				)
+				delay = self._jitter_backoff_seconds(attempt)
 				if sleep_fn is None:
-					await asyncio.sleep(min(attempt, 3))
+					await asyncio.sleep(delay)
 				else:
-					await asyncio.to_thread(sleep_fn, min(attempt, 3))
+					await asyncio.to_thread(sleep_fn, delay)
+
 		if last_exception:
 			raise last_exception

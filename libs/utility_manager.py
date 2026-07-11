@@ -156,7 +156,12 @@ class UtilityManager:
 	def list_available_models(self, configs_path=None):
 		try:
 			configs_path = configs_path or os.path.join(os.getcwd(), 'configs')
-			configs_files = [file for file in os.listdir(configs_path) if file.endswith('.json')]
+			# schema.json is JSON Schema for validation, not a model config.
+			configs_files = [
+				file
+				for file in os.listdir(configs_path)
+				if file.endswith('.json') and file.lower() != 'schema.json'
+			]
 			return sorted(os.path.splitext(file)[0] for file in configs_files)
 		except Exception as exception:
 			self.logger.error(f"Error in listing available models: {str(exception)}")
@@ -301,6 +306,9 @@ class UtilityManager:
 			"/prompt - Switch input prompt mode between file and prompt.\n"
 			"/upgrade - Upgrade the interpreter.\n"
 			"/sandbox - Toggle sandbox mode at runtime.\n"
+			"/key-status - Show API key pool / circuit breaker status.\n"
+			"/reload-keys - Reload API keys from .env without restart.\n"
+			"/metrics - Show LLM call metrics summary.\n"
 		)
 		display_markdown_message(msg)
 	def display_version(self, version):

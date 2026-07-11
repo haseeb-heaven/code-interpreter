@@ -220,6 +220,59 @@ def run_interpreter_main(interp, version):
 				interp.toggle_sandbox_mode()
 				continue
 
+			elif task.lower() == '/key-status':
+				from libs.key_manager import KeyManager
+
+				km = getattr(interp, "_key_manager", None) or KeyManager(config=interp.config_values or {})
+				status = km.status()
+				if not status:
+					display_markdown_message("No API keys discovered. Add keys to `.env` (e.g. `OPENAI_API_KEY` or `OPENAI_API_KEY_1`).")
+					continue
+				print("\nKey status:\n")
+				print(f"{'Provider':<14} {'Idx':<4} {'Key':<14} {'State':<10} {'Fail':<5} {'OK':<5} {'Avail':<6} {'Recovery ETA'}")
+				for provider, rows in status.items():
+					for row in rows:
+						eta = ""
+						now = time.time()
+						until = max(float(row.get("rate_limited_until") or 0), float(row.get("circuit_open_until") or 0))
+						if until > now:
+							eta = time.strftime("%H:%M:%S", time.localtime(until))
+						print(
+							f"{provider:<14} {row['index']:<4} {row['masked']:<14} "
+							f"{row['circuit_state']:<10} {row['failures']:<5} {row['successes']:<5} "
+							f"{str(row['available']):<6} {eta}"
+						)
+				print()
+				continue
+
+			elif task.lower() == '/reload-keys':
+				from libs.key_manager import KeyManager
+				from dotenv import load_dotenv
+
+				load_dotenv(dotenv_path=os.path.join(os.getcwd(), ".env"), override=True)
+				km = getattr(interp, "_key_manager", None) or KeyManager(config=interp.config_values or {})
+				km.reload(config=interp.config_values or {})
+				interp._key_manager = km
+				display_markdown_message("API keys reloaded from `.env`.")
+				continue
+
+			elif task.lower() == '/metrics':
+				from libs.key_manager import KeyManager, MetricsLogger
+
+				km = getattr(interp, "_key_manager", None)
+				metrics = km.metrics if km else MetricsLogger()
+				summary = metrics.summary()
+				print(f"\nLLM metrics (total={summary.get('total', 0)}):\n")
+				print(f"{'Provider':<14} {'Reqs':<6} {'Success%':<10} {'Avg ms':<10} {'P95 ms':<10} {'RL':<5} {'CB'}")
+				for provider, data in (summary.get("providers") or {}).items():
+					print(
+						f"{provider:<14} {data['requests']:<6} {data['success_rate']*100:>7.1f}%  "
+						f"{data['avg_latency_ms']:<10.1f} {data['p95_latency_ms']:<10.1f} "
+						f"{data['rate_limit_events']:<5} {data['circuit_open_events']}"
+					)
+				print()
+				continue
+
 			# LOG - Command section.
 			elif task.lower() == '/debug':
 				# Toggle the log level to Debug/Silent.

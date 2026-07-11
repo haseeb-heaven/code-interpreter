@@ -18,10 +18,13 @@ from libs.llm_dispatcher import _detect_provider, build_completion_kwargs
 
 CONFIG_DIR = Path("configs")
 REQUIRED_FIELDS = ("temperature", "max_tokens", "start_sep", "end_sep", "model")
+_SKIP_CONFIG_NAMES = {"schema.json"}
 
 
 def _all_configs():
-	paths = sorted(CONFIG_DIR.glob("*.json"))
+	paths = sorted(
+		p for p in CONFIG_DIR.glob("*.json") if p.name.lower() not in _SKIP_CONFIG_NAMES
+	)
 	assert paths, "No configs/*.json found"
 	return paths
 
