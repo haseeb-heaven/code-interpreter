@@ -73,6 +73,12 @@ def build_parser():
 	mode_group = parser.add_mutually_exclusive_group()
 	mode_group.add_argument('--cli', action='store_true', default=False, help='Launch the classic interactive CLI')
 	mode_group.add_argument('--tui', action='store_true', default=False, help='Launch the selector-based terminal UI')
+	parser.add_argument(
+		'--agent',
+		action='store_true',
+		default=False,
+		help='Run tasks through the multi-agent pipeline (IntentRouter → Planner → SafetyGuard → Executor → Repairer → Verifier → Reviewer)',
+	)
 	return parser
 
 
