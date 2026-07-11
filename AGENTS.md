@@ -12,10 +12,10 @@ external LLM providers over HTTP; there is nothing long-running to "start" besid
   `.venv/bin/python` directly) before running any command below.
 - Runtime is Python 3.12 here; upstream CI (`.github/workflows/python-app.yml`) pins 3.10. Both work.
 - A `.env` file is required at the repo root for the app to start (it is gitignored). Copy it from
-  `.env.example` and populate at least one provider key. `initialize_client` validates a key even for
-  the `local-model` config (it falls through to the HuggingFace check because the config's `model`
-  value is `llama3.1:8b`, which does not contain the string "local"), so a placeholder
-  `HUGGINGFACE_API_KEY=hf_...` plus `OPENAI_API_KEY=sk-...` is enough to reach the local endpoint.
+  `.env.example` and populate at least one provider key. Local configs with
+  `provider: local|ollama|lmstudio` skip cloud key checks (ModelRouter). For a stub local server,
+  `OPENAI_API_KEY=sk-...` is enough. Live smoke across cloud providers needs the matching
+  `*_API_KEY` values (`SMOKE_LIVE=1 python scripts/smoke_all_models.py`).
 
 ### Lint / Test (no external services needed)
 - Lint: `flake8 . --select=E9,F63,F7,F82 --show-source --exclude=.venv` (fatal errors only, as CI does).
@@ -27,6 +27,10 @@ external LLM providers over HTTP; there is nothing long-running to "start" besid
   - Async (#203): `python -m unittest discover -s tests/async`
   - Memory (#204): `python -m unittest discover -s tests/memory`
   - Tools (#205): `python -m unittest discover -s tests/tools`
+  - All model configs (offline): `python -m unittest tests.test_all_model_configs` or
+    `python scripts/smoke_all_models.py`
+  - Live provider smoke (needs real keys): `SMOKE_LIVE=1 python scripts/smoke_all_models.py`
+  - Local mock smoke: `python -m unittest tests.smoke.test_local_model_smoke`
 - TestSprite backend suite (CLI only, no frontend):
   `python -m unittest discover -s testsprite_tests -p 'TC*.py' -v`
 - Some passing tests intentionally print argparse `usage:`/error text and `SyntaxWarning` lines to the
