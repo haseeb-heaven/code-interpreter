@@ -982,6 +982,38 @@ class Interpreter:
 			return None, str(exc)
 
 
+	def interpreter_agentic_main(self):
+		"""Run the ReAct agentic loop (Thought → Action → Observation)."""
+		from libs.agent.react_controller import ReActController
+
+		try:
+			self.console.print("[bold yellow]Running in ReAct Agentic Mode[/bold yellow]")
+			if self.INTERPRETER_PROMPT_FILE and getattr(self.args, "file", None):
+				try:
+					with open(self.args.file, "r", encoding="utf-8") as file:
+						task = file.read()
+				except Exception as e:
+					self.logger.error(f"Error reading prompt file: {e}")
+					return
+			else:
+				task = input("Enter your task: ")
+
+			if not task.strip():
+				self.console.print("Task cannot be empty.")
+				return
+
+			max_steps = max(int(getattr(self, "MAX_REPAIR_ATTEMPTS", 3) or 3), 10)
+			controller = ReActController(
+				model_name=self.INTERPRETER_MODEL,
+				api_key=None,
+				unsafe_mode=self.UNSAFE_EXECUTION,
+				log_path="logs/agent_react.jsonl",
+				max_steps=max_steps,
+			)
+			controller.run(task)
+		except KeyboardInterrupt:
+			self.console.print("\n[bold red]Agentic workflow interrupted by user.[/bold red]")
+
 	def interpreter_main(self,  version):
 		
 		self.interpreter_version = version

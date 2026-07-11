@@ -41,6 +41,7 @@ def build_parser():
 	parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
 	parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
 	parser.add_argument('--file', '-f', type=str, nargs='?', const='prompt.txt', default=None, help='Sets the file to read the input prompt from')
+	parser.add_argument('--agentic', action='store_true', default=False, help='Use ReAct agentic workflow (Coder, Executor, Reviewer, Debugger)')
 
 	# Sandbox control: --sandbox (default ON) / --no-sandbox (unsafe, disables sandbox+timers)
 	sandbox_group = parser.add_mutually_exclusive_group()
@@ -111,7 +112,10 @@ def main(argv=None):
 		return
 	args = prepare_args(args, argv)
 	interpreter = Interpreter(args)
-	interpreter.interpreter_main(INTERPRETER_VERSION)
+	if getattr(args, 'agentic', False):
+		interpreter.interpreter_agentic_main()
+	else:
+		interpreter.interpreter_main(INTERPRETER_VERSION)
 
 
 if __name__ == "__main__":
