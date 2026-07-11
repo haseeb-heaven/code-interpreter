@@ -431,7 +431,7 @@ class Interpreter:
 		model_name = self.INTERPRETER_MODEL.strip().split("/")[-1]
 		
 		# skip init client for local models.(Bug#10 https://github.com/haseeb-heaven/code-interpreter/issues/10)
-		if 'local' in self.INTERPRETER_MODEL:
+		if 'local' in self.INTERPRETER_MODEL or 'ollama' in self.INTERPRETER_MODEL or str(self.config_values.get("provider", "")).strip().lower() == 'ollama':
 			self.logger.info("Skipping client initialization for local model.")
 			# Add OpenAI API key if not present in the environment variables. (https://github.com/haseeb-heaven/code-interpreter/issues/13)
 			# Fixed OpenAI API Key name (https://github.com/haseeb-heaven/code-interpreter/issues/20)

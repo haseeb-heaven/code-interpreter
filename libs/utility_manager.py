@@ -64,10 +64,23 @@ class UtilityManager:
 	
 	def _extract_content(self, output):
 		try:
+			if output is None:
+				return ""
+			if isinstance(output, str):
+				return output
+			
+			if hasattr(output, 'choices') and len(output.choices) > 0:
+				return output.choices[0].message.content
+			elif isinstance(output, dict):
+				if 'choices' in output and len(output['choices']) > 0:
+					return output['choices'][0]['message']['content']
+				elif 'response' in output:
+					return output['response']
+			
 			return output['choices'][0]['message']['content']
-		except (KeyError, TypeError) as e:
-			self.logger.error(f"Error extracting content: {str(e)}")
-			raise
+		except (KeyError, TypeError, AttributeError) as e:
+			self.logger.error(f"Error extracting content: {str(e)}. Output: {output}")
+			return ""
 	
 	def get_os_platform(self):
 		try:
