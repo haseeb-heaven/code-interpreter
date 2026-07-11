@@ -9,6 +9,38 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from libs.code_generator import CodeGenerator, resolve_codegen_task, run_codegen_cli
+from libs.code_interpreter import CodeInterpreter
+
+
+class TestCodeExtraction(unittest.TestCase):
+	"""Code fence extraction lives on CodeInterpreter (used by codegen + main loop)."""
+
+	def setUp(self):
+		self.ci = CodeInterpreter()
+
+	def test_extracts_python_block(self):
+		response = "```python\nprint('hello')\n```"
+		code = self.ci.extract_code(response)
+		self.assertEqual(code.strip(), "print('hello')")
+
+	def test_extracts_bash_block(self):
+		response = "```bash\nls -la\n```"
+		code = self.ci.extract_code(response)
+		self.assertIn("ls -la", code)
+
+	def test_returns_original_for_no_block(self):
+		response = "Here is some plain text with no code."
+		code = self.ci.extract_code(response)
+		self.assertEqual(code, response)
+
+	def test_handles_multiple_blocks_takes_first(self):
+		response = "```python\nx = 1\n```\nThen:\n```python\ny = 2\n```"
+		code = self.ci.extract_code(response)
+		self.assertIsNotNone(code)
+		self.assertIn("x = 1", code)
+
+	def test_none_content_returns_none(self):
+		self.assertIsNone(self.ci.extract_code(None))
 
 
 class TestCodeGeneratorSnippet(unittest.TestCase):

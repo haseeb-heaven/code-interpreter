@@ -1,4 +1,5 @@
 ## v3.3.0 (2026-07-12)
+- test(ci): Matrix CI (3 OS × 3 Python), critical-module coverage ≥60%, Codecov badge, shared pytest fixtures (#224)
 - feat(agentic): Gemini-CLI-style `--gemini-style` ReAct REPL with free/cheap LLM catalog (`--free`, `--list-free`, `/free`)
 - feat(tools): Native FS/shell ToolRegistry tools + `--yolo` autonomous tool loop + MCP stdio client (`--mcp-server`) (#215)
 - feat(ux): Token streaming (`--stream` / `--no-stream`) + multimodal `--image` / `/image` input (#216)

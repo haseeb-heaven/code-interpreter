@@ -60,6 +60,38 @@ class TestHistoryManager(unittest.TestCase):
 		self.assertEqual(self.history.get_chat_history(3), [])
 		self.assertEqual(self.history._get_last_entries(2), [])
 
+	def test_keeps_only_requested_count(self):
+		for i in range(5):
+			self.history.save_history_json(
+				task=f"t{i}",
+				mode="code",
+				os_name="Windows",
+				language="python",
+				prompt=f"p{i}",
+				code_snippet=f"print({i})",
+				code_output=str(i),
+				model_name="local-model",
+			)
+		chat = self.history.get_chat_history(2)
+		self.assertEqual(len(chat), 2)
+		self.assertEqual(chat[-1]["task"], "t4")
+
+	def test_never_persists_api_key_secrets(self):
+		self.history.save_history_json(
+			task="sum",
+			mode="code",
+			os_name="Windows",
+			language="python",
+			prompt="sum numbers",
+			code_snippet="print(1)",
+			code_output="1",
+			model_name="gpt-4o",
+		)
+		raw = Path(self.path).read_text(encoding="utf-8").lower()
+		self.assertNotIn("sk-", raw)
+		self.assertNotIn("api_key", raw)
+		self.assertNotIn("openai_api_key", raw)
+
 
 if __name__ == "__main__":
 	unittest.main()

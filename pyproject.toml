@@ -68,3 +68,23 @@ py-modules = ["interpreter"]
 
 [tool.setuptools.packages.find]
 include = ["libs*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+  "--strict-markers",
+]
+# CI enforces --cov-fail-under=60 on critical modules (see .github/workflows/ci.yml).
+# Full libs coverage is reported via Codecov and raised incrementally toward 80%.
+
+[tool.coverage.run]
+source = ["libs"]
+omit = [
+  "libs/terminal_ui.py",
+  "*/tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

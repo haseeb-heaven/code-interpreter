@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-mock coverage flake8
+
+      - name: Lint (fatal errors only)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,build,dist
+
+      - name: Unit tests (unittest)
+        run: python -m unittest discover -s tests
+        env:
+          # Stub keys so config loaders that check presence do not fail offline.
+          OPENAI_API_KEY: sk-test-ci-not-a-real-key
+          GEMINI_API_KEY: test-gemini-ci-key-not-real
+          PYTHONIOENCODING: utf-8
+
+      - name: Coverage on critical modules (fail under 60%)
+        run: >
+          pytest
+          tests/test_safety_manager.py
+          tests/test_code_generator.py
+          tests/test_llm_dispatcher.py
+          tests/test_history_manager.py
+          tests/test_integration.py
+          --cov=libs.safety_manager
+          --cov=libs.code_generator
+          --cov=libs.llm_dispatcher
+          --cov=libs.history_manager
+          --cov-report=xml
+          --cov-report=term-missing
+          --cov-fail-under=60
+          -v
+        env:
+          OPENAI_API_KEY: sk-test-ci-not-a-real-key
+          PYTHONIOENCODING: utf-8
+
+      - name: Upload coverage to Codecov
+        if: runner.os == 'Linux' && matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+          flags: critical-modules

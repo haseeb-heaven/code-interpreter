@@ -5,6 +5,8 @@
 [![Replit](https://img.shields.io/badge/Replit-IDE-blue)](https://replit.com/@HaseebMir/open-code-interpreter)
 [![PyPi](https://img.shields.io/badge/PyPi-Package-blue)](https://pypi.org/project/open-code-interpreter/)
 [![Building](https://github.com/haseeb-heaven/Open-Code-Interpreter/actions/workflows/python-app.yml/badge.svg)](https://github.com/haseeb-heaven/Open-Code-Interpreter/actions/workflows/python-app.yml)
+[![CI](https://github.com/haseeb-heaven/code-interpreter/actions/workflows/ci.yml/badge.svg)](https://github.com/haseeb-heaven/code-interpreter/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/haseeb-heaven/code-interpreter/branch/develop/graph/badge.svg)](https://codecov.io/gh/haseeb-heaven/code-interpreter)
 
 ### **Support Project:**
 <a href="https://www.buymeacoffee.com/haseebheaven">
