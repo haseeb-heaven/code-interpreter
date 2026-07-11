@@ -3,5 +3,5 @@
     "max_tokens": 4096,
     "start_sep": "```",
     "end_sep": "```",
-    "model": "o1-preview"
+    "model": "o1"
 }
