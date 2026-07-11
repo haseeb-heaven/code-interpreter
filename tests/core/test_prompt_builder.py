@@ -13,12 +13,11 @@ from libs.interpreter_lib import Interpreter
 
 class TestPromptBuilder(unittest.TestCase):
 	def _make_interp(self, mode="code", language="python", model="gpt-4o"):
+		from tests.helpers.cli_args import make_interpreter_args
+
 		with patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None), \
 			 patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None):
-			args = Namespace(
-				exec=False, save_code=False, mode=mode, model=model,
-				display_code=False, lang=language, file=None, history=False, upgrade=False,
-			)
+			args = make_interpreter_args(mode=mode, model=model, lang=language)
 			return Interpreter(args)
 
 	def test_session_config_from_args(self):

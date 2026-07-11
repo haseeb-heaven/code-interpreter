@@ -77,3 +77,12 @@ ehthumbs.db
 desktop.ini
 *.ps1
 *.cmd
+
+.worktrees/
+
+# Coverage / local test artifacts
+.coverage
+coverage_*.txt
+test_run_out.txt
+.worktrees/
+

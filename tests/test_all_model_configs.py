@@ -142,6 +142,17 @@ class TestAllModelInitializeClient(unittest.TestCase):
 		args.cli = True
 		args.agent = False
 		args.agentic = False
+		# Explicit False/None — MagicMock attrs are truthy and trip wire_components.
+		args.search = False
+		args.search_provider = None
+		args.search_api_key = None
+		args.output_format = "plain"
+		args.no_color = False
+		args.yes = False
+		args.yolo = False
+		args.stream = False
+		args.mcp = None
+		args.max_context_tokens = 8000
 		self.mock_um.read_config_file.return_value = dict(config)
 		return Interpreter(args)
 

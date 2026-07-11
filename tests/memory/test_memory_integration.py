@@ -25,18 +25,9 @@ class FakeLogger:
 
 class TestMemoryIntegration(unittest.TestCase):
 	def _make_args(self):
-		return Namespace(
-			exec=False,
-			save_code=False,
-			mode="code",
-			model="z-ai-glm-5",
-			display_code=False,
-			lang="python",
-			file=None,
-			history=False,
-			upgrade=False,
-			unsafe=False,
-		)
+		from tests.helpers.cli_args import make_interpreter_args
+
+		return make_interpreter_args(model="z-ai-glm-5")
 
 	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
 	@patch("libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None)

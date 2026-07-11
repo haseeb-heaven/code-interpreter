@@ -40,20 +40,12 @@ class TestE2ERetry(unittest.TestCase):
 
 	def _make_interp(self, *, keys, max_retries=5, model="gpt-4o"):
 		"""Build Interpreter + KeyManager with numbered OPENAI keys (test-only)."""
+		from tests.helpers.cli_args import make_interpreter_args
+
 		with patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None), patch(
 			"libs.utility_manager.UtilityManager.initialize_readline_history", return_value=None
 		):
-			args = Namespace(
-				exec=False,
-				save_code=False,
-				mode="code",
-				model=model,
-				display_code=False,
-				lang="python",
-				file=None,
-				history=False,
-				upgrade=False,
-			)
+			args = make_interpreter_args(model=model)
 			interp = Interpreter(args)
 
 		env = {}

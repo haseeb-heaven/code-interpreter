@@ -46,6 +46,23 @@ class TestInterpreter(unittest.TestCase):
 			file=None,
 			history=False,
 			upgrade=False,
+			unsafe=False,
+			sandbox=True,
+			tui=False,
+			cli=True,
+			agent=False,
+			agentic=False,
+			yes=False,
+			yolo=False,
+			search=False,
+			search_provider=None,
+			search_api_key=None,
+			# Force plain so non-TTY pytest/unittest does not auto-JSON suppress displays.
+			output_format="plain",
+			no_color=False,
+			stream=False,
+			mcp=None,
+			max_context_tokens=8000,
 		)
 
 	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
@@ -1885,6 +1902,18 @@ class TestInterpreterUnsafeModeInitialization(unittest.TestCase):
 			history=False,
 			upgrade=False,
 			unsafe=unsafe,
+			sandbox=not unsafe,
+			tui=False,
+			cli=True,
+			agent=False,
+			agentic=False,
+			yes=False,
+			search=False,
+			output_format="plain",
+			no_color=False,
+			stream=False,
+			mcp=None,
+			max_context_tokens=8000,
 		)
 
 	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
@@ -1940,6 +1969,18 @@ class TestInterpreterModeIndicatorBanner(unittest.TestCase):
 			history=False,
 			upgrade=False,
 			unsafe=unsafe,
+			sandbox=not unsafe,
+			tui=False,
+			cli=True,
+			agent=False,
+			agentic=False,
+			yes=False,
+			search=False,
+			output_format="plain",
+			no_color=False,
+			stream=False,
+			mcp=None,
+			max_context_tokens=8000,
 		)
 
 	@patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None)
@@ -2014,6 +2055,18 @@ class TestInterpreterDangerousOperationBlocking(unittest.TestCase):
 			history=False,
 			upgrade=False,
 			unsafe=unsafe,
+			sandbox=not unsafe,
+			tui=False,
+			cli=True,
+			agent=False,
+			agentic=False,
+			yes=False,
+			search=False,
+			output_format="plain",
+			no_color=False,
+			stream=False,
+			mcp=None,
+			max_context_tokens=8000,
 		)
 
 	@patch("libs.interpreter_lib.display_markdown_message")

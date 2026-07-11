@@ -127,10 +127,16 @@ class TestModeFlagsBootstrap(unittest.TestCase):
             history=False,
             agent=True,
             yes=True,
+            output_format="plain",
+            no_color=False,
+            search=False,
+            stream=False,
         )
         with patch("libs.core.session.load_system_message", return_value="sys"), \
              patch.object(type(interp), "initialize_client", create=True), \
-             patch.object(type(interp), "initialize_mode", create=True):
+             patch.object(type(interp), "initialize_mode", create=True), \
+             patch("libs.output_formatter.sys.stdout") as mock_stdout:
+            mock_stdout.isatty.return_value = True
             interp.initialize_client = MagicMock()
             interp.initialize_mode = MagicMock()
             interp.utility_manager = MagicMock()

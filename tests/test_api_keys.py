@@ -19,10 +19,31 @@ class TestAPIKeysAndModels(unittest.TestCase):
 		patch.stopall()
 
 	def _create_interpreter(self, model_name, provider=""):
-		# Mock args
+		# Mock args — set CLI flags explicitly (MagicMock attrs are truthy).
 		args = MagicMock()
 		args.model = model_name
 		args.mode = "code"
+		args.lang = "python"
+		args.save_code = False
+		args.exec = False
+		args.display_code = False
+		args.history = False
+		args.unsafe = False
+		args.sandbox = True
+		args.file = None
+		args.tui = False
+		args.cli = True
+		args.agent = False
+		args.agentic = False
+		args.yes = False
+		args.search = False
+		args.search_provider = None
+		args.search_api_key = None
+		args.output_format = "plain"
+		args.no_color = False
+		args.stream = False
+		args.mcp = None
+		args.max_context_tokens = 8000
 
 		# Mock config reading to return the requested model and provider
 		self.mock_utility_manager.read_config_file.return_value = {"model": model_name, "provider": provider}

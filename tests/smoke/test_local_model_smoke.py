@@ -76,7 +76,10 @@ class TestLocalModelSmoke(unittest.TestCase):
 		args = Namespace(
 			model="local-model", mode="code", lang="python", save_code=False, exec=False,
 			display_code=False, history=False, unsafe=False, sandbox=True, file=None,
-			tui=False, cli=True, agent=False, agentic=False,
+			tui=False, cli=True, agent=False, agentic=False, yes=False, yolo=False,
+			search=False, search_provider=None, search_api_key=None,
+			output_format="plain", no_color=False, stream=False, mcp=None,
+			max_context_tokens=8000,
 		)
 		env = {
 			"OPENAI_API_KEY": "sk-local-smoke",
