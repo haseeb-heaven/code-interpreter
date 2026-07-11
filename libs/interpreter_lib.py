@@ -203,6 +203,34 @@ class Interpreter:
 		except EOFError:
 			return default
 
+	def _structured_output_active(self) -> bool:
+		"""True when ``--output-format json|markdown`` (or piped auto-JSON) is active."""
+		formatter = getattr(self, "output_formatter", None)
+		return bool(formatter is not None and formatter.is_structured)
+
+	def emit_turn_result(
+		self,
+		result_text="",
+		code=None,
+		execution_output=None,
+		error=None,
+		status="success",
+	):
+		"""Emit structured result for the completed turn (#219). Plain mode is a no-op."""
+		formatter = getattr(self, "output_formatter", None)
+		if formatter is None:
+			return
+		if error and status == "success":
+			status = "error"
+		formatter.emit(
+			result_text=result_text or "",
+			code=code,
+			execution_output=execution_output,
+			error=error,
+			status=status,
+			language=getattr(self, "INTERPRETER_LANGUAGE", None) or "python",
+		)
+
 	def _open_tui_settings(self, setting_type):
 		return open_tui_settings(self, setting_type)
 
