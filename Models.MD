@@ -60,4 +60,20 @@ This document lists all supported models in Code-Interpreter.
 ## Hugging Face + local
 - `hf-meta-llama-3`, `code-llama`, `code-llama-phind`, `mistral-7b`, `wizard-coder`, `star-chat`, `local-model`.
 
+## Vision + Streaming support matrix
+
+| Provider / model family | Vision | Streaming | Notes |
+|---|---|---|---|
+| `gpt-4o` / `gpt-4.1` / `gpt-5*` | ✅ | ✅ | Strong vision quality |
+| `gemini-2.5-*` / Gemini previews | ✅ | ✅ | Native multimodal |
+| `claude-sonnet` / `claude-opus` / `claude-haiku` | ✅ | ✅ | Code + image reasoning |
+| `llava` (Ollama / local) | ✅ | ✅ | Local, free |
+| `gpt-4-turbo` (legacy) | ✅ | ✅ | Older but reliable |
+| `groq/*` | ❌ | ✅ | Text-only today |
+| `openrouter-free` | ⚠️ | ✅ | Depends on routed backend model |
+| `deepseek-*` | ❌ | ✅ | Text-focused |
+| `local-model` | ⚠️ | ✅ | Depends on served weights |
+
+Use `--image path.png` or `/image path.png` for multimodal prompts. Token streaming is on by default; disable with `--no-stream`. `--gemini-style` always enables streaming.
+
 Last verified model baseline: **April 5, 2026**.

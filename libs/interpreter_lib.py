@@ -59,6 +59,8 @@ class Interpreter:
 		self.logger = Logger.initialize("logs/interpreter.log")
 		self.client = self.config_values = self.gemini_vision = None
 		self.system_message = ""
+		self._pending_images = []
+		self._last_response_was_streamed = False
 		self.UNSAFE_EXECUTION = getattr(args, "unsafe", False)
 		self.safety_manager = ExecutionSafetyManager(unsafe_mode=self.UNSAFE_EXECUTION)
 		self.code_interpreter = CodeInterpreter(safety_manager=self.safety_manager)

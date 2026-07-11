@@ -121,6 +121,27 @@ def build_parser():
 			'E.g.: --mcp-server npx -y @modelcontextprotocol/server-filesystem .'
 		),
 	)
+	stream_group = parser.add_mutually_exclusive_group()
+	stream_group.add_argument(
+		'--stream',
+		dest='stream',
+		action='store_true',
+		help='Stream tokens as they are generated (default: on for --gemini-style).',
+	)
+	stream_group.add_argument(
+		'--no-stream',
+		dest='stream',
+		action='store_false',
+		help='Disable token streaming; wait for the full LLM response.',
+	)
+	parser.set_defaults(stream=True)
+	parser.add_argument(
+		'--image',
+		nargs='+',
+		metavar='PATH_OR_URL',
+		default=None,
+		help='One or more image paths or URLs to include with the prompt (multimodal / vision).',
+	)
 	return parser
 
 
@@ -140,6 +161,12 @@ def prepare_args(args, argv):
 	if getattr(args, 'gemini_style', False):
 		args.agentic = True
 		args.free = True
+		args.cli = True
+		args.tui = False
+		args.stream = True  # Gemini-CLI parity: always stream tokens
+
+	# Multimodal --image implies classic CLI (not TUI)
+	if getattr(args, 'image', None):
 		args.cli = True
 		args.tui = False
 

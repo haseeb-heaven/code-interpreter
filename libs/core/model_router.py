@@ -411,6 +411,38 @@ class ModelRouter:
 
 		messages = interp.get_prompt(message, chat_history)
 
+		# Multimodal: --image / pending /image REPL / legacy image_file
+		image_sources = []
+		if image_file:
+			image_sources.append(str(image_file))
+		cli_images = getattr(getattr(interp, "args", None), "image", None) or []
+		image_sources.extend(str(src) for src in cli_images)
+		pending = getattr(interp, "_pending_images", None) or []
+		if pending:
+			image_sources.extend(str(src) for src in pending)
+			interp._pending_images = []
+		# De-dupe while preserving order
+		seen = set()
+		unique_images = []
+		for src in image_sources:
+			if src not in seen:
+				seen.add(src)
+				unique_images.append(src)
+		image_sources = unique_images
+
+		if image_sources and isinstance(messages, list):
+			from libs.vision.image_handler import inject_images_into_messages, is_vision_model
+
+			model_label = str(getattr(interp, "INTERPRETER_MODEL", "") or "")
+			if not is_vision_model(model_label):
+				interp.logger.warning(
+					"Model '%s' may not support image inputs; sending multimodal payload anyway.",
+					model_label,
+				)
+				print(f"WARNING: Model '{model_label}' may not support image inputs.")
+			# Use the original user message text for the multimodal turn
+			messages = inject_images_into_messages(messages, str(message or ""), image_sources)
+
 		if config_provider in ("browser-use", "browser_use") or interp.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
 			interp.logger.info("Model is Browser Use session model.")
 			response_text = interp._generate_browser_use_content(message, messages, config_values or {})
@@ -426,22 +458,24 @@ class ModelRouter:
 				raise
 
 			interp.logger.info("Model is Gemini Pro Vision.")
-			if not image_file:
+			vision_image = image_sources[0] if image_sources else image_file
+			if not vision_image:
 				interp.logger.error("Image file is not valid or Corrupted.")
 				raise ValueError("Image file is not valid or Corrupted.")
 
-			if "http" in image_file or "https" in image_file or "www." in image_file:
+			if "http" in vision_image or "https" in vision_image or "www." in vision_image:
 				interp.logger.info("Image contains URL.")
-				response = interp.gemini_vision.gemini_vision_url(prompt=messages, image_url=image_file)
+				response = interp.gemini_vision.gemini_vision_url(prompt=messages, image_url=vision_image)
 			else:
 				interp.logger.info("Image contains file.")
-				response = interp.gemini_vision.gemini_vision_path(prompt=messages, image_path=image_file)
+				response = interp.gemini_vision.gemini_vision_path(prompt=messages, image_path=vision_image)
 
 			interp.logger.info("Response received from completion function.")
 			return response
 
 		interp.INTERPRETER_MODEL = normalize_model_name(interp.INTERPRETER_MODEL)
 
+		use_stream = bool(getattr(getattr(interp, "args", None), "stream", False))
 		kwargs = build_completion_kwargs(
 			model=interp.INTERPRETER_MODEL,
 			messages=messages,
@@ -449,8 +483,38 @@ class ModelRouter:
 			max_tokens=max_tokens,
 			config_provider=config_provider,
 			api_base=api_base,
+			stream=use_stream,
 		)
-		interp.logger.info(f"Calling litellm.completion for provider-resolved kwargs (keys: {list(kwargs.keys())})")
+		interp.logger.info(
+			f"Calling litellm.completion for provider-resolved kwargs "
+			f"(keys: {list(kwargs.keys())}, stream={use_stream})"
+		)
+
+		if use_stream:
+			from libs.streaming import StreamingPrinter, looks_like_completion_response
+
+			interp._last_response_was_streamed = False
+			response = completion_fn(interp.INTERPRETER_MODEL, **kwargs)
+			if looks_like_completion_response(response):
+				generated_text = interp.utility_manager._extract_content(response)
+				if generated_text:
+					print(generated_text)
+					interp._last_response_was_streamed = True
+			else:
+				try:
+					generated_text, _ = StreamingPrinter(show_stream=True).print_stream(response)
+					interp._last_response_was_streamed = True
+				except Exception as stream_exc:
+					interp.logger.warning(f"Streaming failed, falling back: {stream_exc}")
+					kwargs_ns = dict(kwargs)
+					kwargs_ns["stream"] = False
+					response = completion_fn(interp.INTERPRETER_MODEL, **kwargs_ns)
+					generated_text = interp.utility_manager._extract_content(response)
+					interp._last_response_was_streamed = False
+			interp.logger.info(f"Generated content {generated_text}")
+			return generated_text
+
+		interp._last_response_was_streamed = False
 		response = completion_fn(interp.INTERPRETER_MODEL, **kwargs)
 		interp.logger.info("Response received from completion function.")
 

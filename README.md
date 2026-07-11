@@ -136,6 +136,7 @@ python interpreter.py -md 'code' -m 'local-model'
 - 🤝 Integrates with HuggingFace, OpenAI, Gemini, Groq, Claude, DeepSeek, NVIDIA, Z AI, OpenRouter, Browser Use
 - 🎯 Versatile tasks: file ops, image/video editing, data analysis
 - 🔌 Native FS/shell tool registry + MCP stdio client for autonomous agent loops (`--yolo`, `--mcp-server`)
+- ⚡ Token streaming (`--stream` / `--no-stream`) and multimodal image input (`--image`, `/image`)
 
 ## **Safety Features**
 
@@ -334,6 +335,23 @@ python interpreter.py --yolo --yes -f task.txt --mcp-server npx -y @modelcontext
 
 In the autonomous REPL: `/tools` lists registered tools; `/model`, `/free`, `/exit` work as usual.
 
+### Streaming + multimodal images
+```bash
+# Stream tokens (default). Disable with --no-stream
+python interpreter.py --cli -m gpt-4o --stream -md chat
+
+# Gemini-style always streams
+python interpreter.py --gemini-style -m gemini-2.5-flash
+
+# Pass one or more images with a prompt file / REPL task
+python interpreter.py --cli -m gpt-4o --image ./diagram.png -md chat
+python interpreter.py --cli -m gpt-4o --image ./before.png ./after.png -md chat
+
+# In-REPL
+# /image ./screenshot.png
+# → then type your question about the image
+```
+
 ## 🖥️ **Interpreter Commands**
 
 Here are the available commands:
@@ -361,6 +379,7 @@ Here are the available commands:
 - 🔄 `/reload-keys` - Reload API keys from `.env` without restart.
 - 📊 `/metrics` - Show LLM call metrics summary.
 - 🆓 `/free` - List curated free/cheap LLM presets.
+- 🖼️ `/image` - Attach an image path/URL, then ask a multimodal question.
 
 ## **Settings**
 

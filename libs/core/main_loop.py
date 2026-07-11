@@ -175,6 +175,38 @@ def run_interpreter_main(interp, version):
 				display_markdown_message(f"History is {'enabled' if interp.INTERPRETER_HISTORY else 'disabled'}")
 				continue
 
+			# IMAGE - Multimodal attach (#216)
+			elif task.lower().startswith('/image'):
+				parts = task.split(maxsplit=1)
+				if len(parts) < 2 or not parts[1].strip():
+					display_markdown_message("Usage: `/image <path-or-url>` then ask a question.")
+					continue
+				image_path = parts[1].strip().strip('"').strip("'")
+				interp._pending_images = getattr(interp, '_pending_images', []) or []
+				interp._pending_images.append(image_path)
+				display_markdown_message(
+					f"Image queued: `{image_path}`. Type your question about it (or another `/image`)."
+				)
+				question = interp._safe_input("💬 You: ", default="")
+				if not (question or "").strip():
+					display_markdown_message("No question provided; image kept for the next task.")
+					continue
+				from libs.vision.image_handler import is_vision_model
+
+				model_label = str(getattr(interp, 'INTERPRETER_MODEL', '') or '')
+				if not is_vision_model(model_label):
+					display_markdown_message(
+						f"WARNING: Model '{model_label}' may not support image inputs."
+					)
+				generated_output = interp._generate_content_with_retries(
+					question.strip(),
+					interp.history,
+					config_values=interp.config_values,
+					image_file=None,
+				)
+				display_markdown_message(f"{generated_output}")
+				continue
+
 			elif task.lower().startswith('/memory'):
 				parts = task.split()
 				sub = parts[1].lower() if len(parts) > 1 else 'show'
@@ -702,9 +734,11 @@ def run_interpreter_main(interp, version):
 
 			generated_output = interp._generate_content_with_retries(prompt, interp.history, config_values=interp.config_values,image_file=extracted_file_name)
 
-			# No extra processing for Vision mode.
+			# No extra processing for Vision mode / chat (avoid double-print when streamed).
 			if interp.INTERPRETER_MODE in ['vision', 'chat']:
-				display_markdown_message(f"{generated_output}")
+				if not getattr(interp, '_last_response_was_streamed', False):
+					display_markdown_message(f"{generated_output}")
+				interp._last_response_was_streamed = False
 				continue
 
 			# Extract the code from the generated output.

@@ -4,7 +4,13 @@ Centralised helper that builds the keyword-arguments dictionary for a single
 previously lived in Interpreter.generate_content.
 """
 
+from __future__ import annotations
+
+import logging
 import os
+from typing import Any, Callable, Optional
+
+logger = logging.getLogger(__name__)
 
 
 # Providers whose configs route through the OpenAI-compatible shim.
@@ -70,12 +76,14 @@ def build_completion_kwargs(
     max_tokens: int,
     config_provider: str,
     api_base: str,
+    stream: bool = False,
+    tools: list | None = None,
 ) -> dict:
     """Build and return the ``**kwargs`` dict for ``litellm.completion(model, **kwargs)``.
 
     The returned dict always contains ``messages``.  Other keys (``temperature``,
-    ``max_tokens``, ``api_key``, ``api_base``, ``custom_llm_provider``, etc.)
-    are added only when the detected provider requires them.
+    ``max_tokens``, ``api_key``, ``api_base``, ``custom_llm_provider``, ``stream``,
+    ``tools``, etc.) are added only when required.
 
     Raises
     ------
@@ -90,6 +98,11 @@ def build_completion_kwargs(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    if stream:
+        kwargs["stream"] = True
+    if tools:
+        kwargs["tools"] = tools
+        kwargs["tool_choice"] = "auto"
 
     # ── OpenAI-compatible providers (nvidia, z-ai/zai, openrouter) ──────
     if provider in _OPENAI_COMPATIBLE_PROVIDERS:
@@ -138,3 +151,89 @@ def build_completion_kwargs(
     # ── Gemini / Groq / Claude / Deepseek / HuggingFace ─────────────────
     # litellm handles routing via the model name; no extra kwargs needed.
     return kwargs
+
+
+def dispatch_completion(
+    model: str,
+    messages: list[dict],
+    *,
+    completion_fn: Optional[Callable[..., Any]] = None,
+    temperature: float = 0.1,
+    max_tokens: int = 1024,
+    config_provider: str = "",
+    api_base: str = "None",
+    stream: bool = False,
+    tools: list | None = None,
+    show_stream: bool = True,
+    extract_fn: Optional[Callable[[Any], str]] = None,
+) -> str:
+    """
+    Run a LiteLLM completion with optional streaming.
+
+    When ``stream=True``, tokens are printed live and the full buffered text is
+    returned. Falls back to non-streaming if the provider/mock does not stream.
+    """
+    import litellm
+
+    from libs.streaming import StreamingPrinter, looks_like_completion_response
+
+    completion_fn = completion_fn or litellm.completion
+    kwargs = build_completion_kwargs(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        config_provider=config_provider,
+        api_base=api_base,
+        stream=stream,
+        tools=tools,
+    )
+
+    if not stream:
+        response = completion_fn(model, **kwargs)
+        if extract_fn:
+            return extract_fn(response)
+        if looks_like_completion_response(response):
+            if isinstance(response, dict):
+                return response["choices"][0]["message"].get("content") or ""
+            return getattr(response.choices[0].message, "content", None) or ""
+        return str(response or "")
+
+    # Streaming path
+    try:
+        response = completion_fn(model, **kwargs)
+        if looks_like_completion_response(response):
+            # Mock / provider ignored stream=True
+            text = (
+                extract_fn(response)
+                if extract_fn
+                else (
+                    response["choices"][0]["message"].get("content")
+                    if isinstance(response, dict)
+                    else getattr(response.choices[0].message, "content", None)
+                )
+                or ""
+            )
+            if show_stream and text:
+                print(text)
+            return text
+
+        printer = StreamingPrinter(show_stream=show_stream)
+        full_text, _tool_calls = printer.print_stream(response)
+        return full_text
+    except Exception as exc:
+        logger.warning("Streaming not supported for %s, falling back: %s", model, exc)
+        kwargs = dict(kwargs)
+        kwargs["stream"] = False
+        response = completion_fn(model, **kwargs)
+        if extract_fn:
+            return extract_fn(response)
+        if looks_like_completion_response(response):
+            if isinstance(response, dict):
+                text = response["choices"][0]["message"].get("content") or ""
+            else:
+                text = getattr(response.choices[0].message, "content", None) or ""
+            if show_stream and text:
+                print(text)
+            return text
+        raise

@@ -302,6 +302,7 @@ class UtilityManager:
 			"/help - Display this help message.\n"
 			"/list - List the available models.\n"
 			"/free - List curated free/cheap LLM presets.\n"
+			"/image <path-or-url> - Attach an image for a multimodal question.\n"
 			"/version - Display the version of the interpreter.\n"
 			"/debug - Switch between debug and silent mode.\n"
 			"/prompt - Switch input prompt mode between file and prompt.\n"
