@@ -256,6 +256,39 @@ In the agentic REPL (and classic `--cli`), use `/free` to discover presets and `
 
 See `configs/free/catalog.json` for the curated list. Existing `--agentic` / `--agent` flags remain unchanged.
 
+### Structured output (`--output-format`)
+Machine-readable results for shell pipelines, CI, and editor wrappers. Non-TTY (piped) stdout auto-selects JSON and disables colors; override with an explicit format.
+
+```bash
+# Explicit JSON (works in a terminal or when piped)
+python interpreter.py --cli --yes --output-format json -m local-model -md code -f task.txt
+
+# Extract generated code with jq
+python interpreter.py --cli --yes --output-format json -m local-model -f task.txt | jq -r '.code'
+
+# Markdown sections for docs / PR bodies
+python interpreter.py --cli --yes --output-format markdown -m local-model -f task.txt
+
+# Piped without a format flag → auto JSON + no color
+python interpreter.py --cli --yes -m local-model -f task.txt | jq '.status'
+
+# Force plain text even when piped
+python interpreter.py --cli --yes --output-format plain -m local-model -f task.txt | grep -i print
+```
+
+JSON schema (stable):
+
+```json
+{
+  "status": "success",
+  "result": "…",
+  "code": "print('Hello')",
+  "execution_output": "Hello\n"
+}
+```
+
+Use `--no-color` to strip ANSI codes in plain mode.
+
 ### Run with sandbox (safe)
 ```bash
 python interpreter.py --tui --sandbox

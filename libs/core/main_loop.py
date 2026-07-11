@@ -15,9 +15,22 @@ def run_interpreter_main(interp, version):
 	# Resolve display helpers via interpreter_lib so test patches on
 	# libs.interpreter_lib.display_* continue to work.
 	from libs import interpreter_lib as ilib
-	display_markdown_message = ilib.display_markdown_message
-	display_code = ilib.display_code
+	_display_markdown_message = ilib.display_markdown_message
+	_display_code = ilib.display_code
 
+	structured = bool(
+		getattr(interp, "_structured_output_active", lambda: False)()
+	)
+
+	def display_markdown_message(message):
+		if structured:
+			return
+		_display_markdown_message(message)
+
+	def display_code(*args, **kwargs):
+		if structured:
+			return
+		_display_code(*args, **kwargs)
 
 	interp.interpreter_version = version
 	interp.logger.info(f"Interpreter - v{interp.interpreter_version}")
@@ -44,12 +57,11 @@ def run_interpreter_main(interp, version):
 
 	interp.logger.info(f"Mode: {interp.INTERPRETER_MODE} Start separator: {start_sep}, End separator: {end_sep}")
 
-	# Display system and Assistant information.
+	# Display system and Assistant information (skip in structured/piped modes).
 	input_prompt_mode = "File" if interp.INTERPRETER_PROMPT_FILE else "Input"
-	interp._display_session_banner(os_name, input_prompt_mode)
-
-	# Display the welcome message.
-	display_markdown_message("Welcome to **Interpreter**, I'm here to **assist** you with your everyday tasks. ")
+	if not structured:
+		interp._display_session_banner(os_name, input_prompt_mode)
+		display_markdown_message("Welcome to **Interpreter**, I'm here to **assist** you with your everyday tasks. ")
 
 	# Main System and Assistant loop.
 	running = True
@@ -205,6 +217,7 @@ def run_interpreter_main(interp, version):
 					image_file=None,
 				)
 				display_markdown_message(f"{generated_output}")
+				interp.emit_turn_result(result_text=str(generated_output or ""))
 				continue
 
 			# SEARCH - Web search (#217)
@@ -653,6 +666,13 @@ def run_interpreter_main(interp, version):
 					reason = agent_ctx.metadata.get("review_reason") or agent_ctx.metadata.get("verify_reason")
 					if reason:
 						display_markdown_message(f"Review: {reason}")
+					interp.emit_turn_result(
+						result_text=reason or (agent_ctx.output or "") or "",
+						code=code_snippet,
+						execution_output=code_output,
+						error=code_error,
+						status="error" if code_error else "success",
+					)
 					interp.history_manager.save_history_json(
 						task, interp.INTERPRETER_MODE, os_name, interp.INTERPRETER_LANGUAGE,
 						task, code_snippet, code_output, interp.INTERPRETER_MODEL,
@@ -767,6 +787,10 @@ def run_interpreter_main(interp, version):
 				if not getattr(interp, '_last_response_was_streamed', False):
 					display_markdown_message(f"{generated_output}")
 				interp._last_response_was_streamed = False
+				interp.emit_turn_result(result_text=str(generated_output or ""))
+				# Non-interactive file runs are one-shot (CI / scripts).
+				if getattr(interp, "AUTO_YES", False) and interp.INTERPRETER_PROMPT_FILE:
+					break
 				continue
 
 			# Extract the code from the generated output.
@@ -913,6 +937,15 @@ def run_interpreter_main(interp, version):
 						interp.safety_manager.cleanup_sandbox_context(sandbox_context)
 
 			interp.history_manager.save_history_json(task, interp.INTERPRETER_MODE, os_name, interp.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, interp.INTERPRETER_MODEL)
+
+			# Structured output for scripting / piping (#219).
+			interp.emit_turn_result(
+				result_text=str(generated_output or ""),
+				code=code_snippet,
+				execution_output=code_output,
+				error=code_error,
+				status="error" if code_error else "success",
+			)
 
 			# Non-interactive file runs are one-shot (CI / scripts).
 			if getattr(interp, "AUTO_YES", False) and interp.INTERPRETER_PROMPT_FILE:

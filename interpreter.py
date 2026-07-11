@@ -172,6 +172,23 @@ def build_parser():
 		default=None,
 		help='API key for Tavily or Serper search providers (or set TAVILY_API_KEY / SERPER_API_KEY).',
 	)
+	parser.add_argument(
+		'--output-format',
+		choices=['plain', 'json', 'markdown'],
+		default=None,
+		dest='output_format',
+		help=(
+			"Output format for results. "
+			"'plain' (default for TTY), 'json' (default when piped), 'markdown'. "
+			"Auto-detects non-TTY and switches to JSON."
+		),
+	)
+	parser.add_argument(
+		'--no-color',
+		action='store_true',
+		default=False,
+		help='Disable ANSI color codes in output.',
+	)
 	return parser
 
 
@@ -220,6 +237,15 @@ def prepare_args(args, argv):
 	if getattr(args, 'mode', None) in ('generate', 'project'):
 		args.cli = True
 		args.tui = False
+
+	# Structured / no-color output is CLI-oriented (not TUI)
+	if getattr(args, 'output_format', None) in ('json', 'markdown') or getattr(args, 'no_color', False):
+		args.cli = True
+		args.tui = False
+
+	# Structured formats must not interleave live token streams with JSON/Markdown
+	if getattr(args, 'output_format', None) in ('json', 'markdown'):
+		args.stream = False
 
 	no_runtime_args = len(argv) <= 1
 	if no_runtime_args and not args.cli and not args.tui:

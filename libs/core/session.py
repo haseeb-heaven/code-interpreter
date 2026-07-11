@@ -199,6 +199,15 @@ def bootstrap_interpreter(interp) -> None:
 	interp.INTERPRETER_HISTORY = args.history if hasattr(args, "history") else False
 	interp.AGENT_MODE = bool(getattr(args, "agent", False))
 	interp.AUTO_YES = bool(getattr(args, "yes", False))
+	# Structured output (#219) — attach formatter and suppress Rich decorations.
+	from libs.output_formatter import OutputFormatter
+
+	formatter = OutputFormatter.from_args(args)
+	formatter.apply_env_suppression()
+	interp.output_formatter = formatter
+	# Piped auto-JSON also must not stream tokens onto stdout.
+	if formatter.is_structured and hasattr(args, "stream"):
+		args.stream = False
 	interp.system_message = load_system_message(interp.INTERPRETER_MODE, interp.logger)
 	interp.initialize_client()
 	interp.initialize_mode()
