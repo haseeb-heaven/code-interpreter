@@ -1,12 +1,112 @@
-"""Persistent context window memory with keyword relevance retrieval."""
+"""Persistent context window memory with keyword relevance retrieval.
+
+Also provides ``ContextManager`` (#215) for in-loop conversation compaction.
+"""
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
+from typing import Any, Callable, Optional
 
 from libs.memory.memory_entry import MemoryEntry
+
+logger = logging.getLogger(__name__)
+
+
+class ContextManager:
+	"""
+	Automatically compacts chat message history when it exceeds a token budget.
+
+	Preserves system messages and the last N turns verbatim; summarizes the middle
+	with an optional summarizer callable (or a simple truncation fallback).
+	"""
+
+	def __init__(self, token_limit: int = 100_000, preserve_last_n: int = 6):
+		self.token_limit = token_limit
+		self.preserve_last = preserve_last_n
+
+	def maybe_compact(
+		self,
+		messages: list[dict],
+		dispatcher: Any = None,
+		model: str = "",
+		summarize_fn: Optional[Callable[[str], str]] = None,
+	) -> list[dict]:
+		total_tokens = self._estimate_tokens(messages)
+		if total_tokens < self.token_limit:
+			return messages
+
+		logger.info(
+			"[ContextManager] Compacting: %s tokens exceeds limit %s",
+			total_tokens,
+			self.token_limit,
+		)
+
+		system_msgs = [m for m in messages if m.get("role") == "system"]
+		non_system = [m for m in messages if m.get("role") != "system"]
+		if len(non_system) <= self.preserve_last:
+			return messages
+
+		tail_msgs = non_system[-self.preserve_last :]
+		middle_msgs = non_system[: -self.preserve_last]
+		if not middle_msgs:
+			return messages
+
+		summary_prompt = (
+			"Summarize the following conversation history concisely. "
+			"Preserve all key facts, file paths, and decisions made:\n\n"
+			+ "\n".join(
+				f"{m.get('role', '?').upper()}: {str(m.get('content', '') or '')[:500]}"
+				for m in middle_msgs
+			)
+		)
+
+		summary = self._summarize(summary_prompt, dispatcher, model, summarize_fn)
+		compacted = system_msgs + [
+			{"role": "assistant", "content": f"[Context Summary]\n{summary}"}
+		] + tail_msgs
+		logger.info(
+			"[ContextManager] Compacted to %s tokens",
+			self._estimate_tokens(compacted),
+		)
+		return compacted
+
+	def _summarize(
+		self,
+		prompt: str,
+		dispatcher: Any,
+		model: str,
+		summarize_fn: Optional[Callable[[str], str]],
+	) -> str:
+		if summarize_fn is not None:
+			return str(summarize_fn(prompt) or "")
+		if dispatcher is not None and hasattr(dispatcher, "dispatch"):
+			try:
+				return str(
+					dispatcher.dispatch(
+						messages=[{"role": "user", "content": prompt}],
+						model=model,
+					)
+					or ""
+				)
+			except Exception as exc:
+				logger.warning("[ContextManager] Summarizer failed: %s", exc)
+		# Fallback: truncate the prompt body itself as a crude summary
+		return prompt[:2000] + ("…" if len(prompt) > 2000 else "")
+
+	def _estimate_tokens(self, messages: list[dict]) -> int:
+		# Rough estimate: 4 chars ≈ 1 token
+		total = 0
+		for message in messages:
+			total += len(str(message.get("content", "") or ""))
+			# Include tool call argument text in the estimate
+			for tc in message.get("tool_calls") or []:
+				fn = (tc.get("function") if isinstance(tc, dict) else None) or {}
+				total += len(str(fn.get("arguments", "") if isinstance(fn, dict) else ""))
+		return total // 4
 
 
 class ContextWindowManager:

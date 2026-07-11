@@ -104,6 +104,23 @@ def build_parser():
 		default=False,
 		help='Non-interactive mode: auto-confirm prompts, run file task once, then exit (CI/script friendly)',
 	)
+	parser.add_argument(
+		'--yolo',
+		action='store_true',
+		default=False,
+		help='Fully autonomous tool loop — execute FS/shell tools without approval prompts. Use with caution.',
+	)
+	parser.add_argument(
+		'--mcp-server',
+		nargs=argparse.REMAINDER,
+		metavar='CMD',
+		default=None,
+		help=(
+			'Launch an MCP server (stdio) and register its tools. '
+			'Put this flag last so args like npx -y ... are not parsed as CLI flags. '
+			'E.g.: --mcp-server npx -y @modelcontextprotocol/server-filesystem .'
+		),
+	)
 	return parser
 
 
@@ -133,6 +150,14 @@ def prepare_args(args, argv):
 		auto = os.environ.get('INTERPRETER_YES', '').lower() in ('1', 'true', 'yes')
 		if ci or auto:
 			args.yes = True
+
+	# Autonomous tool loop / MCP: classic CLI path (not TUI)
+	if getattr(args, 'yolo', False) or getattr(args, 'mcp_server', None):
+		args.cli = True
+		args.tui = False
+		# Non-interactive / CI: skip tool approval prompts
+		if getattr(args, 'yes', False):
+			args.yolo = True
 
 	no_runtime_args = len(argv) <= 1
 	if no_runtime_args and not args.cli and not args.tui:
@@ -168,7 +193,9 @@ def main(argv=None):
 		return
 	args = prepare_args(args, argv)
 	interpreter = Interpreter(args)
-	if getattr(args, 'agentic', False):
+	if getattr(args, 'yolo', False) or getattr(args, 'mcp_server', None):
+		interpreter.interpreter_auto_main()
+	elif getattr(args, 'agentic', False):
 		interpreter.interpreter_agentic_main()
 	else:
 		interpreter.interpreter_main(INTERPRETER_VERSION)

@@ -247,6 +247,162 @@ class Interpreter:
 		)
 		return await pipeline.run_async(task=task, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
 
+	def interpreter_auto_main(self):
+		"""Run the autonomous FS/shell tool loop (#215), optionally with MCP tools.
+
+		``--yolo`` skips tool-call approval. ``--mcp-server CMD...`` attaches an MCP server.
+		"""
+		from libs.agent.auto_loop import AutonomousAgentLoop
+		from libs.free_llms import FreeLLMCatalog
+		from libs.memory import ContextManager
+		from libs.tools.bootstrap import build_native_fs_registry
+
+		one_shot = bool(getattr(self, "INTERPRETER_PROMPT_FILE", False) and getattr(self.args, "file", None))
+		auto_mode = bool(getattr(self.args, "yolo", False))
+		mcp_cmd = getattr(self.args, "mcp_server", None)
+		mcp_client = None
+
+		try:
+			mode_label = "YOLO (no approval)" if auto_mode else "tool loop (confirm each call)"
+			self.console.print(f"[bold cyan]Autonomous agent loop[/bold cyan] — {mode_label}")
+			self.console.print(
+				f"Model: [bold]{self.INTERPRETER_MODEL}[/bold]  ·  "
+				"Commands: /free  /model <name>  /help  /exit"
+			)
+
+			registry = build_native_fs_registry()
+			if mcp_cmd:
+				from libs.mcp import MCPClient
+
+				mcp_client = MCPClient(list(mcp_cmd))
+				mcp_client.start_sync()
+				mcp_tools = mcp_client.list_tools_sync()
+				registry.register_mcp_tools(mcp_tools, mcp_client.call_tool_sync)
+				self.console.print(
+					f"[green]MCP connected[/green]: {' '.join(mcp_cmd)} "
+					f"({len(mcp_tools)} tools)"
+				)
+
+			config = self.config_values or {}
+			litellm_model = str(config.get("model") or self.INTERPRETER_MODEL)
+			temperature = float(config.get("temperature", 0.2) or 0.2)
+			max_tokens = int(config.get("max_tokens", 4096) or 4096)
+			config_provider = str(config.get("provider") or config.get("config_provider") or "")
+			api_base = str(config.get("api_base") or "")
+
+			def completion_fn(model, messages, tools):
+				from libs.llm_dispatcher import build_completion_kwargs
+
+				# Prefer live config after /model switches
+				cfg = self.config_values or {}
+				active_model = str(cfg.get("model") or litellm_model)
+				kwargs = build_completion_kwargs(
+					model=active_model,
+					messages=messages,
+					temperature=float(cfg.get("temperature", temperature) or temperature),
+					max_tokens=int(cfg.get("max_tokens", max_tokens) or max_tokens),
+					config_provider=str(cfg.get("provider") or cfg.get("config_provider") or config_provider),
+					api_base=str(cfg.get("api_base") or api_base),
+				)
+				kwargs["tools"] = tools
+				kwargs["tool_choice"] = "auto"
+				return litellm.completion(model=active_model, **kwargs)
+
+			context_manager = ContextManager(token_limit=100_000, preserve_last_n=6)
+			loop = AutonomousAgentLoop(
+				model=litellm_model,
+				auto_mode=auto_mode,
+				registry=registry,
+				completion_fn=completion_fn,
+				context_manager=context_manager,
+			)
+
+			file_task = None
+			if one_shot:
+				try:
+					with open(self.args.file, "r", encoding="utf-8") as file:
+						file_task = file.read()
+				except Exception as exc:
+					self.logger.error(f"Error reading prompt file: {exc}")
+					return
+
+			while True:
+				if file_task is not None:
+					task = file_task
+					file_task = None
+				else:
+					task = self._safe_input("Enter your task: ", default="")
+
+				raw = (task or "").strip()
+				if not raw:
+					self.console.print("Task cannot be empty.")
+					if one_shot:
+						return
+					continue
+
+				lower = raw.lower()
+				if lower in ("/exit", "exit", "quit", "/quit"):
+					self.console.print("Exiting autonomous mode.")
+					return
+				if lower in ("/help", "help"):
+					self.console.print(
+						"Autonomous commands:\n"
+						"  /free           List free/cheap LLM presets\n"
+						"  /model <name>   Switch model config for next run\n"
+						"  /tools          List registered tools\n"
+						"  /help           Show this help\n"
+						"  /exit           Leave the autonomous REPL\n"
+						"Or type a natural-language task to run the tool loop."
+					)
+					if one_shot:
+						return
+					continue
+				if lower == "/tools":
+					for schema in registry.list_tools():
+						self.console.print(f"  - {schema.get('name')}: {schema.get('description', '')}")
+					if one_shot:
+						return
+					continue
+				if lower == "/free":
+					print(FreeLLMCatalog.load().format_table())
+					if one_shot:
+						return
+					continue
+				if lower.startswith("/model"):
+					parts = raw.split(maxsplit=1)
+					if len(parts) < 2 or not parts[1].strip():
+						self.console.print("Usage: /model <config-name>")
+					else:
+						model = parts[1].strip()
+						config_path = f"configs/{model}.json"
+						if not os.path.exists(config_path):
+							self.console.print(
+								f"Model {model} does not exist. Use /free or /list (in --cli)."
+							)
+						else:
+							self.INTERPRETER_MODEL = model
+							self.INTERPRETER_MODEL_LABEL = model
+							self.initialize_client()
+							cfg = self.config_values or {}
+							loop.model = str(cfg.get("model") or self.INTERPRETER_MODEL)
+							self.console.print(f"Model switched to [bold]{model}[/bold]")
+					if one_shot:
+						return
+					continue
+
+				result = loop.run(raw)
+				self.console.print(result or "(no output)")
+				if one_shot:
+					return
+		except KeyboardInterrupt:
+			self.console.print("\n[bold red]Autonomous workflow interrupted by user.[/bold red]")
+		finally:
+			if mcp_client is not None:
+				try:
+					mcp_client.stop_sync()
+				except Exception:
+					pass
+
 	def interpreter_agentic_main(self):
 		"""Run the ReAct agentic loop (Thought -> Action -> Observation).
 

@@ -135,6 +135,7 @@ python interpreter.py -md 'code' -m 'local-model'
 - 💻 Cross-platform (Windows/macOS/Linux)
 - 🤝 Integrates with HuggingFace, OpenAI, Gemini, Groq, Claude, DeepSeek, NVIDIA, Z AI, OpenRouter, Browser Use
 - 🎯 Versatile tasks: file ops, image/video editing, data analysis
+- 🔌 Native FS/shell tool registry + MCP stdio client for autonomous agent loops (`--yolo`, `--mcp-server`)
 
 ## **Safety Features**
 
@@ -314,6 +315,24 @@ python interpreter.py --agentic --yes -m openrouter-free -f task.txt
 
 ### ReAct `--agentic` workflow
 ![Agentic ReAct](resources/interpreter-agentic.png)
+
+### Autonomous tool loop (`--yolo`) + MCP
+Fully autonomous FS/shell tools (`read_file`, `write_file`, `list_dir`, `run_shell`, `glob_search`) via an OpenAI-style tool-calling loop. Optional MCP servers attach extra tools over stdio JSON-RPC.
+
+Put `--mcp-server` last so server args like `npx -y ...` are not parsed as interpreter flags.
+
+```bash
+# YOLO — no approval prompts (use with caution)
+python interpreter.py --yolo -m local-model -f task.txt --yes
+
+# Confirm each tool call (interactive)
+python interpreter.py --cli -m local-model --mcp-server npx -y @modelcontextprotocol/server-filesystem .
+
+# Combine YOLO + MCP (--mcp-server last)
+python interpreter.py --yolo --yes -f task.txt --mcp-server npx -y @modelcontextprotocol/server-filesystem .
+```
+
+In the autonomous REPL: `/tools` lists registered tools; `/model`, `/free`, `/exit` work as usual.
 
 ## 🖥️ **Interpreter Commands**
 
