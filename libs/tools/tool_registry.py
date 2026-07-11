@@ -24,6 +24,7 @@ class ToolRegistry:
 		self._tools: dict[str, BaseTool] = {}
 		self._mcp_handlers: dict[str, Callable[[dict], ToolResult]] = {}
 		self._mcp_schemas: list[dict] = []
+		self._web_search = None  # Lazy — enabled via enable_web_search() / --search
 
 	def register(self, tool: BaseTool):
 		if not isinstance(tool, BaseTool):
@@ -35,12 +36,31 @@ class ToolRegistry:
 		self._tools[tool.name] = tool
 		return tool
 
+	def enable_web_search(self, provider: str = "duckduckgo", api_key: str = None):
+		"""Enable web search tool. Call when ``--search`` is passed (#217)."""
+		from libs.tools.web_search_tool import WebSearchTool
+
+		if "web_search" in self._tools:
+			# Replace existing registration so provider/key can be updated.
+			del self._tools["web_search"]
+		tool = WebSearchTool(provider=provider, api_key=api_key)
+		self.register(tool)
+		self._web_search = tool
+		logger.info("[ToolRegistry] Web search enabled via %s", provider)
+		return tool
+
 	def get(self, name: str):
 		return self._tools.get(name)
 
 	def call(self, name: str, input_data=None) -> ToolResult:
 		"""Call a registered native or MCP tool by name."""
 		input_data = input_data or {}
+		if name == "web_search" and self._web_search is None and name not in self._tools:
+			return ToolResult(
+				success=False,
+				output="",
+				error="Web search not enabled. Use --search flag.",
+			)
 		if name in self._mcp_handlers:
 			try:
 				return self._mcp_handlers[name](input_data)

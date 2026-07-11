@@ -137,6 +137,7 @@ python interpreter.py -md 'code' -m 'local-model'
 - 🎯 Versatile tasks: file ops, image/video editing, data analysis
 - 🔌 Native FS/shell tool registry + MCP stdio client for autonomous agent loops (`--yolo`, `--mcp-server`)
 - ⚡ Token streaming (`--stream` / `--no-stream`) and multimodal image input (`--image`, `/image`)
+- 🌐 Web search tool (`--search`, `/search`) via DuckDuckGo / Tavily / Serper
 
 ## **Safety Features**
 
@@ -352,6 +353,22 @@ python interpreter.py --cli -m gpt-4o --image ./before.png ./after.png -md chat
 # → then type your question about the image
 ```
 
+### Web search (`--search`)
+Enable an LLM-callable `web_search` tool (and the `/search` REPL command). DuckDuckGo is the default and needs no API key; set `TAVILY_API_KEY` / `SERPER_API_KEY` or pass `--search-provider` for premium backends.
+
+```bash
+# DuckDuckGo (free)
+python interpreter.py --gemini-style --search -m local-model
+
+# With YOLO autonomy so the agent can call web_search mid-task
+python interpreter.py --yolo --search --yes -m local-model -f task.txt
+
+# Tavily / Serper
+python interpreter.py --search --search-provider tavily --search-api-key "$TAVILY_API_KEY" --cli
+```
+
+In the REPL: `/search latest litellm version`
+
 ## 🖥️ **Interpreter Commands**
 
 Here are the available commands:
@@ -380,6 +397,7 @@ Here are the available commands:
 - 📊 `/metrics` - Show LLM call metrics summary.
 - 🆓 `/free` - List curated free/cheap LLM presets.
 - 🖼️ `/image` - Attach an image path/URL, then ask a multimodal question.
+- 🌐 `/search` - Search the web (DuckDuckGo by default).
 
 ## **Settings**
 

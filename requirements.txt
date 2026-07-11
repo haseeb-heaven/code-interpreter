@@ -20,3 +20,6 @@ stdlib_list
 
 # Legacy libraries
 legacy-cgi
+# Optional: web search tool (--search). DuckDuckGo needs no API key.
+duckduckgo-search>=6.0.0
+

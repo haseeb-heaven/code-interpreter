@@ -142,6 +142,24 @@ def build_parser():
 		default=None,
 		help='One or more image paths or URLs to include with the prompt (multimodal / vision).',
 	)
+	parser.add_argument(
+		'--search',
+		action='store_true',
+		default=False,
+		help='Enable web search tool (DuckDuckGo by default; no API key needed).',
+	)
+	parser.add_argument(
+		'--search-provider',
+		choices=['duckduckgo', 'tavily', 'serper'],
+		default='duckduckgo',
+		help='Search provider to use. Default: duckduckgo (free, no API key).',
+	)
+	parser.add_argument(
+		'--search-api-key',
+		metavar='KEY',
+		default=None,
+		help='API key for Tavily or Serper search providers (or set TAVILY_API_KEY / SERPER_API_KEY).',
+	)
 	return parser
 
 

@@ -207,6 +207,34 @@ def run_interpreter_main(interp, version):
 				display_markdown_message(f"{generated_output}")
 				continue
 
+			# SEARCH - Web search (#217)
+			elif task.lower().startswith('/search'):
+				parts = task.split(maxsplit=1)
+				if len(parts) < 2 or not parts[1].strip():
+					display_markdown_message("Usage: `/search <query>`")
+					continue
+				query = parts[1].strip()
+				from libs.key_manager import resolve_search_provider
+				from libs.tools.web_search_tool import WebSearchTool
+
+				provider, api_key = resolve_search_provider(
+					cli_provider=getattr(interp.args, "search_provider", None),
+					cli_api_key=getattr(interp.args, "search_api_key", None),
+				)
+				# Prefer registry tool if already enabled
+				registry = getattr(interp, "tool_registry", None)
+				if registry is not None and registry.get("web_search") is not None:
+					result = registry.dispatch("web_search", {"query": query, "max_results": 5})
+					print(result.output if result.success else (result.error or result.output))
+				else:
+					try:
+						searcher = WebSearchTool(provider=provider, api_key=api_key)
+					except ValueError as exc:
+						display_markdown_message(f"Web search unavailable: {exc}")
+						continue
+					print(searcher.search(query))
+				continue
+
 			elif task.lower().startswith('/memory'):
 				parts = task.split()
 				sub = parts[1].lower() if len(parts) > 1 else 'show'

@@ -212,6 +212,15 @@ def wire_components(interp) -> None:
 	interp.model_router = ModelRouter(interp)
 	interp.executor = CodeExecutor(interp)
 	interp.tool_registry = build_registry(interp.executor, interp.package_manager)
+	if getattr(getattr(interp, "args", None), "search", False):
+		from libs.key_manager import resolve_search_provider
+
+		provider, api_key = resolve_search_provider(
+			cli_provider=getattr(interp.args, "search_provider", None),
+			cli_api_key=getattr(interp.args, "search_api_key", None),
+		)
+		interp.tool_registry.enable_web_search(provider=provider, api_key=api_key)
+		interp.logger.info("Web search enabled via %s", provider)
 	interp.repairer = Repairer(interp)
 	interp.code_mode = CodeModeHandler(interp)
 	interp.vision_mode = VisionModeHandler(interp)

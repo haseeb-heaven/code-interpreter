@@ -560,3 +560,41 @@ class KeyManager:
 def provider_from_api_key_name(api_key_name: str) -> str:
 	"""Map OPENAI_API_KEY → openai."""
 	return ENV_TO_PROVIDER.get(api_key_name, api_key_name.lower().replace("_api_key", ""))
+
+
+def resolve_search_provider(
+	cli_provider: Optional[str] = None,
+	cli_api_key: Optional[str] = None,
+) -> tuple[str, Optional[str]]:
+	"""
+	Resolve web-search provider + API key (#217).
+
+	Priority:
+	1. Explicit CLI ``--search-provider`` / ``--search-api-key``
+	2. ``TAVILY_API_KEY`` env → tavily
+	3. ``SERPER_API_KEY`` env → serper
+	4. duckduckgo (free, no key)
+	"""
+	cli_provider = (cli_provider or "").strip().lower() or None
+	cli_api_key = (cli_api_key or "").strip() or None
+
+	if cli_provider:
+		if cli_provider in ("tavily", "serper"):
+			key = cli_api_key
+			if not key:
+				env_name = "TAVILY_API_KEY" if cli_provider == "tavily" else "SERPER_API_KEY"
+				key = os.getenv(env_name) or None
+			return cli_provider, key
+		return cli_provider, cli_api_key
+
+	if cli_api_key:
+		# Key without provider — prefer tavily if unspecified
+		return "tavily", cli_api_key
+
+	tavily = os.getenv("TAVILY_API_KEY")
+	if tavily:
+		return "tavily", tavily
+	serper = os.getenv("SERPER_API_KEY")
+	if serper:
+		return "serper", serper
+	return "duckduckgo", None

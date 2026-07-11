@@ -273,6 +273,16 @@ class Interpreter:
 			)
 
 			registry = build_native_fs_registry()
+			if getattr(self.args, "search", False):
+				from libs.key_manager import resolve_search_provider
+
+				provider, api_key = resolve_search_provider(
+					cli_provider=getattr(self.args, "search_provider", None),
+					cli_api_key=getattr(self.args, "search_api_key", None),
+				)
+				registry.enable_web_search(provider=provider, api_key=api_key)
+				self.console.print(f"[green]Web search enabled[/green] ({provider})")
+
 			if mcp_cmd:
 				from libs.mcp import MCPClient
 
