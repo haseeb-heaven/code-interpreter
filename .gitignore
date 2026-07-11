@@ -29,8 +29,8 @@ node_modules/
 # Interactive environment data
 interp/
 
-# Generated output files and directories
-output/
+# Generated output files and directories (repo root only — not libs/output)
+/output/
 logs/
 dist/
 *.tmp
