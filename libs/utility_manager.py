@@ -318,7 +318,7 @@ class UtilityManager:
 			logger = Logger.initialize("logs/interpreter.log")
 			import requests
 			logger.info(f"Downloading file: {url}")
-			response = requests.get(url, allow_redirects=True)
+			response = requests.get(url, allow_redirects=True, timeout=10)
 			response.raise_for_status()
 			
 			with open(file_name, 'wb') as file:
