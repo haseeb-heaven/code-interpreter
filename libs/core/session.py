@@ -183,6 +183,7 @@ def bootstrap_interpreter(interp) -> None:
 	interp.INTERPRETER_PROMPT_FILE, interp.INTERPRETER_PROMPT_INPUT = resolve_prompt_input_flags(args)
 	interp.INTERPRETER_HISTORY = args.history if hasattr(args, "history") else False
 	interp.AGENT_MODE = bool(getattr(args, "agent", False))
+	interp.AUTO_YES = bool(getattr(args, "yes", False))
 	interp.system_message = load_system_message(interp.INTERPRETER_MODE, interp.logger)
 	interp.initialize_client()
 	interp.initialize_mode()

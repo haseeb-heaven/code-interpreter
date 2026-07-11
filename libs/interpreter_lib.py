@@ -181,6 +181,23 @@ class Interpreter:
 		)
 
 	def _safe_input(self, prompt_text, default=None):
+		"""Read user input, or auto-confirm when ``--yes`` / CI non-interactive mode is on."""
+		auto_yes = bool(getattr(self, "AUTO_YES", False))
+		text = prompt_text or ""
+		lower = text.lower()
+		# Confirmation-style prompts → "y" so scripted runs never block.
+		if auto_yes and (
+			"y/n" in lower
+			or "execute the" in lower
+			or "create a new prompt" in lower
+			or "are you sure" in lower
+		):
+			self.logger.info(f"AUTO_YES confirmed prompt: {text.strip()!r}")
+			return "y"
+		# Generic prompts in non-interactive mode: use default (often /exit).
+		if auto_yes and default is not None:
+			self.logger.info(f"AUTO_YES default for prompt: {text.strip()!r} -> {default!r}")
+			return default
 		try:
 			return input(prompt_text)
 		except EOFError:
