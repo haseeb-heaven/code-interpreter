@@ -20,6 +20,9 @@ Manual live-style commands (local stub preferred):
   # Slash commands smoke (mocked LLM in unit suite; live needs model)
   "/memory stats`n/tools list`n/free`n/exit`n" | python interpreter.py --cli -m local-model --yes
 
+Interactive suite (offline):
+  python -m unittest discover -s tests/interactive -v
+
 Live cloud (optional; soft-skip on quota/billing):
   $env:SMOKE_LIVE=1
   python -m unittest tests.smoke.test_live_model_smoke -v
