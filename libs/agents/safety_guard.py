@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 
 from libs.agents.base_agent import AgentContext, BaseAgent
@@ -45,3 +46,6 @@ class SafetyGuard(BaseAgent):
 		context.metadata["safety"] = "passed"
 		self._log("Code passed safety check")
 		return context
+
+	async def run_async(self, context: AgentContext) -> AgentContext:
+		return await asyncio.to_thread(self.run, context)

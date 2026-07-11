@@ -24,6 +24,8 @@ class SessionConfig:
 	unsafe: bool = False
 	history: bool = False
 	history_count: int = 3
+	max_context_tokens: int = 8000
+	history_file: str = "history/history.json"
 	prompt_file: Optional[str] = None
 
 	@classmethod
@@ -40,6 +42,8 @@ class SessionConfig:
 			unsafe=bool(getattr(args, "unsafe", False)),
 			history=bool(getattr(args, "history", False)),
 			history_count=3,
+			max_context_tokens=int(getattr(args, "max_context_tokens", None) or 8000),
+			history_file=getattr(args, "history_file", None) or "history/history.json",
 			prompt_file=file_arg if file_arg not in (None, "") else (None if file_arg is None else "prompt.txt"),
 		)
 
@@ -194,19 +198,26 @@ def wire_components(interp) -> None:
 	from libs.core.prompt_builder import PromptBuilder
 	from libs.execution.executor import CodeExecutor
 	from libs.execution.repairer import Repairer
+	from libs.memory.context_manager import ContextWindowManager
 	from libs.modes.chat_mode import ChatModeHandler
 	from libs.modes.code_mode import CodeModeHandler
 	from libs.modes.command_mode import CommandModeHandler
 	from libs.modes.script_mode import ScriptModeHandler
 	from libs.modes.vision_mode import VisionModeHandler
+	from libs.tools.bootstrap import build_registry
 
 	interp.session_config = SessionConfig.from_args(interp.args)
 	interp.prompt_builder = PromptBuilder(interp)
 	interp.model_router = ModelRouter(interp)
 	interp.executor = CodeExecutor(interp)
+	interp.tool_registry = build_registry(interp.executor, interp.package_manager)
 	interp.repairer = Repairer(interp)
 	interp.code_mode = CodeModeHandler(interp)
 	interp.vision_mode = VisionModeHandler(interp)
 	interp.script_mode = ScriptModeHandler(interp)
 	interp.command_mode = CommandModeHandler(interp)
 	interp.chat_mode = ChatModeHandler(interp)
+	interp.memory = ContextWindowManager(
+		max_tokens=getattr(interp.session_config, "max_context_tokens", 8000),
+		history_file=getattr(interp, "history_file", "history/history.json"),
+	)

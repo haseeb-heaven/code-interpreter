@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
+import shutil
+import tempfile
+
+
+MAX_OUTPUT = 10_000_000
+
 
 class CodeExecutor:
 	"""Wraps Interpreter.execute_code with sandbox context management."""
@@ -105,4 +113,62 @@ class CodeExecutor:
 			return stdout, stderr
 		except Exception as exc:
 			interp.logger.error(f"Interpreter.execute_code failed: {exc}")
+			return None, str(exc)
+
+	async def execute_async(self, code, language, timeout=300):
+		"""Execute generated code asynchronously without altering the sync execution path."""
+		interp = self.interp
+		language = (language or "").lower()
+		if language in ("linux", "windows", "windows 10", "windows 11", "mac", "macos", "darwin"):
+			language = "python"
+
+		if not code or not str(code).strip():
+			return None, "Code is empty. Cannot execute an empty code."
+
+		unsafe = bool(getattr(interp, "UNSAFE_EXECUTION", False))
+		if not unsafe and hasattr(interp, "safety_manager"):
+			decision = interp.safety_manager.assess_execution(code, "code")
+			if not decision.allowed:
+				reason_text = "; ".join(decision.reasons)
+				interp.logger.warning(f"Safety blocked before async execution: {reason_text}")
+				return None, f"Safety blocked: {reason_text}"
+
+		try:
+			with tempfile.TemporaryDirectory(prefix="ci_async_") as exec_dir:
+				if language == "python":
+					exec_bin = shutil.which("python3") or shutil.which("python") or "python"
+					fd, temp_code_path = tempfile.mkstemp(prefix="ci_exec_", suffix=".py", dir=exec_dir)
+					try:
+						with os.fdopen(fd, "wb") as fh:
+							fh.write(str(code).encode())
+					except Exception:
+						os.close(fd)
+						raise
+					args = [exec_bin, temp_code_path]
+				elif language == "javascript":
+					exec_bin = shutil.which("node") or "node"
+					args = [exec_bin, "-e", str(code)]
+				else:
+					interp.logger.info("Unsupported language.")
+					return None, "Unsupported language."
+
+				process = await asyncio.create_subprocess_exec(
+					*args,
+					stdout=asyncio.subprocess.PIPE,
+					stderr=asyncio.subprocess.PIPE,
+					cwd=os.getcwd() if unsafe else exec_dir,
+					start_new_session=(os.name != "nt"),
+				)
+				try:
+					stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+				except asyncio.TimeoutError:
+					process.kill()
+					await process.wait()
+					return None, "Execution timed out."
+
+				stdout_output = stdout.decode("utf-8", errors="replace") if stdout else ""
+				stderr_output = stderr.decode("utf-8", errors="replace") if stderr else ""
+				return stdout_output[:MAX_OUTPUT], stderr_output[:MAX_OUTPUT]
+		except Exception as exc:
+			interp.logger.error(f"Interpreter.execute_async failed: {exc}")
 			return None, str(exc)

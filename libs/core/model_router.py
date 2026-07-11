@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -284,6 +285,64 @@ class ModelRouter:
 
 		raise Exception("Browser Use session timed out.")
 
+	async def generate_browser_use_content_async(self, message, messages, config_values, *, getenv_fn: Callable):
+		interp = self.interp
+		api_key = getenv_fn("BROWSER_USE_API_KEY")
+		if not api_key:
+			raise Exception("BROWSER_USE_API_KEY not found in .env file.")
+
+		base_url = str(config_values.get("api_base", "https://api.browser-use.com/api/v3")).rstrip("/")
+		model = interp.INTERPRETER_MODEL
+		task = self.extract_latest_user_text(message, messages)
+		timeout_seconds = int(config_values.get("browser_use_timeout", 150))
+		poll_interval = int(config_values.get("browser_use_poll_interval", 3))
+
+		headers = {
+			"X-Browser-Use-API-Key": api_key,
+			"Content-Type": "application/json",
+		}
+		payload = {
+			"task": task,
+			"model": model,
+			"keepAlive": False,
+		}
+		interp.logger.info(f"Starting Browser Use session with model={model}")
+		create_response = requests.post(f"{base_url}/sessions", headers=headers, json=payload, timeout=45)
+		create_response.raise_for_status()
+		create_data = create_response.json()
+		session_id = create_data.get("id")
+		if not session_id:
+			raise Exception("Browser Use session creation failed: missing session id")
+
+		end_time = time.time() + timeout_seconds
+		while time.time() < end_time:
+			status_response = requests.get(f"{base_url}/sessions/{session_id}", headers=headers, timeout=30)
+			status_response.raise_for_status()
+			status_data = status_response.json()
+			status = str(status_data.get("status", "")).lower()
+			live_url = status_data.get("liveUrl")
+
+			if status in {"finished", "completed", "stopped", "done", "success"}:
+				output = status_data.get("output")
+				if output is None:
+					output = status_data.get("result")
+				if output is None:
+					output = status_data.get("finalResult")
+				if output is None and live_url:
+					output = f"Browser Use session completed. Live URL: {live_url}"
+				if output is None:
+					output = f"Browser Use session completed. Session ID: {session_id}"
+				if isinstance(output, (dict, list)):
+					return json.dumps(output, ensure_ascii=False)
+				return str(output)
+
+			if status in {"failed", "error", "cancelled"}:
+				raise Exception(f"Browser Use session failed with status '{status}'")
+
+			await asyncio.sleep(poll_interval)
+
+		raise Exception("Browser Use session timed out.")
+
 	# ── Content generation ─────────────────────────────────────────────
 
 	def generate_content(
@@ -402,6 +461,37 @@ class ModelRouter:
 		response = completion_fn(model, **kwargs)
 		return interp.utility_manager._extract_content(response)
 
+	async def route_async(self, messages, config_values=None, *, acompletion_fn=None, getenv_fn=None):
+		"""Async agent-facing completion helper using ``litellm.acompletion``."""
+		import litellm
+
+		interp = self.interp
+		config_values = config_values or {}
+		temperature = float(config_values.get("temperature", 0.1))
+		max_tokens = int(config_values.get("max_tokens", 1024))
+		api_base = str(config_values.get("api_base", (interp.config_values or {}).get("api_base", "None")))
+		config_provider = str(
+			config_values.get("provider", (interp.config_values or {}).get("provider", ""))
+		).strip().lower()
+
+		from libs.llm_dispatcher import build_completion_kwargs
+
+		acompletion_fn = acompletion_fn or litellm.acompletion
+		model = normalize_model_name(interp.INTERPRETER_MODEL)
+		kwargs = build_completion_kwargs(
+			model=model,
+			messages=messages,
+			temperature=temperature,
+			max_tokens=max_tokens,
+			config_provider=config_provider,
+			api_base=api_base,
+		)
+		# Agents often pass plain system/user messages; drop empty assistant noise.
+		kwargs["messages"] = messages
+		self._log_route(model, list(kwargs.keys()))
+		response = await acompletion_fn(model, **kwargs)
+		return interp.utility_manager._extract_content(response)
+
 	def _log_route(self, model, keys):
 		self.interp.logger.info(f"ModelRouter.route model={model} kwargs_keys={keys}")
 
@@ -429,5 +519,42 @@ class ModelRouter:
 					raise
 				display_fn(f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} after transient failure.")
 				sleep_fn(min(attempt, 3))
+		if last_exception:
+			raise last_exception
+
+	async def generate_content_with_retries_async(
+		self,
+		message,
+		chat_history,
+		config_values=None,
+		image_file=None,
+		*,
+		sleep_fn: Optional[Callable] = None,
+		display_fn: Optional[Callable] = None,
+	):
+		interp = self.interp
+		last_exception = None
+		for attempt in range(1, interp.MAX_LLM_RETRIES + 1):
+			try:
+				generate_async = getattr(interp, "generate_content_async", None)
+				if generate_async:
+					return await generate_async(
+						message, chat_history, config_values=config_values, image_file=image_file
+					)
+				return await asyncio.to_thread(
+					interp.generate_content, message, chat_history,
+					config_values=config_values, image_file=image_file,
+				)
+			except Exception as exception:
+				last_exception = exception
+				error_text = str(exception)
+				if attempt >= interp.MAX_LLM_RETRIES or not self.is_retryable_request_error(error_text):
+					raise
+				if display_fn:
+					display_fn(f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} after transient failure.")
+				if sleep_fn is None:
+					await asyncio.sleep(min(attempt, 3))
+				else:
+					await asyncio.to_thread(sleep_fn, min(attempt, 3))
 		if last_exception:
 			raise last_exception

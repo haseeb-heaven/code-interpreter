@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from libs.agents.base_agent import AgentContext
 from libs.agents.executor_agent import ExecutorAgent
 from libs.agents.intent_router import IntentRouter
@@ -22,7 +24,11 @@ class AgentPipeline:
 				 display_code_fn=None, display_markdown_fn=None):
 		self.logger = logger
 		self.intent_router = IntentRouter(model_router, logger)
-		self.planner = PlannerAgent(model_router, logger)
+		self.planner = PlannerAgent(
+			model_router,
+			logger,
+			tool_registry=getattr(getattr(model_router, "interp", None), "tool_registry", None),
+		)
 		self.safety_guard = SafetyGuard(model_router, logger, unsafe_mode=unsafe)
 		self.executor = ExecutorAgent(
 			model_router, executor, prompt_builder, logger, code_extractor=code_extractor
@@ -35,7 +41,7 @@ class AgentPipeline:
 		self.verifier = VerifierAgent(model_router, logger)
 		self.reviewer = ReviewerAgent(model_router, logger)
 
-	def run(self, task: str, os_name: str, language: str) -> AgentContext:
+	def _run_sync(self, task: str, os_name: str, language: str) -> AgentContext:
 		ctx = AgentContext(task=task, os_name=os_name, language=language)
 		self.logger.info(f"[AgentPipeline] start task={task[:80]!r}")
 
@@ -59,3 +65,39 @@ class AgentPipeline:
 			f"verified={ctx.verified} approved={ctx.approved}"
 		)
 		return ctx
+
+	def run(self, task: str, os_name: str, language: str) -> AgentContext:
+		"""Synchronous compatibility wrapper for CLI and existing tests."""
+		return self._run_sync(task=task, os_name=os_name, language=language)
+
+	async def run_async(self, task: str, os_name: str, language: str) -> AgentContext:
+		"""Preferred async entrypoint for the multi-agent pipeline."""
+		ctx = AgentContext(task=task, os_name=os_name, language=language)
+		self.logger.info(f"[AgentPipeline] async start task={task[:80]!r}")
+
+		ctx = await self._call_async(self.intent_router, "run_async", "run", ctx)
+		ctx = await self._call_async(self.planner, "run_async", "run", ctx)
+		ctx = await self._call_async(self.executor, "generate_async", "generate", ctx)
+		ctx = await self._call_async(self.safety_guard, "run_async", "run", ctx)
+		if ctx.safe:
+			ctx = await self._call_async(self.executor, "execute_async", "execute", ctx)
+		else:
+			self.logger.warning(f"[AgentPipeline] blocked by SafetyGuard: {ctx.error}")
+
+		if ctx.error and ctx.safe:
+			ctx = await self._call_async(self.repairer, "run_async", "run", ctx)
+
+		ctx = await self._call_async(self.verifier, "run_async", "run", ctx)
+		ctx = await self._call_async(self.reviewer, "run_async", "run", ctx)
+
+		self.logger.info(
+			f"[AgentPipeline] async done intent={ctx.intent} safe={ctx.safe} "
+			f"verified={ctx.verified} approved={ctx.approved}"
+		)
+		return ctx
+
+	async def _call_async(self, obj, async_method_name, sync_method_name, ctx):
+		async_method = getattr(obj, async_method_name, None)
+		if async_method:
+			return await async_method(ctx)
+		return await asyncio.to_thread(getattr(obj, sync_method_name), ctx)

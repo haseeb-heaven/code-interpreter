@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 
@@ -66,6 +67,34 @@ class IntentRouter(BaseAgent):
 		self._log(f"Classifying intent for: {context.task[:80]}")
 		try:
 			response = self.model_router.route(
+				messages=[
+					{"role": "system", "content": INTENT_SYSTEM_PROMPT},
+					{"role": "user", "content": context.task},
+				],
+				config_values={"temperature": 0.0, "max_tokens": 64},
+			)
+			result = _parse_intent_payload(response)
+			intent = str(result.get("intent", "code")).strip().lower()
+			if intent not in VALID_INTENTS:
+				intent = _heuristic_intent(context.task)
+			context.intent = intent
+			context.metadata["intent_confidence"] = float(result.get("confidence", 1.0))
+			self._log(f"Intent: {context.intent} (confidence={context.metadata['intent_confidence']})")
+		except Exception as exc:
+			context.intent = _heuristic_intent(context.task)
+			context.metadata["intent_confidence"] = 0.5
+			context.metadata["intent_fallback"] = str(exc)
+			self._log(f"Intent fallback → {context.intent} ({exc})")
+		return context
+
+	async def run_async(self, context: AgentContext) -> AgentContext:
+		route_async = getattr(self.model_router, "route_async", None)
+		if not route_async:
+			return await asyncio.to_thread(self.run, context)
+
+		self._log(f"Classifying intent for: {context.task[:80]}")
+		try:
+			response = await route_async(
 				messages=[
 					{"role": "system", "content": INTENT_SYSTEM_PROMPT},
 					{"role": "user", "content": context.task},

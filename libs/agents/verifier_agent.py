@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 
 from libs.agents.base_agent import AgentContext, BaseAgent
@@ -48,6 +49,9 @@ class VerifierAgent(BaseAgent):
 		context.metadata["verify_reason"] = "All checks passed"
 		self._log("Verification PASSED")
 		return context
+
+	async def run_async(self, context: AgentContext) -> AgentContext:
+		return await asyncio.to_thread(self.run, context)
 
 	def _check_not_empty(self, ctx: AgentContext):
 		if not (ctx.output or "").strip():

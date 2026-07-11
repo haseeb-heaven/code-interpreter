@@ -103,6 +103,12 @@ class Interpreter:
 			sleep_fn=time.sleep, display_fn=display_markdown_message,
 		)
 
+	async def _generate_content_with_retries_async(self, message, chat_history, config_values=None, image_file=None):
+		return await self.model_router.generate_content_with_retries_async(
+			message, chat_history, config_values=config_values, image_file=image_file,
+			display_fn=display_markdown_message,
+		)
+
 	def get_prompt(self, message, chat_history):
 		return self.prompt_builder.get_prompt(message, chat_history)
 
@@ -162,6 +168,11 @@ class Interpreter:
 	def _generate_browser_use_content(self, message, messages, config_values):
 		return self.model_router.generate_browser_use_content(message, messages, config_values, getenv_fn=os.getenv)
 
+	async def _generate_browser_use_content_async(self, message, messages, config_values):
+		return await self.model_router.generate_browser_use_content_async(
+			message, messages, config_values, getenv_fn=os.getenv
+		)
+
 	def generate_content(self, message, chat_history, temperature=0.1, max_tokens=1024, config_values=None, image_file=None):
 		return self.model_router.generate_content(
 			message, chat_history, temperature=temperature, max_tokens=max_tokens,
@@ -203,6 +214,23 @@ class Interpreter:
 			display_markdown_fn=display_markdown_message,
 		)
 		return pipeline.run(task=task, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
+
+	async def run_agent_pipeline_async(self, task, os_name):
+		"""Execute one task through the preferred async multi-agent pipeline."""
+		from libs.agents.agent_pipeline import AgentPipeline
+
+		pipeline = AgentPipeline(
+			model_router=self.model_router,
+			executor=self.executor,
+			repairer=self.repairer,
+			prompt_builder=self.prompt_builder,
+			logger=self.logger,
+			unsafe=self.UNSAFE_EXECUTION,
+			code_extractor=self.code_interpreter.extract_code,
+			display_code_fn=display_code,
+			display_markdown_fn=display_markdown_message,
+		)
+		return await pipeline.run_async(task=task, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
 
 	def interpreter_agentic_main(self):
 		"""Run the ReAct agentic loop (Thought → Action → Observation) from langgraph-agents."""

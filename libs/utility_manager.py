@@ -292,6 +292,7 @@ class UtilityManager:
 			"/model - Change the model for interpreter.\n"
 			"/language - Change the language of the interpreter.\n"
 			"/history - Use history as memory.\n"
+			"/memory show|clear|stats - Inspect or clear context memory.\n"
 			"/clear - Clear the screen.\n"
 			"/help - Display this help message.\n"
 			"/list - List the available models.\n"

@@ -37,6 +37,11 @@ class FakeLogger:
 		pass
 
 
+class FakeToolRegistry:
+	def list_tools(self):
+		return [{"name": "read_file", "description": "Read a file.", "input_schema": {"type": "object"}}]
+
+
 class TestIntentRouter(unittest.TestCase):
 	def test_parses_json_intent(self):
 		router = FakeRouter(['{"intent": "chat", "confidence": 0.9}'])
@@ -70,6 +75,17 @@ class TestPlannerAgent(unittest.TestCase):
 		agent = PlannerAgent(FakeRouter(["nope"]), FakeLogger())
 		ctx = agent.run(AgentContext(task="alone", os_name="Linux", language="python", intent="code"))
 		self.assertEqual(ctx.plan, ["alone"])
+
+	def test_includes_tool_schemas_in_prompt(self):
+		payload = '{"steps": ["inspect file"], "mode": "code", "language": "python", "complexity": "simple"}'
+		router = FakeRouter([payload])
+		agent = PlannerAgent(router, FakeLogger(), tool_registry=FakeToolRegistry())
+
+		agent.run(AgentContext(task="read a file", os_name="Linux", language="python", intent="code"))
+
+		user_prompt = router.calls[0]["messages"][1]["content"]
+		self.assertIn("Available tools:", user_prompt)
+		self.assertIn("read_file", user_prompt)
 
 
 class TestSafetyGuard(unittest.TestCase):

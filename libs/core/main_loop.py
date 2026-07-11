@@ -1,6 +1,7 @@
 """Interactive REPL / main session loop for the Interpreter orchestrator."""
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -151,6 +152,61 @@ def run_interpreter_main(interp, version):
 			elif task.lower() == '/history':
 				interp.INTERPRETER_HISTORY = not interp.INTERPRETER_HISTORY
 				display_markdown_message(f"History is {'enabled' if interp.INTERPRETER_HISTORY else 'disabled'}")
+				continue
+
+			elif task.lower().startswith('/memory'):
+				parts = task.split()
+				sub = parts[1].lower() if len(parts) > 1 else 'show'
+				memory = getattr(interp, 'memory', None)
+				if not memory:
+					display_markdown_message("Memory manager not available.")
+					continue
+				if sub == 'clear':
+					memory.clear()
+					display_markdown_message("Memory cleared.")
+				elif sub == 'stats':
+					stats = memory.stats()
+					display_markdown_message(
+						"Memory stats: "
+						f"entries={stats['entry_count']}, "
+						f"tokens={stats['total_tokens']}/{stats['max_tokens']}, "
+						f"history_file={stats['history_file']}"
+					)
+				else:
+					query = " ".join(parts[2:]) if len(parts) > 2 else ""
+					context = memory.get_context(query)
+					if not context:
+						display_markdown_message("Memory is empty.")
+					else:
+						lines = []
+						for entry in context:
+							task_label = entry.get("task") or "memory"
+							content = str(entry.get("content", "")).strip()
+							lines.append(f"- **{task_label}**: {content}")
+						display_markdown_message("Memory context:\n" + "\n".join(lines))
+				continue
+
+			# TOOLS - Command section.
+			elif task.lower().startswith('/tools'):
+				parts = task.split()
+				registry = getattr(interp, 'tool_registry', None)
+				if registry is None:
+					print("No tools are registered.")
+					continue
+				if len(parts) == 2 and parts[1].lower() == 'list':
+					print('Available tools:\n')
+					for tool in registry.list_tools():
+						print(f"{tool.get('name', '')} - {tool.get('description', '')}")
+					print('', end='\n')
+					continue
+				if len(parts) == 3 and parts[1].lower() == 'info':
+					tool = registry.get(parts[2])
+					if tool is None:
+						print(f"Unknown tool: {parts[2]}")
+					else:
+						print(json.dumps(tool.schema(), indent=2))
+					continue
+				print("Usage: /tools list | /tools info <name>")
 				continue
 
 			# SHELL - Command removed for security reasons.
@@ -555,12 +611,10 @@ def run_interpreter_main(interp, version):
 			# Start the LLM Request.     
 			interp.logger.info(f"Prompt: {prompt}")
 
-			# Add the history as memory.
-			if interp.INTERPRETER_HISTORY and interp.INTERPRETER_MODE == 'chat':
-				interp.history = interp.history_manager.get_chat_history(interp.history_count)
-
-			elif interp.INTERPRETER_HISTORY and interp.INTERPRETER_MODE == 'code':
-				interp.history = interp.history_manager.get_code_history(interp.history_count)
+			# Add relevance-based memory context.
+			if interp.INTERPRETER_HISTORY and interp.INTERPRETER_MODE in ['chat', 'code']:
+				memory = getattr(interp, 'memory', None)
+				interp.history = memory.get_context(task) if memory else []
 
 			generated_output = interp._generate_content_with_retries(prompt, interp.history, config_values=interp.config_values,image_file=extracted_file_name)
 
