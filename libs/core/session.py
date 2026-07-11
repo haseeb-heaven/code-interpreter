@@ -204,6 +204,48 @@ def bootstrap_interpreter(interp) -> None:
 
 	interp._attached_files = normalize_paths(getattr(args, "attach", None) or [])
 	interp.LOCAL_ONLY = bool(getattr(args, "local", False) or getattr(args, "ollama", None) is not None)
+
+	# Data analysis session (#222)
+	from libs.data.session_data import DataSession
+
+	interp.data_session = DataSession()
+	if getattr(args, "interactive_charts", False):
+		interp.data_session.chart_style = "plotly"
+	eda_path = getattr(args, "eda", None)
+	if eda_path:
+		try:
+			interp.data_session.load_file(eda_path)
+			if eda_path not in interp._attached_files:
+				interp._attached_files.append(eda_path)
+			from libs.data.auto_eda import deterministic_eda_summary
+
+			print(deterministic_eda_summary(interp.data_session.df))
+		except Exception as exc:
+			interp.logger.error("Failed --eda load: %s", exc)
+			print(f"Failed to load EDA file: {exc}")
+			raise
+	# Also try loading first --attach into data session
+	elif interp._attached_files:
+		try:
+			interp.data_session.load_file(interp._attached_files[0])
+		except Exception as exc:
+			interp.logger.warning("Could not ingest attached file into DataSession: %s", exc)
+
+	# R language check (#222)
+	lang = str(getattr(args, "lang", "python") or "python").lower()
+	if lang in ("r", "rscript"):
+		from libs.data.repl_data_commands import check_rscript_available
+
+		if not check_rscript_available():
+			print(
+				"R language selected but Rscript was not found on PATH. "
+				"Install R from https://cran.r-project.org/ and ensure Rscript is available."
+			)
+		interp.system_message_extra = (
+			"You are an R data scientist. Use tidyverse (dplyr, ggplot2, readr) for all data tasks. "
+			"Save plots with ggsave()."
+		)
+
 	# Structured output (#219) — attach formatter and suppress Rich decorations.
 	from libs.output_formatter import OutputFormatter
 
@@ -240,6 +282,9 @@ def bootstrap_interpreter(interp) -> None:
 			print(f"Starting new session '{session_id}'.")
 
 	interp.system_message = load_system_message(interp.INTERPRETER_MODE, interp.logger)
+	extra = getattr(interp, "system_message_extra", None)
+	if extra:
+		interp.system_message = (interp.system_message or "") + "\n\n" + extra
 	interp.initialize_client()
 
 	# Ollama model override (#221) after config load — keep api_base from local-model.

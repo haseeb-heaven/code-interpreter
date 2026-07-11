@@ -19,6 +19,16 @@ class CodeExecutor:
 
 	def execute_generated_output(self, code_snippet, code_lang, force_execute=False):
 		interp = self.interp
+		# Auto-save matplotlib / plotly helpers (#222)
+		try:
+			from libs.output.chart_manager import inject_auto_save
+			from libs.output.plotly_manager import inject_plotly_helper
+
+			code_snippet = inject_auto_save(code_snippet or "")
+			code_snippet = inject_plotly_helper(code_snippet)
+		except Exception as exc:
+			interp.logger.debug("Chart hook inject skipped: %s", exc)
+
 		if not interp.UNSAFE_EXECUTION:
 			sandbox_context = interp.safety_manager.build_sandbox_context()
 		else:

@@ -52,7 +52,7 @@ def build_parser():
 		help='Output file (--mode generate) or directory (--mode project)',
 	)
 	parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + INTERPRETER_VERSION)
-	parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
+	parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language (python/javascript/r). Default: python')
 	parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the generated code in output')
 	parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
 	parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
@@ -259,6 +259,18 @@ def build_parser():
 			'Combine with --attach for local files + local model.'
 		),
 	)
+	parser.add_argument(
+		'--eda',
+		metavar='PATH',
+		default=None,
+		help='Run offline EDA on a local data file (CSV/JSON/…) then enter CLI with that dataset loaded.',
+	)
+	parser.add_argument(
+		'--interactive-charts',
+		action='store_true',
+		default=False,
+		help='Prefer Plotly interactive HTML charts instead of matplotlib.',
+	)
 	return parser
 
 
@@ -329,8 +341,12 @@ def prepare_args(args, argv):
 		if getattr(args, 'ollama', None) is None:
 			args.ollama = 'auto'
 
-	# --attach / --ollama imply classic CLI (not TUI)
-	if getattr(args, 'attach', None) or getattr(args, 'ollama', None) is not None:
+	# --attach / --ollama / --eda imply classic CLI (not TUI)
+	if getattr(args, 'attach', None) or getattr(args, 'ollama', None) is not None or getattr(args, 'eda', None):
+		args.cli = True
+		args.tui = False
+
+	if getattr(args, 'interactive_charts', False):
 		args.cli = True
 		args.tui = False
 

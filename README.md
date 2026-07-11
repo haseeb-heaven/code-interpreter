@@ -172,7 +172,34 @@ export OPENROUTER_API_KEY="Your OpenRouter API Key"
 export BROWSER_USE_API_KEY="Your Browser Use API Key"
 ```
 
-## Offline models setup
+## Data Analysis Engine
+
+Smart ingestion, offline EDA, chart gallery, cleaning, SQL, and exports:
+
+```bash
+# Offline EDA summary + load dataset into the session
+python interpreter.py --eda sales.csv --cli -m local-model
+
+# Attach a file for schema-aware prompting
+python interpreter.py --attach sales.csv -t "find outliers in revenue"
+
+# Prefer Plotly interactive HTML charts
+python interpreter.py --interactive-charts --attach sales.csv --cli
+```
+
+In the REPL:
+
+| Command | Purpose |
+|---|---|
+| `/eda file.csv` | Offline EDA + load dataset |
+| `/clean all` | Whitespace, dupes, types, dates, nulls |
+| `/sql SELECT * FROM data LIMIT 10` | SQL via DuckDB/SQLite |
+| `/export report` | HTML report with embedded charts |
+| `/charts` | List saved charts under `~/.code_interpreter/charts` |
+| `/templates data` | Copy-paste analysis prompts |
+| `/chart-style plotly` | Prefer interactive charts |
+
+R scientists: `python interpreter.py -l r --cli` (requires `Rscript` on PATH).
 
 This Interpreter supports offline models via **LM Studio** and **Ollama**. Follow the steps below:
 

@@ -187,19 +187,25 @@ def run_interpreter_main(interp, version):
 				display_markdown_message(f"History is {'enabled' if interp.INTERPRETER_HISTORY else 'disabled'}")
 				continue
 
-			# FILE ATTACH - Local file awareness (#221)
+			# FILE ATTACH - Local file awareness (#221) + data session (#222)
 			elif task.lower().startswith('/file ') or task.lower() == '/file':
 				parts = task.split(maxsplit=1)
 				if len(parts) < 2 or not parts[1].strip():
 					display_markdown_message("Usage: `/file path/to/file.csv`")
 					continue
 				from libs.context.file_context import normalize_paths
+				from libs.data.repl_data_commands import ensure_data_session
 
 				path = parts[1].strip().strip('"').strip("'")
 				interp._attached_files = getattr(interp, "_attached_files", []) or []
 				for p in normalize_paths([path]):
 					if p not in interp._attached_files:
 						interp._attached_files.append(p)
+				# Best-effort load into DataSession for analysis commands.
+				try:
+					ensure_data_session(interp).load_file(path)
+				except Exception as exc:
+					interp.logger.warning("DataSession load skipped: %s", exc)
 				display_markdown_message(
 					f"Attached `{path}`. Use `/files` to list or `/clear-files` to detach."
 				)
@@ -217,7 +223,22 @@ def run_interpreter_main(interp, version):
 
 			elif task.lower() in ('/clear-files', '/clearfiles'):
 				interp._attached_files = []
+				try:
+					from libs.data.repl_data_commands import ensure_data_session
+
+					ensure_data_session(interp).clear()
+				except Exception:
+					pass
 				display_markdown_message("Cleared all attached files.")
+				continue
+
+			# DATA ANALYSIS COMMANDS (#222)
+			elif task.lower().startswith(
+				("/eda", "/charts", "/export", "/clean", "/sql", "/templates", "/chart-style")
+			):
+				from libs.data.repl_data_commands import handle_data_repl_command
+
+				handle_data_repl_command(interp, task, display_markdown_message)
 				continue
 
 			# SESSION - Persistent sessions (#218)
@@ -740,6 +761,18 @@ def run_interpreter_main(interp, version):
 					ctx = build_file_context(attached)
 					if ctx:
 						prompt = f"{ctx}\n\n{prompt}"
+				# Inject DataSession schema memory (#222)
+				data_session = getattr(interp, "data_session", None)
+				if data_session is not None:
+					block = data_session.context_block()
+					if block:
+						prompt = f"{block}\n\n{prompt}"
+					if getattr(data_session, "chart_style", "") == "plotly" or getattr(
+						interp.args, "interactive_charts", False
+					):
+						from libs.output.plotly_manager import plotly_system_hint
+
+						prompt = f"{plotly_system_hint()}\n\n{prompt}"
 				interp.logger.info(f"Prompt init is '{prompt}'")
 
 				# Check if the prompt is empty.

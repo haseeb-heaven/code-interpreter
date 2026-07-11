@@ -41,6 +41,10 @@ dependencies = [
   "pandas",
   "matplotlib",
   "plotly",
+  "openpyxl",
+  "tabulate",
+  "pyarrow",
+  "duckdb",
   "stdlib_list",
   "legacy-cgi",
 ]

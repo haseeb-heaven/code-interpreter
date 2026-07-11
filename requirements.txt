@@ -14,6 +14,11 @@ rich
 pandas
 matplotlib
 plotly
+openpyxl
+tabulate
+pyarrow
+# Optional: DuckDB accelerates /sql over local files
+duckdb
 
 # Libraries for standard libries 
 stdlib_list
