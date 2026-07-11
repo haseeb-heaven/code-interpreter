@@ -26,7 +26,7 @@ from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "3.2.2"
+INTERPRETER_VERSION = "3.2.3"
 
 
 def build_parser():
@@ -41,6 +41,7 @@ def build_parser():
 	parser.add_argument('--history', '-hi', action='store_true', default=False, help='Use history as memory')
 	parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
 	parser.add_argument('--file', '-f', type=str, nargs='?', const='prompt.txt', default=None, help='Sets the file to read the input prompt from')
+	parser.add_argument('--agentic', action='store_true', default=False, help='Use ReAct agentic workflow (Coder, Executor, Reviewer, Debugger)')
 
 	# Sandbox control: --sandbox (default ON) / --no-sandbox (unsafe, disables sandbox+timers)
 	sandbox_group = parser.add_mutually_exclusive_group()
@@ -73,6 +74,12 @@ def build_parser():
 	mode_group = parser.add_mutually_exclusive_group()
 	mode_group.add_argument('--cli', action='store_true', default=False, help='Launch the classic interactive CLI')
 	mode_group.add_argument('--tui', action='store_true', default=False, help='Launch the selector-based terminal UI')
+	parser.add_argument(
+		'--agent',
+		action='store_true',
+		default=False,
+		help='Run tasks through the multi-agent pipeline (IntentRouter → Planner → SafetyGuard → Executor → Repairer → Verifier → Reviewer)',
+	)
 	return parser
 
 
@@ -111,7 +118,10 @@ def main(argv=None):
 		return
 	args = prepare_args(args, argv)
 	interpreter = Interpreter(args)
-	interpreter.interpreter_main(INTERPRETER_VERSION)
+	if getattr(args, 'agentic', False):
+		interpreter.interpreter_agentic_main()
+	else:
+		interpreter.interpreter_main(INTERPRETER_VERSION)
 
 
 if __name__ == "__main__":

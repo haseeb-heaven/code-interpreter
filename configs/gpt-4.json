@@ -3,5 +3,5 @@
     "max_tokens": 4096,
     "start_sep": "```",
     "end_sep": "```",
-    "model": "gpt-4"
+    "model": "gpt-4.1"
 }

@@ -43,7 +43,7 @@ class UtilityManager:
 		try:
 			if os.path.isfile(filename):
 				if platform.system() == "Windows":
-					subprocess.call(['start', filename], shell=True)
+					os.startfile(filename)
 				elif platform.system() == "Darwin":
 					subprocess.call(['open', filename])
 				elif platform.system() == "Linux":
@@ -64,10 +64,23 @@ class UtilityManager:
 	
 	def _extract_content(self, output):
 		try:
+			if output is None:
+				return ""
+			if isinstance(output, str):
+				return output
+			
+			if hasattr(output, 'choices') and len(output.choices) > 0:
+				return output.choices[0].message.content
+			elif isinstance(output, dict):
+				if 'choices' in output and len(output['choices']) > 0:
+					return output['choices'][0]['message']['content']
+				elif 'response' in output:
+					return output['response']
+			
 			return output['choices'][0]['message']['content']
-		except (KeyError, TypeError) as e:
-			self.logger.error(f"Error extracting content: {str(e)}")
-			raise
+		except (KeyError, TypeError, AttributeError) as e:
+			self.logger.error(f"Error extracting content: {str(e)}. Output: {output}")
+			return ""
 	
 	def get_os_platform(self):
 		try:
@@ -186,10 +199,19 @@ class UtilityManager:
 		if not file_name:
 			return None
 
-		# Check if the file path is absolute. If not, prepend the current working directory
-		if not os.path.isabs(file_name):
-			return os.path.join(os.getcwd(), file_name)
-		return file_name
+		cwd = os.path.abspath(os.getcwd())
+		full_path = os.path.abspath(os.path.join(cwd, file_name))
+
+		try:
+			common_path = os.path.commonpath([cwd, full_path])
+		except ValueError as e:
+			# Raised on Windows when paths are on different drives
+			raise ValueError(f"Security Error: Path traversal attempt detected: {file_name}") from e
+
+		if common_path != cwd:
+			raise ValueError(f"Security Error: Path traversal attempt detected: {file_name}")
+
+		return full_path
 	
 	def read_csv_headers(self, file_path):
 		try:
@@ -270,6 +292,7 @@ class UtilityManager:
 			"/model - Change the model for interpreter.\n"
 			"/language - Change the language of the interpreter.\n"
 			"/history - Use history as memory.\n"
+			"/memory show|clear|stats - Inspect or clear context memory.\n"
 			"/clear - Clear the screen.\n"
 			"/help - Display this help message.\n"
 			"/list - List the available models.\n"
@@ -318,7 +341,7 @@ class UtilityManager:
 			logger = Logger.initialize("logs/interpreter.log")
 			import requests
 			logger.info(f"Downloading file: {url}")
-			response = requests.get(url, allow_redirects=True)
+			response = requests.get(url, allow_redirects=True, timeout=10)
 			response.raise_for_status()
 			
 			with open(file_name, 'wb') as file:

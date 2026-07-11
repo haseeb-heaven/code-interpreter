@@ -23,31 +23,9 @@ class Decision:
 	reasons: list[str] = field(default_factory=list)
 
 
-@dataclass
-class RepairCircuitBreaker:
-	max_attempts: int = 3
-	attempts: int = 0
-	seen_errors: set[str] = field(default_factory=set)
-
-	def should_continue(self, error_text: str) -> bool:
-		normalized = self._normalize_error(error_text)
-
-		#  stop if same error repeated
-		if normalized in self.seen_errors:
-			return False
-
-		#  stop if max attempts reached
-		if self.attempts >= self.max_attempts:
-			return False
-
-		self.seen_errors.add(normalized)
-		self.attempts += 1
-		return True
-
-	def _normalize_error(self, error_text: str) -> str:
-		error_text = (error_text or "").strip().lower()
-		error_text = re.sub(r"\s+", " ", error_text)
-		return error_text
+# RepairCircuitBreaker lives in libs.execution.repairer; re-exported here for
+# backward-compatible imports (`from libs.safety_manager import RepairCircuitBreaker`).
+from libs.execution.repairer import RepairCircuitBreaker  # noqa: E402
 
 
 # =========================
@@ -122,6 +100,27 @@ class ExecutionSafetyManager:
 		r"/boot/\w+",
 	]
 
+	_POSIX_SYSTEM_PREFIXES = [
+		r"/etc/\w+",
+		r"/tmp/\w+",
+		r"/var/\w+",
+		r"/usr/\w+",
+		r"/root/\w+",
+		r"/home/\w+/",
+		r"/proc/\w+",
+		r"/sys/\w+",
+		r"/dev/\w+",
+		r"/boot/\w+",
+		r"/opt/\w+",
+		r"/mnt/\w+",
+		r"/media/\w+",
+	]
+
+	_WRITE_PATTERNS_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_PATTERNS)
+	_WRITE_ON_HANDLE_PATTERNS_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _WRITE_ON_HANDLE_PATTERNS)
+	_SENSITIVE_POSIX_PREFIXES_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _SENSITIVE_POSIX_PREFIXES)
+	_POSIX_SYSTEM_PREFIXES_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _POSIX_SYSTEM_PREFIXES)
+
 	# Known-dangerous call targets for .remove() / .unlink() / .rmtree().
 	_DANGEROUS_ATTR_OWNERS = frozenset({"os", "shutil", "pathlib", "path"})
 
@@ -180,6 +179,9 @@ class ExecutionSafetyManager:
 		r"\bbash\b",
 	]
 
+	_DESTRUCTIVE_PATTERNS_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _DESTRUCTIVE_PATTERNS)
+	_SHELL_PATTERNS_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _SHELL_PATTERNS)
+
 	def __init__(self, unsafe_mode: bool = False):
 		self.unsafe_mode = unsafe_mode
 
@@ -228,7 +230,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* contains any write operation that must be
 		blocked in SAFE mode.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_PATTERNS_COMPILED)
 
 	# =========================
 	# WRITE-ON-HANDLE DETECTION
@@ -240,7 +242,7 @@ class ExecutionSafetyManager:
 		"""Return True if *code* calls .write() on any object (handle check).
 		This is intentionally only evaluated when an absolute path is present.
 		"""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._WRITE_ON_HANDLE_PATTERNS)
+		return any(p.search(code) for p in self._WRITE_ON_HANDLE_PATTERNS_COMPILED)
 
 	# =========================
 	# HOST ABSOLUTE PATH CHECK
@@ -256,22 +258,7 @@ class ExecutionSafetyManager:
 			return True
 
 		# Unquoted well-known POSIX system directory prefixes
-		_posix_system_prefixes = [
-			r"/etc/\w+",
-			r"/tmp/\w+",
-			r"/var/\w+",
-			r"/usr/\w+",
-			r"/root/\w+",
-			r"/home/\w+/",
-			r"/proc/\w+",
-			r"/sys/\w+",
-			r"/dev/\w+",
-			r"/boot/\w+",
-			r"/opt/\w+",
-			r"/mnt/\w+",
-			r"/media/\w+",
-		]
-		if any(re.search(p, code, re.IGNORECASE) for p in _posix_system_prefixes):
+		if any(p.search(code) for p in self._POSIX_SYSTEM_PREFIXES_COMPILED):
 			return True
 
 		# open() call whose first positional argument is an absolute path string
@@ -285,7 +272,7 @@ class ExecutionSafetyManager:
 
 	def _is_sensitive_posix_path(self, code: str) -> bool:
 		"""Return True if *code* references a sensitive POSIX system path."""
-		return any(re.search(p, code, re.IGNORECASE) for p in self._SENSITIVE_POSIX_PREFIXES)
+		return any(p.search(code) for p in self._SENSITIVE_POSIX_PREFIXES_COMPILED)
 
 	# =========================
 	# MAIN CHECK
@@ -326,7 +313,7 @@ class ExecutionSafetyManager:
 		# (shutdown, reboot, mkfs, dd, format, diskpart) in addition to
 		# filesystem deletes.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS):
+		if any(p.search(code_lower) for p in self._DESTRUCTIVE_PATTERNS_COMPILED):
 			return Decision(False, ["Destructive operation blocked."])
 
 		# =========================
@@ -334,7 +321,7 @@ class ExecutionSafetyManager:
 		# BUG FIX #2: Uses _SHELL_PATTERNS with \b word-boundary regex instead
 		# of plain substring `in` check to avoid false positives.
 		# =========================
-		if any(re.search(p, code_lower) for p in self._SHELL_PATTERNS):
+		if any(p.search(code_lower) for p in self._SHELL_PATTERNS_COMPILED):
 			return Decision(False, ["Shell execution is blocked."])
 
 		# =========================
@@ -370,7 +357,7 @@ class ExecutionSafetyManager:
 		if not code or not code.strip():
 			return False
 		code_lower = code.lower()
-		return any(re.search(p, code_lower) for p in self._DESTRUCTIVE_PATTERNS)
+		return any(p.search(code_lower) for p in self._DESTRUCTIVE_PATTERNS_COMPILED)
 
 	# =========================
 	# ARTIFACT EXPORT

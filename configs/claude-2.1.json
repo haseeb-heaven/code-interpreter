@@ -3,5 +3,5 @@
     "max_tokens": 4096,
     "start_sep": "```",
     "end_sep": "```",
-    "model": "claude-2.1"
+    "model": "claude-sonnet-4-6"
 }
