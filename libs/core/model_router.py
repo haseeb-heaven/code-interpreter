@@ -365,6 +365,45 @@ class ModelRouter:
 		interp.logger.info(f"Generated content {generated_text}")
 		return generated_text
 
+	def route(self, messages, config_values=None, *, completion_fn=None, getenv_fn=None):
+		"""Agent-facing completion helper: messages in → text out.
+
+		Unlike ``generate_content``, this does not rebuild Interpreter system
+		prompts; agents supply their own message lists. Falls back to
+		``litellm.completion`` when no ``completion_fn`` is provided.
+		"""
+		import litellm
+
+		interp = self.interp
+		config_values = config_values or {}
+		temperature = float(config_values.get("temperature", 0.1))
+		max_tokens = int(config_values.get("max_tokens", 1024))
+		api_base = str(config_values.get("api_base", (interp.config_values or {}).get("api_base", "None")))
+		config_provider = str(
+			config_values.get("provider", (interp.config_values or {}).get("provider", ""))
+		).strip().lower()
+
+		from libs.llm_dispatcher import build_completion_kwargs
+
+		completion_fn = completion_fn or litellm.completion
+		model = normalize_model_name(interp.INTERPRETER_MODEL)
+		kwargs = build_completion_kwargs(
+			model=model,
+			messages=messages,
+			temperature=temperature,
+			max_tokens=max_tokens,
+			config_provider=config_provider,
+			api_base=api_base,
+		)
+		# Agents often pass plain system/user messages; drop empty assistant noise.
+		kwargs["messages"] = messages
+		self._log_route(model, list(kwargs.keys()))
+		response = completion_fn(model, **kwargs)
+		return interp.utility_manager._extract_content(response)
+
+	def _log_route(self, model, keys):
+		self.interp.logger.info(f"ModelRouter.route model={model} kwargs_keys={keys}")
+
 	def generate_content_with_retries(
 		self,
 		message,

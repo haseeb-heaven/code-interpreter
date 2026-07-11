@@ -187,5 +187,22 @@ class Interpreter:
 	def toggle_sandbox_mode(self):
 		return toggle_sandbox_mode(self, display_fn=display_markdown_message, input_fn=self._safe_input)
 
+	def run_agent_pipeline(self, task, os_name):
+		"""Execute one task through the multi-agent pipeline and return AgentContext."""
+		from libs.agents.agent_pipeline import AgentPipeline
+
+		pipeline = AgentPipeline(
+			model_router=self.model_router,
+			executor=self.executor,
+			repairer=self.repairer,
+			prompt_builder=self.prompt_builder,
+			logger=self.logger,
+			unsafe=self.UNSAFE_EXECUTION,
+			code_extractor=self.code_interpreter.extract_code,
+			display_code_fn=display_code,
+			display_markdown_fn=display_markdown_message,
+		)
+		return pipeline.run(task=task, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
+
 	def interpreter_main(self, version):
 		return run_interpreter_main(self, version)

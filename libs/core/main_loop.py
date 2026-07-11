@@ -434,6 +434,34 @@ def run_interpreter_main(interp, version):
 
 			# Get the prompt based on the mode.
 			else:
+				# Multi-agent pipeline path (--agent)
+				if getattr(interp, "AGENT_MODE", False):
+					display_markdown_message("**Agent pipeline** running: IntentRouter → Planner → SafetyGuard → Executor → Repairer → Verifier → Reviewer")
+					agent_ctx = interp.run_agent_pipeline(task, os_name)
+					code_snippet = agent_ctx.code or None
+					code_output = agent_ctx.output or None
+					code_error = agent_ctx.error or None
+					display_markdown_message(
+						f"Intent=`{agent_ctx.intent}` | safe=`{agent_ctx.safe}` | "
+						f"verified=`{agent_ctx.verified}` | approved=`{agent_ctx.approved}`"
+					)
+					if agent_ctx.plan:
+						display_markdown_message("**Plan:** " + " → ".join(str(s) for s in agent_ctx.plan))
+					if agent_ctx.code:
+						display_code(agent_ctx.code, language=interp.INTERPRETER_LANGUAGE)
+					if agent_ctx.output:
+						display_code(agent_ctx.output)
+					if agent_ctx.error:
+						display_markdown_message(f"Error: {agent_ctx.error}")
+					reason = agent_ctx.metadata.get("review_reason") or agent_ctx.metadata.get("verify_reason")
+					if reason:
+						display_markdown_message(f"Review: {reason}")
+					interp.history_manager.save_history_json(
+						task, interp.INTERPRETER_MODE, os_name, interp.INTERPRETER_LANGUAGE,
+						task, code_snippet, code_output, interp.INTERPRETER_MODEL,
+					)
+					continue
+
 				prompt = interp.get_mode_prompt(task, os_name)
 				interp.logger.info(f"Prompt init is '{prompt}'")
 
