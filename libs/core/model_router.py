@@ -50,8 +50,14 @@ class ModelRouter:
 		model_name = interp.INTERPRETER_MODEL.strip().split("/")[-1]
 
 		# skip init client for local models.(Bug#10)
-		if ("local" in interp.INTERPRETER_MODEL or "ollama" in interp.INTERPRETER_MODEL
-			or str(interp.config_values.get("provider", "")).strip().lower() == "ollama"):
+		# Prefer config provider so models like llama3.1:8b with provider=local skip HF key checks.
+		_local_providers = ("local", "ollama", "lmstudio")
+		_cfg_provider = str(interp.config_values.get("provider", "")).strip().lower()
+		if (
+			"local" in interp.INTERPRETER_MODEL
+			or "ollama" in interp.INTERPRETER_MODEL
+			or _cfg_provider in _local_providers
+		):
 			interp.logger.info("Skipping client initialization for local model.")
 			api_key = getenv_fn("OPENAI_API_KEY")
 
@@ -70,14 +76,21 @@ class ModelRouter:
 
 		config_provider = str(interp.config_values.get("provider", "")).strip().lower()
 
-		if config_provider == "nvidia" or interp.INTERPRETER_MODEL.startswith("nvidia/"):
+		# Provider field wins over model-id heuristics (OpenRouter may use nvidia/... ids).
+		if config_provider == "nvidia":
 			api_key_info = {"key_name": "NVIDIA_API_KEY", "prefix": "nvapi-"}
-		elif config_provider in ("z-ai", "zai") or interp.INTERPRETER_MODEL.startswith(("glm-", "z-ai/", "zai/")):
+		elif config_provider in ("z-ai", "zai"):
 			api_key_info = {"key_name": "Z_AI_API_KEY", "prefix": None, "length": 10}
-		elif config_provider in ("browser-use", "browser_use") or interp.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
+		elif config_provider in ("browser-use", "browser_use"):
 			api_key_info = {"key_name": "BROWSER_USE_API_KEY", "prefix": "bu_"}
 		elif config_provider == "openrouter":
 			api_key_info = {"key_name": "OPENROUTER_API_KEY", "prefix": "sk-or-v1-"}
+		elif interp.INTERPRETER_MODEL.startswith("nvidia/"):
+			api_key_info = {"key_name": "NVIDIA_API_KEY", "prefix": "nvapi-"}
+		elif interp.INTERPRETER_MODEL.startswith(("glm-", "z-ai/", "zai/")):
+			api_key_info = {"key_name": "Z_AI_API_KEY", "prefix": None, "length": 10}
+		elif interp.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
+			api_key_info = {"key_name": "BROWSER_USE_API_KEY", "prefix": "bu_"}
 		elif interp.INTERPRETER_MODEL.startswith(("gpt", "o1", "o3", "o4")):
 			api_key_info = {"key_name": "OPENAI_API_KEY", "prefix": "sk-"}
 		elif interp.INTERPRETER_MODEL.startswith("groq/") or "groq" in interp.INTERPRETER_MODEL:
