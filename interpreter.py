@@ -42,6 +42,24 @@ def build_parser():
 	parser.add_argument('--upgrade', '-up', action='store_true', default=False, help='Upgrade the interpreter')
 	parser.add_argument('--file', '-f', type=str, nargs='?', const='prompt.txt', default=None, help='Sets the file to read the input prompt from')
 	parser.add_argument('--agentic', action='store_true', default=False, help='Use ReAct agentic workflow (Coder, Executor, Reviewer, Debugger)')
+	parser.add_argument(
+		'--gemini-style',
+		action='store_true',
+		default=False,
+		help='Gemini-CLI-inspired agentic REPL: ReAct loop, free-model preference, CLI banner (/free, /model)',
+	)
+	parser.add_argument(
+		'--free',
+		action='store_true',
+		default=False,
+		help='Prefer a free/cheap model from configs/free/catalog.json when -m is omitted',
+	)
+	parser.add_argument(
+		'--list-free',
+		action='store_true',
+		default=False,
+		help='List curated free/cheap LLM presets and exit',
+	)
 
 	# Sandbox control: --sandbox (default ON) / --no-sandbox (unsafe, disables sandbox+timers)
 	sandbox_group = parser.add_mutually_exclusive_group()
@@ -95,6 +113,13 @@ def prepare_args(args, argv):
 	# sandbox=False means unsafe execution
 	args.unsafe = not args.sandbox
 
+	# Gemini-CLI-style: agentic REPL + free-model preference + classic CLI (not TUI)
+	if getattr(args, 'gemini_style', False):
+		args.agentic = True
+		args.free = True
+		args.cli = True
+		args.tui = False
+
 	no_runtime_args = len(argv) <= 1
 	if no_runtime_args and not args.cli and not args.tui:
 		args.tui = True
@@ -103,7 +128,13 @@ def prepare_args(args, argv):
 	if not args.mode:
 		args.mode = 'code'
 	if not args.model:
-		args.model = _get_default_model()
+		if getattr(args, 'free', False):
+			from libs.free_llms import resolve_free_model
+
+			picked = resolve_free_model(prefer_free=True)
+			args.model = picked or _get_default_model()
+		else:
+			args.model = _get_default_model()
 	args.cli = True
 	return args
 
@@ -115,6 +146,11 @@ def main(argv=None):
 	warnings.filterwarnings("ignore")
 	if args.upgrade:
 		UtilityManager.upgrade_interpreter()
+		return
+	if getattr(args, 'list_free', False):
+		from libs.free_llms import FreeLLMCatalog
+
+		print(FreeLLMCatalog.load().format_table())
 		return
 	args = prepare_args(args, argv)
 	interpreter = Interpreter(args)

@@ -309,6 +309,13 @@ def run_interpreter_main(interp, version):
 
 				continue
 
+			# FREE - curated free/cheap LLM presets (Gemini-CLI-style model discovery)
+			elif task.lower() == '/free':
+				from libs.free_llms import FreeLLMCatalog
+
+				print(FreeLLMCatalog.load().format_table())
+				continue
+
 			# UPGRAGE - Command section.
 			elif task.lower() == '/upgrade':
 				interp.utility_manager.upgrade_interpreter()

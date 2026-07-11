@@ -233,24 +233,28 @@ class Interpreter:
 		return await pipeline.run_async(task=task, os_name=os_name, language=self.INTERPRETER_LANGUAGE)
 
 	def interpreter_agentic_main(self):
-		"""Run the ReAct agentic loop (Thought → Action → Observation) from langgraph-agents."""
+		"""Run the ReAct agentic loop (Thought -> Action -> Observation).
+
+		Interactive sessions stay in a Gemini-CLI-like REPL until ``/exit``.
+		A ``-f`` / prompt-file run remains one-shot for scripts/CI.
+		"""
 		from libs.agent.react_controller import ReActController
+		from libs.free_llms import FreeLLMCatalog
+
+		gemini_style = bool(getattr(self.args, "gemini_style", False))
+		one_shot = bool(getattr(self, "INTERPRETER_PROMPT_FILE", False) and getattr(self.args, "file", None))
 
 		try:
-			self.console.print("[bold yellow]Running in ReAct Agentic Mode[/bold yellow]")
-			if self.INTERPRETER_PROMPT_FILE and getattr(self.args, "file", None):
-				try:
-					with open(self.args.file, "r", encoding="utf-8") as file:
-						task = file.read()
-				except Exception as exc:
-					self.logger.error(f"Error reading prompt file: {exc}")
-					return
+			if gemini_style:
+				self.console.print("[bold cyan]Gemini-style agentic REPL[/bold cyan] (ReAct · free LLMs)")
+				self.console.print(
+					f"Model: [bold]{self.INTERPRETER_MODEL}[/bold]  ·  "
+					"Commands: /free  /model <name>  /help  /exit"
+				)
 			else:
-				task = self._safe_input("Enter your task: ", default="")
-
-			if not (task or "").strip():
-				self.console.print("Task cannot be empty.")
-				return
+				self.console.print("[bold yellow]Running in ReAct Agentic Mode[/bold yellow]")
+				if not one_shot:
+					self.console.print("Commands: /free  /model <name>  /help  /exit")
 
 			max_steps = max(int(getattr(self, "MAX_REPAIR_ATTEMPTS", 3) or 3), 10)
 			controller = ReActController(
@@ -260,7 +264,80 @@ class Interpreter:
 				log_path="logs/agent_react.jsonl",
 				max_steps=max_steps,
 			)
-			controller.run(task)
+
+			file_task = None
+			if one_shot:
+				try:
+					with open(self.args.file, "r", encoding="utf-8") as file:
+						file_task = file.read()
+				except Exception as exc:
+					self.logger.error(f"Error reading prompt file: {exc}")
+					return
+
+			while True:
+				if file_task is not None:
+					task = file_task
+					file_task = None
+				else:
+					task = self._safe_input("Enter your task: ", default="")
+
+				raw = (task or "").strip()
+				if not raw:
+					self.console.print("Task cannot be empty.")
+					if one_shot:
+						return
+					continue
+
+				lower = raw.lower()
+				if lower in ("/exit", "exit", "quit", "/quit"):
+					self.console.print("Exiting agentic mode.")
+					return
+				if lower in ("/help", "help"):
+					self.console.print(
+						"Agentic commands:\n"
+						"  /free           List free/cheap LLM presets\n"
+						"  /model <name>   Switch model config for next ReAct run\n"
+						"  /help           Show this help\n"
+						"  /exit           Leave the agentic REPL\n"
+						"Or type a natural-language task to plan/act/observe."
+					)
+					if one_shot:
+						return
+					continue
+				if lower == "/free":
+					print(FreeLLMCatalog.load().format_table())
+					if one_shot:
+						return
+					continue
+				if lower.startswith("/model"):
+					parts = raw.split(maxsplit=1)
+					if len(parts) < 2 or not parts[1].strip():
+						self.console.print("Usage: /model <config-name>")
+					else:
+						model = parts[1].strip()
+						config_path = f"configs/{model}.json"
+						if not os.path.exists(config_path):
+							self.console.print(
+								f"Model {model} does not exist. Use /free or /list (in --cli)."
+							)
+						else:
+							self.INTERPRETER_MODEL = model
+							self.INTERPRETER_MODEL_LABEL = model
+							controller = ReActController(
+								model_name=model,
+								api_key=None,
+								unsafe_mode=self.UNSAFE_EXECUTION,
+								log_path="logs/agent_react.jsonl",
+								max_steps=max_steps,
+							)
+							self.console.print(f"Model switched to [bold]{model}[/bold]")
+					if one_shot:
+						return
+					continue
+
+				controller.run(raw)
+				if one_shot:
+					return
 		except KeyboardInterrupt:
 			self.console.print("\n[bold red]Agentic workflow interrupted by user.[/bold red]")
 

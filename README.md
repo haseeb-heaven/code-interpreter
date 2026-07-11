@@ -199,6 +199,30 @@ python interpreter.py --cli
 
 `python interpreter.py --cli` automatically picks the best configured model from your `.env` file if you do not pass `-m`.
 
+### Gemini-CLI-style agentic REPL (free LLMs)
+Open Code Interpreter can run a **Gemini-CLI-inspired** agentic REPL with curated free/cheap models (OpenRouter free, Groq, Gemini Flash free tier, HuggingFace, Ollama/local):
+
+```bash
+# List curated free/cheap presets
+python interpreter.py --list-free
+
+# Agentic ReAct REPL + prefer free model when -m omitted
+python interpreter.py --gemini-style
+
+# Pick a specific free preset
+python interpreter.py --gemini-style -m openrouter-free
+python interpreter.py --gemini-style -m groq-llama-3.1-8b
+python interpreter.py --gemini-style -m gemini-2.5-flash
+python interpreter.py --gemini-style -m local-model
+
+# Prefer free model without enabling agentic mode
+python interpreter.py --cli --free -md code
+```
+
+In the agentic REPL (and classic `--cli`), use `/free` to discover presets and `/model <name>` to switch.
+
+See `configs/free/catalog.json` for the curated list. Existing `--agentic` / `--agent` flags remain unchanged.
+
 ### Run with sandbox (safe)
 ```bash
 python interpreter.py --tui --sandbox

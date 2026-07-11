@@ -38,11 +38,24 @@ external LLM providers over HTTP; there is nothing long-running to "start" besid
 
 ### Agent modes (two entrypoints)
 - `--agentic` → ReAct loop in `libs/agent/` (Coder / Executor / Reviewer / Debugger) from
-  `langgraph-agents`.
+  `langgraph-agents`. Interactive runs are a multi-turn REPL (`/free`, `/model`, `/exit`);
+  `-f` stays one-shot.
+- `--gemini-style` → Gemini-CLI-inspired UX: enables `--agentic` + `--free`, classic CLI (not TUI),
+  prefers a model from `configs/free/catalog.json`, and prints a REPL banner.
+- `--free` / `--list-free` / in-session `/free` → curated free/cheap presets (OpenRouter free, Groq,
+  Gemini Flash free tier, HuggingFace, local/Ollama).
 - `--agent` → multi-agent pipeline in `libs/agents/` (IntentRouter → Planner → SafetyGuard →
   Executor → Repairer → Verifier → Reviewer). Prefer `AgentPipeline.run_async` / `route_async` /
   `execute_async` for non-blocking work; sync wrappers remain for CLI/tests.
-- CLI helpers: `/memory show|clear|stats`, `/tools list|info <name>`.
+- CLI helpers: `/memory show|clear|stats`, `/tools list|info <name>`, `/free`.
+
+### Free LLM quick start
+```bash
+python interpreter.py --list-free
+python interpreter.py --gemini-style -m openrouter-free
+# or local: ensure Ollama/LM Studio is up, then
+python interpreter.py --gemini-style -m local-model
+```
 
 ### TestSprite GitHub App Pre-Check (gotcha)
 This is a **CLI-only** product. The TestSprite GitHub App Pre-Check looks for tests registered in the

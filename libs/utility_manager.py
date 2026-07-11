@@ -301,6 +301,7 @@ class UtilityManager:
 			"/clear - Clear the screen.\n"
 			"/help - Display this help message.\n"
 			"/list - List the available models.\n"
+			"/free - List curated free/cheap LLM presets.\n"
 			"/version - Display the version of the interpreter.\n"
 			"/debug - Switch between debug and silent mode.\n"
 			"/prompt - Switch input prompt mode between file and prompt.\n"
