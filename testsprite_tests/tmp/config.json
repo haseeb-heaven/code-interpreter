@@ -1,0 +1,8 @@
+{
+  "type": "backend",
+  "backendAuthType": "public",
+  "testScope": "codebase",
+  "projectName": "open-code-interpreter",
+  "projectType": "cli",
+  "notes": "CLI-only project. Backend/integration tests cover the Python library, agent pipeline, safety sandbox, and interpreter CLI — no frontend."
+}

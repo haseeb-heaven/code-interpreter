@@ -1,0 +1,17 @@
+project:
+  name: open-code-interpreter
+  type: backend
+  language: python
+  frontend: false
+  cli: true
+modules:
+  - libs/core
+  - libs/execution
+  - libs/modes
+  - libs/agents
+  - libs/safety_manager.py
+  - libs/code_interpreter.py
+  - interpreter.py
+notes: >
+  Pure CLI/TUI product. TestSprite suite is backend/integration only —
+  no browser or frontend UI tests.
