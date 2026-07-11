@@ -42,6 +42,16 @@ dist/
 # BUT keep config JSONs
 !configs/
 !configs/*.json
+!configs/free/
+!configs/free/*.json
+
+# Keep TestSprite backend suite artifacts (GitHub App Pre-Check requires these)
+!testsprite_tests/
+!testsprite_tests/**/*.json
+!testsprite_tests/**/*.yaml
+!testsprite_tests/**/*.yml
+!testsprite_tests/**/*.md
+!testsprite_tests/**/*.html
 
 # History files (explicitly ignored)
 history.json

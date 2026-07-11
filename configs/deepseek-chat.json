@@ -3,5 +3,14 @@
     "max_tokens": 4096,
     "start_sep": "```",
     "end_sep": "```",
-    "model": "deepseek-chat"
+    "model": "deepseek-chat",
+    "timeout_seconds": 120,
+    "rate_limits": {
+        "rpm": 60,
+        "burst": 10
+    },
+    "circuit_breaker": {
+        "threshold": 3,
+        "cooldown_seconds": 120
+    }
 }

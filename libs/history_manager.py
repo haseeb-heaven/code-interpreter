@@ -57,10 +57,14 @@ class History:
 			
 			specific_data = []
 			for entry in history_data:
-				if key in entry['assistant']:
+				if 'assistant' in entry and key in entry['assistant']:
 					specific_data.append(entry['assistant'].get(key))
-				elif key in entry['system']:
+				elif 'system' in entry and key in entry['system']:
 					specific_data.append(entry['system'].get(key))
+				elif key == 'task' and 'task' in entry:
+					specific_data.append(entry.get('task'))
+				elif key in ['code', 'output'] and 'content' in entry:
+					specific_data.append(entry.get('content'))
 			self.logger.info(f'Successfully retrieved {key} data from history')
 			return specific_data
 		except Exception as exception:

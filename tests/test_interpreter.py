@@ -19,6 +19,11 @@ from libs.llm_dispatcher import build_completion_kwargs
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 CONFIGS_DIR = ROOT_DIR / "configs"
+_SKIP_CONFIG_NAMES = {"schema.json"}
+
+
+def _model_config_files():
+	return sorted(p for p in CONFIGS_DIR.glob("*.json") if p.name.lower() not in _SKIP_CONFIG_NAMES)
 
 
 def _read_hf_model(config_path: Path) -> str:
@@ -126,7 +131,7 @@ class TestInterpreter(unittest.TestCase):
 
 	def test_every_config_is_parseable_and_has_hf_model(self):
 		utility_manager = UtilityManager()
-		config_files = sorted(CONFIGS_DIR.glob("*.json"))
+		config_files = _model_config_files()
 		self.assertTrue(config_files, "No config files found")
 
 		for config_file in config_files:
@@ -320,7 +325,7 @@ class TestInterpreter(unittest.TestCase):
 	def test_routing_matrix_for_all_non_local_configs(self, _mock_history, _mock_client):
 		interpreter = Interpreter(self._make_args(model="gpt-4o"))
 		utility_manager = UtilityManager()
-		config_files = sorted(CONFIGS_DIR.glob("*.json"))
+		config_files = _model_config_files()
 
 		for config_file in config_files:
 			if config_file.name == "local-model.json":

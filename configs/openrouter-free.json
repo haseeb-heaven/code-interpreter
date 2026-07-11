@@ -5,5 +5,14 @@
     "end_sep": "```",
     "provider": "openrouter",
     "api_base": "https://openrouter.ai/api/v1",
-    "model": "openrouter/free"
+    "model": "openrouter/free",
+    "timeout_seconds": 120,
+    "rate_limits": {
+        "rpm": 20,
+        "burst": 5
+    },
+    "circuit_breaker": {
+        "threshold": 3,
+        "cooldown_seconds": 180
+    }
 }

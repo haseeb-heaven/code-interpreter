@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "description": "Curated free/cheap LLM presets for Gemini-CLI-style agentic runs. Config names map to configs/<name>.json.",
+  "models": [
+    {
+      "id": "openrouter-free",
+      "config": "openrouter-free",
+      "provider": "openrouter",
+      "env_key": "OPENROUTER_API_KEY",
+      "tier": "free",
+      "notes": "OpenRouter free router (many free upstream models)"
+    },
+    {
+      "id": "openrouter-qwen3-coder-480b-free",
+      "config": "openrouter-qwen3-coder-480b-free",
+      "provider": "openrouter",
+      "env_key": "OPENROUTER_API_KEY",
+      "tier": "free",
+      "notes": "Qwen3 Coder 480B via OpenRouter :free"
+    },
+    {
+      "id": "openrouter-mimo-v2-flash-free",
+      "config": "openrouter-mimo-v2-flash-free",
+      "provider": "openrouter",
+      "env_key": "OPENROUTER_API_KEY",
+      "tier": "free",
+      "notes": "Xiaomi MiMo V2 Flash via OpenRouter :free"
+    },
+    {
+      "id": "openrouter-nemotron-3-super-free",
+      "config": "openrouter-nemotron-3-super-free",
+      "provider": "openrouter",
+      "env_key": "OPENROUTER_API_KEY",
+      "tier": "free",
+      "notes": "Nemotron 3 Super via OpenRouter :free"
+    },
+    {
+      "id": "openrouter-minimax-m2-5-free",
+      "config": "openrouter-minimax-m2-5-free",
+      "provider": "openrouter",
+      "env_key": "OPENROUTER_API_KEY",
+      "tier": "free",
+      "notes": "MiniMax M2.5 via OpenRouter :free"
+    },
+    {
+      "id": "openrouter-qwen3-6-plus-free",
+      "config": "openrouter-qwen3-6-plus-free",
+      "provider": "openrouter",
+      "env_key": "OPENROUTER_API_KEY",
+      "tier": "free",
+      "notes": "Qwen3.6 Plus via OpenRouter :free"
+    },
+    {
+      "id": "groq-llama-3.1-8b",
+      "config": "groq-llama-3.1-8b",
+      "provider": "groq",
+      "env_key": "GROQ_API_KEY",
+      "tier": "free_tier",
+      "notes": "Groq Llama 3.1 8B Instant (generous free tier)"
+    },
+    {
+      "id": "groq-gemma",
+      "config": "groq-gemma",
+      "provider": "groq",
+      "env_key": "GROQ_API_KEY",
+      "tier": "free_tier",
+      "notes": "Groq Gemma (free tier)"
+    },
+    {
+      "id": "groq-gpt-oss-20b",
+      "config": "groq-gpt-oss-20b",
+      "provider": "groq",
+      "env_key": "GROQ_API_KEY",
+      "tier": "free_tier",
+      "notes": "Groq GPT-OSS 20B (free tier)"
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "config": "gemini-2.5-flash",
+      "provider": "gemini",
+      "env_key": "GEMINI_API_KEY",
+      "tier": "free_tier",
+      "notes": "Gemini 2.5 Flash (Google AI Studio free tier)"
+    },
+    {
+      "id": "gemini-2.5-flash-lite",
+      "config": "gemini-2.5-flash-lite",
+      "provider": "gemini",
+      "env_key": "GEMINI_API_KEY",
+      "tier": "free_tier",
+      "notes": "Gemini 2.5 Flash-Lite (fast free tier)"
+    },
+    {
+      "id": "gemini-1.5-flash",
+      "config": "gemini-1.5-flash",
+      "provider": "gemini",
+      "env_key": "GEMINI_API_KEY",
+      "tier": "free_tier",
+      "notes": "Gemini 1.5 Flash (free tier)"
+    },
+    {
+      "id": "hf-meta-llama-3",
+      "config": "hf-meta-llama-3",
+      "provider": "huggingface",
+      "env_key": "HUGGINGFACE_API_KEY",
+      "tier": "free_tier",
+      "notes": "HuggingFace Inference (rate-limited free)"
+    },
+    {
+      "id": "local-model",
+      "config": "local-model",
+      "provider": "local",
+      "env_key": null,
+      "tier": "local",
+      "notes": "Ollama / LM Studio / local OpenAI-compatible (fully free)"
+    }
+  ]
+}

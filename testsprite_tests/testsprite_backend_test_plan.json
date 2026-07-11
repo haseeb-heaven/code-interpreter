@@ -1,0 +1,70 @@
+[
+  {
+    "id": "TC001",
+    "title": "CLI exposes help and version",
+    "description": "Verify interpreter.py --help and --version work without API keys.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Run python interpreter.py --help"},
+      {"type": "assertion", "description": "Exit code 0 and --agent flag documented"},
+      {"type": "action", "description": "Run python interpreter.py --version"},
+      {"type": "assertion", "description": "Version string is printed"}
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Core backend modules import cleanly",
+    "description": "Verify modular packages (core, execution, modes, agents) import after the God-class refactor.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Import SessionConfig, PromptBuilder, ModelRouter, CodeExecutor, Repairer, AgentPipeline"},
+      {"type": "assertion", "description": "No ImportError"}
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Safety manager blocks dangerous code in SAFE mode",
+    "description": "Backend safety gate must reject destructive file/shell operations when unsafe_mode is False.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Assess os.system('rm -rf /') via ExecutionSafetyManager"},
+      {"type": "assertion", "description": "Decision.allowed is False"}
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Agent pipeline happy path (backend, mocked LLM)",
+    "description": "IntentRouter→Planner→SafetyGuard→Executor→Verifier→Reviewer succeeds for a simple print task.",
+    "category": "integration",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Run AgentPipeline with fake LLM responses"},
+      {"type": "assertion", "description": "intent=code, safe=True, verified=True, approved=True"}
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Agent SafetyGuard blocks before execution",
+    "description": "Dangerous generated code must be blocked by SafetyGuard; Executor must not run it.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Pipeline generates os.system('rm -rf /')"},
+      {"type": "assertion", "description": "safe=False and error mentions SafetyGuard"}
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Full unittest suite passes",
+    "description": "Regression gate: python -m unittest discover -s tests must stay green.",
+    "category": "regression",
+    "priority": "High",
+    "steps": [
+      {"type": "action", "description": "Run unittest discovery"},
+      {"type": "assertion", "description": "Exit code 0"}
+    ]
+  }
+]

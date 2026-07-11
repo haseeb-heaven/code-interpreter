@@ -3,5 +3,14 @@
     "max_tokens": 3072,
     "start_sep": "```",
     "end_sep": "```",
-    "model": "gemini/gemini-2.5-flash"
+    "model": "gemini/gemini-2.5-flash",
+    "timeout_seconds": 120,
+    "rate_limits": {
+        "rpm": 60,
+        "burst": 10
+    },
+    "circuit_breaker": {
+        "threshold": 3,
+        "cooldown_seconds": 120
+    }
 }

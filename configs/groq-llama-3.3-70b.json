@@ -3,5 +3,14 @@
     "max_tokens": 4096,
     "start_sep": "```",
     "end_sep": "```",
-    "model": "groq/llama-3.3-70b-versatile"
+    "model": "groq/llama-3.3-70b-versatile",
+    "timeout_seconds": 90,
+    "rate_limits": {
+        "rpm": 30,
+        "burst": 5
+    },
+    "circuit_breaker": {
+        "threshold": 3,
+        "cooldown_seconds": 120
+    }
 }

@@ -23,31 +23,9 @@ class Decision:
 	reasons: list[str] = field(default_factory=list)
 
 
-@dataclass
-class RepairCircuitBreaker:
-	max_attempts: int = 3
-	attempts: int = 0
-	seen_errors: set[str] = field(default_factory=set)
-
-	def should_continue(self, error_text: str) -> bool:
-		normalized = self._normalize_error(error_text)
-
-		#  stop if same error repeated
-		if normalized in self.seen_errors:
-			return False
-
-		#  stop if max attempts reached
-		if self.attempts >= self.max_attempts:
-			return False
-
-		self.seen_errors.add(normalized)
-		self.attempts += 1
-		return True
-
-	def _normalize_error(self, error_text: str) -> str:
-		error_text = (error_text or "").strip().lower()
-		error_text = re.sub(r"\s+", " ", error_text)
-		return error_text
+# RepairCircuitBreaker lives in libs.execution.repairer; re-exported here for
+# backward-compatible imports (`from libs.safety_manager import RepairCircuitBreaker`).
+from libs.execution.repairer import RepairCircuitBreaker  # noqa: E402
 
 
 # =========================
