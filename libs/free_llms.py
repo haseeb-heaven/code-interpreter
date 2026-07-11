@@ -183,7 +183,7 @@ class FreeLLMCatalog:
 				f"{index:<3} {entry.config:<36} {entry.provider:<12} {entry.tier:<10} {ready:<6} {notes}"
 			)
 		lines.append("")
-		lines.append("Tip: python interpreter.py --gemini-style -m <config>")
+		lines.append('Tip: python interpreter.py --free "describe your task here"')
 		lines.append("     python interpreter.py --list-free")
 		return "\n".join(lines)
 

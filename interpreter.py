@@ -22,11 +22,15 @@ import sys
 import traceback
 import warnings
 from libs.markdown_code import display_markdown_message
+from libs.onboarding import FIRST_RUN_WELCOME, maybe_show_first_run_welcome
 from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
 INTERPRETER_VERSION = "3.3.0"
+
+# Re-exported for Issue #220 identity/onboarding (tests import from here).
+__all_onboarding__ = ("FIRST_RUN_WELCOME", "maybe_show_first_run_welcome")
 
 
 def build_parser():
@@ -284,6 +288,8 @@ def prepare_args(args, argv):
 	if no_runtime_args and not args.cli and not args.tui:
 		args.tui = True
 	if args.tui:
+		# First-run welcome before TUI selectors (Issue #220).
+		maybe_show_first_run_welcome()
 		return TerminalUI().launch(args)
 	if not args.mode:
 		args.mode = 'code'
@@ -368,6 +374,13 @@ def main(argv=None):
 		interpreter = Interpreter(args)
 		run_codegen_cli(args, interpreter=interpreter)
 		return
+
+	# First-run welcome for classic / agentic CLI sessions (Issue #220).
+	# Skip one-shot -f / structured scripting noise; still show for --cli REPL.
+	_one_shot_file = bool(getattr(args, 'file', None))
+	_structured = getattr(args, 'output_format', None) in ('json', 'markdown')
+	if not _one_shot_file and not _structured:
+		maybe_show_first_run_welcome()
 
 	interpreter = Interpreter(args)
 	if getattr(args, 'yolo', False) or getattr(args, 'mcp_server', None):

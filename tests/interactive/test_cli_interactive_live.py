@@ -85,43 +85,45 @@ class TestInteractiveCliSurface(unittest.TestCase):
 
 	def test_piped_exit_with_yes_env(self):
 		"""Pipe /exit immediately — proves non-interactive stdin + INTERPRETER_YES."""
-		env = os.environ.copy()
-		env["INTERPRETER_YES"] = "1"
-		# Avoid loading real secrets into assertions; do not dump env.
-		proc = subprocess.run(
-			[
-				PYTHON,
-				str(ROOT / "interpreter.py"),
-				"--cli",
-				"--yes",
-				"--output-format",
-				"plain",
-				"-m",
-				"local-model",
-				"-md",
-				"code",
-			],
-			cwd=str(ROOT),
-			input="/exit\n",
-			capture_output=True,
-			text=True,
-			timeout=90,
-			env=env,
-		)
-		combined = proc.stdout + proc.stderr
-		_soft_skip_if_billing(combined)
-		# May fail init without .env/local server — accept clean exit or recoverable message.
-		if proc.returncode != 0:
-			# Missing key / unreachable local endpoint is acceptable for this surface test.
-			self.assertTrue(
-				any(
-					tok in combined.lower()
-					for tok in ("api", "key", "error", "connection", "refused", "model")
-				),
-				combined[:500],
+		with tempfile.TemporaryDirectory() as tmp:
+			env = os.environ.copy()
+			env["INTERPRETER_YES"] = "1"
+			env["CODE_INTERPRETER_HOME"] = tmp
+			# Avoid loading real secrets into assertions; do not dump env.
+			proc = subprocess.run(
+				[
+					PYTHON,
+					str(ROOT / "interpreter.py"),
+					"--cli",
+					"--yes",
+					"--output-format",
+					"plain",
+					"-m",
+					"local-model",
+					"-md",
+					"code",
+				],
+				cwd=str(ROOT),
+				input="/exit\n",
+				capture_output=True,
+				text=True,
+				timeout=90,
+				env=env,
 			)
-		else:
-			self.assertTrue(True)
+			combined = proc.stdout + proc.stderr
+			_soft_skip_if_billing(combined)
+			# May fail init without .env/local server — accept clean exit or recoverable message.
+			if proc.returncode != 0:
+				# Missing key / unreachable local endpoint is acceptable for this surface test.
+				self.assertTrue(
+					any(
+						tok in combined.lower()
+						for tok in ("api", "key", "error", "connection", "refused", "model")
+					),
+					combined[:500],
+				)
+			else:
+				self.assertTrue(True)
 
 	def test_session_flags_on_parser(self):
 		import interpreter as mod

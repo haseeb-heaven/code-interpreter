@@ -14,13 +14,44 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-**Welcome to Code-Interpreter 🎉,** an open-source tool that transforms natural language instructions into executable code using **OpenAI**, **Gemini**, **Groq**, **Claude**, **DeepSeek**, **NVIDIA**, **Z AI**, **Browser Use**, and **HuggingFace** models. It executes code safely and supports vision models for image processing.
+# Code Interpreter — Free, Local, Any Model
 
-Supports tasks like file operations, image editing, video processing, data analysis, and more. Works on Windows, MacOS, and Linux.
+> The open-source alternative to ChatGPT Code Interpreter.  
+> Describe a task in plain English. Get the result. No coding required.
 
-## **Why Unique?**
+```bash
+pip install open-code-interpreter
+python interpreter.py --free "analyze sales.csv and plot top 10 customers"
+```
 
-Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, macOS.
+✅ Works with free models (Gemini, Groq, OpenRouter — no paid API required)  
+✅ Runs on your machine — your files never leave your computer  
+✅ Windows, Mac, Linux  
+✅ Drop-in replacement for the abandoned Open Interpreter
+
+## Quick start with `--free` (zero-cost models)
+
+The `--free` flag is the fastest way to try Code Interpreter without paid APIs:
+
+```bash
+# Prefer a free/cheap model from the built-in catalog
+python interpreter.py --free "analyze this CSV"
+
+# List curated free/cheap presets (OpenRouter free, Groq, Gemini Flash, Ollama, …)
+python interpreter.py --list-free
+
+# In-session: type /free to see zero-cost options
+```
+
+## Why not Open Interpreter?
+
+| | Code Interpreter (this project) | Open Interpreter |
+|---|---|---|
+| Last updated | Active ✅ | Abandoned (Apr 2025) ❌ |
+| Free models built-in | Yes — `--free` flag ✅ | No ❌ |
+| Windows support | Full ✅ | Broken on Windows ❌ |
+| Safety layer | Yes ✅ | No ❌ |
+| pip install | Yes ✅ | Yes ✅ |
 
 ## **How We Compare**
 
@@ -73,13 +104,19 @@ To install Code-Interpreter, run the following command:
 pip install open-code-interpreter
 ```
 
-To run the interpreter with Python:
+Then try a free model immediately:
+
+```bash
+python interpreter.py --free "analyze sales.csv and plot top 10 customers"
+```
+
+Or pick a specific model:
 
 ```bash
 python interpreter.py -m 'z-ai-glm-5' -md 'code'
 ```
 
-Make sure you install required packages before running the interpreter and have API keys setup in the `.env` file.
+Make sure you install required packages before running the interpreter and have API keys setup in the `.env` file (local / Ollama configs skip cloud key checks).
 
 ### Installation with Git
 To get started with Code-Interpreter, follow these steps:
@@ -236,6 +273,9 @@ python interpreter.py --cli
 Open Code Interpreter can run a **Gemini-CLI-inspired** agentic REPL with curated free/cheap models (OpenRouter free, Groq, Gemini Flash free tier, HuggingFace, Ollama/local):
 
 ```bash
+# Prefer free model — the primary zero-cost path
+python interpreter.py --free "analyze this CSV"
+
 # List curated free/cheap presets
 python interpreter.py --list-free
 

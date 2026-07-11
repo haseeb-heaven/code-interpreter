@@ -117,8 +117,9 @@ class FreeLLMCatalogTests(unittest.TestCase):
 		catalog = FreeLLMCatalog.load(self.catalog_path)
 		table = catalog.format_table(environ={}, configs_dir=self.configs_dir)
 		self.assertIn("Free / cheap LLM presets", table)
-		self.assertIn("--gemini-style", table)
+		self.assertIn('--free "describe your task here"', table)
 		self.assertIn("local-model", table)
+		self.assertNotIn("--gemini-style -m <config>", table)
 
 	def test_resolve_free_model_respects_explicit(self):
 		catalog = FreeLLMCatalog.load(self.catalog_path)
