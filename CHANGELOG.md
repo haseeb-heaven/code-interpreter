@@ -4,6 +4,7 @@
 - fix(stability): Added timeouts to all external `requests.get` calls in PackageManager and UtilityManager to prevent hangs.
 - feat(performance): Optimized `ExecutionSafetyManager` by pre-compiling all regex patterns.
 - feat(ux): Improved Terminal UI fallback prompts with explicit choice brackets for non-TTY environments.
+- fix: Resolved Ollama/local model API Key extraction and output parsing, updated legacy model configurations.
 - test: Expanded test coverage with robust mocks simulating command injection, path traversal, timeouts, and UX changes.
 
 ## v3.2.2 (2026-04-07)
