@@ -271,6 +271,30 @@ def build_parser():
 		default=False,
 		help='Prefer Plotly interactive HTML charts instead of matplotlib.',
 	)
+	parser.add_argument(
+		'--science',
+		action='store_true',
+		default=False,
+		help='Enable scientific computing system prompt (scipy/sklearn/statsmodels guidance).',
+	)
+	parser.add_argument(
+		'--plot-theme',
+		choices=['paper', 'talk', 'dark', 'minimal'],
+		default=None,
+		help='Publication plot theme injected into matplotlib scripts.',
+	)
+	parser.add_argument(
+		'--report',
+		action='store_true',
+		default=False,
+		help='After --eda, also export a PDF report (requires reportlab).',
+	)
+	parser.add_argument(
+		'--no-auto-install',
+		action='store_true',
+		default=False,
+		help='Disable automatic pip install of missing science packages.',
+	)
 	return parser
 
 

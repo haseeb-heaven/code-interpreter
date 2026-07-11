@@ -30,7 +30,18 @@ def handle_data_repl_command(interp, task: str, display_fn: Callable[[str], None
 	raw = (task or "").strip()
 	lower = raw.lower()
 	if not lower.startswith(
-		("/eda", "/charts", "/export", "/clean", "/sql", "/templates", "/chart-style")
+		(
+			"/eda",
+			"/charts",
+			"/export",
+			"/clean",
+			"/sql",
+			"/templates",
+			"/chart-style",
+			"/notebook",
+			"/ml",
+			"/output",
+		)
 	):
 		return False
 
@@ -51,6 +62,12 @@ def handle_data_repl_command(interp, task: str, display_fn: Callable[[str], None
 			return _cmd_templates(raw, display_fn)
 		if lower.startswith("/chart-style"):
 			return _cmd_chart_style(session, raw, display_fn)
+		if lower.startswith("/notebook"):
+			return _cmd_notebook(session, raw, display_fn)
+		if lower.startswith("/ml"):
+			return _cmd_ml(session, raw, display_fn)
+		if lower.startswith("/output"):
+			return _cmd_output(interp, raw, display_fn)
 	except Exception as exc:
 		logger.exception("Data REPL command failed")
 		display_fn(f"Error: {exc}")
@@ -214,6 +231,71 @@ def _cmd_chart_style(session, raw: str, display_fn) -> bool:
 	session.chart_style = style
 	session.record_operation(f"chart-style:{style}")
 	display_fn(f"Chart style set to `{style}`")
+	return True
+
+
+def _cmd_notebook(session, raw: str, display_fn) -> bool:
+	from libs.output.chart_manager import open_file
+	from libs.output.notebook_exporter import export_to_notebook
+
+	parts = raw.split(maxsplit=2)
+	sub = parts[1].lower() if len(parts) > 1 else "save"
+	out_path = None
+	if sub == "save" and len(parts) > 2:
+		out_path = parts[2].strip().strip('"').strip("'")
+	elif sub not in ("save", "open") and len(parts) > 1:
+		# `/notebook my.ipynb`
+		out_path = parts[1].strip().strip('"').strip("'")
+		sub = "save"
+	path = export_to_notebook(session.notebook_cells, output_path=out_path)
+	session.record_operation(f"notebook:{path}")
+	display_fn(f"Notebook saved to `{path}`")
+	if sub == "open":
+		open_file(Path(path))
+	return True
+
+
+def _cmd_ml(session, raw: str, display_fn) -> bool:
+	from libs.data.ml_shortcuts import run_ml_shortcut
+	from libs.output.rich_formatter import print_stats
+
+	if session.df is None:
+		display_fn("No active dataset. Load with `/file` or `/eda` first.")
+		return True
+	parts = raw.split()
+	if len(parts) < 2:
+		display_fn("Usage: `/ml classify|regress <target>` | `/ml cluster [n]`")
+		return True
+	kind = parts[1].lower()
+	arg = parts[2] if len(parts) > 2 else None
+	if kind == "cluster":
+		summary, metrics = run_ml_shortcut(
+			session.df, "cluster", n_clusters=int(arg or 3)
+		)
+	else:
+		summary, metrics = run_ml_shortcut(session.df, kind, target=arg)
+	print_stats(metrics)
+	display_fn(summary)
+	session.record_operation(f"ml:{kind}")
+	session.record_cell("markdown", summary)
+	return True
+
+
+def _cmd_output(interp, raw: str, display_fn) -> bool:
+	parts = raw.split(maxsplit=1)
+	sub = parts[1].lower().strip() if len(parts) > 1 else ""
+	if sub != "full":
+		display_fn("Usage: `/output full` — write last full stdout to a temp file")
+		return True
+	full = getattr(interp, "_last_full_output", None)
+	if not full:
+		display_fn("No captured output yet.")
+		return True
+	import tempfile
+
+	path = Path(tempfile.gettempdir()) / "code_interpreter_last_output.txt"
+	path.write_text(str(full), encoding="utf-8")
+	display_fn(f"Full output written to `{path}`")
 	return True
 
 

@@ -19,15 +19,24 @@ class CodeExecutor:
 
 	def execute_generated_output(self, code_snippet, code_lang, force_execute=False):
 		interp = self.interp
-		# Auto-save matplotlib / plotly helpers (#222)
+		# Auto-save matplotlib / plotly helpers (#222) + plot themes (#223)
 		try:
+			from libs.execution.auto_install import auto_install_missing
+			from libs.execution.output_truncation import format_output
 			from libs.output.chart_manager import inject_auto_save
+			from libs.output.plot_themes import inject_plot_theme
 			from libs.output.plotly_manager import inject_plotly_helper
 
+			auto_install_missing(
+				code_snippet or "",
+				enabled=not bool(getattr(interp.args, "no_auto_install", False)),
+			)
 			code_snippet = inject_auto_save(code_snippet or "")
 			code_snippet = inject_plotly_helper(code_snippet)
+			theme = getattr(interp.args, "plot_theme", None)
+			code_snippet = inject_plot_theme(code_snippet, theme)
 		except Exception as exc:
-			interp.logger.debug("Chart hook inject skipped: %s", exc)
+			interp.logger.debug("Chart/theme/install hook skipped: %s", exc)
 
 		if not interp.UNSAFE_EXECUTION:
 			sandbox_context = interp.safety_manager.build_sandbox_context()
@@ -37,6 +46,19 @@ class CodeExecutor:
 		output, error = interp.execute_code(
 			code_snippet, code_lang, sandbox_context=sandbox_context, force_execute=force_execute
 		)
+		# Record notebook cell + truncate display output (#223)
+		try:
+			from libs.data.repl_data_commands import ensure_data_session
+			from libs.execution.output_truncation import format_output
+
+			session = ensure_data_session(interp)
+			session.record_cell("code", code_snippet or "", output or error or "")
+			interp._last_full_output = output or error or ""
+			if output and not getattr(interp, "_output_full", False):
+				output = format_output(output)
+		except Exception as exc:
+			interp.logger.debug("Output post-process skipped: %s", exc)
+
 		if error:
 			return None, error, sandbox_context
 

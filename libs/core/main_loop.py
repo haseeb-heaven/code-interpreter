@@ -232,9 +232,20 @@ def run_interpreter_main(interp, version):
 				display_markdown_message("Cleared all attached files.")
 				continue
 
-			# DATA ANALYSIS COMMANDS (#222)
+			# DATA ANALYSIS COMMANDS (#222 / #223)
 			elif task.lower().startswith(
-				("/eda", "/charts", "/export", "/clean", "/sql", "/templates", "/chart-style")
+				(
+					"/eda",
+					"/charts",
+					"/export",
+					"/clean",
+					"/sql",
+					"/templates",
+					"/chart-style",
+					"/notebook",
+					"/ml",
+					"/output",
+				)
 			):
 				from libs.data.repl_data_commands import handle_data_repl_command
 
@@ -773,6 +784,15 @@ def run_interpreter_main(interp, version):
 						from libs.output.plotly_manager import plotly_system_hint
 
 						prompt = f"{plotly_system_hint()}\n\n{prompt}"
+				# Science prompt layer (#223)
+				from libs.prompts.science_prompt import science_prompt_block
+
+				sci = science_prompt_block(
+					force=bool(getattr(interp.args, "science", False)),
+					task=task,
+				)
+				if sci:
+					prompt = f"{sci}\n\n{prompt}"
 				interp.logger.info(f"Prompt init is '{prompt}'")
 
 				# Check if the prompt is empty.

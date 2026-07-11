@@ -30,8 +30,9 @@ def export_dataframe(
 	home: Optional[Path] = None,
 	stem: Optional[str] = None,
 	charts: Optional[Iterable[Path]] = None,
+	summary_text: str = "",
 ) -> Path:
-	"""Export ``df`` to csv|excel|json|markdown|html|report."""
+	"""Export ``df`` to csv|excel|json|markdown|html|report|pdf."""
 	if df is None:
 		raise ValueError("No dataframe to export — load data first")
 	fmt_l = (fmt or "csv").lower().strip()
@@ -60,6 +61,9 @@ def export_dataframe(
 		elif fmt_l == "report":
 			path = out / f"{name}_report.html"
 			path.write_text(_build_report_html(df, charts or []), encoding="utf-8")
+		elif fmt_l == "pdf":
+			path = out / f"{name}_report.pdf"
+			_export_pdf_report(df, list(charts or []), path, summary_text=summary_text)
 		else:
 			raise ValueError(f"Unsupported export format: {fmt}")
 		logger.info("Exported %s", path)
@@ -67,6 +71,56 @@ def export_dataframe(
 	except Exception as exc:
 		logger.error("Export failed (%s): %s", fmt_l, exc)
 		raise
+
+
+def _export_pdf_report(
+	df: pd.DataFrame,
+	charts: list,
+	path: Path,
+	*,
+	summary_text: str = "",
+) -> None:
+	"""Generate a simple PDF report with reportlab (optional dependency)."""
+	try:
+		from reportlab.lib.pagesizes import letter
+		from reportlab.lib.styles import getSampleStyleSheet
+		from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table
+	except ImportError as exc:
+		raise ImportError(
+			"reportlab is required for PDF export. Install with: pip install reportlab"
+		) from exc
+
+	doc = SimpleDocTemplate(str(path), pagesize=letter)
+	styles = getSampleStyleSheet()
+	story = [
+		Paragraph("Code Interpreter Analysis Report", styles["Title"]),
+		Spacer(1, 12),
+		Paragraph(
+			f"Rows={df.shape[0]} Cols={df.shape[1]}",
+			styles["Normal"],
+		),
+		Spacer(1, 12),
+	]
+	if summary_text:
+		story.append(Paragraph(summary_text.replace("\n", "<br/>"), styles["Normal"]))
+		story.append(Spacer(1, 12))
+
+	preview = df.head(15).astype(str).values.tolist()
+	header = [str(c) for c in df.columns]
+	story.append(Table([header] + preview))
+	story.append(Spacer(1, 12))
+
+	for chart in charts:
+		try:
+			p = Path(chart)
+			if p.suffix.lower() in (".png", ".jpg", ".jpeg") and p.is_file():
+				story.append(Paragraph(p.name, styles["Heading3"]))
+				story.append(Image(str(p), width=400, height=250))
+				story.append(Spacer(1, 8))
+		except Exception as exc:
+			logger.warning("Skip PDF chart %s: %s", chart, exc)
+
+	doc.build(story)
 
 
 def _build_report_html(df: pd.DataFrame, charts: Iterable[Path]) -> str:

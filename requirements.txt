@@ -19,6 +19,13 @@ tabulate
 pyarrow
 # Optional: DuckDB accelerates /sql over local files
 duckdb
+# Scientific computing (#223)
+seaborn
+scipy
+scikit-learn
+statsmodels
+reportlab
+numpy
 
 # Libraries for standard libries 
 stdlib_list

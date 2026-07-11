@@ -219,7 +219,19 @@ def bootstrap_interpreter(interp) -> None:
 				interp._attached_files.append(eda_path)
 			from libs.data.auto_eda import deterministic_eda_summary
 
-			print(deterministic_eda_summary(interp.data_session.df))
+			summary = deterministic_eda_summary(interp.data_session.df)
+			print(summary)
+			if getattr(args, "report", False):
+				from libs.output.chart_manager import list_charts
+				from libs.output.exporter import export_dataframe
+
+				pdf_path = export_dataframe(
+					interp.data_session.df,
+					"pdf",
+					charts=list_charts(20),
+					summary_text=summary,
+				)
+				print(f"PDF report saved: {pdf_path}")
 		except Exception as exc:
 			interp.logger.error("Failed --eda load: %s", exc)
 			print(f"Failed to load EDA file: {exc}")

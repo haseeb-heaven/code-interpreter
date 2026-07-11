@@ -201,6 +201,18 @@ In the REPL:
 
 R scientists: `python interpreter.py -l r --cli` (requires `Rscript` on PATH).
 
+## For Scientists
+
+```bash
+# Scientific prompting + publication theme
+python interpreter.py --science --plot-theme paper --attach experiment.csv "run ANOVA across groups"
+
+# EDA + PDF report
+python interpreter.py --eda experiment.csv --report --cli -m local-model
+
+# In REPL: /notebook, /ml classify target, /output full
+```
+
 This Interpreter supports offline models via **LM Studio** and **Ollama**. Follow the steps below:
 
 ### Ollama first-class (recommended)

@@ -70,19 +70,28 @@ def _get_preview(path: Path, ext: str) -> str:
 
 
 def normalize_paths(paths: Optional[Sequence[str]]) -> List[str]:
-	"""Deduplicate and strip path strings; drop empties."""
+	"""Deduplicate, expand globs, and strip path strings; drop empties."""
 	if not paths:
 		return []
+	import glob as _glob
+
 	seen = set()
 	out: List[str] = []
 	for raw in paths:
 		if raw is None:
 			continue
 		text = str(raw).strip().strip('"').strip("'")
-		if not text or text in seen:
+		if not text:
 			continue
-		seen.add(text)
-		out.append(text)
+		expanded = sorted(_glob.glob(text)) if any(ch in text for ch in "*?[") else [text]
+		if not expanded:
+			# Keep unresolved pattern so callers can report NOT FOUND.
+			expanded = [text]
+		for item in expanded:
+			if item in seen:
+				continue
+			seen.add(item)
+			out.append(item)
 	return out
 
 

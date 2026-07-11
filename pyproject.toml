@@ -45,6 +45,12 @@ dependencies = [
   "tabulate",
   "pyarrow",
   "duckdb",
+  "seaborn",
+  "scipy",
+  "scikit-learn",
+  "statsmodels",
+  "reportlab",
+  "numpy",
   "stdlib_list",
   "legacy-cgi",
 ]

@@ -25,6 +25,7 @@ class DataSession:
 	ingest_meta: dict = field(default_factory=dict)
 	history: List[str] = field(default_factory=list)
 	chart_style: str = "matplotlib"  # or plotly
+	notebook_cells: List[dict] = field(default_factory=list)
 
 	def load_file(self, path: str) -> dict[str, Any]:
 		"""Ingest a file and store it as the active dataset."""
@@ -39,7 +40,18 @@ class DataSession:
 		self.preview = result.get("preview")
 		self.ingest_meta = {k: v for k, v in result.items() if k != "df"}
 		self.record_operation(f"load:{self.active_file}")
+		self.record_cell(
+			"markdown",
+			f"Loaded dataset `{self.active_file}` shape={self.df.shape}",
+		)
 		return result
+
+	def record_cell(self, cell_type: str, source: str, output: str = "") -> None:
+		self.notebook_cells.append(
+			{"type": cell_type, "source": source or "", "output": output or ""}
+		)
+		if len(self.notebook_cells) > 200:
+			self.notebook_cells = self.notebook_cells[-200:]
 
 	def context_block(self) -> str:
 		"""Return the context string to inject into prompts while a file is loaded."""
@@ -66,3 +78,4 @@ class DataSession:
 		self.preview = None
 		self.ingest_meta = {}
 		self.history = []
+		self.notebook_cells = []
