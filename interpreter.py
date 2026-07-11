@@ -96,7 +96,13 @@ def build_parser():
 		'--agent',
 		action='store_true',
 		default=False,
-		help='Run tasks through the multi-agent pipeline (IntentRouter → Planner → SafetyGuard → Executor → Repairer → Verifier → Reviewer)',
+		help='Run tasks through the multi-agent pipeline (IntentRouter -> Planner -> SafetyGuard -> Executor -> Repairer -> Verifier -> Reviewer)',
+	)
+	parser.add_argument(
+		'-y', '--yes',
+		action='store_true',
+		default=False,
+		help='Non-interactive mode: auto-confirm prompts, run file task once, then exit (CI/script friendly)',
 	)
 	return parser
 
@@ -119,6 +125,14 @@ def prepare_args(args, argv):
 		args.free = True
 		args.cli = True
 		args.tui = False
+
+	# Auto-enable --yes in CI environments so scripted runs never hang on input()
+	import os
+	if not getattr(args, 'yes', False):
+		ci = os.environ.get('CI', '').lower() in ('1', 'true', 'yes')
+		auto = os.environ.get('INTERPRETER_YES', '').lower() in ('1', 'true', 'yes')
+		if ci or auto:
+			args.yes = True
 
 	no_runtime_args = len(argv) <= 1
 	if no_runtime_args and not args.cli and not args.tui:

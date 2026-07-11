@@ -68,11 +68,27 @@ def run_interpreter_main(interp, version):
 				if not prompt_file_name:
 					prompt_file_name = 'prompt.txt'
 
-				prompt_file_path = os.path.join(os.getcwd(), 'system', prompt_file_name)
+				# Prefer explicit path if it exists; else legacy system/<name>; else cwd.
+				candidates = []
+				if os.path.isabs(prompt_file_name) or os.path.dirname(prompt_file_name):
+					candidates.append(prompt_file_name)
+				candidates.append(os.path.join(os.getcwd(), prompt_file_name))
+				candidates.append(os.path.join(os.getcwd(), 'system', os.path.basename(prompt_file_name)))
+
+				prompt_file_path = None
+				for candidate in candidates:
+					if os.path.exists(candidate):
+						prompt_file_path = candidate
+						break
+				if prompt_file_path is None:
+					prompt_file_path = candidates[-1]
 
 				# check if the file exists.
 				if not os.path.exists(prompt_file_path):
 					interp.logger.error(f"Prompt file not found: {prompt_file_path}")
+					if getattr(interp, "AUTO_YES", False):
+						display_markdown_message(f"Prompt file not found: {prompt_file_path}")
+						break
 					user_confirmation = interp._safe_input("Create a new prompt file (Y/N)?: ", default="n")
 					if user_confirmation.lower() == 'y':
 						interp.logger.info("Creating new prompt file.")
@@ -91,7 +107,12 @@ def run_interpreter_main(interp, version):
 				display_markdown_message(f"\nEnter your task in the file **'{prompt_file_path}'**")
 
 				# File mode command section.
-				prompt_confirmation = interp._safe_input("Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ", default="n")
+				# Non-interactive (--yes / CI): auto-execute once, no human prompt.
+				if getattr(interp, "AUTO_YES", False):
+					prompt_confirmation = "y"
+					interp.logger.info("AUTO_YES: executing prompt from file without confirmation.")
+				else:
+					prompt_confirmation = interp._safe_input("Execute the prompt (Y/N/P/C) (P = Prompt Mode,C = Command Mode)?: ", default="n")
 				if prompt_confirmation.lower() == 'y':
 					interp.logger.info("Executing prompt from file.")
 
@@ -576,6 +597,9 @@ def run_interpreter_main(interp, version):
 						task, interp.INTERPRETER_MODE, os_name, interp.INTERPRETER_LANGUAGE,
 						task, code_snippet, code_output, interp.INTERPRETER_MODEL,
 					)
+					# Non-interactive file runs are one-shot (CI / scripts).
+					if getattr(interp, "AUTO_YES", False) and interp.INTERPRETER_PROMPT_FILE:
+						break
 					continue
 
 				prompt = interp.get_mode_prompt(task, os_name)
@@ -827,6 +851,10 @@ def run_interpreter_main(interp, version):
 						interp.safety_manager.cleanup_sandbox_context(sandbox_context)
 
 			interp.history_manager.save_history_json(task, interp.INTERPRETER_MODE, os_name, interp.INTERPRETER_LANGUAGE, prompt, code_snippet,code_output, interp.INTERPRETER_MODEL)
+
+			# Non-interactive file runs are one-shot (CI / scripts).
+			if getattr(interp, "AUTO_YES", False) and interp.INTERPRETER_PROMPT_FILE:
+				break
 
 		except Exception as exception:
 			error_text = str(exception)
