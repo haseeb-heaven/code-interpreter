@@ -138,6 +138,7 @@ python interpreter.py -md 'code' -m 'local-model'
 - 🔌 Native FS/shell tool registry + MCP stdio client for autonomous agent loops (`--yolo`, `--mcp-server`)
 - ⚡ Token streaming (`--stream` / `--no-stream`) and multimodal image input (`--image`, `/image`)
 - 🌐 Web search tool (`--search`, `/search`) via DuckDuckGo / Tavily / Serper
+- 🧩 Code generation without execution: `--mode generate` (snippet) and `--mode project` (scaffold)
 
 ## **Safety Features**
 
@@ -368,6 +369,22 @@ python interpreter.py --search --search-provider tavily --search-api-key "$TAVIL
 ```
 
 In the REPL: `/search latest litellm version`
+
+### Code generation (no execution)
+Produce a snippet or multi-file project scaffold without running code:
+
+```bash
+# Single snippet → file
+python interpreter.py --mode generate -t "write a binary search function in Python" -o output/bs.py -m local-model
+
+# Full project scaffold → directory (includes main entry, README.md, requirements.txt)
+python interpreter.py --mode project -t "create a REST API with FastAPI and SQLite" -o output/my_api -m local-model
+
+# Task from a prompt file
+python interpreter.py --mode generate -f task.txt -o output/snippet.py -m local-model
+```
+
+Existing interpret modes (`code`, `script`, `command`, `vision`, `chat`) are unchanged.
 
 ## 🖥️ **Interpreter Commands**
 

@@ -3,6 +3,7 @@
 - feat(tools): Native FS/shell ToolRegistry tools + `--yolo` autonomous tool loop + MCP stdio client (`--mcp-server`) (#215)
 - feat(ux): Token streaming (`--stream` / `--no-stream`) + multimodal `--image` / `/image` input (#216)
 - feat(tools): Web search tool `--search` / `/search` (DuckDuckGo / Tavily / Serper) (#217)
+- feat(codegen): `--mode generate` snippet + `--mode project` scaffold without execution (#212)
 - feat(resilience): Multi-key rotation, token-bucket rate limiter, circuit breaker, error classifier, jitter backoff (`libs/key_manager.py`, `libs/rate_limiter.py`)
 - feat(observability): `logs/metrics.jsonl` plus `/key-status`, `/reload-keys`, `/metrics` CLI commands
 - feat(ci): Non-interactive `--yes` / `INTERPRETER_YES` one-shot file mode for scripted e2e

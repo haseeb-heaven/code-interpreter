@@ -33,8 +33,20 @@ def build_parser():
 	parser = argparse.ArgumentParser(description='Code - Interpreter')
 	parser.add_argument('--exec', '-e', action='store_true', default=False, help='Execute the code')
 	parser.add_argument('--save_code', '-s', action='store_true', default=False, help='Save the generated code')
-	parser.add_argument('--mode', '-md', choices=['code', 'script', 'command', 'vision', 'chat'], help='Select the mode (`code` for generating code, `script` for generating shell scripts, `command` for generating single line commands) `vision` for generating text from images')
+	parser.add_argument('--mode', '-md', choices=['code', 'script', 'command', 'vision', 'chat', 'generate', 'project'], help='Select the mode (`code`/`script`/`command`/`vision`/`chat`, or `generate`/`project` for code-gen without execution)')
 	parser.add_argument('--model', '-m', type=str, default=None, help='Set the model for code generation. (Defaults to the best configured local provider)')
+	parser.add_argument(
+		'--task', '-t',
+		type=str,
+		default=None,
+		help='One-shot task text for --mode generate|project (or use -f prompt file)',
+	)
+	parser.add_argument(
+		'--output', '-o',
+		type=str,
+		default=None,
+		help='Output file (--mode generate) or directory (--mode project)',
+	)
 	parser.add_argument('--version', '-v', action='version', version='%(prog)s ' + INTERPRETER_VERSION)
 	parser.add_argument('--lang', '-l', type=str, default='python', help='Set the interpreter language. (Defaults to Python)')
 	parser.add_argument('--display_code', '-dc', action='store_true', default=False, help='Display the generated code in output')
@@ -204,6 +216,11 @@ def prepare_args(args, argv):
 		if getattr(args, 'yes', False):
 			args.yolo = True
 
+	# Codegen modes never launch TUI; require CLI one-shot
+	if getattr(args, 'mode', None) in ('generate', 'project'):
+		args.cli = True
+		args.tui = False
+
 	no_runtime_args = len(argv) <= 1
 	if no_runtime_args and not args.cli and not args.tui:
 		args.tui = True
@@ -237,6 +254,15 @@ def main(argv=None):
 		print(FreeLLMCatalog.load().format_table())
 		return
 	args = prepare_args(args, argv)
+	# Code generation modes — write artifacts only, never execute (#212)
+	if getattr(args, 'mode', None) in ('generate', 'project'):
+		from libs.code_generator import run_codegen_cli
+
+		# Interpreter boots model config / .env; codegen reuses it then exits.
+		interpreter = Interpreter(args)
+		run_codegen_cli(args, interpreter=interpreter)
+		return
+
 	interpreter = Interpreter(args)
 	if getattr(args, 'yolo', False) or getattr(args, 'mcp_server', None):
 		interpreter.interpreter_auto_main()

@@ -83,12 +83,27 @@ def apply_mode_flags(target, mode: str) -> None:
 	}
 	normalized = (mode or "code").lower()
 	target.INTERPRETER_MODE = normalized
+	if normalized in ("generate", "project"):
+		for attr in modes.values():
+			setattr(target, attr, False)
+		return
 	for key, attr in modes.items():
 		setattr(target, attr, normalized == key)
 
 
 def initialize_mode_from_args(target, args) -> None:
 	"""Mirror Interpreter.initialize_mode behavior from CLI args."""
+	mode = (getattr(args, "mode", None) or "code").lower()
+	# Codegen modes do not enable execution mode flags
+	if mode in ("generate", "project"):
+		target.CODE_MODE = False
+		target.SCRIPT_MODE = False
+		target.COMMAND_MODE = False
+		target.VISION_MODE = False
+		target.CHAT_MODE = False
+		target.INTERPRETER_MODE = mode
+		return
+
 	target.CODE_MODE = True if args.mode == "code" else False
 	target.SCRIPT_MODE = True if args.mode == "script" else False
 	target.COMMAND_MODE = True if args.mode == "command" else False
