@@ -38,14 +38,91 @@ class CodeExecutor:
 		except Exception as exc:
 			interp.logger.debug("Chart/theme/install hook skipped: %s", exc)
 
+		# Secret scan before execution (#225)
+		try:
+			from libs.security.secret_scanner import format_secret_warning, scan_code
+
+			secrets = scan_code(code_snippet or "")
+			if secrets:
+				warning = format_secret_warning(secrets)
+				interp.logger.warning(warning)
+				yolo = bool(getattr(interp.args, "yolo", False) or getattr(interp.args, "yes", False))
+				if not yolo and not force_execute:
+					print(warning)
+					confirm = interp._safe_input("Proceed anyway? [y/N]: ", default="n")
+					if (confirm or "n").strip().lower() not in ("y", "yes"):
+						return None, "Execution cancelled: secrets detected in code.", None
+		except Exception as exc:
+			interp.logger.debug("Secret scan skipped: %s", exc)
+
+		timeout = int(getattr(interp, "EXECUTION_TIMEOUT", 30) or 30)
+		backend = getattr(interp, "SANDBOX_BACKEND", "subprocess") or "subprocess"
+
 		if not interp.UNSAFE_EXECUTION:
-			sandbox_context = interp.safety_manager.build_sandbox_context()
+			sandbox_context = interp.safety_manager.build_sandbox_context(timeout_seconds=timeout)
 		else:
 			sandbox_context = None
 
-		output, error = interp.execute_code(
-			code_snippet, code_lang, sandbox_context=sandbox_context, force_execute=force_execute
-		)
+		from libs.execution.resource_monitor import measure
+
+		with measure() as usage:
+			if backend == "docker":
+				from libs.execution.docker_sandbox import is_docker_available, run_in_docker
+
+				if not is_docker_available():
+					interp.logger.warning("Docker unavailable; falling back to subprocess sandbox.")
+					backend = "subprocess"
+					print(
+						"Docker not available. Falling back to subprocess isolation. "
+						"Install Docker for stronger isolation."
+					)
+				else:
+					result = run_in_docker(code_snippet or "", timeout=timeout)
+					output = result.get("stdout") or None
+					error = result.get("stderr") or None
+					if result.get("timed_out"):
+						error = error or "Docker execution timed out"
+					if result.get("returncode", 0) != 0 and not error:
+						error = f"Docker exited with code {result.get('returncode')}"
+					if error and not output:
+						output = None
+					elif output is not None:
+						error = None if result.get("returncode", 0) == 0 else error
+					# Prefer stdout as success output when returncode is 0
+					if result.get("returncode", 0) == 0:
+						error = None
+					else:
+						output, error = (output if output else None), (error or "Docker execution failed")
+			else:
+				output, error = interp.execute_code(
+					code_snippet, code_lang, sandbox_context=sandbox_context, force_execute=force_execute
+				)
+
+		# Resource report (#225) — skip for structured/json scripting output
+		try:
+			fmt = getattr(getattr(interp, "args", None), "output_format", None)
+			if fmt not in ("json", "markdown") and not getattr(interp, "_quiet_resource_report", False):
+				print(f"Execution complete — {usage.summary()}")
+		except Exception:
+			pass
+
+		# Audit log (#225)
+		try:
+			from libs.security.audit_log import log_execution
+
+			log_execution(
+				task=str(getattr(interp, "_last_task", "") or getattr(interp.args, "task", "") or ""),
+				code=code_snippet or "",
+				output=(output or error or ""),
+				model=str(getattr(interp, "INTERPRETER_MODEL", "") or ""),
+				language=str(code_lang or ""),
+				safety_blocked=bool(error and "Safety blocked" in str(error)),
+				sandbox=backend if not interp.UNSAFE_EXECUTION else "none",
+				duration_ms=usage.duration_ms,
+			)
+		except Exception as exc:
+			interp.logger.debug("Audit log skipped: %s", exc)
+
 		# Record notebook cell + truncate display output (#223)
 		try:
 			from libs.data.repl_data_commands import ensure_data_session

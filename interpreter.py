@@ -11,7 +11,9 @@ Command line arguments:
 --version, -v: Displays the version of the program.
 --lang, -l: Sets the interpreter language. Default is 'python'.
 --display_code, -dc: Displays the generated code in the output.
---sandbox / --no-sandbox: Enable or disable sandbox mode (default: sandbox ON).
+--sandbox [subprocess|docker|on|off] / --no-sandbox: Sandbox backend (default: subprocess).
+--timeout SECONDS: Kill sandboxed runs after N seconds (default: 30).
+--safety {strict,standard,relaxed,off}: Safety policy level (default: standard).
 
 Author: HeavenHM
 Date: 2025/01/01
@@ -77,32 +79,49 @@ def build_parser():
 		help='List curated free/cheap LLM presets and exit',
 	)
 
-	# Sandbox control: --sandbox (default ON) / --no-sandbox (unsafe, disables sandbox+timers)
+	# Sandbox control: --sandbox [subprocess|docker|on|off] / --no-sandbox
 	sandbox_group = parser.add_mutually_exclusive_group()
-
 	sandbox_group.add_argument(
-	    '--sandbox',
-	    dest='sandbox',
-	    action='store_true',
-	    help='Enable sandbox mode (default: ON)'
+		"--sandbox",
+		nargs="?",
+		const="subprocess",
+		default="subprocess",
+		choices=["subprocess", "docker", "on", "off"],
+		help=(
+			"Sandbox backend: subprocess (default), docker (strong isolation), "
+			"on (=subprocess), off (=no sandbox / UNSAFE)"
+		),
 	)
-
 	sandbox_group.add_argument(
-	    '--no-sandbox',
-	    dest='sandbox',
-	    action='store_false',
-	    help='Disable sandbox (UNSAFE)'
+		"--no-sandbox",
+		action="store_const",
+		const="off",
+		dest="sandbox",
+		help="Disable sandbox (UNSAFE)",
 	)
-
-	# Set default to sandbox mode ON
-	parser.set_defaults(sandbox=True)
 
 	# Legacy --unsafe flag kept for backwards compatibility (maps to --no-sandbox)
 	parser.add_argument(
 		"--unsafe",
-		action='store_true',
+		action="store_true",
 		default=False,
-		help=argparse.SUPPRESS  # hidden; use --no-sandbox instead
+		help=argparse.SUPPRESS,  # hidden; use --no-sandbox instead
+	)
+	parser.add_argument(
+		"--timeout",
+		type=int,
+		default=30,
+		metavar="SECONDS",
+		help="Execution timeout in seconds for sandboxed runs (default: 30).",
+	)
+	parser.add_argument(
+		"--safety",
+		choices=["strict", "standard", "relaxed", "off"],
+		default="standard",
+		help=(
+			"Safety level: strict (no net/writes/shell), standard (default), "
+			"relaxed (warn only), off (no checks — prefer with --sandbox docker)."
+		),
 	)
 
 	mode_group = parser.add_mutually_exclusive_group()
@@ -304,11 +323,42 @@ def _get_default_model():
 
 def prepare_args(args, argv):
 	# --unsafe is a legacy alias for --no-sandbox
-	if getattr(args, 'unsafe', False):
-		args.sandbox = False
+	if getattr(args, "unsafe", False):
+		args.sandbox = "off"
 
-	# sandbox=False means unsafe execution
-	args.unsafe = not args.sandbox
+	# Normalize sandbox (bool from older tests/Namespace, or string from argparse)
+	sb = getattr(args, "sandbox", "subprocess")
+	if sb is True:
+		sb = "subprocess"
+	elif sb is False:
+		sb = "off"
+	elif sb == "on":
+		sb = "subprocess"
+	elif sb not in ("subprocess", "docker", "off"):
+		sb = "subprocess"
+	args.sandbox = sb
+
+	if sb == "docker":
+		args.sandbox_backend = "docker"
+		args.unsafe = False
+	elif sb == "off":
+		args.sandbox_backend = "none"
+		args.unsafe = True
+	else:
+		args.sandbox_backend = "subprocess"
+		args.unsafe = False
+
+	# Safety level: --no-sandbox implies off unless user set something else explicitly via argv
+	safety = getattr(args, "safety", None) or "standard"
+	if args.unsafe and "--safety" not in (argv or []):
+		safety = "off"
+	args.safety = safety
+
+	# Timeout floor
+	try:
+		args.timeout = max(1, int(getattr(args, "timeout", 30) or 30))
+	except (TypeError, ValueError):
+		args.timeout = 30
 
 	# Gemini-CLI-style: agentic REPL + free-model preference + classic CLI (not TUI)
 	if getattr(args, 'gemini_style', False):

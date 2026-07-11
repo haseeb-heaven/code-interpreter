@@ -414,7 +414,29 @@ python interpreter.py --cli --session my-project --new-session
 ### Run with sandbox (safe)
 ```bash
 python interpreter.py --tui --sandbox
+python interpreter.py --cli --sandbox subprocess --timeout 60
+python interpreter.py --cli --sandbox docker "analyze this CSV safely"
 ```
+
+### Security levels & hardening (#225)
+
+| Flag | Behavior |
+|---|---|
+| `--safety strict` | Block network, file writes, and shell — pure computation only |
+| `--safety standard` | Default: regex/AST dangerous-pattern blocking + CWD sandbox |
+| `--safety relaxed` | Warn only; still logs to the audit trail |
+| `--safety off` | No checks (prefer with `--sandbox docker`) |
+| `--sandbox docker` | Run code in a read-only, network-disabled Docker container |
+| `--timeout 60` | Kill sandboxed execution after 60 seconds |
+
+Also included:
+- Pre-execution **secret scanning** (API keys / tokens) with confirm prompt
+- **Audit log** at `~/.code_interpreter/audit.jsonl` (`/audit`, `/audit full`, `/audit clear`)
+- Optional path deny-list: `~/.config/code_interpreter/ignore` (gitignore-style patterns)
+
+> Recommended for beginners: `--safety strict`  
+> Default: `--safety standard`  
+> Power users: `--yolo --safety off --sandbox docker`
 
 ### Run without sandbox (unsafe)
 ```bash

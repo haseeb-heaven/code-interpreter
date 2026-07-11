@@ -384,6 +384,30 @@ def run_interpreter_main(interp, version):
 				interp.toggle_sandbox_mode()
 				continue
 
+			elif task.lower().startswith('/audit'):
+				from libs.security.audit_log import (
+					audit_log_path,
+					clear_audit,
+					format_recent,
+				)
+
+				parts = task.split(None, 1)
+				sub = parts[1].strip().lower() if len(parts) > 1 else ""
+				if sub in ("", "show", "list"):
+					print(format_recent(10))
+				elif sub == "full":
+					path = audit_log_path()
+					if path.is_file():
+						print(path.read_text(encoding="utf-8", errors="replace"))
+					else:
+						print(f"No audit log at {path}")
+				elif sub == "clear":
+					ok = clear_audit()
+					print("Audit log cleared." if ok else "Failed to clear audit log.")
+				else:
+					print("Usage: /audit | /audit full | /audit clear")
+				continue
+
 			elif task.lower() == '/key-status':
 				from libs.key_manager import KeyManager
 

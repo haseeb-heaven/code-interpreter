@@ -324,6 +324,7 @@ class UtilityManager:
 			"/prompt - Switch input prompt mode between file and prompt.\n"
 			"/upgrade - Upgrade the interpreter.\n"
 			"/sandbox - Toggle sandbox mode at runtime.\n"
+			"/audit [full|clear] - Show or manage the execution audit log.\n"
 			"/key-status - Show API key pool / circuit breaker status.\n"
 			"/reload-keys - Reload API keys from .env without restart.\n"
 			"/metrics - Show LLM call metrics summary.\n"

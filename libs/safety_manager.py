@@ -4,12 +4,20 @@ import ast
 import shutil
 import tempfile
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Dict, List, Optional
 
 
 # =========================
 # DATA CLASSES
 # =========================
+class SafetyLevel(str, Enum):
+	STRICT = "strict"
+	STANDARD = "standard"
+	RELAXED = "relaxed"
+	OFF = "off"
+
+
 @dataclass
 class SandboxContext:
 	cwd: str
@@ -182,8 +190,29 @@ class ExecutionSafetyManager:
 	_DESTRUCTIVE_PATTERNS_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _DESTRUCTIVE_PATTERNS)
 	_SHELL_PATTERNS_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _SHELL_PATTERNS)
 
-	def __init__(self, unsafe_mode: bool = False):
-		self.unsafe_mode = unsafe_mode
+	_NETWORK_PATTERNS = [
+		r"\bsocket\b",
+		r"\burllib\b",
+		r"\brequests\b",
+		r"\bhttp\.client\b",
+		r"\bhttpx\b",
+		r"\baiohttp\b",
+		r"\bftplib\b",
+	]
+	_NETWORK_PATTERNS_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _NETWORK_PATTERNS)
+
+	def __init__(self, unsafe_mode: bool = False, safety_level: SafetyLevel | str | None = None):
+		if safety_level is None:
+			self.safety_level = SafetyLevel.OFF if unsafe_mode else SafetyLevel.STANDARD
+		elif isinstance(safety_level, SafetyLevel):
+			self.safety_level = safety_level
+		else:
+			self.safety_level = SafetyLevel(str(safety_level).lower())
+		# Legacy flag: only OFF disables all checks via unsafe_mode.
+		if self.safety_level == SafetyLevel.OFF:
+			self.unsafe_mode = True
+		else:
+			self.unsafe_mode = False
 
 	# =========================
 	# AST CHECK (PYTHON ONLY)
@@ -287,15 +316,59 @@ class ExecutionSafetyManager:
 		if re.search(r"\brd\s+/s\s+/q\b", code_lower):
 			return Decision(False, ["Recursive deletion is blocked."])
 
-		#  UNSAFE MODE - still detect dangerous operations but allow with warnings
-		if self.unsafe_mode:
+		# Path ignore file — always evaluated (even in relaxed) for protected paths.
+		try:
+			from libs.security.path_ignore import code_references_protected_path
+
+			protected = code_references_protected_path(code)
+			if protected and self.safety_level != SafetyLevel.OFF:
+				msg = f"Protected path access blocked: {protected[0]}"
+				if self.safety_level == SafetyLevel.RELAXED:
+					return Decision(True, [msg])
+				return Decision(False, [msg])
+		except Exception:
+			pass
+
+		# OFF — no blocking
+		if self.safety_level == SafetyLevel.OFF:
 			warnings = []
 			if self.is_dangerous_operation(code):
 				warnings.append("Dangerous operation detected")
 			return Decision(True, warnings)
 
+		# Legacy unsafe_mode without explicit level (should be rare after __init__ sync)
+		if self.unsafe_mode and self.safety_level == SafetyLevel.STANDARD:
+			warnings = []
+			if self.is_dangerous_operation(code):
+				warnings.append("Dangerous operation detected")
+			return Decision(True, warnings)
+
+		# RELAXED — warn only
+		if self.safety_level == SafetyLevel.RELAXED:
+			warnings = []
+			if self.is_dangerous_operation(code):
+				warnings.append("Dangerous operation detected")
+			if any(p.search(code_lower) for p in self._SHELL_PATTERNS_COMPILED):
+				warnings.append("Shell execution detected")
+			return Decision(True, warnings)
+
+		# STRICT — pure computation: no network, no writes, no shell
+		if self.safety_level == SafetyLevel.STRICT:
+			if any(p.search(code_lower) for p in self._NETWORK_PATTERNS_COMPILED):
+				return Decision(False, ["Network access blocked (strict safety)."])
+			if any(p.search(code_lower) for p in self._SHELL_PATTERNS_COMPILED):
+				return Decision(False, ["Shell execution is blocked (strict safety)."])
+			if self._has_write_operation(code):
+				return Decision(False, ["File writes blocked (strict safety)."])
+			ast_reasons = self._ast_check(code)
+			if ast_reasons:
+				return Decision(False, ast_reasons)
+			if self.is_dangerous_operation(code):
+				return Decision(False, ["Destructive operation blocked (strict safety)."])
+			return Decision(True, [])
+
 		# =========================
-		# AST BLOCK
+		# STANDARD (default) — existing behavior
 		# =========================
 		ast_reasons = self._ast_check(code)
 		if ast_reasons:
@@ -413,7 +486,7 @@ class ExecutionSafetyManager:
 	# =========================
 	# REAL SANDBOX
 	# =========================
-	def build_sandbox_context(self) -> SandboxContext:
+	def build_sandbox_context(self, timeout_seconds: int | None = None) -> SandboxContext:
 		env = {}
 
 		for key in self.SAFE_ENV_KEYS:
@@ -424,11 +497,12 @@ class ExecutionSafetyManager:
 		env["PYTHONIOENCODING"] = "utf-8"
 
 		cwd = tempfile.mkdtemp(prefix="ci_sandbox_")
+		timeout = 30 if timeout_seconds is None else int(timeout_seconds)
 
 		return SandboxContext(
 			cwd=cwd,
 			env=env,
-			timeout_seconds=30
+			timeout_seconds=timeout,
 		)
 
 	def cleanup_sandbox_context(self, context: "SandboxContext | None"):

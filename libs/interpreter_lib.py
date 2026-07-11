@@ -62,8 +62,18 @@ class Interpreter:
 		self._pending_images = []
 		self._last_response_was_streamed = False
 		self.UNSAFE_EXECUTION = getattr(args, "unsafe", False)
-		self.safety_manager = ExecutionSafetyManager(unsafe_mode=self.UNSAFE_EXECUTION)
+		safety_level = getattr(args, "safety", None)
+		self.safety_manager = ExecutionSafetyManager(
+			unsafe_mode=self.UNSAFE_EXECUTION,
+			safety_level=safety_level,
+		)
+		# Keep flags aligned after SafetyLevel resolution.
+		self.UNSAFE_EXECUTION = bool(self.safety_manager.unsafe_mode)
 		self.code_interpreter = CodeInterpreter(safety_manager=self.safety_manager)
+		self.EXECUTION_TIMEOUT = int(getattr(args, "timeout", 30) or 30)
+		self.SANDBOX_BACKEND = getattr(args, "sandbox_backend", None) or (
+			"none" if self.UNSAFE_EXECUTION else "subprocess"
+		)
 		self.MAX_REPAIR_ATTEMPTS, self.MAX_LLM_RETRIES = 3, 3
 		self.terminal_ui = TerminalUI() if getattr(args, "tui", False) else None
 		self._last_execution_approved = False
