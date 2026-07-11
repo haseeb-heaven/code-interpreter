@@ -126,7 +126,7 @@ class TestNonInteractiveAgentMainLoop(unittest.TestCase):
             interp._display_session_banner = MagicMock()
             interp._is_recoverable_runtime_error.return_value = False
 
-            run_interpreter_main(interp, "3.2.3")
+            run_interpreter_main(interp, "3.3.0")
 
             interp.run_agent_pipeline.assert_called_once()
             interp.utility_manager.read_file.assert_called()

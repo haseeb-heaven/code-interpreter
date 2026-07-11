@@ -105,7 +105,7 @@ class TestFilePromptNonInteractive(unittest.TestCase):
 
             with patch("libs.interpreter_lib.display_markdown_message"), \
                  patch("libs.interpreter_lib.display_code"):
-                run_interpreter_main(interp, "3.2.3")
+                run_interpreter_main(interp, "3.3.0")
 
             interp.run_agent_pipeline.assert_called_once()
             interp._safe_input.assert_not_called()

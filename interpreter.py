@@ -26,7 +26,7 @@ from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "3.2.3"
+INTERPRETER_VERSION = "3.3.0"
 
 
 def build_parser():

@@ -1,3 +1,12 @@
+## v3.3.0 (2026-07-12)
+- feat(agentic): Gemini-CLI-style `--gemini-style` ReAct REPL with free/cheap LLM catalog (`--free`, `--list-free`, `/free`)
+- feat(resilience): Multi-key rotation, token-bucket rate limiter, circuit breaker, error classifier, jitter backoff (`libs/key_manager.py`, `libs/rate_limiter.py`)
+- feat(observability): `logs/metrics.jsonl` plus `/key-status`, `/reload-keys`, `/metrics` CLI commands
+- feat(ci): Non-interactive `--yes` / `INTERPRETER_YES` one-shot file mode for scripted e2e
+- feat(agents): Multi-agent pipeline (`--agent`) and ReAct `--agentic` coder/executor/reviewer/debugger loop
+- docs: Fresh CLI screenshots for help, free catalog, code/chat modes, gemini-style, and agentic runs
+- test: Resilience smoke suite, mode e2e harness, live soft-skip for quota/rate-limit providers
+
 ## v3.2.3 (2026-07-11)
 - fix(security): Resolved command injection vulnerability in file opening (`os.startfile`) on Windows.
 - fix(security): Mitigated Path Traversal vulnerability in `UtilityManager.get_full_file_path` with strict boundary checks.

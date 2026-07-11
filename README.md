@@ -28,6 +28,7 @@ Committed to being **free** and **simple** - no downloads or tedious setups requ
 - [Usage](#usage)
 - [Examples](#examples)
 - [TUI Screenshots](#tui-screenshots)
+- [Agentic & Free LLMs](#agentic--free-llms)
 - [Settings](#settings)
 - [Contributing](#contributing)
 - [Versioning](#versioning)
@@ -258,7 +259,7 @@ Last verified model baseline: **April 5, 2026**.
 
 ## **TUI Screenshots**
 
-The new TUI flow is designed for fast keyboard-first setup. Run `python interpreter.py` or `python interpreter.py --tui` to launch the selector UI, then use the arrow keys to choose the mode, model, language, and runtime options.
+The TUI flow is designed for fast keyboard-first setup. Run `python interpreter.py` or `python interpreter.py --tui` to launch the selector UI, then use the arrow keys to choose the mode, model, language, and runtime options.
 
 ### Mode selection
 Choose between `code`, `chat`, `script`, `command`, and `vision` before the session starts.
@@ -278,13 +279,41 @@ After entering the session, generated code and execution output remain inside th
 ### Sandbox Security
 You can enable or disable sandbox mode directly from the terminal session. This makes it easy to switch between the safer isolated runtime and unrestricted execution when needed.
 
-![TUI sandbox enable](resources/interpreter-sandbox-enable.png)
+![Sandbox enable / SAFE MODE](resources/interpreter-sandbox-enable.png)
 
 When sandbox mode is enabled, commands and generated code run with the same safer execution constraints used by the CLI.
 
 ![TUI sandbox disable](resources/interpreter-sandbox-disable.png)
 
 When sandbox mode is disabled, execution runs in unsafe mode without sandbox restrictions, intended only for trusted local workflows.
+
+## **Agentic & Free LLMs**
+
+v3.3.0 adds a Gemini-CLI-style agentic experience with a curated free/cheap model catalog, multi-key resilience, and non-interactive CI flags.
+
+### Help & flags
+![CLI help (v3.3)](resources/interpreter-help-v33.png)
+
+### Free / cheap model catalog
+```bash
+python interpreter.py --list-free
+python interpreter.py --gemini-style -m gemini-2.5-flash-lite
+python interpreter.py --agentic --yes -m openrouter-free -f task.txt
+```
+
+![Free LLM catalog](resources/interpreter-list-free.png)
+
+### Code mode (CLI)
+![Code mode](resources/interpreter-mode-code.png)
+
+### Chat mode (CLI)
+![Chat mode](resources/interpreter-mode-chat.png)
+
+### Gemini-style agentic REPL
+![Gemini-style ReAct](resources/interpreter-gemini-style.png)
+
+### ReAct `--agentic` workflow
+![Agentic ReAct](resources/interpreter-agentic.png)
 
 ## 🖥️ **Interpreter Commands**
 
@@ -309,6 +338,10 @@ Here are the available commands:
 - 📁 `/prompt` - Switch the prompt mode _File or Input_ modes.
 - 🐞 `/debug` - Toggle Debug mode for debugging.
 - 📦 `/sandbox` - Toggles secure sandbox system.
+- 🔑 `/key-status` - Show API key pool / circuit breaker status.
+- 🔄 `/reload-keys` - Reload API keys from `.env` without restart.
+- 📊 `/metrics` - Show LLM call metrics summary.
+- 🆓 `/free` - List curated free/cheap LLM presets.
 
 ## **Settings**
 
@@ -363,6 +396,8 @@ Current version: **3.2.2**
 Quick highlights:
 - **v3.2.2** - Added sandbox security, improved Code Interpreter architecture, fixed execution language routing, restored sandbox toggle compatibility, added subprocess security delegation, and improved safe-mode timeout handling.
 - **v3.2.1** - Added mode indicator ([SAFE MODE] or [UNSAFE MODE ⚠️]) in session banner, implemented strict safety blocking for dangerous operations in SAFE MODE, added single confirmation prompt for operations in UNSAFE MODE.
+- **v3.3.0** - Gemini-CLI-style `--gemini-style` free LLM catalog, multi-key resilience (rate limiter + circuit breaker), metrics CLI, `--yes` non-interactive e2e, refreshed screenshots.
+- **v3.2.3** - Fixed Windows command injection, path traversal hardening, HTTP timeouts, SafetyManager regex precompile, Ollama fixes, expanded tests.
 - **v3.1.0** - Added OpenRouter free-model aliases, made `openrouter/free` the default OpenRouter selection, improved simple-task code generation, added fresh TUI screenshots, and prepared release packaging assets.
 - **v3.0.0** - Added a default execution safety sandbox, dangerous command/code circuit breaker, bounded ReACT-style repair retries after failures, clearer execution feedback, and polished CLI/TUI runtime output.
 - **v2.4.1** - Added NVIDIA, Z AI, Browser Use, `.env.example`, and `--cli` / `--tui` startup flows.

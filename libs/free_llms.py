@@ -46,7 +46,16 @@ class FreeModelEntry:
 
 	def is_available(self, environ: Optional[Dict[str, str]] = None) -> bool:
 		"""Return True when the required key is present (local always available)."""
-		env = environ if environ is not None else os.environ
+		if environ is None:
+			try:
+				from dotenv import load_dotenv
+
+				load_dotenv(override=False)
+			except Exception:
+				pass
+			env = os.environ
+		else:
+			env = environ
 		if not self.env_key:
 			return True
 		value = env.get(self.env_key)
