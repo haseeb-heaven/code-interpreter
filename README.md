@@ -22,6 +22,34 @@ Supports tasks like file operations, image editing, video processing, data analy
 
 Committed to being **free** and **simple** - no downloads or tedious setups required. Works on Windows, Linux, macOS.
 
+## **How We Compare**
+
+| Feature | **Code-Interpreter** | [Open-Interpreter](https://github.com/OpenInterpreter/open-interpreter) | [Aider](https://github.com/Aider-AI/aider) | [OpenCode](https://github.com/sst/opencode) | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | [Cline](https://github.com/cline/cline) |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **License** | ✅ MIT | ✅ AGPL-3.0 | ✅ Apache-2.0 | ✅ MIT | ✅ Apache-2.0 | ✅ Apache-2.0 |
+| **Interface** | Terminal CLI + TUI | Terminal REPL | Terminal CLI | Terminal TUI | Terminal REPL | VS Code Extension |
+| **Multi-model support** | ✅ 10+ providers | ✅ Any LLM | ✅ Any LLM | ✅ 75+ providers | ❌ Gemini only | ✅ 8+ providers |
+| **Local / Offline models** | ✅ Ollama + LM Studio | ✅ Ollama | ✅ Ollama | ✅ Ollama + LM Studio | ❌ None | ⚠️ Via provider |
+| **Free tier (`--free`)** | ✅ Built-in catalog | ⚠️ Self-hosted only | ⚠️ Depends on model | ✅ Local/free-friendly | ✅ Gemini free tier | ⚠️ Depends on model |
+| **Zero-cost usage** | ✅ `--free` + Ollama | ⚠️ Self-hosted only | ⚠️ Partial | ✅ Local models | ⚠️ Rate-limited | ⚠️ API key required |
+| **Agentic / Autonomous mode** | ✅ `--agentic` + `--yolo` | ✅ Default | ⚠️ Pair-programming | ✅ Plan + Build | ✅ ReAct loop | ✅ Step-approval |
+| **Safety layer** | ✅ Dedicated SafetyGuard + Sandbox | ⚠️ Basic sandbox | ⚠️ Git-level only | ⚠️ Prompt-based | ✅ Sandbox | ✅ Approval gates |
+| **MCP support** | ✅ `--mcp-server` | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Web search** | ✅ `--search` (DDG/Tavily/Serper) | ❌ | ❌ | ❌ | ✅ Google Search | ❌ |
+| **Token streaming** | ✅ `--stream` / `--no-stream` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Multimodal image input** | ✅ `--image` / `/image` + `vision` mode | ✅ | ❌ | ❌ | ✅ | ✅ |
+| **Code execution** | ✅ Python, JS, C++ | ✅ Python + shell | ❌ Edit/generate only | ✅ Python + shell | ✅ Python + shell | ✅ Python + shell |
+| **TUI (arrow-key UI)** | ✅ Built-in | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **Git auto-commit** | ❌ | ❌ | ✅ Core feature | ❌ | ❌ | ❌ |
+| **IDE integration** | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ✅ VS Code |
+| **Persistent sessions** | 🔜 [Issue #218](https://github.com/haseeb-heaven/code-interpreter/issues/218) | ⚠️ In-process only | ❌ | ❌ | ❌ | ❌ |
+| **Structured output (`--output-format`)** | 🔜 [Issue #219](https://github.com/haseeb-heaven/code-interpreter/issues/219) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **pip installable** | ✅ `pip install open-code-interpreter` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Windows support** | ✅ Full | ⚠️ Partial | ✅ | ⚠️ Partial | ⚠️ Partial | ✅ |
+| **Best fit** | Multi-model, free/local, safe execution | Natural-language computer control | Git-centric code editing | Fast terminal-native agent | Gemini-native agentic CLI | IDE-first agentic coding |
+
+> ✅ = Fully supported · ⚠️ = Partial / limited · ❌ = Not supported · 🔜 = On roadmap
+
 ## Table of Contents
 - [Features](#features)
 - [Installation](#installation)
