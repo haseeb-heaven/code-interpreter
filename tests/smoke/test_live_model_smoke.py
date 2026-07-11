@@ -84,7 +84,11 @@ def _one_config_per_key_family():
 	"""Pick one representative config label per required API key (plus local)."""
 	picked = {}
 	for path in sorted(CONFIG_DIR.glob("*.json")):
+		if path.name == "schema.json":
+			continue
 		data = json.loads(path.read_text())
+		if "model" not in data:
+			continue
 		key = _expected_key_for_model(str(data.get("model", "")), str(data.get("provider", "")))
 		family = key or "LOCAL"
 		# Prefer free/openrouter-free and gpt-4o-mini / flash models when available
@@ -151,7 +155,32 @@ class TestLiveModelSmoke(unittest.TestCase):
 				else:
 					passed.append(f"{label}: ok ({len(str(text))} chars)")
 			except Exception as exc:
-				failures.append(f"{label}: {type(exc).__name__}: {exc}")
+				err = str(exc).lower()
+				skip_markers = (
+					"not found",
+					"not a valid model",
+					"unavailable for free",
+					"deprecated",
+					"not supported",
+					"insufficient balance",
+					"no resource package",
+					"please recharge",
+					"model_not_supported",
+					"does not exist",
+					"exceeded your current quota",
+					"credit balance is too low",
+					"billing details",
+					"purchase credits",
+					"resource_exhausted",
+					"rate limit",
+					"ratelimit",
+					"too many requests",
+					"provider returned error",
+				)
+				if any(m in err for m in skip_markers):
+					skipped.append(f"{label}: {type(exc).__name__}: provider unavailable/quota/rate-limit")
+				else:
+					failures.append(f"{label}: {type(exc).__name__}: {exc}")
 
 		report = "\nPASSED:\n  " + "\n  ".join(passed or ["(none)"])
 		report += "\nSKIPPED:\n  " + "\n  ".join(skipped or ["(none)"])

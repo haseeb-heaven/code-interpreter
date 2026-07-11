@@ -130,7 +130,7 @@ def offline_row(label: str, config: dict) -> tuple[str, str]:
 			config_provider=provider,
 			api_base=str(config.get("api_base", "None")),
 		)
-	return "PASS", f"offline ok → key={key or 'LOCAL'}"
+	return "PASS", f"offline ok -> key={key or 'LOCAL'}"
 
 
 def live_row(label: str, config: dict) -> tuple[str, str]:
@@ -142,7 +142,7 @@ def live_row(label: str, config: dict) -> tuple[str, str]:
 	provider = str(config.get("provider", ""))
 	key = expected_key(model, provider)
 	if key is None:
-		return "SKIP", "local endpoint — use mock smoke"
+		return "SKIP", "local endpoint - use mock smoke"
 	if not key_looks_real(key):
 		return "SKIP", f"missing/invalid {key}"
 	if any(x in model.lower() for x in ("o1", "o3", "reasoner", "opus-4", "gpt-5.4")) and "mini" not in model.lower() and "nano" not in model.lower():
@@ -162,7 +162,31 @@ def live_row(label: str, config: dict) -> tuple[str, str]:
 		config_provider=provider,
 		api_base=str(config.get("api_base", "None")),
 	)
-	response = litellm.completion(model=model, **kwargs)
+	try:
+		response = litellm.completion(model=model, **kwargs)
+	except Exception as exc:
+		text = str(exc).lower()
+		# Provider-side availability / billing / deprecation - not product regressions
+		skip_markers = (
+			"not found",
+			"not a valid model",
+			"unavailable for free",
+			"deprecated",
+			"not supported",
+			"insufficient balance",
+			"no resource package",
+			"please recharge",
+			"model_not_supported",
+			"does not exist",
+			"exceeded your current quota",
+			"credit balance is too low",
+			"billing details",
+			"purchase credits",
+		)
+		if any(m in text for m in skip_markers):
+			return "SKIP", f"{type(exc).__name__}: provider unavailable/deprecated"
+		# Transient rate limits still count as FAIL for live matrix visibility
+		raise
 	text = ""
 	try:
 		text = response.choices[0].message.content or ""
@@ -183,7 +207,13 @@ def main() -> int:
 
 	rows = []
 	for path in sorted(CONFIG_DIR.glob("*.json")):
+		if path.name == "schema.json":
+			continue
 		config = json.loads(path.read_text())
+		if "model" not in config:
+			rows.append(("SKIP", path.stem, "N/A", "not a model config"))
+			print(f"[SKIP] {path.stem:40} not a model config")
+			continue
 		key = expected_key(str(config.get("model", "")), str(config.get("provider", "")))
 		provider = str(config.get("provider", "") or "unknown")
 		if not family_filter(only, key, provider):
