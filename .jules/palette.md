@@ -1,0 +1,3 @@
+## 2024-07-08 - Displaying choices in Rich prompts without breaking case-insensitivity
+**Learning:** When using `rich.prompt.Prompt.ask()`, providing the `choices` argument enforces strict, case-sensitive input matching which overrides custom case-insensitivity logic. Additionally, to manually format the choices into the prompt string, brackets must be escaped as `\\[` to prevent `rich` from incorrectly parsing them as markup and to avoid Python syntax warnings.
+**Action:** When we need to show choices but still allow custom validation (like case-insensitivity), format the choices directly into the prompt string and escape the brackets.
