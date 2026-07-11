@@ -492,7 +492,7 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 ## **Versioning**
 
-Current version: **3.2.2**
+Current version: **3.3.0**
 
 Quick highlights:
 - **v3.2.2** - Added sandbox security, improved Code Interpreter architecture, fixed execution language routing, restored sandbox toggle compatibility, added subprocess security delegation, and improved safe-mode timeout handling.

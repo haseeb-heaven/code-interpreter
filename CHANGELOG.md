@@ -18,9 +18,15 @@
 - feat(performance): Optimized `ExecutionSafetyManager` by pre-compiling all regex patterns.
 - feat(ux): Improved Terminal UI fallback prompts with explicit choice brackets for non-TTY environments.
 - fix: Resolved Ollama/local model API Key extraction and output parsing, updated legacy model configurations.
-- test: Expanded test coverage with robust mocks simulating command injection, path traversal, timeouts, and UX changes.
+- chore(models): Updated legacy model configs to 2026 stable aliases (e.g. `gpt-4.1`, `claude-sonnet-4-6`).
+- test: Expanded unit test coverage to **263 tests**, validating security fixes, UX enhancements, and API-key robustness.
 
 ## v3.2.2 (2026-04-07)
+- feat(security): Introduced **secure code sandboxing (enabled by default)** with `/sandbox` and `/unsafe` toggles; replaced `--unsafe` with `--sandbox` / `--no-sandbox`
+- feat(security): Strengthened execution safety with subprocess isolation, watchdog fixes, and process-group termination on timeout
+- fix(safety): Eliminated multiple safe-mode false positives and blocked new unsafe patterns (write bypasses, absolute-path escapes, destructive commands)
+- feat(reliability): Increased SAFE mode timeout to **300s** for long-running tasks; improved Python detection via `ast.parse`
+- chore(release): Refined build/release pipeline (`build_release.sh`) with robust error handling and cleaner scripts
 - Update interpreter: fix _execute_generated_output language usage, restore sandbox toggle alias, add subprocess security delegation, and increase SAFE mode MAX_TIMEOUT to 300s for more robust long‑running code execution
 - fix for watchdog timers issues with sandbox
 - fix: clean up spacing/newlines in execute_code() if/else blocks
