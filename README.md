@@ -267,6 +267,11 @@ python interpreter.py -md 'code' -m 'local-model'
 - ⚡ Token streaming (`--stream` / `--no-stream`) and multimodal image input (`--image`, `/image`)
 - 🌐 Web search tool (`--search`, `/search`) via DuckDuckGo / Tavily / Serper
 - 🧩 Code generation without execution: `--mode generate` (snippet) and `--mode project` (scaffold)
+- 📝 Structured output for scripting: `--output-format json|markdown|plain`
+- 💾 Persistent sessions: `--session` / `--list-sessions` / `/session`
+- 📊 Data analysis engine: `--eda`, `--attach`, charts, SQL, exports
+- 🧪 Science mode: `--science`, notebooks, plot themes, ML helpers, PDF reports
+- 🐳 Sandbox backends: `--sandbox subprocess|docker`, `--timeout`, `--safety` levels
 
 ## **Safety Features**
 
@@ -498,7 +503,7 @@ When sandbox mode is disabled, execution runs in unsafe mode without sandbox res
 
 ## **Agentic & Free LLMs**
 
-v3.3.0 adds a Gemini-CLI-style agentic experience with a curated free/cheap model catalog, multi-key resilience, and non-interactive CI flags.
+v3.3.0 added Gemini-CLI-style agentic UX and resilience. **v3.4.0** adds MCP/tools, streaming + vision, sessions, structured output, data/science engines, Docker sandbox levels, and CI/coverage.
 
 ### Help & flags
 ![CLI help (v3.3)](resources/interpreter-help-v33.png)
@@ -669,13 +674,14 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 ## **Versioning**
 
-Current version: **3.3.0**
+Current version: **3.4.0**
 
 Quick highlights:
-- **v3.2.2** - Added sandbox security, improved Code Interpreter architecture, fixed execution language routing, restored sandbox toggle compatibility, added subprocess security delegation, and improved safe-mode timeout handling.
-- **v3.2.1** - Added mode indicator ([SAFE MODE] or [UNSAFE MODE ⚠️]) in session banner, implemented strict safety blocking for dangerous operations in SAFE MODE, added single confirmation prompt for operations in UNSAFE MODE.
+- **v3.4.0** - MCP + native tools/`--yolo`, streaming + multimodal images, web search, codegen modes, `--output-format`, persistent `--session`, identity/onboarding, Ollama/`--local` + `--attach`, data analysis + science engines, Docker/subprocess sandbox levels, matrix CI/coverage, interactive live tests (#212, #215–#226).
 - **v3.3.0** - Gemini-CLI-style `--gemini-style` free LLM catalog, multi-key resilience (rate limiter + circuit breaker), metrics CLI, `--yes` non-interactive e2e, refreshed screenshots.
 - **v3.2.3** - Fixed Windows command injection, path traversal hardening, HTTP timeouts, SafetyManager regex precompile, Ollama fixes, expanded tests.
+- **v3.2.2** - Added sandbox security, improved Code Interpreter architecture, fixed execution language routing, restored sandbox toggle compatibility, added subprocess security delegation, and improved safe-mode timeout handling.
+- **v3.2.1** - Added mode indicator ([SAFE MODE] or [UNSAFE MODE ⚠️]) in session banner, implemented strict safety blocking for dangerous operations in SAFE MODE, added single confirmation prompt for operations in UNSAFE MODE.
 - **v3.1.0** - Added OpenRouter free-model aliases, made `openrouter/free` the default OpenRouter selection, improved simple-task code generation, added fresh TUI screenshots, and prepared release packaging assets.
 - **v3.0.0** - Added a default execution safety sandbox, dangerous command/code circuit breaker, bounded ReACT-style repair retries after failures, clearer execution feedback, and polished CLI/TUI runtime output.
 - **v2.4.1** - Added NVIDIA, Z AI, Browser Use, `.env.example`, and `--cli` / `--tui` startup flows.

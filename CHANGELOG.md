@@ -1,20 +1,28 @@
-## v3.3.0 (2026-07-12)
+## v3.4.0 (2026-07-12)
 - test(interactive): slash commands, REPL loop, session round-trip, live exec, streaming, -f prompt coverage (#226)
-- feat(security): subprocess/Docker sandbox backends, --timeout/--safety levels, audit log, secret scan, path ignore (#225)
+- feat(security): subprocess/Docker sandbox backends, `--timeout`/`--safety` levels, audit log, secret scan, path ignore (#225)
 - test(ci): Matrix CI (3 OS × 3 Python), critical-module coverage ≥60%, Codecov badge, shared pytest fixtures (#224)
-- feat(agentic): Gemini-CLI-style `--gemini-style` ReAct REPL with free/cheap LLM catalog (`--free`, `--list-free`, `/free`)
+- feat(science): NumPy/SciPy prompting, notebook export, plot themes, ML helpers, PDF reports, auto-install (#223)
+- feat(data): analysis engine with smart ingest, Auto-EDA, chart gallery, multi-format export, SQL, clean (#222)
+- feat(local): file attach context (`--attach` / `/file`) + Ollama/`--local` first-class support (#221)
+- feat(ux): identity repositioning + first-run onboarding as free/local code interpreter (#220)
+- feat(session): Persistent `--session` / `--list-sessions` / `--delete-session` / `/session` across runs (#218)
+- feat(output): Structured `--output-format json|markdown|plain` with non-TTY auto-JSON (#219)
+- feat(codegen): `--mode generate` snippet + `--mode project` scaffold without execution (#212)
 - feat(tools): Native FS/shell ToolRegistry tools + `--yolo` autonomous tool loop + MCP stdio client (`--mcp-server`) (#215)
 - feat(ux): Token streaming (`--stream` / `--no-stream`) + multimodal `--image` / `/image` input (#216)
 - feat(tools): Web search tool `--search` / `/search` (DuckDuckGo / Tavily / Serper) (#217)
-- feat(codegen): `--mode generate` snippet + `--mode project` scaffold without execution (#212)
-- feat(output): Structured `--output-format json|markdown|plain` with non-TTY auto-JSON (#219)
-- feat(session): Persistent `--session` / `--list-sessions` / `--delete-session` / `/session` across runs (#218)
+- docs: OSS comparison table (Open-Interpreter, Aider, OpenCode, Gemini CLI, Cline)
+- docs: README sections for data analysis, science mode, Ollama/local attach, sandbox levels, sessions, output formats
+- test: Expanded unit/integration/interactive coverage; live soft-skip for quota/rate-limit providers
+
+## v3.3.0 (2026-07-11)
+- feat(agentic): Gemini-CLI-style `--gemini-style` ReAct REPL with free/cheap LLM catalog (`--free`, `--list-free`, `/free`)
 - feat(resilience): Multi-key rotation, token-bucket rate limiter, circuit breaker, error classifier, jitter backoff (`libs/key_manager.py`, `libs/rate_limiter.py`)
 - feat(observability): `logs/metrics.jsonl` plus `/key-status`, `/reload-keys`, `/metrics` CLI commands
 - feat(ci): Non-interactive `--yes` / `INTERPRETER_YES` one-shot file mode for scripted e2e
 - feat(agents): Multi-agent pipeline (`--agent`) and ReAct `--agentic` coder/executor/reviewer/debugger loop
 - docs: Fresh CLI screenshots for help, free catalog, code/chat modes, gemini-style, and agentic runs
-- docs: OSS comparison table (Open-Interpreter, Aider, OpenCode, Gemini CLI, Cline)
 - test: Resilience smoke suite, mode e2e harness, live soft-skip for quota/rate-limit providers
 
 ## v3.2.3 (2026-07-11)

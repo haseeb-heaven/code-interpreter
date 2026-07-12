@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "open-code-interpreter"
-version = "3.3.0"
+version = "3.4.0"
 description = "Free, local alternative to ChatGPT Code Interpreter. Describe tasks in plain English - get results. Supports OpenAI, Gemini, Groq, Ollama, and 20+ free models. Open Interpreter replacement. Windows/Mac/Linux."
 readme = "README.md"
 requires-python = ">=3.10"

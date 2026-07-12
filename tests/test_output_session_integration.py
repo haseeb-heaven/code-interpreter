@@ -125,7 +125,7 @@ class TestStructuredOutputMainLoopIntegration(unittest.TestCase):
 			interp.emit_turn_result.side_effect = lambda **kw: capture_emit(**kw)
 			interp.record_session_turn = MagicMock()
 
-			run_interpreter_main(interp, "3.3.0")
+			run_interpreter_main(interp, "3.4.0")
 
 			self.assertTrue(real_emit, "emit_turn_result was not called")
 			payload = json.loads(buf.getvalue())

@@ -17,7 +17,7 @@ class TestSlashCommandsCoverage(unittest.TestCase):
 		with patch("libs.interpreter_lib.display_markdown_message"), patch(
 			"libs.interpreter_lib.display_code"
 		):
-			run_interpreter_main(interp, "3.3.0")
+			run_interpreter_main(interp, "3.4.0")
 		return interp
 
 	def test_tools_list_calls_registry(self):
@@ -58,7 +58,7 @@ class TestSlashCommandsCoverage(unittest.TestCase):
 		with patch("libs.interpreter_lib.display_markdown_message") as md, patch(
 			"libs.interpreter_lib.display_code"
 		):
-			run_interpreter_main(interp, "3.3.0")
+			run_interpreter_main(interp, "3.4.0")
 		self.assertTrue(interp.INTERPRETER_HISTORY)
 		self.assertTrue(md.called)
 

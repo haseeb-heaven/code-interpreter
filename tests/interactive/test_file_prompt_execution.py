@@ -32,7 +32,7 @@ class TestFilePromptExecution(unittest.TestCase):
 			with patch("libs.interpreter_lib.display_markdown_message"), patch(
 				"libs.interpreter_lib.display_code"
 			):
-				run_interpreter_main(interp, "3.3.0")
+				run_interpreter_main(interp, "3.4.0")
 
 			interp._generate_content_with_retries.assert_called()
 			# First positional prompt should include file contents
@@ -50,7 +50,7 @@ class TestFilePromptExecution(unittest.TestCase):
 		with patch("libs.interpreter_lib.display_markdown_message") as md, patch(
 			"libs.interpreter_lib.display_code"
 		):
-			run_interpreter_main(interp, "3.3.0")
+			run_interpreter_main(interp, "3.4.0")
 		self.assertTrue(md.called)
 		interp._generate_content_with_retries.assert_not_called()
 

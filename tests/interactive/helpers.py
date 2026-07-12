@@ -20,7 +20,7 @@ def make_interp(**overrides):
 		search_provider=None,
 		search_api_key=None,
 	)
-	interp.interpreter_version = "3.3.0"
+	interp.interpreter_version = "3.4.0"
 	interp.INTERPRETER_PROMPT_FILE = False
 	interp.INTERPRETER_PROMPT_INPUT = True
 	interp.AUTO_YES = False

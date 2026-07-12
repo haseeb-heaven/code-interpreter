@@ -227,7 +227,7 @@ class TestInteractiveSlashCommandsMocked(unittest.TestCase):
 
 		with patch("libs.interpreter_lib.display_markdown_message") as md, \
 		     patch("libs.interpreter_lib.display_code"):
-			run_interpreter_main(interp, "3.3.0")
+			run_interpreter_main(interp, "3.4.0")
 
 		interp.memory.clear.assert_called()
 		self.assertTrue(md.called)

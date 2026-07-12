@@ -29,7 +29,7 @@ from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 
 # The main version of the interpreter.
-INTERPRETER_VERSION = "3.3.0"
+INTERPRETER_VERSION = "3.4.0"
 
 # Re-exported for Issue #220 identity/onboarding (tests import from here).
 __all_onboarding__ = ("FIRST_RUN_WELCOME", "maybe_show_first_run_welcome")

@@ -24,7 +24,7 @@ class TestReplLoop(unittest.TestCase):
 		with patch("libs.interpreter_lib.display_markdown_message"), patch(
 			"libs.interpreter_lib.display_code"
 		):
-			run_interpreter_main(interp, "3.3.0")
+			run_interpreter_main(interp, "3.4.0")
 
 		interp._generate_content_with_retries.assert_called()
 		interp._execute_generated_output.assert_called()
@@ -41,7 +41,7 @@ class TestReplLoop(unittest.TestCase):
 		with patch("libs.interpreter_lib.display_markdown_message"), patch(
 			"libs.interpreter_lib.display_code"
 		):
-			run_interpreter_main(interp, "3.3.0")
+			run_interpreter_main(interp, "3.4.0")
 
 		self.assertGreaterEqual(interp.history_manager.save_history_json.call_count, 2)
 
@@ -62,7 +62,7 @@ class TestReplLoop(unittest.TestCase):
 		with patch("libs.interpreter_lib.display_markdown_message"), patch(
 			"libs.interpreter_lib.display_code"
 		), patch("libs.core.main_loop.time.sleep", return_value=None):
-			run_interpreter_main(interp, "3.3.0")
+			run_interpreter_main(interp, "3.4.0")
 
 		self.assertGreaterEqual(interp._execute_generated_output.call_count, 2)
 		interp.package_manager.install_package.assert_called()
