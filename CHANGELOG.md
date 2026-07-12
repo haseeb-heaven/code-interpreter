@@ -1,3 +1,8 @@
+## Unreleased
+- feat(tui): Persist no-args wizard answers to `~/.code-interpreter/config.json` (`libs/core/wizard_config.py`); bare `python interpreter.py` skips the wizard and reuses saved settings once one exists; new `--config` flag forces the wizard to (re)run and re-save. Explicit CLI flags still take precedence over both the saved config and the wizard. Never persists API keys/secrets or one-shot `--task`/`-f` text.
+- fix(tui): "Configure advanced options?" → **no** now genuinely skips *every* subsequent advanced prompt (session, YOLO, `--yes`, science, interactive-charts, image, attach, MCP), instead of still asking for the session name right after.
+- fix(tui): Cancelling a wizard selector (Ctrl+C / Esc) no longer produces an unhandled `KeyboardInterrupt` traceback; `interpreter.py:main()` catches it around `prepare_args()` and exits cleanly with a short `Cancelled.` message.
+
 ## v3.5.0 (2026-07-12)
 - refactor(config): replace the `configs/` folder's ~70 per-model JSON files (plus `configs/free/catalog.json` and `configs/schema.json`) with a single human-editable `configs/models.toml` registry (`[models."<key>"]` tables, `[[default_priority]]`, `[[free_catalog]]`)
 - feat(config): `libs/core/model_registry.py` — cached `tomllib`/`tomli`-backed loader (`ModelRegistry.load/get_model/has_model/list_model_names/default_model_name/free_catalog_entries`); adds `tomli; python_version < "3.11"` to `requirements.txt`

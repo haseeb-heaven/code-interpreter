@@ -177,7 +177,9 @@ class TestTerminalUILaunchWiring(unittest.TestCase):
 	def test_launch_preserves_and_sets_agentic_free_stream_search(self):
 		ui = TerminalUI()
 		args = _base_args(timeout=45, sandbox_backend="subprocess")
-		with self._stub_launch_selectors(ui, output_format="plain"):
+		# configure_more=True so the session-name prompt actually runs (see the
+		# dedicated "no" short-circuit tests below for the configure_more=False path).
+		with self._stub_launch_selectors(ui, output_format="plain", configure_more=True):
 			with patch.object(ui.utility_manager, "clear_screen"):
 				with patch.object(ui.console, "print"):
 					result = ui.launch(args)
@@ -288,6 +290,71 @@ class TestTerminalUILaunchWiring(unittest.TestCase):
 		self.assertEqual(result.image, ["shot.png"])
 		self.assertEqual(result.attach, ["data.csv"])
 		self.assertEqual(result.mcp_server, ["npx", "-y", "server"])
+		self.assertIsNone(result.session)
+
+
+class TestAdvancedOptionsShortCircuit(unittest.TestCase):
+	"""Regression coverage for the 'Configure advanced options?' -> no bug.
+
+	Selecting "no" (the default) must skip every subsequent advanced prompt
+	(session, YOLO, yes, science, interactive-charts, image, attach, MCP)
+	rather than only skipping past the meta-question itself.
+	"""
+
+	def test_configure_advanced_no_skips_every_subsequent_prompt(self):
+		ui = TerminalUI()
+		args = _base_args(
+			session="existing-session", yolo=False, yes=False, science=False,
+			interactive_charts=False, image=None, attach=None, mcp_server=None,
+		)
+		with patch.object(ui, "_select_boolean", return_value=False) as mock_bool:
+			with patch.object(ui, "_prompt_optional") as mock_prompt:
+				advanced = ui._collect_advanced_settings(args)
+
+		mock_bool.assert_called_once_with(
+			"Configure advanced options (session, YOLO, images, MCP, ...)?",
+			default=False,
+		)
+		mock_prompt.assert_not_called()
+		self.assertEqual(advanced["session"], "existing-session")
+		self.assertFalse(advanced["yolo"])
+		self.assertFalse(advanced["yes"])
+		self.assertFalse(advanced["science"])
+		self.assertFalse(advanced["interactive_charts"])
+		self.assertIsNone(advanced["image"])
+		self.assertIsNone(advanced["attach"])
+		self.assertIsNone(advanced["mcp_server"])
+
+	def test_configure_advanced_yes_asks_every_prompt(self):
+		ui = TerminalUI()
+		args = _base_args()
+		with patch.object(
+			ui, "_select_boolean", side_effect=[True, True, True, True, True]
+		) as mock_bool:
+			with patch.object(ui, "_prompt_optional", return_value="") as mock_prompt:
+				ui._collect_advanced_settings(args)
+
+		self.assertEqual(mock_bool.call_count, 5)  # configure_more, yolo, yes, science, charts
+		# session name, image path(s), attach path(s), MCP command
+		self.assertEqual(mock_prompt.call_count, 4)
+
+	def test_launch_advanced_no_default_does_not_prompt_session(self):
+		"""End-to-end: launch() with every default answer never asks Session name."""
+		ui = TerminalUI()
+		args = _base_args()
+
+		def select_option(title, options, default, help_text=None):
+			return default if default in options else options[0]
+
+		with patch.object(ui, "_select_option", side_effect=select_option):
+			with patch.object(ui, "_select_boolean", side_effect=lambda title, default=False: default):
+				with patch.object(ui, "select_model", return_value="local-model"):
+					with patch.object(ui.utility_manager, "clear_screen"):
+						with patch.object(ui.console, "print"):
+							with patch("libs.terminal_ui.Prompt.ask") as mock_prompt_ask:
+								result = ui.launch(args)
+
+		mock_prompt_ask.assert_not_called()
 		self.assertIsNone(result.session)
 
 

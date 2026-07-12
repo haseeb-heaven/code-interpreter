@@ -420,11 +420,9 @@ class TerminalUI:
 			default=False,
 		)
 		if not configure_more:
-			session_raw = self._prompt_optional(
-				"Session name (--session, blank to skip)",
-				default=advanced["session"] or "",
-			)
-			advanced["session"] = session_raw or None
+			# "no" (including the default) must genuinely skip every subsequent
+			# advanced prompt -- session, YOLO, yes, science, charts, image,
+			# attach, MCP -- and fall back to whatever was already on ``args``.
 			return advanced
 
 		session_raw = self._prompt_optional(

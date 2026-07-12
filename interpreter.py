@@ -14,6 +14,9 @@ Command line arguments:
 --sandbox [subprocess|docker|on|off] / --no-sandbox: Sandbox backend (default: subprocess).
 --timeout SECONDS: Kill sandboxed runs after N seconds (default: 30).
 --safety {strict,standard,relaxed,off}: Safety policy level (default: standard).
+--config: Force the no-args setup wizard to (re)run and persist answers to
+    ~/.code-interpreter/config.json. Without this flag, a bare `python interpreter.py`
+    skips the wizard once a saved config exists and reuses it directly.
 
 Author: HeavenHM
 Date: 2025/01/01
@@ -77,6 +80,16 @@ def build_parser():
 		action='store_true',
 		default=False,
 		help='List curated free/cheap LLM presets and exit',
+	)
+	parser.add_argument(
+		'--config',
+		action='store_true',
+		default=False,
+		help=(
+			'Force the interactive setup wizard to (re)run, then persist the answers to '
+			'~/.code-interpreter/config.json. Without this flag, a bare `python interpreter.py` '
+			'skips the wizard and reuses the saved config once one exists.'
+		),
 	)
 
 	# Sandbox control: --sandbox [subprocess|docker|on|off] / --no-sandbox
@@ -437,13 +450,40 @@ def prepare_args(args, argv):
 			args.model = 'local-model'
 		args.local = True  # ollama path is always local-only
 
+	from libs.core.wizard_config import (
+		CODEGEN_MODES,
+		WizardConfigStore,
+		apply_wizard_config_to_args,
+		settings_from_namespace,
+	)
+
+	# --config explicitly forces the wizard (to (re)configure); a bare
+	# invocation with no other flags tries the persisted config first and
+	# only falls back to the wizard when no usable config is saved yet.
 	no_runtime_args = len(argv) <= 1
-	if no_runtime_args and not args.cli and not args.tui:
+	force_wizard = bool(getattr(args, 'config', False))
+	config_store = WizardConfigStore()
+	# generate/project are always one-shot CLI (see the codegen check above);
+	# --config must not fight that invariant, so it's a no-op in that case.
+	if force_wizard and getattr(args, 'mode', None) not in CODEGEN_MODES:
 		args.tui = True
+		args.cli = False
+	elif no_runtime_args and not args.cli and not args.tui:
+		persisted = config_store.load()
+		# generate/project need one-shot --task/-f data that is never persisted;
+		# skip the saved config for those and fall through to the wizard instead.
+		if persisted and persisted.get('mode') not in CODEGEN_MODES:
+			apply_wizard_config_to_args(args, persisted)
+			args.cli = True
+			args.tui = False
+		else:
+			args.tui = True
 	if args.tui:
 		# First-run welcome before TUI selectors (Issue #220).
 		maybe_show_first_run_welcome()
-		return TerminalUI().launch(args)
+		out = TerminalUI().launch(args)
+		config_store.save(settings_from_namespace(out))
+		return out
 	if not args.mode:
 		args.mode = 'code'
 	if not args.model:
@@ -532,7 +572,15 @@ def main(argv=None):
 	# Session management flags run before Interpreter boot (no API keys required).
 	if _handle_session_mgmt_flags(args):
 		return
-	args = prepare_args(args, argv)
+	try:
+		args = prepare_args(args, argv)
+	except KeyboardInterrupt:
+		# TerminalUI._select_option raises KeyboardInterrupt when a wizard
+		# selection is cancelled (Ctrl+C / Esc); mirror the other REPL
+		# cancellation paths (libs/interpreter_lib.py) with a short message
+		# and a clean exit instead of an unhandled traceback.
+		print("\nCancelled.")
+		raise SystemExit(0)
 	# Code generation modes — write artifacts only, never execute (#212)
 	if getattr(args, 'mode', None) in ('generate', 'project'):
 		from libs.code_generator import run_codegen_cli
