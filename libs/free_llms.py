@@ -207,3 +207,193 @@ def resolve_free_model(
 		return None
 	cat = catalog or FreeLLMCatalog.load()
 	return cat.pick_default(environ=environ, configs_dir=configs_dir)
+
+
+# Markers for OpenRouter / free-router upstream failures that warrant model fallback.
+_FREE_ROUTING_FAILURE_MARKERS = (
+	"502",
+	"503",
+	"invalid url",
+	"provider_name",
+	'"stealth"',
+	"stealth",
+	"provider returned error",
+	"no endpoints found",
+	"temporarily unavailable",
+	"overloaded",
+	"all providers failed",
+	"model is currently overloaded",
+)
+
+
+class FreeModelsExhaustedError(RuntimeError):
+	"""Raised when the primary free model and all catalog fallbacks fail."""
+
+	def __init__(
+		self,
+		message: str,
+		*,
+		tried: Optional[Sequence[str]] = None,
+		last_error: Optional[BaseException] = None,
+	):
+		super().__init__(message)
+		self.tried = list(tried or [])
+		self.last_error = last_error
+
+
+def is_free_routing_failure(exc: BaseException) -> bool:
+	"""True when the error looks like a flaky free-router / upstream provider failure.
+
+	Examples: OpenRouter 502 Invalid URL with provider Stealth, 503 overloaded, etc.
+	Auth / billing / missing-key errors are not treated as routing failures.
+	"""
+	text = str(exc or "").lower()
+	if not text:
+		return False
+	fatal = (
+		"invalid api key",
+		"incorrect api key",
+		"authentication",
+		"unauthorized",
+		"401",
+		"403",
+		"quota",
+		"credits",
+		"billing",
+		"payment required",
+		"402",
+		"not found in environment",
+		"not found in .env",
+	)
+	if any(marker in text for marker in fatal):
+		return False
+	return any(marker in text for marker in _FREE_ROUTING_FAILURE_MARKERS)
+
+
+def load_model_config(config_name: str, configs_dir: str = "configs") -> Optional[Dict[str, Any]]:
+	"""Load ``configs/<config_name>.json``; return None if missing/invalid."""
+	name = (config_name or "").strip()
+	if not name:
+		return None
+	path = os.path.join(configs_dir, f"{name}.json")
+	try:
+		with open(path, "r", encoding="utf-8") as handle:
+			payload = json.load(handle)
+	except (OSError, json.JSONDecodeError) as exc:
+		logger.debug("Could not load model config %s: %s", path, exc)
+		return None
+	return payload if isinstance(payload, dict) else None
+
+
+def litellm_model_id(config: Dict[str, Any], fallback: str = "") -> str:
+	"""Return the litellm/OpenRouter model id from a config dict."""
+	return str(config.get("model") or fallback or "").strip()
+
+
+def _normalize_key(value: str) -> str:
+	return (value or "").strip().lower()
+
+
+def match_catalog_entry(
+	model: str,
+	catalog: FreeLLMCatalog,
+	configs_dir: str = "configs",
+) -> Optional[FreeModelEntry]:
+	"""Match a litellm model id or config name to a free-catalog entry."""
+	needle = _normalize_key(model)
+	if not needle:
+		return None
+
+	direct = catalog.get(model)
+	if direct is not None:
+		return direct
+
+	for entry in catalog.entries:
+		cfg = load_model_config(entry.config, configs_dir=configs_dir)
+		if not cfg:
+			continue
+		litellm_id = _normalize_key(litellm_model_id(cfg, entry.config))
+		if litellm_id and litellm_id == needle:
+			return entry
+		if litellm_id.endswith("/" + needle) or needle.endswith("/" + litellm_id):
+			return entry
+	return None
+
+
+def free_fallback_candidates(
+	current_model: str,
+	*,
+	catalog: Optional[FreeLLMCatalog] = None,
+	environ: Optional[Dict[str, str]] = None,
+	configs_dir: str = "configs",
+) -> List[Dict[str, Any]]:
+	"""Ordered alternate free models to try after ``current_model`` fails.
+
+	Prefer other available OpenRouter free entries when the current model is
+	OpenRouter-related, then other available free catalog presets.
+	"""
+	cat = catalog or FreeLLMCatalog.load()
+	current = (current_model or "").strip()
+	current_key = _normalize_key(current)
+	matched = match_catalog_entry(current, cat, configs_dir=configs_dir)
+
+	available = cat.available(environ=environ, configs_dir=configs_dir, require_config_file=True)
+	if not available:
+		return []
+
+	prefer_provider = (matched.provider if matched else "").strip().lower()
+	if not prefer_provider and ("openrouter" in current_key or current_key.startswith("openrouter/")):
+		prefer_provider = "openrouter"
+
+	ordered: List[FreeModelEntry] = []
+	seen_configs: set[str] = set()
+	buckets = (
+		[e for e in available if e.provider.lower() == prefer_provider] if prefer_provider else [],
+		[e for e in available if not prefer_provider or e.provider.lower() != prefer_provider],
+	)
+	for bucket in buckets:
+		for entry in bucket:
+			if entry.config in seen_configs:
+				continue
+			seen_configs.add(entry.config)
+			ordered.append(entry)
+
+	candidates: List[Dict[str, Any]] = []
+	for entry in ordered:
+		if matched and entry.config == matched.config:
+			continue
+		cfg = load_model_config(entry.config, configs_dir=configs_dir) or {}
+		model_id = litellm_model_id(cfg, entry.config)
+		if not model_id:
+			continue
+		if _normalize_key(model_id) == current_key or _normalize_key(entry.config) == current_key:
+			continue
+		candidates.append(
+			{
+				"config": entry.config,
+				"model": model_id,
+				"provider": str(cfg.get("provider") or entry.provider or "").strip(),
+				"api_base": (str(cfg["api_base"]).strip() if cfg.get("api_base") else None),
+				"temperature": cfg.get("temperature", 0.1),
+				"max_tokens": cfg.get("max_tokens", 4096),
+			}
+		)
+	return candidates
+
+
+def format_free_models_exhausted_message(
+	tried: Sequence[str],
+	last_error: Optional[BaseException] = None,
+) -> str:
+	"""User-facing message when every free model attempt failed."""
+	tried_list = ", ".join(tried) if tried else "(none)"
+	detail = ""
+	if last_error is not None:
+		raw = str(last_error).replace("\n", " ").strip()
+		if len(raw) > 180:
+			raw = raw[:177] + "..."
+		detail = f" Last error: {raw}"
+	return (
+		f"All free / cheap models failed after trying: {tried_list}.{detail} "
+		"Use /free to list presets or /model <name> to switch models."
+	)

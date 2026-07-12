@@ -16,6 +16,7 @@ from libs.agent.llm import call_llm
 from libs.agent.logger import TrajectoryLogger
 from libs.agent.parser import ParseError, format_trajectory, parse_react_step
 from libs.agent.prompts import REACT_SYSTEM_PROMPT
+from libs.free_llms import FreeModelsExhaustedError
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -52,6 +53,47 @@ class ReActController:
         self.executor = ExecutorAction(code_interpreter, safety_manager)
         self.reviewer = ReviewerAction(model_name, api_key)
         self.debugger = DebuggerAction(model_name, api_key)
+
+    def _apply_model(self, model_name: str) -> None:
+        """Keep controller + specialist actions on the same active model."""
+        self.model_name = model_name
+        self.coder.model_name = model_name
+        self.reviewer.model_name = model_name
+        self.debugger.model_name = model_name
+
+    def _on_llm_fallback(self, candidate: Dict[str, Any]) -> None:
+        model_id = str(candidate.get("model") or "").strip()
+        label = str(candidate.get("config") or model_id)
+        if not model_id:
+            return
+        self._apply_model(model_id)
+        console.print(
+            f"[yellow]Free model fallback[/yellow]: switched to [bold]{label}[/bold] ({model_id})"
+        )
+
+    def _call_llm(self, messages: list) -> tuple[str, Dict[str, Any]]:
+        return call_llm(
+            self.model_name,
+            messages,
+            self.api_key,
+            on_fallback=self._on_llm_fallback,
+        )
+
+    @staticmethod
+    def _report_llm_failure(exc: BaseException) -> str:
+        """Print a concise CLI error; avoid dumping huge litellm tracebacks."""
+        if isinstance(exc, FreeModelsExhaustedError):
+            logger.error("Controller LLM failure: %s", exc)
+            console.print(f"[bold red]{exc}[/bold red]")
+            console.print("[dim]Tip: /free  or  /model <name>[/dim]")
+            return str(exc)
+        logger.error("Controller LLM failure: %s", exc)
+        short = str(exc).replace("\n", " ").strip()
+        if len(short) > 240:
+            short = short[:237] + "..."
+        console.print(f"[bold red]LLM error:[/bold red] {short}")
+        console.print("[dim]Tip: try /free or /model <name> for another free preset.[/dim]")
+        return f"LLM error: {short}"
 
     def run(self, task: str) -> Dict[str, Any]:
         run_id = str(uuid.uuid4())
@@ -91,9 +133,8 @@ class ReActController:
                 state["cost_metrics"]["total_cost"] += repair_metrics["cost"]
                 state["cost_metrics"]["total_tokens"] += repair_metrics["tokens"]
             except Exception as exc:
-                logger.exception("Controller LLM failure")
                 state["status"] = "FAILED"
-                state["failure_reason"] = f"LLM error: {exc}"
+                state["failure_reason"] = self._report_llm_failure(exc)
                 break
 
             signature = (react_step.action, json.dumps(react_step.action_input, sort_keys=True, default=str))
@@ -201,7 +242,7 @@ class ReActController:
         console.print(f"Cost: ${state['cost_metrics']['total_cost']:.4f}")
         return state
 
-    def _think(self, state: Dict[str, Any]) -> tuple[str, Dict[str, float]]:
+    def _think(self, state: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
         history = format_trajectory(state["trajectory"])
         user = (
             f"Task: {state['task']}\n"
@@ -209,13 +250,11 @@ class ReActController:
             f"Trajectory so far:\n{history or '(empty)'}\n\n"
             "Emit the next Thought / Action / Action Input."
         )
-        return call_llm(
-            self.model_name,
+        return self._call_llm(
             [
                 {"role": "system", "content": REACT_SYSTEM_PROMPT},
                 {"role": "user", "content": user},
-            ],
-            self.api_key,
+            ]
         )
 
     def _repair_parse(self, state: Dict[str, Any], error: str):
@@ -226,13 +265,11 @@ class ReActController:
             f"Task: {state['task']}"
         )
         try:
-            content, metrics = call_llm(
-                self.model_name,
+            content, metrics = self._call_llm(
                 [
                     {"role": "system", "content": REACT_SYSTEM_PROMPT},
                     {"role": "user", "content": repair_prompt},
-                ],
-                self.api_key,
+                ]
             )
             return parse_react_step(content), metrics
         except Exception:
