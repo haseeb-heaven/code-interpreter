@@ -202,6 +202,62 @@ def apply_runtime_settings(interp, settings, *, display_fn, path_isfile):
 			interp.initialize_client()
 
 
+
+	# TUI / CLI parity flags (agentic, sandbox, stream, search, ...)
+	args = getattr(interp, "args", None)
+	if args is None:
+		return
+
+	if "agentic" in settings:
+		args.agentic = bool(settings["agentic"])
+	if "agent" in settings:
+		args.agent = bool(settings["agent"])
+		interp.AGENT_MODE = bool(settings["agent"])
+	if "gemini_style" in settings:
+		args.gemini_style = bool(settings["gemini_style"])
+	if "free" in settings:
+		args.free = bool(settings["free"])
+	if "stream" in settings:
+		args.stream = bool(settings["stream"])
+	if "search" in settings:
+		args.search = bool(settings["search"])
+	if "output_format" in settings:
+		args.output_format = settings["output_format"]
+		if args.output_format in ("json", "markdown"):
+			args.stream = False
+	if "yolo" in settings:
+		args.yolo = bool(settings["yolo"])
+	if "yes" in settings:
+		args.yes = bool(settings["yes"])
+		interp.AUTO_YES = bool(settings["yes"])
+	if "science" in settings:
+		args.science = bool(settings["science"])
+	if "interactive_charts" in settings:
+		args.interactive_charts = bool(settings["interactive_charts"])
+		data_session = getattr(interp, "data_session", None)
+		if data_session is not None and settings["interactive_charts"]:
+			data_session.chart_style = "plotly"
+	if "safety" in settings and settings["safety"]:
+		args.safety = settings["safety"]
+		safety_manager = getattr(interp, "safety_manager", None)
+		if safety_manager is not None and hasattr(safety_manager, "set_safety_level"):
+			try:
+				safety_manager.set_safety_level(settings["safety"])
+			except Exception:
+				pass
+	if "sandbox" in settings and settings["sandbox"]:
+		from libs.terminal_ui import apply_sandbox_to_args
+
+		apply_sandbox_to_args(args, settings["sandbox"])
+		interp.UNSAFE_EXECUTION = bool(args.unsafe)
+		interp.SANDBOX_BACKEND = getattr(args, "sandbox_backend", None) or (
+			"none" if args.unsafe else "subprocess"
+		)
+		safety_manager = getattr(interp, "safety_manager", None)
+		if safety_manager is not None:
+			safety_manager.unsafe_mode = bool(args.unsafe)
+
+
 def bootstrap_interpreter(interp) -> None:
 	"""Apply CLI args, load system message, init client/mode/readline."""
 	args = interp.args

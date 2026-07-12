@@ -473,10 +473,22 @@ Last verified model baseline: **April 5, 2026**.
 
 ## **TUI Screenshots**
 
-The TUI flow is designed for fast keyboard-first setup. Run `python interpreter.py` or `python interpreter.py --tui` to launch the selector UI, then use the arrow keys to choose the mode, model, language, and runtime options.
+The TUI flow is designed for fast keyboard-first setup. Run `python interpreter.py` or `python interpreter.py --tui` to launch the selector UI, then use the arrow keys to choose the same user-facing options the CLI exposes.
 
 ### Mode selection
-Choose between `code`, `chat`, `script`, `command`, and `vision` before the session starts.
+Choose between `code`, `chat`, `script`, `command`, `vision`, plus codegen-only `generate` / `project`.
+
+### Workflow and flags (TUI / CLI parity)
+After mode, the TUI also lets you pick:
+
+- **Workflow** — classic, `--agentic` (ReAct), `--agent` (multi-agent pipeline), or `--gemini-style`
+- **Free/cheap presets** — `--free` catalog models from `configs/free/catalog.json`
+- **Sandbox / safety** — `subprocess` | `docker` | `off`, and `--safety` levels
+- **Streaming / search / output** — `--stream`, `--search`, `--output-format`
+- **Session** — optional `--session` name
+- **Advanced** (opt-in) — `--yolo`, `--yes`, `--science`, `--interactive-charts`, `--image`, `--attach`, `--mcp-server`
+
+Selections are written onto the same argparse `Namespace` the CLI uses, so runtime behavior matches flag-driven starts.
 
 ![TUI mode selection](resources/interpreter-tui-mode-selection.png)
 
