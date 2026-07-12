@@ -228,6 +228,10 @@ _FREE_ROUTING_FAILURE_MARKERS = (
 	"model_not_found",
 	"no healthy upstream",
 	"bad gateway",
+	"deprecated",
+	"notfounderror",
+	"404",
+	"no longer available",
 )
 
 
