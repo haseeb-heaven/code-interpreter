@@ -108,7 +108,7 @@ class TestPyPIDescription(unittest.TestCase):
 	def test_readme_hero_positioning(self):
 		root = Path(__file__).resolve().parents[1]
 		text = (root / "README.md").read_text(encoding="utf-8")
-		self.assertIn("Code Interpreter — Free, Local, Any Model", text)
+		self.assertIn("Task-based Agentic Terminal — Free, Local, Any Model", text)
 		self.assertIn('--free "analyze', text)
 		self.assertIn("Why not Open Interpreter?", text)
 		self.assertIn("Abandoned (Apr 2025)", text)

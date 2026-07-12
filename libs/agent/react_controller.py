@@ -260,7 +260,14 @@ class ReActController:
                 )
                 # Always shown (even in the default Thought-only quiet view): the
                 # finish summary is the task's actual deliverable, not step noise.
-                self.presenter.show_result(observation)
+                if hasattr(self.presenter, "show_result"):
+                    self.presenter.show_result(observation)
+                elif hasattr(self.presenter, "show_finish"):
+                    self.presenter.show_finish(step_num, observation)
+                else:
+                    self.presenter.show_observation(step_num, observation, action="finish")
+                if hasattr(self.presenter, "show_status"):
+                    self.presenter.show_status("Awaiting your next command or request.")
                 break
 
             if react_step.action == "execute":
