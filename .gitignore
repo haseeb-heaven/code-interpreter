@@ -80,6 +80,9 @@ desktop.ini
 
 .worktrees/
 
+# Local scratch reports / ephemeral run artifacts
+scratch/
+
 # Coverage / local test artifacts
 .coverage
 coverage_*.txt
