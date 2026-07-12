@@ -1,8 +1,9 @@
 """Empty-task / --yes / EOF handling for agentic and autonomous REPLs.
 
-Regression: ``--agentic --yes`` without ``-f`` used to spam
-``Task cannot be empty.`` forever because ``_safe_input(..., default="")``
-returns immediately under AUTO_YES.
+Regression: ``--agentic --yes`` without ``-f`` used to either spam
+``Task cannot be empty.`` forever (AUTO_YES short-circuit to ``""``) or
+incorrectly require ``-f`` / exit 2. ``--yes`` only auto-approves Y/N;
+without ``-f`` the interactive REPL must still wait for real task input.
 """
 from __future__ import annotations
 
@@ -75,35 +76,39 @@ def _make_agentic_interp(*, auto_yes=False, file=None, prompt_file=False, inputs
 
 
 class AgenticEmptyTaskReplTests(unittest.TestCase):
-	def test_yes_without_file_exits_2_once_no_spam(self):
-		"""--yes without -f must exit 2 with usage; never loop on empty task."""
+	def test_yes_without_file_enters_repl_runs_task(self):
+		"""--yes without -f must enter the REPL (no SystemExit 2) and run a task."""
 		from libs.interpreter_lib import Interpreter
 
-		interp, printed = _make_agentic_interp(auto_yes=True, file=None, prompt_file=False)
-		# If the bug returns, this would spin forever on empty defaults.
-		call_count = {"n": 0}
-
-		def evil_safe_input(prompt, default=""):
-			call_count["n"] += 1
-			if call_count["n"] > 5:
-				raise AssertionError("infinite empty-task loop under --yes")
-			# Simulate pre-fix AUTO_YES behavior
-			return default if default is not None else ""
-
-		interp._safe_input = evil_safe_input
-
-		with patch("libs.agent.react_controller.ReActController"):
-			with self.assertRaises(SystemExit) as cm:
-				Interpreter.interpreter_agentic_main(interp)
-
-		self.assertEqual(cm.exception.code, 2)
-		joined = "\n".join(printed).lower()
-		self.assertTrue(
-			"-f" in joined or "--file" in joined or "file" in joined,
-			f"expected usage mentioning -f/--file, got: {printed}",
+		interp, printed = _make_agentic_interp(
+			auto_yes=True,
+			file=None,
+			prompt_file=False,
+			inputs=["print hello", "/exit"],
 		)
+		with patch("libs.agent.react_controller.ReActController") as mock_ctrl:
+			mock_ctrl.return_value.run.return_value = "ok"
+			Interpreter.interpreter_agentic_main(interp)
+
+		mock_ctrl.return_value.run.assert_called_once_with("print hello")
+		joined = "\n".join(printed).lower()
+		self.assertNotIn("requires -f", joined)
+		self.assertNotIn("requires --file", joined)
+		self.assertIn("exiting", joined)
 		empty_msgs = [p for p in printed if "Task cannot be empty" in p]
-		self.assertLessEqual(len(empty_msgs), 1)
+		self.assertEqual(len(empty_msgs), 0)
+
+	def test_yes_does_not_short_circuit_task_prompt_to_empty(self):
+		"""AUTO_YES must not return ``""`` for task entry (would spam empty-task)."""
+		from libs.interpreter_lib import Interpreter
+
+		interp = MagicMock()
+		interp.AUTO_YES = True
+		interp.logger = MagicMock()
+		with patch("builtins.input", return_value="real task") as mock_input:
+			result = Interpreter._safe_input(interp, "Enter your task: ", default="")
+		self.assertEqual(result, "real task")
+		mock_input.assert_called_once()
 
 	def test_blank_lines_then_exit_no_infinite_loop(self):
 		"""Blank Enter re-prompts; must not hang or spam unboundedly."""
@@ -147,8 +152,8 @@ class AgenticEmptyTaskReplTests(unittest.TestCase):
 			result = Interpreter._safe_input(interp, "Enter your task: ")
 		self.assertIsNone(result)
 
-	def test_cli_agentic_yes_without_file_exits_2(self):
-		"""End-to-end: --agentic --yes without -f must exit 2 (not spam / exit 0)."""
+	def test_cli_agentic_yes_without_file_accepts_piped_exit(self):
+		"""End-to-end: --agentic --yes without -f + piped /exit must not require -f."""
 		import subprocess
 		import sys
 		from pathlib import Path
@@ -160,47 +165,48 @@ class AgenticEmptyTaskReplTests(unittest.TestCase):
 				str(root / "interpreter.py"),
 				"--agentic",
 				"--yes",
+				"--cli",
 				"-m",
 				"openrouter-free",
 			],
 			cwd=str(root),
+			input="/exit\n",
 			capture_output=True,
 			text=True,
 			timeout=60,
 		)
-		self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
 		combined = (proc.stdout + proc.stderr).lower()
-		self.assertTrue("-f" in combined or "--file" in combined or "file" in combined)
+		self.assertNotIn("requires -f", combined)
+		self.assertNotIn("--yes requires", combined)
 		self.assertLessEqual(combined.count("task cannot be empty"), 1)
-
+		# Soft-ok on live LLM/quota failures as long as REPL accepted input / exited.
+		self.assertNotEqual(proc.returncode, 2, combined)
 
 
 class AutoEmptyTaskReplTests(unittest.TestCase):
-	def test_yes_without_file_exits_2_once_no_spam(self):
+	def test_yes_without_file_enters_repl_runs_task(self):
 		from libs.interpreter_lib import Interpreter
 
-		interp, printed = _make_agentic_interp(auto_yes=True, file=None, prompt_file=False)
+		interp, printed = _make_agentic_interp(
+			auto_yes=True,
+			file=None,
+			prompt_file=False,
+			inputs=["list files", "/exit"],
+		)
 		interp.args.yolo = True
-		call_count = {"n": 0}
 
-		def evil_safe_input(prompt, default=""):
-			call_count["n"] += 1
-			if call_count["n"] > 5:
-				raise AssertionError("infinite empty-task loop under --yes")
-			return default if default is not None else ""
-
-		interp._safe_input = evil_safe_input
-
-		with patch("libs.agent.auto_loop.AutonomousAgentLoop"):
+		with patch("libs.agent.auto_loop.AutonomousAgentLoop") as mock_loop:
+			mock_loop.return_value.run.return_value = "ok"
 			with patch("libs.tools.bootstrap.build_native_fs_registry") as reg:
 				reg.return_value = MagicMock()
 				with patch("libs.memory.ContextManager"):
-					with self.assertRaises(SystemExit) as cm:
-						Interpreter.interpreter_auto_main(interp)
+					Interpreter.interpreter_auto_main(interp)
 
-		self.assertEqual(cm.exception.code, 2)
+		mock_loop.return_value.run.assert_called_once_with("list files")
+		joined = "\n".join(printed).lower()
+		self.assertNotIn("requires -f", joined)
 		empty_msgs = [p for p in printed if "Task cannot be empty" in p]
-		self.assertLessEqual(len(empty_msgs), 1)
+		self.assertEqual(len(empty_msgs), 0)
 
 
 if __name__ == "__main__":

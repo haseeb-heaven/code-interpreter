@@ -206,10 +206,11 @@ class Interpreter:
 	def _safe_input(self, prompt_text, default=None):
 		"""Read user input, or auto-confirm when ``--yes`` / CI non-interactive mode is on.
 
-		Confirmation prompts (Y/N, execute, …) short-circuit under ``AUTO_YES``.
-		Task prompts must pass ``default=None`` so ``--yes`` never fabricates an
-		empty task (that previously spammed ``Task cannot be empty.`` forever).
-		``EOFError`` returns ``default`` (typically ``None`` for REPL tasks).
+		``AUTO_YES`` / ``--yes`` only auto-answers confirmation prompts (Y/N, execute,
+		create prompt, are you sure). It does **not** short-circuit task / REPL entry
+		to a default (that previously returned ``""`` and spammed
+		``Task cannot be empty.`` forever). ``EOFError`` returns ``default``
+		(typically ``None`` for REPL tasks so EOF exits cleanly).
 		"""
 		auto_yes = bool(getattr(self, "AUTO_YES", False))
 		text = prompt_text or ""
@@ -222,35 +223,16 @@ class Interpreter:
 		):
 			self.logger.info(f"AUTO_YES confirmed prompt: {text.strip()!r}")
 			return "y"
-		if auto_yes and default is not None:
-			self.logger.info(f"AUTO_YES default for prompt: {text.strip()!r} -> {default!r}")
-			return default
 		try:
 			return input(prompt_text)
 		except EOFError:
 			return default
 
-	def _require_prompt_file_for_auto_yes(self, mode_label: str) -> None:
-		"""``--yes`` is one-shot: require ``-f``/``--file``, else exit 2 once."""
-		if not bool(getattr(self, "AUTO_YES", False)):
-			return
-		has_file = bool(
-			getattr(self, "INTERPRETER_PROMPT_FILE", False)
-			and getattr(self.args, "file", None)
-		)
-		if has_file:
-			return
-		self.console.print(
-			f"[red]error:[/red] --yes requires -f/--file <prompt> for {mode_label} "
-			"(non-interactive one-shot). Omit --yes for the interactive REPL."
-		)
-		raise SystemExit(2)
-
 	def _read_repl_task(self, prompt_text: str = "Enter your task: "):
 		"""Read a REPL task line.
 
 		Returns ``None`` on stdin EOF. Never auto-fills an empty task under ``--yes``
-		(pass ``default=None`` into ``_safe_input``).
+		(``default=None`` so AUTO_YES cannot fabricate ``""``).
 		"""
 		return self._safe_input(prompt_text)
 
@@ -554,7 +536,6 @@ class Interpreter:
 		auto_mode = bool(getattr(self.args, "yolo", False))
 		mcp_cmd = getattr(self.args, "mcp_server", None)
 		mcp_client = None
-		self._require_prompt_file_for_auto_yes("autonomous mode")
 
 		try:
 			mode_label = "YOLO (no approval)" if auto_mode else "tool loop (confirm each call)"
@@ -731,7 +712,6 @@ class Interpreter:
 
 		gemini_style = bool(getattr(self.args, "gemini_style", False))
 		one_shot = bool(getattr(self, "INTERPRETER_PROMPT_FILE", False) and getattr(self.args, "file", None))
-		self._require_prompt_file_for_auto_yes("agentic mode")
 		# Keep a mutable holder so slash handlers can rebuild the controller.
 		state = {"controller": None, "max_steps": max(int(getattr(self, "MAX_REPAIR_ATTEMPTS", 3) or 3), 10)}
 

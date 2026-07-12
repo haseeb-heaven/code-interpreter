@@ -60,13 +60,25 @@ class TestAutoYesSafeInput(unittest.TestCase):
         result = Interpreter._safe_input(interp, "Execute the prompt (Y/N/P/C)?: ", default="n")
         self.assertEqual(result, "y")
 
-    def test_safe_input_uses_default_for_generic_prompt(self):
+    def test_safe_input_auto_yes_still_reads_generic_prompt(self):
+        """AUTO_YES must not short-circuit task/REPL prompts to the default."""
         from libs.interpreter_lib import Interpreter
 
         interp = MagicMock()
         interp.AUTO_YES = True
         interp.logger = MagicMock()
-        result = Interpreter._safe_input(interp, "> ", default="/exit")
+        with patch("builtins.input", return_value="do something"):
+            result = Interpreter._safe_input(interp, "> ", default="/exit")
+        self.assertEqual(result, "do something")
+
+    def test_safe_input_eof_returns_default_under_auto_yes(self):
+        from libs.interpreter_lib import Interpreter
+
+        interp = MagicMock()
+        interp.AUTO_YES = True
+        interp.logger = MagicMock()
+        with patch("builtins.input", side_effect=EOFError):
+            result = Interpreter._safe_input(interp, "> ", default="/exit")
         self.assertEqual(result, "/exit")
 
 
