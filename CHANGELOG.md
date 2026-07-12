@@ -1,4 +1,5 @@
 ## v3.4.0 (2026-07-12)
+- test(unit): raise `libs/*` + `interpreter.py` coverage to ≥80% (worktree unit suite)
 - test(interactive): slash commands, REPL loop, session round-trip, live exec, streaming, -f prompt coverage (#226)
 - feat(security): subprocess/Docker sandbox backends, `--timeout`/`--safety` levels, audit log, secret scan, path ignore (#225)
 - test(ci): Matrix CI (3 OS × 3 Python), critical-module coverage ≥60%, Codecov badge, shared pytest fixtures (#224)

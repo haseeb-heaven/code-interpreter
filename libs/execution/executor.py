@@ -76,6 +76,9 @@ class CodeExecutor:
 						"Docker not available. Falling back to subprocess isolation. "
 						"Install Docker for stronger isolation."
 					)
+					output, error = interp.execute_code(
+						code_snippet, code_lang, sandbox_context=sandbox_context, force_execute=force_execute
+					)
 				else:
 					result = run_in_docker(code_snippet or "", timeout=timeout)
 					output = result.get("stdout") or None
