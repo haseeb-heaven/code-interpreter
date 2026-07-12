@@ -16,9 +16,9 @@
     <img src="https://img.shields.io/badge/KoFi-ffdd00?style=for-the-badge&logo=Ko-fi&logoColor=orange" width="200" height="50" />
 </a>
 
-# Code Interpreter — Free, Local, Any Model
+# Task-based Agentic Terminal — Free, Local, Any Model
 
-> The open-source alternative to ChatGPT Code Interpreter.  
+> A powerful task-based agentic terminal and open-source alternative to ChatGPT Code Interpreter.
 > Describe a task in plain English. Get the result. No coding required.
 
 ```bash
@@ -57,29 +57,29 @@ python interpreter.py --list-free
 
 ## **How We Compare**
 
-| Feature | **Code-Interpreter** | [Open-Interpreter](https://github.com/OpenInterpreter/open-interpreter) | [Aider](https://github.com/Aider-AI/aider) | [OpenCode](https://github.com/sst/opencode) | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | [Cline](https://github.com/cline/cline) |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **License** | ✅ MIT | ✅ AGPL-3.0 | ✅ Apache-2.0 | ✅ MIT | ✅ Apache-2.0 | ✅ Apache-2.0 |
-| **Interface** | Terminal CLI + TUI | Terminal REPL | Terminal CLI | Terminal TUI | Terminal REPL | VS Code Extension |
-| **Multi-model support** | ✅ 10+ providers | ✅ Any LLM | ✅ Any LLM | ✅ 75+ providers | ❌ Gemini only | ✅ 8+ providers |
-| **Local / Offline models** | ✅ Ollama + LM Studio | ✅ Ollama | ✅ Ollama | ✅ Ollama + LM Studio | ❌ None | ⚠️ Via provider |
-| **Free tier (`--free`)** | ✅ Built-in catalog | ⚠️ Self-hosted only | ⚠️ Depends on model | ✅ Local/free-friendly | ✅ Gemini free tier | ⚠️ Depends on model |
-| **Zero-cost usage** | ✅ `--free` + Ollama | ⚠️ Self-hosted only | ⚠️ Partial | ✅ Local models | ⚠️ Rate-limited | ⚠️ API key required |
-| **Agentic / Autonomous mode** | ✅ `--agentic` + `--yolo` | ✅ Default | ⚠️ Pair-programming | ✅ Plan + Build | ✅ ReAct loop | ✅ Step-approval |
-| **Safety layer** | ✅ Dedicated SafetyGuard + Sandbox | ⚠️ Basic sandbox | ⚠️ Git-level only | ⚠️ Prompt-based | ✅ Sandbox | ✅ Approval gates |
-| **MCP support** | ✅ `--mcp-server` | ❌ | ❌ | ✅ | ✅ | ✅ |
-| **Web search** | ✅ `--search` (DDG/Tavily/Serper) | ❌ | ❌ | ❌ | ✅ Google Search | ❌ |
-| **Token streaming** | ✅ `--stream` / `--no-stream` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Multimodal image input** | ✅ `--image` / `/image` + `vision` mode | ✅ | ❌ | ❌ | ✅ | ✅ |
-| **Code execution** | ✅ Python, JS, C++ | ✅ Python + shell | ❌ Edit/generate only | ✅ Python + shell | ✅ Python + shell | ✅ Python + shell |
-| **TUI (arrow-key UI)** | ✅ Built-in | ❌ | ❌ | ✅ | ❌ | ❌ |
-| **Git auto-commit** | ❌ | ❌ | ✅ Core feature | ❌ | ❌ | ❌ |
-| **IDE integration** | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only | ✅ VS Code |
-| **Persistent sessions** | ✅ `--session` / `/session` | ⚠️ In-process only | ❌ | ❌ | ❌ | ❌ |
-| **Structured output (`--output-format`)** | ✅ `json` / `markdown` / `plain` | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **pip installable** | ✅ `pip install open-code-interpreter` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Windows support** | ✅ Full | ⚠️ Partial | ✅ | ⚠️ Partial | ⚠️ Partial | ✅ |
-| **Best fit** | Multi-model, free/local, safe execution | Natural-language computer control | Git-centric code editing | Fast terminal-native agent | Gemini-native agentic CLI | IDE-first agentic coding |
+| Feature | **Code-Interpreter** | [Open-Interpreter](https://github.com/OpenInterpreter/open-interpreter) | [Gemini CLI](https://github.com/google-gemini/gemini-cli) |
+|---|:---:|:---:|:---:|
+| **License** | ✅ MIT | ✅ AGPL-3.0 | ✅ Apache-2.0 |
+| **Interface** | Terminal CLI + TUI | Terminal REPL | Terminal REPL |
+| **Multi-model support** | ✅ 10+ providers | ✅ Any LLM | ❌ Gemini only |
+| **Local / Offline models** | ✅ Ollama + LM Studio | ✅ Ollama | ❌ None |
+| **Free tier (`--free`)** | ✅ Built-in catalog | ⚠️ Self-hosted only | ✅ Gemini free tier |
+| **Zero-cost usage** | ✅ `--free` + Ollama | ⚠️ Self-hosted only | ⚠️ Rate-limited |
+| **Agentic / Autonomous mode** | ✅ `--agentic` + `--yolo` | ✅ Default | ✅ ReAct loop |
+| **Safety layer** | ✅ Dedicated SafetyGuard + Sandbox | ⚠️ Basic sandbox | ✅ Sandbox |
+| **MCP support** | ✅ `--mcp-server` | ❌ | ✅ |
+| **Web search** | ✅ `--search` (DDG/Tavily/Serper) | ❌ | ✅ Google Search |
+| **Token streaming** | ✅ `--stream` / `--no-stream` | ✅ | ✅ |
+| **Multimodal image input** | ✅ `--image` / `/image` + `vision` mode | ✅ | ✅ |
+| **Code execution** | ✅ Python, JS, C++ | ✅ Python + shell | ✅ Python + shell |
+| **TUI (arrow-key UI)** | ✅ Built-in | ❌ | ❌ |
+| **Git auto-commit** | ❌ | ❌ | ❌ |
+| **IDE integration** | ❌ Terminal only | ❌ Terminal only | ❌ Terminal only |
+| **Persistent sessions** | ✅ `--session` / `/session` | ⚠️ In-process only | ❌ |
+| **Structured output (`--output-format`)** | ✅ `json` / `markdown` / `plain` | ❌ | ❌ |
+| **pip installable** | ✅ `pip install open-code-interpreter` | ✅ | ❌ |
+| **Windows support** | ✅ Full | ⚠️ Partial | ⚠️ Partial |
+| **Best fit** | Task-based Agentic Terminal | Natural-language computer control | Gemini-native agentic CLI |
 
 > ✅ = Fully supported · ⚠️ = Partial / limited · ❌ = Not supported · 🔜 = On roadmap
 
