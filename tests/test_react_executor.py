@@ -37,6 +37,19 @@ class TestExecutorAction(unittest.TestCase):
         with self.assertRaises(ValueError):
             executor.run(code="", language="python")
 
+    def test_unsupported_language_surfaces_clear_error(self):
+        code_interpreter = MagicMock()
+        code_interpreter.execute_code.side_effect = Exception(
+            "Unsupported language: 'ruby' (normalized='ruby')"
+        )
+        safety = MagicMock()
+        safety.build_sandbox_context.return_value = MagicMock()
+
+        executor = ExecutorAction(code_interpreter=code_interpreter, safety_manager=safety)
+        with self.assertRaises(Exception) as ctx:
+            executor.run(code="puts 1", language="ruby")
+        self.assertIn("ruby", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

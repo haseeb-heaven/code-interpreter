@@ -12,6 +12,7 @@ from libs.agent.actions.coder import CoderAction
 from libs.agent.actions.debugger import DebuggerAction
 from libs.agent.actions.executor import ExecutorAction
 from libs.agent.actions.reviewer import ReviewerAction
+from libs.agent.language import resolve_react_execute_language
 from libs.agent.llm import call_llm
 from libs.agent.logger import TrajectoryLogger
 from libs.agent.parser import ParseError, format_trajectory, parse_react_step
@@ -296,11 +297,9 @@ class ReActController:
             return result.observation, result.metrics
 
         if action == "execute":
-            language = "python"
-            if isinstance(action_input, dict):
-                language = str(action_input.get("language", "python"))
-            elif isinstance(action_input, str) and action_input.strip():
-                language = action_input.strip()
+            # Models frequently send prose/empty language on later execute steps;
+            # always coerce to a supported sandbox language (configured default).
+            language = resolve_react_execute_language(action_input, self.code_interpreter)
             result = self.executor.run(code=state["code"], language=language)
             return result.observation, metrics
 

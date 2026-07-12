@@ -85,6 +85,22 @@ class TestCodeInterpreterHelpers(unittest.TestCase):
 		out, err = ci.execute_code("print('win')", "windows", force_execute=True)
 		self.assertIn("win", out or "")
 
+	def test_execute_code_normalizes_py_alias(self):
+		ci = CodeInterpreter()
+		ci.UNSAFE_EXECUTION = True
+		out, err = ci.execute_code("print('alias')", "py", force_execute=True)
+		self.assertIn("alias", out or "")
+		self.assertFalse(err)
+
+	def test_execute_code_unsupported_includes_repr(self):
+		ci = CodeInterpreter()
+		ci.UNSAFE_EXECUTION = True
+		with self.assertRaises(Exception) as ctx:
+			ci.execute_code("print(1)", "ruby", force_execute=True)
+		msg = str(ctx.exception)
+		self.assertIn("Unsupported language", msg)
+		self.assertIn("'ruby'", msg)
+
 
 if __name__ == "__main__":
 	unittest.main()
