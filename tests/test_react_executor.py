@@ -50,6 +50,54 @@ class TestExecutorAction(unittest.TestCase):
             executor.run(code="puts 1", language="ruby")
         self.assertIn("ruby", str(ctx.exception))
 
+    def test_execute_never_blocks_on_confirmation_prompt(self):
+        """Regression: the ReAct executor must never rely on CodeInterpreter's
+        own blocking Y/N prompt — the controller/--yes flow is responsible for
+        any confirmation, so this action must always force_execute=True."""
+        code_interpreter = MagicMock()
+        code_interpreter.execute_code.return_value = ("42\n", "")
+        safety = MagicMock()
+        safety.build_sandbox_context.return_value = MagicMock()
+
+        executor = ExecutorAction(code_interpreter=code_interpreter, safety_manager=safety)
+        executor.run(code="print(42)", language="python")
+
+        _, kwargs = code_interpreter.execute_code.call_args
+        self.assertTrue(
+            kwargs.get("force_execute"),
+            "ExecutorAction must pass force_execute=True so it never blocks on stdin",
+        )
+
+    def test_matplotlib_show_is_intercepted_before_execution(self):
+        """Regression: chart-generation code (plt.show()) must be routed through
+        the same auto-save / non-interactive-backend hook used by the CLI path,
+        so it can never hang waiting on a GUI event loop in the sandbox."""
+        code_interpreter = MagicMock()
+        code_interpreter.execute_code.return_value = ("Chart saved: chart.png\n", "")
+        safety = MagicMock()
+        safety.build_sandbox_context.return_value = MagicMock()
+
+        executor = ExecutorAction(code_interpreter=code_interpreter, safety_manager=safety)
+        code = "import matplotlib.pyplot as plt\nplt.plot([1, 2, 3])\nplt.show()\n"
+        executor.run(code=code, language="python")
+
+        executed_code = code_interpreter.execute_code.call_args.args[0]
+        self.assertIn("matplotlib.use('Agg')", executed_code)
+        self.assertIn("_ci_auto_show", executed_code)
+
+    def test_non_chart_code_is_untouched(self):
+        """The chart hook must be a no-op for code that never touches matplotlib."""
+        code_interpreter = MagicMock()
+        code_interpreter.execute_code.return_value = ("42\n", "")
+        safety = MagicMock()
+        safety.build_sandbox_context.return_value = MagicMock()
+
+        executor = ExecutorAction(code_interpreter=code_interpreter, safety_manager=safety)
+        executor.run(code="print(42)", language="python")
+
+        executed_code = code_interpreter.execute_code.call_args.args[0]
+        self.assertEqual(executed_code, "print(42)")
+
 
 if __name__ == "__main__":
     unittest.main()

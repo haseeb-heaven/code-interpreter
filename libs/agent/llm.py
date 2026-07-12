@@ -11,6 +11,7 @@ import litellm
 from libs.free_llms import (
 	DEFAULT_RATE_LIMIT_RETRIES,
 	DEFAULT_RETRY_AFTER_CAP_SECONDS,
+	DEFAULT_TOOL_CHOICE_CONFLICT_RETRIES,
 	FreeLLMCatalog,
 	FreeModelsExhaustedError,
 	format_free_models_exhausted_message,
@@ -19,6 +20,7 @@ from libs.free_llms import (
 	is_free_routing_failure,
 	is_openrouter_free_candidate,
 	is_rate_limit_failure,
+	is_tool_choice_none_conflict,
 	is_tool_use_unsupported,
 	load_model_config,
 	match_catalog_entry,
@@ -225,11 +227,19 @@ def complete_with_free_fallback(
 		model_id = str(candidate["model"])
 		tried.append(f"{label} ({model_id})" if label != model_id else model_id)
 		same_retries = 0
+		tool_choice_conflict_retries = 0
 
 		while True:
 			try:
 				kwargs = _build_kwargs(candidate, messages, api_key)
-				if tools is not None:
+				# Only attach ``tools``/``tool_choice`` for real tool-calling turns.
+				# A caller that explicitly wants a no-tool completion
+				# (``tool_choice="none"``) should not also receive a ``tools``
+				# list — some providers (Groq) reject that combination outright
+				# if the model still attempts a tool call despite
+				# tool_choice="none" (BadRequestError: tool_use_failed / "Tool
+				# choice is none, but model called a tool").
+				if tools is not None and tool_choice != "none":
 					kwargs["tools"] = tools
 					kwargs["tool_choice"] = tool_choice or "auto"
 				response = litellm.completion(**kwargs)
@@ -261,6 +271,36 @@ def complete_with_free_fallback(
 					not is_openrouter_free_candidate(c) for c in candidates[index + 1 :]
 				)
 				tools_requested = tools is not None
+
+				# Model spontaneously attempted a tool call although none were
+				# offered (or tool_choice="none"): Groq rejects this outright
+				# (BadRequestError: tool_use_failed / "Tool choice is none, but
+				# model called a tool"). Resample the same candidate once —
+				# often a one-off generation quirk — before treating it as a
+				# hard failure of this candidate and moving to the next one.
+				if is_tool_choice_none_conflict(exc):
+					if tool_choice_conflict_retries < DEFAULT_TOOL_CHOICE_CONFLICT_RETRIES:
+						tool_choice_conflict_retries += 1
+						logger.warning(
+							"Model called a tool unexpectedly on %s; retrying (%s/%s)…",
+							tried[-1],
+							tool_choice_conflict_retries,
+							DEFAULT_TOOL_CHOICE_CONFLICT_RETRIES,
+						)
+						continue
+					if enable_free_fallback:
+						logger.warning(
+							"Tool-choice conflict persisted on %s after retry; %s…",
+							tried[-1],
+							"trying next candidate"
+							if index < len(candidates) - 1
+							else "no more candidates",
+						)
+						break
+					logger.warning(
+						"Tool-choice conflict persisted on %s after retry; no more candidates…",
+						tried[-1],
+					)
 
 				# Tool/function calling unsupported: skip remaining OR free immediately
 				# when tools were requested (avoid hammering more :free routers).

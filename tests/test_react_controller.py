@@ -207,6 +207,105 @@ class TestReactController(unittest.TestCase):
             self.assertEqual(final["step_count"], 3)
             self.assertIn("max_steps", final.get("failure_reason", "").lower())
 
+    def test_auto_yes_executes_without_any_confirmation_prompt(self):
+        """Regression for the --agentic --yes hang: when auto_yes is set, the
+        execute action must never call confirm_fn (or block on stdin) at all."""
+        with tempfile.TemporaryDirectory() as tmp:
+            code_interpreter = MagicMock()
+            code_interpreter.execute_code.return_value = ("42\n", "")
+            code_interpreter.extract_code.side_effect = lambda text, *a, **k: "print(42)"
+            safety = MagicMock()
+            safety.build_sandbox_context.return_value = MagicMock()
+
+            def blocking_confirm(prompt):
+                raise AssertionError(
+                    "confirm_fn must not be called when auto_yes/--yes is set"
+                )
+
+            responses = [
+                (
+                    "Thought: write\nAction: code\nAction Input: {\"instruction\": \"print 42\"}\n",
+                    {"cost": 0.0, "tokens": 1},
+                ),
+                (
+                    "Thought: run\nAction: execute\nAction Input: {\"language\": \"python\"}\n",
+                    {"cost": 0.0, "tokens": 1},
+                ),
+                (
+                    "Thought: review\nAction: review\nAction Input: {}\n",
+                    {"cost": 0.0, "tokens": 1},
+                ),
+                (
+                    "Thought: done\nAction: finish\nAction Input: {\"summary\": \"ok\"}\n",
+                    {"cost": 0.0, "tokens": 1},
+                ),
+            ]
+
+            with patch("libs.agent.react_controller.call_llm", side_effect=responses), \
+                 patch("libs.agent.actions.coder.call_llm", return_value=("```python\nprint(42)\n```", {"cost": 0.0, "tokens": 1})), \
+                 patch("libs.agent.actions.reviewer.call_llm", return_value=('{"passed": true, "reason": "ok"}', {"cost": 0.0, "tokens": 1})):
+                controller = ReActController(
+                    model_name="gpt-4o",
+                    api_key="test",
+                    code_interpreter=code_interpreter,
+                    safety_manager=safety,
+                    log_path=os.path.join(tmp, "agent_react.jsonl"),
+                    max_steps=10,
+                    auto_yes=True,
+                    confirm_fn=blocking_confirm,
+                )
+                final = controller.run("Print 42")
+
+            self.assertEqual(final["status"], "COMPLETED")
+            code_interpreter.execute_code.assert_called_once()
+            _, kwargs = code_interpreter.execute_code.call_args
+            self.assertTrue(kwargs.get("force_execute"))
+            observations = [t["observation"] for t in final["trajectory"] if t["action"] == "execute"]
+            self.assertTrue(all("cancelled" not in o.lower() for o in observations))
+
+    def test_declined_confirmation_cancels_execute_without_running_code(self):
+        """When not auto_yes, a declining confirm_fn must cancel execute and
+        must never invoke the sandboxed code_interpreter.execute_code."""
+        with tempfile.TemporaryDirectory() as tmp:
+            code_interpreter = MagicMock()
+            code_interpreter.extract_code.side_effect = lambda text, *a, **k: "print(42)"
+            safety = MagicMock()
+            safety.build_sandbox_context.return_value = MagicMock()
+
+            responses = [
+                (
+                    "Thought: write\nAction: code\nAction Input: {\"instruction\": \"print 42\"}\n",
+                    {"cost": 0.0, "tokens": 1},
+                ),
+                (
+                    "Thought: run\nAction: execute\nAction Input: {\"language\": \"python\"}\n",
+                    {"cost": 0.0, "tokens": 1},
+                ),
+                (
+                    "Thought: done\nAction: finish\nAction Input: {\"summary\": \"declined\"}\n",
+                    {"cost": 0.0, "tokens": 1},
+                ),
+            ]
+
+            with patch("libs.agent.react_controller.call_llm", side_effect=responses), \
+                 patch("libs.agent.actions.coder.call_llm", return_value=("```python\nprint(42)\n```", {"cost": 0.0, "tokens": 1})):
+                controller = ReActController(
+                    model_name="gpt-4o",
+                    api_key="test",
+                    code_interpreter=code_interpreter,
+                    safety_manager=safety,
+                    log_path=os.path.join(tmp, "agent_react.jsonl"),
+                    max_steps=10,
+                    auto_yes=False,
+                    confirm_fn=lambda prompt: False,
+                )
+                final = controller.run("Print 42")
+
+            code_interpreter.execute_code.assert_not_called()
+            observations = [t["observation"] for t in final["trajectory"] if t["action"] == "execute"]
+            self.assertTrue(observations)
+            self.assertIn("cancelled", observations[0].lower())
+
     def test_stagnation_aborts(self):
         with tempfile.TemporaryDirectory() as tmp:
             code_interpreter = MagicMock()
