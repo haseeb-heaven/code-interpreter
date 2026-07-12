@@ -746,7 +746,15 @@ class Interpreter:
 
 		try:
 			if gemini_style:
-				self.console.print("[bold cyan]Gemini-style agentic REPL[/bold cyan] (ReAct · free LLMs)")
+				if not one_shot:
+					try:
+						from libs.agent.gemini_ui import render_startup_screen
+
+						render_startup_screen(self.console)
+						self.console.print("")
+					except Exception as exc:
+						self.logger.debug(f"Gemini-style banner render failed: {exc}")
+						self.console.print("[bold cyan]Gemini-style agentic REPL[/bold cyan] (ReAct · free LLMs)")
 				self.console.print(
 					f"Model: [bold]{self.INTERPRETER_MODEL}[/bold]  ·  "
 					"Commands: /free  /model  /help  /exit"
@@ -772,6 +780,18 @@ class Interpreter:
 					task = file_task
 					file_task = None
 				else:
+					if gemini_style and not one_shot:
+						try:
+							from libs.agent.gemini_ui import render_status_bar
+
+							render_status_bar(
+								self.console,
+								sandboxed=not self.UNSAFE_EXECUTION,
+								auto_yes=bool(getattr(self, "AUTO_YES", False)),
+								actions_count=4,
+							)
+						except Exception as exc:
+							self.logger.debug(f"Gemini-style status bar render failed: {exc}")
 					task = self._read_repl_task("Enter your task: ")
 					if task is None:
 						self.console.print("Exiting agentic mode.")

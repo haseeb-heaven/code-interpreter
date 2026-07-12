@@ -364,6 +364,18 @@ In the agentic REPL (and classic `--cli`), use `/free` to discover presets and `
 
 See the `[[free_catalog]]` entries in `configs/models.toml` for the curated list. Existing `--agentic` / `--agent` flags remain unchanged.
 
+#### Startup UI
+
+`--gemini-style` now opens with a blocky, gradient "INTERPRETER" wordmark (blue → purple → pink, built from
+Unicode block-drawing glyphs via `libs/agent/gemini_ui.py`), a real-capability "Tips for getting started"
+list (`/free`, `/model`, `/settings`, `/help`), and a status bar re-printed above each prompt showing the
+current directory, sandbox state (`sandboxed (SAFE MODE)` vs `no sandbox`), and confirm mode (`auto`
+vs `manual confirm`) — the same visual language as [Gemini CLI](https://github.com/google-gemini/gemini-cli),
+rebranded for this project. ReAct steps that write code render in a bordered, line-numbered panel
+(`libs/agent/step_ui.py`'s `GeminiStepPresenter`), similar to Gemini CLI's `WriteFile` tool-call box.
+Legacy cp1252 Windows consoles (`cmd.exe` / old `conhost`) and narrow terminals automatically fall back to
+a plain ASCII banner and icons instead of the block-drawing glyphs.
+
 ### Structured output (`--output-format`)
 Machine-readable results for shell pipelines, CI, and editor wrappers. Non-TTY (piped) stdout auto-selects JSON and disables colors; override with an explicit format.
 
@@ -536,6 +548,9 @@ python interpreter.py --agentic --yes -m openrouter-free -f task.txt
 ![Chat mode](resources/interpreter-mode-chat.png)
 
 ### Gemini-style agentic REPL
+Blocky gradient "INTERPRETER" wordmark, tips list, and a cwd/sandbox/confirm-mode status bar — see
+[*Startup UI*](#gemini-cli-style-agentic-repl-free-llms) above for details.
+
 ![Gemini-style ReAct](resources/interpreter-gemini-style.png)
 
 ### ReAct `--agentic` workflow
