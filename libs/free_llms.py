@@ -26,6 +26,9 @@ DEFAULT_CATALOG_PATH = DEFAULT_REGISTRY_PATH
 DEFAULT_RETRY_AFTER_CAP_SECONDS = 60.0
 # Same-model retries after a rate-limit before falling through to the next free preset.
 DEFAULT_RATE_LIMIT_RETRIES = 2
+# Same-model resamples after a spurious tool_choice/tool_call conflict (see
+# ``is_tool_choice_none_conflict``) before falling through to the next candidate.
+DEFAULT_TOOL_CHOICE_CONFLICT_RETRIES = 1
 
 
 def _registry_for(configs_dir: str) -> ModelRegistry:
@@ -421,6 +424,29 @@ def is_tool_use_unsupported(exc: BaseException) -> bool:
 		"functions are not supported",
 		"tool_choice is not supported",
 		"tools parameter is not supported",
+	)
+	return any(marker in text for marker in markers)
+
+
+def is_tool_choice_none_conflict(exc: BaseException) -> bool:
+	"""True when the provider rejects a completion because the model emitted
+	a tool call while the request had no tools to choose from.
+
+	Some Groq-hosted OSS models (e.g. ``openai/gpt-oss-20b``) can still attempt
+	a tool call even when a request carries no ``tools``/an explicit
+	``tool_choice="none"`` — Groq's backend then rejects the turn outright with
+	``litellm.BadRequestError`` (``code: tool_use_failed``,
+	``"Tool choice is none, but model called a tool"``). This is a transient
+	model/provider quirk, not a genuine tools/tool_choice misconfiguration on
+	our side, so callers should resample rather than aborting outright.
+	"""
+	text = str(exc or "").lower()
+	if not text:
+		return False
+	markers = (
+		"tool_use_failed",
+		"tool choice is none, but model called a tool",
+		"tool_choice is none, but model called a tool",
 	)
 	return any(marker in text for marker in markers)
 
