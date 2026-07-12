@@ -170,7 +170,20 @@ class ReActController:
                 state["cost_metrics"]["total_tokens"] += step_metrics["tokens"]
                 react_step = parse_react_step(step_text)
             except ParseError as exc:
-                repaired = self._repair_parse(state, str(exc))
+                try:
+                    repaired = self._repair_parse(state, str(exc))
+                except Exception as repair_exc:
+                    # The repair attempt's own LLM call failed (e.g. every
+                    # free-catalog candidate exhausted its rate-limit retry
+                    # budget). Report that failure clearly instead of masking
+                    # it behind the original (now-irrelevant) parse error —
+                    # previously this was swallowed by ``_repair_parse``
+                    # returning ``None`` on ANY exception, producing an
+                    # opaque "Status: FAILED" with no explanation.
+                    state["status"] = "FAILED"
+                    state["failure_reason"] = self._report_llm_failure(repair_exc)
+                    state["step_count"] = step_num
+                    break
                 if repaired is None:
                     state["status"] = "FAILED"
                     state["failure_reason"] = f"Parse error: {exc}"
@@ -373,21 +386,31 @@ class ReActController:
         )
 
     def _repair_parse(self, state: Dict[str, Any], error: str):
+        """Ask the model to reformat its last (unparseable) step.
+
+        Returns ``None`` only when the repair attempt's output is *itself*
+        unparseable (a genuine "still malformed" case) — the caller then
+        falls back to reporting the original parse error. Any other
+        exception (LLM/free-fallback failures such as
+        ``FreeModelsExhaustedError``) is intentionally NOT caught here: it
+        must propagate so the caller can report the real failure instead of
+        silently discarding it behind an unrelated "Parse error" message.
+        """
         repair_prompt = (
             f"Your previous output was invalid: {error}\n"
             "Reply again using ONLY:\n"
             "Thought: ...\nAction: ...\nAction Input: ...\n"
             f"Task: {state['task']}"
         )
+        content, metrics = self._call_llm(
+            [
+                {"role": "system", "content": REACT_SYSTEM_PROMPT},
+                {"role": "user", "content": repair_prompt},
+            ]
+        )
         try:
-            content, metrics = self._call_llm(
-                [
-                    {"role": "system", "content": REACT_SYSTEM_PROMPT},
-                    {"role": "user", "content": repair_prompt},
-                ]
-            )
             return parse_react_step(content), metrics
-        except Exception:
+        except ParseError:
             return None
 
     def _dispatch(self, step, state: Dict[str, Any]) -> tuple[str, Dict[str, float]]:
