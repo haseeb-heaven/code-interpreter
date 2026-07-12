@@ -16,8 +16,10 @@ whenever the selected mode is ``generate``/``project``, satisfying
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
 from argparse import Namespace
+from pathlib import Path
 from unittest.mock import patch
 
 from libs.terminal_ui import TerminalUI
@@ -216,17 +218,24 @@ class TestNoArgsWizardGenerateModeRegression(unittest.TestCase):
 			written["content"] = content
 			return os.path.abspath(path)
 
-		with patch.object(TerminalUI, "_select_option", fake_select_option), \
-			 patch.object(TerminalUI, "_select_boolean", fake_select_boolean), \
-			 patch.object(TerminalUI, "_prompt_optional", fake_prompt_optional), \
-			 patch("libs.terminal_ui.UtilityManager.clear_screen", lambda self: None), \
-			 patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None), \
-			 patch("litellm.completion", side_effect=fake_completion), \
-			 patch("libs.code_generator.CodeGenerator._write_text", side_effect=fake_write_text):
-			try:
-				interpreter_mod.main(["interpreter.py"])
-			except ValueError as exc:
-				self.fail(f"main() raised the reported ValueError instead of completing codegen: {exc}")
+		with tempfile.TemporaryDirectory() as tmpdir:
+			# Bare `main(["interpreter.py"])` now consults the persisted wizard
+			# config (see libs/core/wizard_config.py); isolate this test from
+			# the real ~/.code-interpreter/config.json so it always exercises a
+			# fresh wizard run, and doesn't leave/read stray state on disk.
+			fake_config_path = Path(tmpdir) / "config.json"
+			with patch.object(TerminalUI, "_select_option", fake_select_option), \
+				 patch.object(TerminalUI, "_select_boolean", fake_select_boolean), \
+				 patch.object(TerminalUI, "_prompt_optional", fake_prompt_optional), \
+				 patch("libs.terminal_ui.UtilityManager.clear_screen", lambda self: None), \
+				 patch("libs.interpreter_lib.Interpreter.initialize_client", return_value=None), \
+				 patch("litellm.completion", side_effect=fake_completion), \
+				 patch("libs.code_generator.CodeGenerator._write_text", side_effect=fake_write_text), \
+				 patch("libs.core.wizard_config.CONFIG_PATH", fake_config_path):
+				try:
+					interpreter_mod.main(["interpreter.py"])
+				except ValueError as exc:
+					self.fail(f"main() raised the reported ValueError instead of completing codegen: {exc}")
 
 		self.assertIn("print('hi')", written.get("content", ""))
 

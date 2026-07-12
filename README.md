@@ -332,6 +332,15 @@ python interpreter.py
 
 `python interpreter.py` opens the TUI and uses arrow-key navigation in a real terminal. The TUI falls back to plain text prompts when stdin is piped or not attached to a terminal.
 
+**Persisted wizard config.** The first bare run above saves your answers to `~/.code-interpreter/config.json` (model *name*, mode, sandbox/safety choice, session name, etc. — never API keys). Every later bare `python interpreter.py` skips the wizard and reuses that saved config directly. Pass `--config` to force the wizard to run again (e.g. to change your setup) — it re-saves your answers afterward:
+
+```bash
+# Re-run the setup wizard and persist the new answers
+python interpreter.py --config
+```
+
+Any explicit CLI flag (`-m`, `--agentic`, `--cli`, `--yes`, ...) still takes precedence over both the wizard and the saved config, exactly as before.
+
 ### Open CLI mode
 ```bash
 python interpreter.py --cli
@@ -490,9 +499,11 @@ After mode, the TUI also lets you pick:
 - **Sandbox / safety** — `subprocess` | `docker` | `off`, and `--safety` levels
 - **Streaming / search / output** — `--stream`, `--search`, `--output-format`
 - **Session** — optional `--session` name
-- **Advanced** (opt-in) — `--yolo`, `--yes`, `--science`, `--interactive-charts`, `--image`, `--attach`, `--mcp-server`
+- **Advanced** (opt-in) — "Configure advanced options?" **no** (the default) skips *every* advanced prompt below and uses their existing defaults; **yes** asks each one: `--yolo`, `--yes`, `--science`, `--interactive-charts`, `--image`, `--attach`, `--mcp-server`, plus the session name
 
-Selections are written onto the same argparse `Namespace` the CLI uses, so runtime behavior matches flag-driven starts.
+Selections are written onto the same argparse `Namespace` the CLI uses, so runtime behavior matches flag-driven starts. They're also saved to `~/.code-interpreter/config.json` so the wizard doesn't run again on the next bare invocation — see *Persisted wizard config* above and `--config` in `--help`.
+
+Cancelling any selector (Ctrl+C or Esc) exits cleanly with a short `Cancelled.` message instead of a traceback.
 
 ![TUI mode selection](resources/interpreter-tui-mode-selection.png)
 
