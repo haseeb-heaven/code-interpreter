@@ -726,6 +726,7 @@ class Interpreter:
 
 		def _make_controller(model_name: str):
 			quiet = bool(getattr(self, "_structured_output_active", lambda: False)())
+			verbose = bool(getattr(self, "VERBOSE_UI", False))
 			return ReActController(
 				model_name=model_name,
 				api_key=None,
@@ -734,6 +735,7 @@ class Interpreter:
 				max_steps=state["max_steps"],
 				gemini_style=True,  # Thought→Action→Observation live UX for all agentic runs
 				quiet_ui=quiet,
+				verbose=verbose,  # default: Thought-only; --verbose/-V or /verbose restores full detail
 				auto_yes=bool(getattr(self, "AUTO_YES", False)),
 				confirm_fn=lambda prompt: (
 					self._safe_input(prompt, default="n").strip().lower() in ("y", "yes")
@@ -744,17 +746,25 @@ class Interpreter:
 		def _on_model_switched(name: str):
 			state["controller"] = _make_controller(name)
 
+		def _toggle_verbose():
+			self.VERBOSE_UI = not bool(getattr(self, "VERBOSE_UI", False))
+			if hasattr(self.args, "verbose"):
+				self.args.verbose = self.VERBOSE_UI
+			state["controller"] = _make_controller(self.INTERPRETER_MODEL)
+			status = "ON (full Action/Observation panels + retry logs)" if self.VERBOSE_UI else "OFF (Thought-only)"
+			self.console.print(f"[cyan]Verbose mode:[/cyan] {status}")
+
 		try:
 			if gemini_style:
 				self.console.print("[bold cyan]Gemini-style agentic REPL[/bold cyan] (ReAct · free LLMs)")
 				self.console.print(
 					f"Model: [bold]{self.INTERPRETER_MODEL}[/bold]  ·  "
-					"Commands: /free  /model  /help  /exit"
+					"Commands: /free  /model  /verbose  /help  /exit"
 				)
 			else:
 				self.console.print("[bold yellow]Running in ReAct Agentic Mode[/bold yellow]")
 				if not one_shot:
-					self.console.print("Commands: /free  /model  /help  /exit")
+					self.console.print("Commands: /free  /model  /verbose  /help  /exit")
 
 			state["controller"] = _make_controller(self.INTERPRETER_MODEL)
 
@@ -794,6 +804,8 @@ class Interpreter:
 						"  /free           Free-catalog table + interactive picker\n"
 						"  /model          Interactive model picker (TUI)\n"
 						"  /model <name>   Switch to a models.toml registry key (e.g. gemini-2.5-flash)\n"
+						"  /verbose        Toggle full Action/Observation panels + retry logs "
+						"(default: Thought-only)\n"
 						"  /settings       Interactive settings (TUI)\n"
 						"  /help           Show this help\n"
 						"  /exit           Leave the agentic REPL\n"
@@ -818,12 +830,17 @@ class Interpreter:
 					if one_shot:
 						return
 					continue
+				if lower == "/verbose":
+					_toggle_verbose()
+					if one_shot:
+						return
+					continue
 				# Unknown slash commands must not start a ReAct task
 				if raw.startswith("/") and not raw.startswith("//"):
 					cmd = raw.split(maxsplit=1)[0]
 					self.console.print(
 						f"[yellow]Unknown command:[/yellow] {cmd}. "
-						"Try /help, /free, /model, or /exit."
+						"Try /help, /free, /model, /verbose, or /exit."
 					)
 					if one_shot:
 						return

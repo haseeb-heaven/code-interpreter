@@ -28,14 +28,64 @@ class TestStepPresenterFactory(unittest.TestCase):
 		p = make_step_presenter(gemini_style=True, quiet=True)
 		self.assertIsInstance(p, NullStepPresenter)
 
+	def test_gemini_style_defaults_to_thought_only(self):
+		p = make_step_presenter(gemini_style=True, quiet=False)
+		self.assertFalse(p.verbose)
+
+	def test_verbose_flag_passed_through_to_gemini_presenter(self):
+		p = make_step_presenter(gemini_style=True, quiet=False, verbose=True)
+		self.assertIsInstance(p, GeminiStepPresenter)
+		self.assertTrue(p.verbose)
+
 
 class TestGeminiStepPresenter(unittest.TestCase):
-	def test_thought_action_observation_sequence(self):
+	def test_default_is_thought_only_suppresses_action_and_observation(self):
+		"""New default (verbose=False): only the Thought panel renders back-to-back;
+		Action/Observation panels must not be printed at all."""
 		from rich.console import Console
 
 		buf = io.StringIO()
 		console = Console(file=buf, force_terminal=True, width=100, color_system=None)
 		presenter = GeminiStepPresenter(console=console)
+		self.assertFalse(presenter.verbose)
+
+		with presenter.thinking(step=1):
+			pass
+		presenter.show_thought(1, "I need ffmpeg to trim the video")
+		presenter.show_action(1, "execute", {"language": "python"})
+		with presenter.acting(step=1, action="execute"):
+			pass
+		presenter.show_observation(1, "ERROR: ffmpeg not found")
+
+		joined = buf.getvalue()
+		self.assertIn("Thought", joined)
+		self.assertIn("ffmpeg", joined)
+		self.assertNotIn("Action", joined)
+		self.assertNotIn("Observation", joined)
+		self.assertNotIn("ffmpeg not found", joined)
+
+	def test_default_never_calls_console_print_for_action_or_observation(self):
+		"""Assert the underlying Console.print call itself is skipped for
+		Action/Observation in the default (non-verbose) mode, not merely that
+		its rendered text is absent."""
+		console = MagicMock()
+		presenter = GeminiStepPresenter(console=console)
+		presenter.show_action(1, "execute", {"language": "python"})
+		presenter.show_observation(1, "ERROR: ffmpeg not found")
+		console.print.assert_not_called()
+
+		presenter.show_thought(1, "plan the trim")
+		self.assertEqual(console.print.call_count, 1)
+
+	def test_verbose_mode_restores_full_thought_action_observation_sequence(self):
+		"""``verbose=True`` (``--verbose``/``-V`` or ``/verbose``) restores the
+		full legacy interleaved Thought -> Action -> Observation display."""
+		from rich.console import Console
+
+		buf = io.StringIO()
+		console = Console(file=buf, force_terminal=True, width=100, color_system=None)
+		presenter = GeminiStepPresenter(console=console, verbose=True)
+		self.assertTrue(presenter.verbose)
 		with presenter.thinking(step=1):
 			pass
 		presenter.show_thought(1, "I need ffmpeg to trim the video")
@@ -50,6 +100,19 @@ class TestGeminiStepPresenter(unittest.TestCase):
 		self.assertIn("Action", joined)
 		self.assertIn("execute", joined)
 		self.assertIn("Observation", joined)
+
+	def test_show_result_always_renders_regardless_of_verbose(self):
+		"""The final task result/summary must surface even in the default
+		Thought-only quiet view — it's the deliverable, not step noise."""
+		from rich.console import Console
+
+		buf = io.StringIO()
+		console = Console(file=buf, force_terminal=True, width=100, color_system=None)
+		presenter = GeminiStepPresenter(console=console, verbose=False)
+		presenter.show_result("chart saved to sales.png")
+		joined = buf.getvalue()
+		self.assertIn("Result", joined)
+		self.assertIn("chart saved to sales.png", joined)
 
 	def test_searching_status_label(self):
 		console = MagicMock()
@@ -75,6 +138,7 @@ class TestGeminiStepPresenter(unittest.TestCase):
 		p.show_thought(1, "x")
 		p.show_action(1, "code", {})
 		p.show_observation(1, "ok")
+		p.show_result("ok")
 
 
 class TestPlainStepPresenter(unittest.TestCase):
@@ -86,10 +150,13 @@ class TestPlainStepPresenter(unittest.TestCase):
 		p.show_thought(2, "plan the trim")
 		p.show_action(2, "code", {})
 		p.show_observation(2, "SUCCESS")
+		p.show_result("chart saved to sales.png")
 		joined = "\n".join(printed)
 		self.assertIn("Thought", joined)
 		self.assertIn("Action", joined)
 		self.assertIn("Observation", joined)
+		self.assertIn("Result", joined)
+		self.assertIn("chart saved to sales.png", joined)
 
 
 if __name__ == "__main__":

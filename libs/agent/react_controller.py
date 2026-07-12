@@ -13,7 +13,7 @@ from libs.agent.actions.debugger import DebuggerAction
 from libs.agent.actions.executor import ExecutorAction
 from libs.agent.actions.reviewer import ReviewerAction
 from libs.agent.language import resolve_react_execute_language
-from libs.agent.llm import call_llm
+from libs.agent.llm import call_llm, set_verbose_console
 from libs.agent.logger import TrajectoryLogger
 from libs.agent.parser import ParseError, format_trajectory, parse_react_step
 from libs.agent.prompts import REACT_SYSTEM_PROMPT
@@ -41,6 +41,7 @@ class ReActController:
         *,
         gemini_style: bool = False,
         quiet_ui: bool = False,
+        verbose: bool = False,
         step_presenter: Any = None,
         auto_yes: bool = False,
         missing_binary_handler: Optional[MissingBinaryHandler] = None,
@@ -54,10 +55,16 @@ class ReActController:
         self.log_path = log_path
         self.gemini_style = bool(gemini_style)
         self.auto_yes = bool(auto_yes)
+        # Default live view shows only Thought panels (see libs/agent/step_ui.py);
+        # ``verbose``/``--verbose``/``-V`` (or in-REPL ``/verbose``) restores the
+        # full Action/Observation panels plus retry/fallback log chatter.
+        self.verbose = bool(verbose)
+        set_verbose_console(self.verbose)
         self.enable_missing_binary_search = bool(enable_missing_binary_search)
         self.presenter = step_presenter or make_step_presenter(
             gemini_style=self.gemini_style,
             quiet=quiet_ui,
+            verbose=self.verbose,
             console=console,
         )
         self.missing_binary_handler = missing_binary_handler
@@ -106,9 +113,10 @@ class ReActController:
         if not model_id:
             return
         self._apply_model(model_id)
-        console.print(
-            f"[yellow]Free model fallback[/yellow]: switched to [bold]{label}[/bold] ({model_id})"
-        )
+        if self.verbose:
+            console.print(
+                f"[yellow]Free model fallback[/yellow]: switched to [bold]{label}[/bold] ({model_id})"
+            )
 
     def _call_llm(self, messages: list) -> tuple[str, Dict[str, Any]]:
         return call_llm(
@@ -248,7 +256,9 @@ class ReActController:
                     cost=0.0,
                     status="COMPLETED",
                 )
-                self.presenter.show_observation(step_num, observation)
+                # Always shown (even in the default Thought-only quiet view): the
+                # finish summary is the task's actual deliverable, not step noise.
+                self.presenter.show_result(observation)
                 break
 
             if react_step.action == "execute":

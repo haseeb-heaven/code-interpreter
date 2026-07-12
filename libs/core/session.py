@@ -229,6 +229,9 @@ def apply_runtime_settings(interp, settings, *, display_fn, model_exists_fn):
 	if "yes" in settings:
 		args.yes = bool(settings["yes"])
 		interp.AUTO_YES = bool(settings["yes"])
+	if "verbose" in settings:
+		args.verbose = bool(settings["verbose"])
+		interp.VERBOSE_UI = bool(settings["verbose"])
 	if "science" in settings:
 		args.science = bool(settings["science"])
 	if "interactive_charts" in settings:
@@ -273,6 +276,9 @@ def bootstrap_interpreter(interp) -> None:
 	interp.INTERPRETER_HISTORY = args.history if hasattr(args, "history") else False
 	interp.AGENT_MODE = _cli_bool(getattr(args, "agent", False))
 	interp.AUTO_YES = _cli_bool(getattr(args, "yes", False))
+	# --agentic default view shows Thought-only panels; --verbose/-V (or the
+	# in-REPL /verbose toggle) restores the full Action/Observation + retry logs.
+	interp.VERBOSE_UI = _cli_bool(getattr(args, "verbose", False))
 	# Attached local files (#221) — CLI --attach and REPL /file commands.
 	from libs.context.file_context import normalize_paths
 

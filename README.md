@@ -375,6 +375,24 @@ In the agentic REPL (and classic `--cli`), use `/free` to discover presets and `
 
 See the `[[free_catalog]]` entries in `configs/models.toml` for the curated list. Existing `--agentic` / `--agent` flags remain unchanged.
 
+#### Thought-only live view (default) vs. `--verbose`
+
+By default, `--agentic` shows only the **Thought** panels, back-to-back — no per-step "Action"/"Observation"
+panels, and no retry/fallback log chatter ("Rate limited; sleeping…", "Retrying … after rate limit…", "Free model
+fallback succeeded…"). The final result/summary and the workflow completion status (`Status`/`Steps`/`Tokens`/`Cost`)
+always print, and the full trajectory is still logged to `logs/agent_react.jsonl` regardless of what's shown live.
+
+```bash
+# Default: Thought-only quiet view
+python interpreter.py --agentic --yes -m openrouter-free -f task.txt
+
+# Full detail: restores Action/Observation panels + retry/fallback logs
+python interpreter.py --agentic --verbose --yes -m openrouter-free -f task.txt
+python interpreter.py --agentic -V --yes -m openrouter-free -f task.txt
+```
+
+In the agentic REPL, toggle it at runtime with `/verbose` (alongside `/free`, `/model`, `/settings`, `/help`).
+
 ### Structured output (`--output-format`)
 Machine-readable results for shell pipelines, CI, and editor wrappers. Non-TTY (piped) stdout auto-selects JSON and disables colors; override with an explicit format.
 
