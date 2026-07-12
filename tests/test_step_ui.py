@@ -139,6 +139,53 @@ class TestGeminiStepPresenter(unittest.TestCase):
 		p.show_action(1, "code", {})
 		p.show_observation(1, "ok")
 		p.show_result("ok")
+		p.show_observation(1, "print('hi')", action="code")
+		p.show_responding_with("gemini-2.5-flash")
+		p.show_finish(1, "done")
+
+	def test_code_action_renders_line_numbered_panel(self):
+		from rich.console import Console
+
+		buf = io.StringIO()
+		console = Console(file=buf, force_terminal=True, width=100, color_system=None)
+		presenter = GeminiStepPresenter(console=console, verbose=True)
+		presenter.show_observation(3, "print('Hello, world!')", action="code")
+
+		joined = buf.getvalue()
+		self.assertIn("Code", joined)
+		self.assertIn("print", joined)
+		self.assertIn("1", joined)  # Syntax line-number gutter
+
+	def test_show_responding_with_mentions_model(self):
+		from rich.console import Console
+
+		buf = io.StringIO()
+		console = Console(file=buf, force_terminal=True, width=100, color_system=None)
+		presenter = GeminiStepPresenter(console=console)
+		presenter.show_responding_with("gemini-2.5-flash")
+		self.assertIn("Responding with gemini-2.5-flash", buf.getvalue())
+
+	def test_show_finish_prints_summary(self):
+		from rich.console import Console
+
+		buf = io.StringIO()
+		console = Console(file=buf, force_terminal=True, width=100, color_system=None)
+		presenter = GeminiStepPresenter(console=console)
+		presenter.show_finish(2, "hello.py has been created")
+		self.assertIn("hello.py has been created", buf.getvalue())
+
+	def test_ascii_icons_used_for_legacy_windows_console(self):
+		console = type("C", (), {"legacy_windows": True, "print": lambda self, *a, **k: None})()
+		presenter = GeminiStepPresenter(console=console)
+		self.assertEqual(presenter._action_icons["code"], "*")
+		self.assertEqual(presenter._assistant_icon, "*")
+
+	def test_unicode_icons_used_for_utf8_console(self):
+		from rich.console import Console
+
+		console = Console(file=io.StringIO(), force_terminal=True, legacy_windows=False)
+		presenter = GeminiStepPresenter(console=console)
+		self.assertNotEqual(presenter._action_icons["finish"], "OK")
 
 
 class TestPlainStepPresenter(unittest.TestCase):

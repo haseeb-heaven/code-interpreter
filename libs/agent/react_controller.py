@@ -167,6 +167,8 @@ class ReActController:
         }
 
         console.print(f"\n[bold green]ReAct agent starting[/bold green]: {task}\n")
+        if hasattr(self.presenter, "show_responding_with"):
+            self.presenter.show_responding_with(self.model_name)
         last_signature: Optional[tuple] = None
 
         while state["step_count"] < self.max_steps:
@@ -378,7 +380,7 @@ class ReActController:
             cost=float(action_metrics.get("cost", 0.0)),
             status="running",
         )
-        self.presenter.show_observation(step_num, observation)
+        self.presenter.show_observation(step_num, observation, action=react_step.action)
 
     def _think(self, state: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
         history = format_trajectory(state["trajectory"])
