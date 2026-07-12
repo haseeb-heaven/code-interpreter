@@ -65,8 +65,8 @@ def main() -> int:
 	parser.add_argument(
 		"--tier",
 		action="append",
-		choices=("easy", "medium"),
-		help="Filter tiers (repeatable)",
+		choices=("easy", "medium", "complex"),
+		help="Filter tiers (repeatable). Use medium+complex for sibling medium agent.",
 	)
 	parser.add_argument(
 		"--easy-report",

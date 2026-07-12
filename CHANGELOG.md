@@ -1,4 +1,7 @@
 ## v3.4.0 (2026-07-12)
+- fix(live-session): parse OpenRouter retry-after (cap 60s); skip daily free-quota models; YOLO tool_use_failed repair; REPL paste/slash guards; `.json` not vision; sandbox HOME/MPLCONFIGDIR/Plotly; user-intent absolute writes; neutralize tkinter.mainloop; short litellm errors
+- test(fixtures): committed `tests/fixtures/` inputs/expected as live-scenario source of truth (`INTERPRETER_TEST_DATA_DIR` workdir copy)
+- test(live): easy/medium/complex scenario suite + master `scratch/live_scenario_report.md|.html` (FAIL=0 soft-skip)
 - fix(agentic): Free-LLM resilience — drop dead OpenRouter `:free` catalog IDs; treat 429/RateLimitError as routing failure with capped sleep/retry then catalog fallback; keep controller+specialist models in sync after fallback; `/model` lists presets; suppress rate-limit traceback dumps
 - test(unit): raise `libs/*` + `interpreter.py` coverage to ≥80% (worktree unit suite); make data/output/context/local unit modules discoverable under `unittest discover -s tests`
 - test(integration): expand mocked CLI/pipeline/tools/session coverage (25/25 worktree integration suite)

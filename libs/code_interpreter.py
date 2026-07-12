@@ -141,14 +141,26 @@ class CodeInterpreter:
 			return kwargs
 
 		cwd = getattr(sandbox_context, "cwd", None)
-		allowed_keys = {"PATH", "HOME", "LANG"}
+		allowed_keys = {
+			"PATH", "HOME", "LANG", "USERPROFILE", "MPLCONFIGDIR",
+			"PLOTLY_DIR", "XDG_CONFIG_HOME", "TEMP", "TMP", "PYTHONIOENCODING",
+		}
 
 		if hasattr(sandbox_context, "env"):
 			provided_env = getattr(sandbox_context, "env")
 			if os.name == "nt":
-				default_env = {"PATH": os.environ.get("PATH", ""), "HOME": os.environ.get("USERPROFILE", ""), "LANG": os.environ.get("LANG", "C")}
+				default_env = {
+					"PATH": os.environ.get("PATH", ""),
+					"HOME": os.environ.get("USERPROFILE", tempfile.gettempdir()),
+					"USERPROFILE": os.environ.get("USERPROFILE", tempfile.gettempdir()),
+					"LANG": os.environ.get("LANG", "C"),
+				}
 			else:
-				default_env = {"PATH": "/usr/bin:/bin", "HOME": tempfile.gettempdir(), "LANG": "C"}
+				default_env = {
+					"PATH": "/usr/bin:/bin",
+					"HOME": tempfile.gettempdir(),
+					"LANG": "C",
+				}
 			safe_env = default_env.copy()
 			if isinstance(provided_env, dict):
 				for k in allowed_keys:
@@ -286,6 +298,9 @@ class CodeInterpreter:
 					return None, f"Safety blocked: {'; '.join(decision.reasons)}"
 
 			if shell == "python":
+				from libs.execution.gui_guard import neutralize_gui_mainloop
+
+				script = neutralize_gui_mainloop(script)
 				fd, temp_script_path = tempfile.mkstemp(prefix="ci_py_", suffix=".py", dir=safe_dir)
 				with os.fdopen(fd, "wb") as fh:
 					fh.write(script.encode())
@@ -590,6 +605,9 @@ class CodeInterpreter:
 
 		try:
 			if language == "python":
+				from libs.execution.gui_guard import neutralize_gui_mainloop
+
+				code = neutralize_gui_mainloop(code)
 				exec_bin = shutil.which("python3") or shutil.which("python") or "python"
 				exec_dir = popen_kwargs.get("cwd") or tempfile.gettempdir()
 				fd, temp_code_path = tempfile.mkstemp(prefix="ci_exec_", suffix=".py", dir=exec_dir)

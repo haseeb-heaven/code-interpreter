@@ -10,12 +10,28 @@ import json
 import logging
 from typing import Any, Callable, Optional
 
+from libs.repl_guards import format_short_llm_error
 from libs.tools.bootstrap import build_native_fs_registry
 from libs.tools.tool_registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
 MAX_ITERATIONS = 30
+
+# Error markers that indicate the LLM could not produce a valid response.
+_REPAIR_ERROR_MARKERS = (
+    "tool_use_failed",
+    "failed_generation",
+    "badrequesterror",
+    "bad request",
+    "invalid_request_error",
+    "invalid request",
+    "context_length_exceeded",
+    "context length",
+    "maximum context",
+)
+
+MAX_REPAIR_ATTEMPTS = 2
 
 
 class AutonomousAgentLoop:
@@ -64,7 +80,18 @@ class AutonomousAgentLoop:
 		self.context_manager = context_manager
 
 	def run(self, task: str) -> str:
-		"""Execute the autonomous loop for ``task`` and return the final answer."""
+		"""Execute the autonomous loop; never raises.
+
+		All exceptions are caught and returned as a short message.
+		"""
+		try:
+			return self._run_inner(task)
+		except Exception as exc:
+			logger.error("[AutoLoop] Unhandled error: %s", exc)
+			return format_short_llm_error(exc)
+
+	def _run_inner(self, task: str) -> str:
+		"""Inner run -- may raise; wrapped by run()."""
 		messages: list[dict] = [
 			{
 				"role": "system",
@@ -77,6 +104,7 @@ class AutonomousAgentLoop:
 			{"role": "user", "content": task},
 		]
 		iteration = 0
+		repair_attempts = 0
 
 		while iteration < self.max_iterations:
 			iteration += 1
@@ -89,7 +117,21 @@ class AutonomousAgentLoop:
 					logger.warning("[AutoLoop] Context compaction skipped: %s", exc)
 
 			tools = self.registry.openai_schemas()
-			response = self._complete(messages, tools)
+			try:
+				response = self._complete(messages, tools)
+			except Exception as exc:
+				short_err = format_short_llm_error(exc)
+				err_low = str(exc).lower()
+				is_rep = any(m in err_low for m in _REPAIR_ERROR_MARKERS)
+				if is_rep and repair_attempts < MAX_REPAIR_ATTEMPTS:
+					repair_attempts += 1
+					logger.warning("[AutoLoop] Repairable LLM error (attempt %s/%s): %s",
+						repair_attempts, MAX_REPAIR_ATTEMPTS, exc)
+					messages.append({"role": "user", "content":
+						f"Error: {short_err}. Please respond with valid tool call or text."})
+					continue
+				logger.error("[AutoLoop] LLM error: %s", exc)
+				return short_err
 			msg = self._extract_message(response)
 
 			if isinstance(msg, dict):

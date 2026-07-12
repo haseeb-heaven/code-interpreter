@@ -412,14 +412,32 @@ class ModelRouter:
 		messages = interp.get_prompt(message, chat_history)
 
 		# Multimodal: --image / pending /image REPL / legacy image_file
+		from libs.vision.image_handler import (
+			image_file_arg_for_path,
+			inject_images_into_messages,
+			is_image_source_path,
+			is_vision_model,
+		)
+
 		image_sources = []
 		if image_file:
-			image_sources.append(str(image_file))
+			filtered = image_file_arg_for_path(str(image_file))
+			if filtered:
+				image_sources.append(filtered)
+			elif image_file:
+				interp.logger.info(
+					"Ignoring non-image extracted path for multimodal: %s",
+					image_file,
+				)
 		cli_images = getattr(getattr(interp, "args", None), "image", None) or []
-		image_sources.extend(str(src) for src in cli_images)
+		image_sources.extend(
+			str(src) for src in cli_images if is_image_source_path(str(src))
+		)
 		pending = getattr(interp, "_pending_images", None) or []
 		if pending:
-			image_sources.extend(str(src) for src in pending)
+			image_sources.extend(
+				str(src) for src in pending if is_image_source_path(str(src))
+			)
 			interp._pending_images = []
 		# De-dupe while preserving order
 		seen = set()
@@ -431,8 +449,6 @@ class ModelRouter:
 		image_sources = unique_images
 
 		if image_sources and isinstance(messages, list):
-			from libs.vision.image_handler import inject_images_into_messages, is_vision_model
-
 			model_label = str(getattr(interp, "INTERPRETER_MODEL", "") or "")
 			if not is_vision_model(model_label):
 				interp.logger.warning(
@@ -440,7 +456,6 @@ class ModelRouter:
 					model_label,
 				)
 				print(f"WARNING: Model '{model_label}' may not support image inputs.")
-			# Use the original user message text for the multimodal turn
 			messages = inject_images_into_messages(messages, str(message or ""), image_sources)
 
 		if config_provider in ("browser-use", "browser_use") or interp.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):

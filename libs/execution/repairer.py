@@ -7,6 +7,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Callable
 
+from libs.vision.image_handler import image_file_arg_for_path
+
 
 @dataclass
 class RepairCircuitBreaker:
@@ -96,7 +98,7 @@ class Repairer:
 				task, prompt, current_snippet, current_error, os_name, code_output=current_output
 			)
 			repaired_output = interp._generate_content_with_retries(
-				repair_prompt, interp.history, config_values=interp.config_values, image_file=extracted_file_name
+				repair_prompt, interp.history, config_values=interp.config_values, image_file=image_file_arg_for_path(extracted_file_name)
 			)
 			repaired_snippet = interp.code_interpreter.extract_code(repaired_output, start_sep, end_sep)
 			repaired_snippet = interp._maybe_simplify_generated_code(task, repaired_snippet)
@@ -171,13 +173,13 @@ class Repairer:
 			generate_repair = getattr(interp, "_generate_content_with_retries_async", None)
 			if generate_repair:
 				repaired_output = await generate_repair(
-					repair_prompt, interp.history, config_values=interp.config_values, image_file=extracted_file_name
+					repair_prompt, interp.history, config_values=interp.config_values, image_file=image_file_arg_for_path(extracted_file_name)
 				)
 			else:
 				repaired_output = await asyncio.to_thread(
 					interp._generate_content_with_retries,
 					repair_prompt, interp.history,
-					config_values=interp.config_values, image_file=extracted_file_name,
+					config_values=interp.config_values, image_file=image_file_arg_for_path(extracted_file_name),
 				)
 			repaired_snippet = interp.code_interpreter.extract_code(repaired_output, start_sep, end_sep)
 			repaired_snippet = interp._maybe_simplify_generated_code(task, repaired_snippet)

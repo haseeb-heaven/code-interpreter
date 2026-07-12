@@ -217,6 +217,48 @@ class ExecutionSafetyManager:
 			self.unsafe_mode = True
 		else:
 			self.unsafe_mode = False
+		# B8: Absolute paths explicitly mentioned in the user task.
+		self._user_intent_paths: List[str] = []
+
+	# =========================
+	# USER INTENT PATH TRACKING (B8)
+	# =========================
+
+	@staticmethod
+	def extract_absolute_paths_from_text(text: str) -> List[str]:
+		"""Return deduplicated absolute paths found in *text*."""
+		import re as _re
+		paths: List[str] = []
+		seen: set = set()
+		for m in _re.finditer(r"[a-zA-Z]:[\\/][^\s\"'<>|*?]+", text):
+			p = m.group(0).rstrip(".,;:!)")
+			if p not in seen:
+				seen.add(p)
+				paths.append(p)
+		for m in _re.finditer(r"(?:^|[\s'\"(])(/[^\s\"'<>|*?:]{2,})", text, _re.MULTILINE):
+			p = m.group(1).rstrip(".,;:!)")
+			if p not in seen:
+				seen.add(p)
+				paths.append(p)
+		return paths
+
+	def set_user_intent_paths(self, task_text: str) -> None:
+		"""Extract and remember absolute paths from the user task description."""
+		self._user_intent_paths = self.extract_absolute_paths_from_text(task_text or "")
+
+	def _is_user_intent_path(self, code: str) -> bool:
+		"""True when every absolute path in *code* was mentioned in the task."""
+		if not self._user_intent_paths:
+			return False
+		code_paths = self.extract_absolute_paths_from_text(code)
+		if not code_paths:
+			return False
+		intent_lower = [p.lower() for p in self._user_intent_paths]
+		for cp in code_paths:
+			cp_low = cp.lower()
+			if not any(cp_low.startswith(ip) or ip.startswith(cp_low) for ip in intent_lower):
+				return False
+		return True
 
 	# =========================
 	# AST CHECK (PYTHON ONLY)
@@ -380,9 +422,17 @@ class ExecutionSafetyManager:
 
 		# =========================
 		# GLOBAL WRITE BLOCK
+		# Allow through when the user explicitly requested an absolute write (B8).
 		# =========================
 		if self._has_write_operation(code):
-			return Decision(False, ["Write blocked (read-only mode)."])
+			if (
+				self._is_host_absolute_path(code)
+				and not self._is_sensitive_posix_path(code)
+				and self._is_user_intent_path(code)
+			):
+				pass  # Intent-based absolute write -- proceed to path-level checks below.
+			else:
+				return Decision(False, ["Write blocked (read-only mode)."])
 
 		# =========================
 		# DESTRUCTIVE OPERATION BLOCK (unified)
@@ -407,12 +457,16 @@ class ExecutionSafetyManager:
 		if self._is_sensitive_posix_path(code):
 			return Decision(False, ["Host filesystem access blocked (sensitive system path)."])
 
-		# Block if code references an absolute path AND performs any write —
-		# including .write() on a handle opened in read mode (e.g. open(...,'r') + f.write()).
+		# Block absolute path writes unless the user explicitly asked for the path (B8).
 		if self._is_host_absolute_path(code) and (
 			self._has_write_operation(code) or self._has_write_on_handle(code)
 		):
-			return Decision(False, ["Host filesystem access blocked (absolute path write)."])
+			if self._is_sensitive_posix_path(code):
+				return Decision(False, ["Host filesystem access blocked (sensitive system path write)."])
+			if self._is_user_intent_path(code):
+				pass  # User explicitly asked for this path.
+			else:
+				return Decision(False, ["Host filesystem access blocked (absolute path write)."])
 
 		# =========================
 		# COMMAND MODE RULE
@@ -502,6 +556,19 @@ class ExecutionSafetyManager:
 
 		cwd = tempfile.mkdtemp(prefix="ci_sandbox_")
 		timeout = 30 if timeout_seconds is None else int(timeout_seconds)
+
+		# B7: Point config dirs at sandbox temp to isolate from host HOME.
+		env["HOME"] = cwd
+		env["USERPROFILE"] = cwd
+		_mpl = os.path.join(cwd, ".matplotlib")
+		os.makedirs(_mpl, exist_ok=True)
+		env["MPLCONFIGDIR"] = _mpl
+		_plotly = os.path.join(cwd, ".plotly")
+		os.makedirs(_plotly, exist_ok=True)
+		env["PLOTLY_DIR"] = _plotly
+		_xdg = os.path.join(cwd, ".config")
+		os.makedirs(_xdg, exist_ok=True)
+		env["XDG_CONFIG_HOME"] = _xdg
 
 		return SandboxContext(
 			cwd=cwd,

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_CATALOG_PATH = os.path.join("configs", "free", "catalog.json")
 
 # Cap how long we wait on a single rate-limit "try again in Ns" hint.
-DEFAULT_RETRY_AFTER_CAP_SECONDS = 35.0
+DEFAULT_RETRY_AFTER_CAP_SECONDS = 60.0
 # Same-model retries after a rate-limit before falling through to the next free preset.
 DEFAULT_RATE_LIMIT_RETRIES = 2
 
@@ -251,7 +251,9 @@ _FREE_ROUTING_FAILURE_MARKERS = (
 
 _RETRY_AFTER_PATTERNS = (
 	re.compile(r"try again in\s+(\d+(?:\.\d+)?)\s*s", re.IGNORECASE),
-	re.compile(r"retry[- ]after[:\s]+(\d+(?:\.\d+)?)", re.IGNORECASE),
+	re.compile(r"retry[_-]after[:\s]+(\d+(?:\.\d+)?)", re.IGNORECASE),
+	re.compile(r"retry_after_seconds[:\s=]+(\d+(?:\.\d+)?)", re.IGNORECASE),
+	re.compile(r"Retry-After[:\s]+(\d+(?:\.\d+)?)", re.IGNORECASE),
 	re.compile(r"please retry in\s+(\d+(?:\.\d+)?)\s*s", re.IGNORECASE),
 	re.compile(r"wait\s+(\d+(?:\.\d+)?)\s*s(?:ec(?:ond)?s?)?", re.IGNORECASE),
 )
@@ -284,20 +286,22 @@ def parse_retry_after_seconds(
 	text = str(exc_or_text or "")
 	if not text:
 		return None
+	best: Optional[float] = None
 	for pattern in _RETRY_AFTER_PATTERNS:
-		match = pattern.search(text)
-		if not match:
-			continue
-		try:
-			seconds = float(match.group(1))
-		except (TypeError, ValueError):
-			continue
-		if seconds < 0:
-			continue
-		if cap is not None and cap > 0:
-			seconds = min(seconds, float(cap))
-		return seconds
-	return None
+		for match in pattern.finditer(text):
+			try:
+				seconds = float(match.group(1))
+			except (TypeError, ValueError):
+				continue
+			if seconds < 0:
+				continue
+			if best is None or seconds > best:
+				best = seconds
+	if best is None:
+		return None
+	if cap is not None and cap > 0:
+		best = min(best, float(cap))
+	return best
 
 
 def is_rate_limit_failure(exc: BaseException) -> bool:
@@ -351,6 +355,43 @@ def is_free_routing_failure(exc: BaseException) -> bool:
 	if "quota" in text and not is_rate_limit_failure(exc):
 		return False
 	return any(marker in text for marker in _FREE_ROUTING_FAILURE_MARKERS)
+
+
+def is_daily_free_quota_exhausted(exc: BaseException) -> bool:
+	"""True when the error indicates the per-day free quota is used up.
+
+	Matches 'free-models-per-day' or 'Remaining: 0' from OpenRouter.
+	"""
+	text = str(exc or "").lower()
+	if not text:
+		return False
+	markers = (
+		"free-models-per-day",
+		"free models per day",
+		"daily limit",
+		"daily free quota",
+		"remaining: 0",
+		"remaining:0",
+		"x-ratelimit-remaining: 0",
+		"x-ratelimit-remaining:0",
+		"quota exceeded",
+		"daily quota",
+	)
+	return any(marker in text for marker in markers)
+
+
+def is_openrouter_free_candidate(candidate: Dict[str, Any]) -> bool:
+	"""True when *candidate* routes through OpenRouter free tier (:free suffix)."""
+	model_id = str(candidate.get("model") or "").lower()
+	provider = str(candidate.get("provider") or "").lower()
+	api_base = str(candidate.get("api_base") or "").lower()
+	if provider == "openrouter" or "openrouter.ai" in api_base:
+		return True
+	if model_id.startswith("openrouter/"):
+		return True
+	if ":free" in model_id:
+		return True
+	return False
 
 
 def load_model_config(config_name: str, configs_dir: str = "configs") -> Optional[Dict[str, Any]]:

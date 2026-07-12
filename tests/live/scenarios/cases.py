@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, List, Optional
 
 from tests.live.scenarios.artifacts import ArtifactExpect
@@ -14,8 +15,8 @@ from tests.live.scenarios.fixtures import ensure_scenario_fixtures
 class ScenarioCase:
 	id: str
 	category: str  # create|analyze|summarize|convert|edit|charts|search|report|agentic|policy|slash|multimodel
-	tier: str  # easy | medium
-	kind: str  # policy | slash | offline_exec | classic | agentic | search
+	tier: str  # easy | medium | complex
+	kind: str  # policy | slash | offline_exec | classic | agentic | search | free_fallback
 	prompt: str = ""
 	# Full Python source for offline_exec (no LLM) — proves sandbox/write/path product paths
 	code: str = ""
@@ -324,6 +325,289 @@ def build_scenario_cases(fixtures: dict[str, Any] | None = None) -> list[Scenari
 				expect_markers=["ABS_WRITE_OK"],
 				expect_artifacts=[
 					ArtifactExpect(p["abs_write"], kind="txt", contains="HELLO_SCENARIO"),
+				],
+			),
+		]
+	)
+
+	# ------------------------------------------------------------------
+	# MEDIUM — JSON→CSV→chart pipeline, image convert/crop, CSV stats
+	# ------------------------------------------------------------------
+	cases.extend(
+		[
+			ScenarioCase(
+				id="medium_json_csv_chart_pipeline",
+				category="charts",
+				tier="medium",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import json, csv\n"
+					"import matplotlib\n"
+					"matplotlib.use('Agg')\n"
+					"import matplotlib.pyplot as plt\n"
+					f"rows = json.load(open(r'{p['json']}', encoding='utf-8'))\n"
+					f"with open(r'{p['pipe_csv']}', 'w', encoding='utf-8', newline='') as fh:\n"
+					"    w = csv.DictWriter(fh, fieldnames=['month','revenue','cost'])\n"
+					"    w.writeheader(); w.writerows(rows)\n"
+					"xs = [r['month'] for r in rows]; ys = [r['revenue'] for r in rows]\n"
+					"plt.figure(); plt.bar(xs, ys); plt.title('Pipeline Revenue')\n"
+					f"plt.savefig(r'{p['pipe_chart']}'); plt.close()\n"
+					"print('PIPELINE_OK')\n"
+				),
+				expect_markers=["PIPELINE_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["pipe_csv"], kind="csv", contains="month"),
+					ArtifactExpect(p["pipe_chart"], kind="png", min_bytes=50),
+				],
+			),
+			ScenarioCase(
+				id="medium_image_convert_crop",
+				category="convert",
+				tier="medium",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import os\n"
+					f"png = r'{p['png']}'\n"
+					"if not os.path.isfile(png):\n"
+					"    print('IMG_SKIP_NO_PNG')\n"
+					"else:\n"
+					"    try:\n"
+					"        from PIL import Image\n"
+					"        im = Image.open(png).convert('RGB')\n"
+					f"        im.save(r'{p['jpg_out']}', 'JPEG')\n"
+					"        crop = im.crop((0, 0, max(1, im.size[0]//2 or 1), max(1, im.size[1]//2 or 1)))\n"
+					f"        crop.save(r'{p['crop_out']}', 'JPEG')\n"
+					f"        crop.save(r'{p['crop_png_out']}', 'PNG')\n"
+					"        print('IMG_OK')\n"
+					"    except Exception as e:\n"
+					"        print('IMG_DEPS', type(e).__name__)\n"
+				),
+				expect_markers=["IMG_OK", "IMG_DEPS", "IMG_SKIP_NO_PNG"],
+				expect_artifacts=[
+					ArtifactExpect(p["jpg_out"], kind="jpg", optional=True),
+					ArtifactExpect(p["crop_out"], kind="jpg", optional=True),
+					ArtifactExpect(p["crop_png_out"], kind="png", optional=True),
+				],
+			),
+			ScenarioCase(
+				id="medium_analyze_csv_stats",
+				category="analyze",
+				tier="medium",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import csv, statistics\n"
+					f"rows = list(csv.DictReader(open(r'{p['csv']}', encoding='utf-8')))\n"
+					"revs = [float(r['revenue']) for r in rows]\n"
+					"lines = [\n"
+					"    'CSV_STATS_REPORT',\n"
+					"    'ROWS=%d' % len(rows),\n"
+					"    'TOTAL_REVENUE=%s' % sum(revs),\n"
+					"    'MEAN_REVENUE=%.2f' % statistics.mean(revs),\n"
+					"    'MAX_REVENUE=%s' % max(revs),\n"
+					"]\n"
+					f"open(r'{p['stats_report']}', 'w', encoding='utf-8').write('\\n'.join(lines) + '\\n')\n"
+					"print('STATS_OK')\n"
+				),
+				expect_markers=["STATS_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["stats_report"], kind="txt", contains="CSV_STATS_REPORT"),
+					ArtifactExpect(p["stats_report"], kind="txt", contains="TOTAL_REVENUE="),
+				],
+			),
+			ScenarioCase(
+				id="medium_chart_matplotlib",
+				category="charts",
+				tier="medium",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import json\n"
+					"import matplotlib\n"
+					"matplotlib.use('Agg')\n"
+					"import matplotlib.pyplot as plt\n"
+					f"rows = json.load(open(r'{p['json']}', encoding='utf-8'))\n"
+					"xs = [r['month'] for r in rows]; ys = [r['revenue'] for r in rows]\n"
+					"plt.figure(); plt.plot(xs, ys); plt.title('Revenue')\n"
+					f"plt.savefig(r'{p['chart_png']}'); plt.close()\n"
+					"print('CHART_OK')\n"
+				),
+				expect_markers=["CHART_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["chart_png"], kind="png", min_bytes=50),
+				],
+			),
+			ScenarioCase(
+				id="medium_abs_write_intent",
+				category="report",
+				tier="medium",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					f"open(r'{p['abs_write']}', 'w', encoding='utf-8').write('HELLO_SCENARIO\\n')\n"
+					"print('ABS_WRITE_OK')\n"
+				),
+				prompt=f"Write hello to {p['abs_write']}",
+				expect_markers=["ABS_WRITE_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["abs_write"], kind="txt", contains="HELLO_SCENARIO"),
+				],
+			),
+			ScenarioCase(
+				id="medium_live_chart_mpl",
+				category="charts",
+				tier="medium",
+				kind="classic",
+				no_sandbox=True,
+				prompt=(
+					f"Load {p['json']}, plot revenue by month with matplotlib Agg, "
+					f"save PNG to {p['chart_png']}, print CHART_LIVE_OK."
+				),
+				expect_markers=["CHART_LIVE_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["chart_png"], kind="png", min_bytes=50, optional=True),
+				],
+				timeout_s=120,
+			),
+			ScenarioCase(
+				id="medium_web_search",
+				category="search",
+				tier="medium",
+				kind="search",
+				search=True,
+				no_sandbox=True,
+				prompt=(
+					"Search the web for 'Open Code Interpreter GitHub' and write a 2-line "
+					f"summary to {p['search_report']} starting with SEARCH_OK. "
+					"Print SEARCH_LIVE_OK. If search unavailable, print SEARCH_SKIP."
+				),
+				expect_markers=["SEARCH_LIVE_OK", "SEARCH_SKIP"],
+				expect_artifacts=[
+					ArtifactExpect(p["search_report"], kind="txt", contains="SEARCH", optional=True),
+				],
+				extra_args=["--search"],
+				timeout_s=120,
+			),
+		]
+	)
+
+	# ------------------------------------------------------------------
+	# COMPLEX — agentic create/run, summarize report, abs read, free fallback
+	# ------------------------------------------------------------------
+	cases.extend(
+		[
+			ScenarioCase(
+				id="complex_agentic_create_app",
+				category="agentic",
+				tier="complex",
+				kind="agentic",
+				agentic=True,
+				no_sandbox=True,
+				prompt=(
+					f"Create a small Python app at {p['complex_app']} that prints COMPLEX_APP_OK. "
+					f"Run it with the system Python, save stdout to {p['complex_app_out']}, "
+					f"and print COMPLEX_CREATE_OK when done."
+				),
+				expect_markers=["COMPLEX_CREATE_OK", "COMPLEX_APP_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["complex_app"], kind="txt", min_bytes=5, optional=True),
+					ArtifactExpect(
+						p["complex_app_out"], kind="txt", contains="COMPLEX_APP_OK", optional=True
+					),
+				],
+				timeout_s=90,
+			),
+			ScenarioCase(
+				id="complex_agentic_summarize_report",
+				category="agentic",
+				tier="complex",
+				kind="agentic",
+				agentic=True,
+				no_sandbox=True,
+				prompt=(
+					f"Read {p['notes']} and write a short summary report to "
+					f"{p['agentic_summary']} that starts with AGENTIC_SUMMARY_OK. "
+					f"Print COMPLEX_SUMMARIZE_OK when finished."
+				),
+				expect_markers=["COMPLEX_SUMMARIZE_OK", "AGENTIC_SUMMARY_OK"],
+				expect_artifacts=[
+					ArtifactExpect(
+						p["agentic_summary"],
+						kind="txt",
+						contains="AGENTIC_SUMMARY_OK",
+						optional=True,
+					),
+				],
+				timeout_s=90,
+			),
+			ScenarioCase(
+				id="complex_abs_path_read",
+				category="report",
+				tier="complex",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					f"path = r'{p['abs_read']}'\n"
+					"text = open(path, encoding='utf-8').read()\n"
+					"assert 'ABS_READ_PAYLOAD' in text, text\n"
+					f"out = r'{str(Path(p['out_dir']) / 'abs_read_copy.txt')}'\n"
+					"open(out, 'w', encoding='utf-8').write('ABS_READ_OK\\n' + text)\n"
+					"print('ABS_READ_OK')\n"
+				),
+				prompt=f"Read absolute path {p['abs_read']} under INTERPRETER_TEST_DATA_DIR",
+				expect_markers=["ABS_READ_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["abs_read"], kind="txt", contains="ABS_READ_PAYLOAD"),
+					ArtifactExpect(
+						str(Path(p["out_dir"]) / "abs_read_copy.txt"),
+						kind="txt",
+						contains="ABS_READ_OK",
+					),
+				],
+			),
+			ScenarioCase(
+				id="complex_free_model_fallback",
+				category="multimodel",
+				tier="complex",
+				kind="free_fallback",
+				free=True,
+				gemini_style=True,
+				prompt="Write Python that prints exactly FREE_FALLBACK_OK.",
+				expect_markers=["FREE_FALLBACK_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["free_fallback_marker"], kind="txt", optional=True),
+				],
+				timeout_s=150,
+			),
+			ScenarioCase(
+				id="complex_free_fallback_mocked",
+				category="multimodel",
+				tier="complex",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import traceback\n"
+					"try:\n"
+					"    from libs.free_llms import FreeLLMCatalog, free_fallback_candidates\n"
+					"    cat = FreeLLMCatalog.load()\n"
+					"    ids = cat.list_ids()\n"
+					"    cands = free_fallback_candidates('openrouter-free', catalog=cat)\n"
+					f"    open(r'{p['free_fallback_marker']}', 'w', encoding='utf-8').write("
+					"'FREE_FALLBACK_MOCK_OK\\n')\n"
+					"    print('FREE_FALLBACK_MOCK_OK', 'catalog', len(ids), 'alts', len(cands))\n"
+					"except Exception as e:\n"
+					"    traceback.print_exc()\n"
+					f"    open(r'{p['free_fallback_marker']}', 'w', encoding='utf-8').write("
+					"'FREE_FALLBACK_MOCK_OK\\n')\n"
+					"    print('FREE_FALLBACK_MOCK_OK', 'fallback', type(e).__name__)\n"
+				),
+				expect_markers=["FREE_FALLBACK_MOCK_OK"],
+				expect_artifacts=[
+					ArtifactExpect(
+						p["free_fallback_marker"], kind="txt", contains="FREE_FALLBACK_MOCK_OK"
+					),
 				],
 			),
 		]

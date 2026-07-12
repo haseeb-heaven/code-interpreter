@@ -111,6 +111,12 @@ class ReActController:
         run_id = str(uuid.uuid4())
         traj_logger = TrajectoryLogger(self.log_path, run_id=run_id)
 
+        if hasattr(self.safety_manager, "set_user_intent_paths"):
+            try:
+                self.safety_manager.set_user_intent_paths(task or "")
+            except Exception as exc:
+                logger.debug("Could not set user-intent write paths: %s", exc)
+
         state: Dict[str, Any] = {
             "task": task,
             "code": "",

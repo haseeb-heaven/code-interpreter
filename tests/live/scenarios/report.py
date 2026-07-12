@@ -15,24 +15,60 @@ def _esc(text: Any) -> str:
 
 
 def write_master_reports(payload: dict[str, Any], scratch_dir: Path) -> dict[str, str]:
-	"""Write ``live_scenario_report.md`` + ``.html`` (+ JSON) into scratch_dir."""
+	"""Write master ``live_scenario_report.md`` + ``.html`` (+ JSON).
+
+	Canonical paths (always, under repo ``scratch/``):
+	- scratch/live_scenario_report.md
+	- scratch/live_scenario_report.html
+	- scratch/live_scenario_report.json
+
+	Also writes into *scratch_dir* when it differs (e.g. sibling report folders)
+	and stamped copies under ``scratch/live_scenario_reports/``.
+	"""
+	from pathlib import Path as _Path
+
+	repo_scratch = _Path(__file__).resolve().parents[3] / "scratch"
+	repo_scratch.mkdir(parents=True, exist_ok=True)
+	scratch_dir = Path(scratch_dir)
 	scratch_dir.mkdir(parents=True, exist_ok=True)
+
 	stamp = payload.get("run_id") or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 	summary = payload.get("summary") or {}
 	rows = payload.get("rows") or []
 	fixtures = payload.get("fixtures") or {}
 
-	md_path = scratch_dir / "live_scenario_report.md"
-	html_path = scratch_dir / "live_scenario_report.html"
-	json_path = scratch_dir / "live_scenario_report.json"
-	# Also keep stamped copies for sibling merge history
-	stamped_json = scratch_dir / "live_scenario_reports" / f"live_scenarios_{stamp}.json"
-	stamped_json.parent.mkdir(parents=True, exist_ok=True)
+	# Build MD + HTML content once
+	md_body, html_body = _render_report_bodies(payload, stamp, summary, rows, fixtures)
 
-	json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+	targets = [repo_scratch]
+	if scratch_dir.resolve() != repo_scratch.resolve():
+		targets.append(scratch_dir)
+
+	paths: dict[str, str] = {}
+	for target in targets:
+		target.mkdir(parents=True, exist_ok=True)
+		md_path = target / "live_scenario_report.md"
+		html_path = target / "live_scenario_report.html"
+		json_path = target / "live_scenario_report.json"
+		md_path.write_text(md_body, encoding="utf-8")
+		html_path.write_text(html_body, encoding="utf-8")
+		json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+		if target.resolve() == repo_scratch.resolve():
+			paths = {
+				"md": str(md_path),
+				"html": str(html_path),
+				"json": str(json_path),
+			}
+
+	stamped_dir = repo_scratch / "live_scenario_reports"
+	stamped_dir.mkdir(parents=True, exist_ok=True)
+	stamped_json = stamped_dir / f"live_scenarios_{stamp}.json"
 	stamped_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+	paths["stamped_json"] = str(stamped_json)
+	return paths
 
-	# --- Markdown ---
+
+def _render_report_bodies(payload, stamp, summary, rows, fixtures):
 	md_lines = [
 		f"# Live scenario report (`{stamp}`)",
 		"",
@@ -81,7 +117,6 @@ def write_master_reports(payload: dict[str, Any], scratch_dir: Path) -> dict[str
 				notes=detail,
 			)
 		)
-
 	md_lines.extend(
 		[
 			"",
@@ -89,18 +124,16 @@ def write_master_reports(payload: dict[str, Any], scratch_dir: Path) -> dict[str
 			"",
 			"```powershell",
 			'$env:INTERPRETER_TEST_DATA_DIR = "D:\\tmp"',
-			"$env:INTERPRETER_YES = \"1\"",
+			'$env:INTERPRETER_YES = "1"',
 			"D:\\henv\\Scripts\\python.exe scripts/run_live_scenarios.py",
-			"# Sibling tiers:",
 			"D:\\henv\\Scripts\\python.exe scripts/run_live_scenarios.py --tier easy --merge-report",
 			"D:\\henv\\Scripts\\python.exe scripts/run_live_scenarios.py --tier medium --merge-report",
 			"```",
 			"",
 		]
 	)
-	md_path.write_text("\n".join(md_lines), encoding="utf-8")
+	md_body = "\n".join(md_lines)
 
-	# --- HTML ---
 	rows_html = []
 	for r in rows:
 		status = str(r.get("status") or "")
@@ -132,12 +165,11 @@ def write_master_reports(payload: dict[str, Any], scratch_dir: Path) -> dict[str
 				notes=_esc(str(r.get("detail") or "")[:300]),
 			)
 		)
-
-	html_doc = f"""<!DOCTYPE html>
+	html_body = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Live scenario report { _esc(stamp) }</title>
+<title>Live scenario report {_esc(stamp)}</title>
 <style>
 body {{ font-family: Segoe UI, system-ui, sans-serif; margin: 2rem; background: #0f1419; color: #e7ecf1; }}
 h1,h2 {{ color: #f5f7fa; }}
@@ -179,14 +211,7 @@ code {{ background: #1a222c; padding: 0.1rem 0.3rem; border-radius: 3px; }}
 </body>
 </html>
 """
-	html_path.write_text(html_doc, encoding="utf-8")
-
-	return {
-		"md": str(md_path),
-		"html": str(html_path),
-		"json": str(json_path),
-		"stamped_json": str(stamped_json),
-	}
+	return md_body, html_body
 
 
 def merge_report_rows(

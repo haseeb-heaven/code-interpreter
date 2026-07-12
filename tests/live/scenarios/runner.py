@@ -541,13 +541,19 @@ def run_suite(
 	scratch.mkdir(parents=True, exist_ok=True)
 
 	if merge_report:
-		master_json = scratch / "live_scenario_report.json"
+		# Prefer canonical master under repo scratch/, then report_dir
+		candidates = [
+			ROOT / "scratch" / "live_scenario_report.json",
+			scratch / "live_scenario_report.json",
+		]
 		existing = None
-		if master_json.is_file():
-			try:
-				existing = json.loads(master_json.read_text(encoding="utf-8"))
-			except (OSError, json.JSONDecodeError):
-				existing = None
+		for master_json in candidates:
+			if master_json.is_file():
+				try:
+					existing = json.loads(master_json.read_text(encoding="utf-8"))
+					break
+				except (OSError, json.JSONDecodeError):
+					existing = None
 		payload = merge_report_rows(existing, payload)
 
 	paths = write_master_reports(payload, scratch)

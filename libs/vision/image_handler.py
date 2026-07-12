@@ -17,6 +17,36 @@ logger = logging.getLogger(__name__)
 
 SUPPORTED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
+# Extensions that must NEVER be treated as image sources.
+_NON_IMAGE_EXTENSIONS = {
+    '.json', '.yaml', '.yml', '.toml', '.csv', '.txt',
+    '.md', '.py', '.js', '.ts', '.html', '.xml',
+    '.ini', '.cfg', '.log',
+}
+
+
+def is_image_source_path(path: str) -> bool:
+    """Return True when *path* points to a supported image file.
+
+    .json and other non-image extensions are explicitly excluded.
+    """
+    if not path or not str(path).strip():
+        return False
+    source = str(path).strip()
+    if source.startswith(('http://', 'https://')):
+        suffix = Path(source.split('?')[0]).suffix.lower()
+        return suffix in SUPPORTED_EXTENSIONS
+    suffix = Path(source).suffix.lower()
+    if suffix in _NON_IMAGE_EXTENSIONS:
+        return False
+    return suffix in SUPPORTED_EXTENSIONS
+
+
+def image_file_arg_for_path(path: str):
+    """Return *path* when it is a valid image source, else None."""
+    return path if is_image_source_path(path) else None
+
+
 
 def load_image_as_content_block(image_source: str) -> dict:
 	"""

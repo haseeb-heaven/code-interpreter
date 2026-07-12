@@ -607,7 +607,14 @@ def run_interpreter_main(interp, version):
 
 				# Start the LLM Request.
 				interp.logger.info(f"Fix Prompt: {fix_prompt}")
-				generated_output = interp._generate_content_with_retries(fix_prompt, interp.history, config_values=interp.config_values, image_file=extracted_file_name)
+				from libs.vision.image_handler import image_file_arg_for_path
+
+				generated_output = interp._generate_content_with_retries(
+					fix_prompt,
+					interp.history,
+					config_values=interp.config_values,
+					image_file=image_file_arg_for_path(extracted_file_name),
+				)
 
 				# Extract the code from the generated output.
 				interp.logger.info(f"Generated output type {type(generated_output)}")
@@ -834,6 +841,12 @@ def run_interpreter_main(interp, version):
 			extracted_file_name = interp.utility_manager.extract_file_name(prompt)
 			interp.logger.info(f"Input prompt file name: '{extracted_file_name}'")
 
+			try:
+				if hasattr(interp, "safety_manager") and interp.safety_manager:
+					interp.safety_manager.set_user_intent_paths(f"{task}\n{prompt}")
+			except Exception as intent_exc:
+				interp.logger.debug(f"user-intent path setup skipped: {intent_exc}")
+
 			if extracted_file_name is not None:
 				full_path = interp.utility_manager.get_full_file_path(extracted_file_name)
 				interp.logger.info(f"Input prompt full_path: '{full_path}'")
@@ -914,7 +927,14 @@ def run_interpreter_main(interp, version):
 				memory = getattr(interp, 'memory', None)
 				interp.history = memory.get_context(task) if memory else []
 
-			generated_output = interp._generate_content_with_retries(prompt, interp.history, config_values=interp.config_values,image_file=extracted_file_name)
+			from libs.vision.image_handler import image_file_arg_for_path
+
+			generated_output = interp._generate_content_with_retries(
+				prompt,
+				interp.history,
+				config_values=interp.config_values,
+				image_file=image_file_arg_for_path(extracted_file_name),
+			)
 
 			# No extra processing for Vision mode / chat (avoid double-print when streamed).
 			if interp.INTERPRETER_MODE in ['vision', 'chat']:

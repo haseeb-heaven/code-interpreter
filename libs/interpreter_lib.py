@@ -33,6 +33,7 @@ from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.modes.code_mode import CodeModeHandler
 from libs.package_manager import PackageManager
+from libs.repl_guards import format_short_llm_error, is_non_task_input, is_unknown_slash_command  # noqa: F401
 from libs.safety_manager import ExecutionSafetyManager, SafetyLevel
 from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
@@ -695,7 +696,17 @@ class Interpreter:
 						return
 					continue
 
-				controller.run(raw)
+				# Refuse traceback/error pastes (B4/B5).
+			if is_non_task_input(raw):
+				self.console.print(
+					"[yellow]Tip:[/yellow] That looks like an error traceback, not a task. "
+					"Please describe what you want me to do instead."
+				)
+				if one_shot:
+					return
+				continue
+
+			controller.run(raw)
 				if one_shot:
 					return
 		except KeyboardInterrupt:

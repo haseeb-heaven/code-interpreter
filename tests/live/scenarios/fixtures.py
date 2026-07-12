@@ -74,6 +74,13 @@ def ensure_scenario_fixtures(root: Optional[Path] = None) -> dict[str, Any]:
 		if src.is_file():
 			shutil.copy2(src, input_dir / name)
 
+	# Absolute-path read target (must live under INTERPRETER_TEST_DATA_DIR workdir)
+	abs_read = fixture_dir / "abs_readable.txt"
+	abs_read.write_text(
+		"ABS_READ_PAYLOAD=hello_from_test_data_dir\n",
+		encoding="utf-8",
+	)
+
 	def _p(*parts: str) -> str:
 		return str(Path(fixture_dir, *parts).resolve())
 
@@ -88,18 +95,27 @@ def ensure_scenario_fixtures(root: Optional[Path] = None) -> dict[str, Any]:
 		"expected_csv": _p("expected", "sales_from_json.csv"),
 		"expected_summary": _p("expected", "summary_example.txt"),
 		"expected_report": _p("expected", "report_example.txt"),
+		"abs_read": str(abs_read.resolve()),
 		"abs_write": _p("output", "user_intent_out.txt"),
 		"chart_png": _p("output", "chart_mpl.png"),
+		"pipe_csv": _p("output", "pipeline_sales.csv"),
+		"pipe_chart": _p("output", "pipeline_chart.png"),
+		"stats_report": _p("output", "csv_stats_report.txt"),
 		"chart_plotly": _p("output", "chart_plotly.html"),
 		"jpg_out": _p("output", "converted.jpg"),
 		"crop_out": _p("output", "cropped.jpg"),
+		"crop_png_out": _p("output", "cropped.png"),
 		"csv_from_json": _p("output", "sales_from_json.csv"),
 		"report_txt": _p("output", "report.txt"),
 		"summary_txt": _p("output", "summary.txt"),
+		"agentic_summary": _p("output", "agentic_summary_report.txt"),
 		"analysis_txt": _p("output", "analysis.txt"),
 		"app_script": _p("apps", "hello_app.py"),
 		"app_out": _p("apps", "hello_out.txt"),
+		"complex_app": _p("apps", "complex_mini_app.py"),
+		"complex_app_out": _p("apps", "complex_mini_out.txt"),
 		"search_report": _p("output", "search_report.txt"),
+		"free_fallback_marker": _p("output", "free_fallback_ok.txt"),
 		"fixture_dir": str(fixture_dir.resolve()),
 		"repo_fixtures": str(REPO_FIXTURES.resolve()),
 		"out_dir": str(out_dir.resolve()),
