@@ -11,6 +11,8 @@ Command line arguments:
 --version, -v: Displays the version of the program.
 --lang, -l: Sets the interpreter language. Default is 'python'.
 --display_code, -dc: Displays the generated code in the output.
+--verbose, -V: In --agentic mode, show full Action/Observation panels + retry/fallback logs
+	(default: Thought-only quiet view).
 --sandbox [subprocess|docker|on|off] / --no-sandbox: Sandbox backend (default: subprocess).
 --timeout SECONDS: Kill sandboxed runs after N seconds (default: 30).
 --safety {strict,standard,relaxed,off}: Safety policy level (default: standard).
@@ -77,6 +79,17 @@ def build_parser():
 		action='store_true',
 		default=False,
 		help='List curated free/cheap LLM presets and exit',
+	)
+	parser.add_argument(
+		'--verbose', '-V',
+		action='store_true',
+		default=False,
+		help=(
+			'In --agentic (ReAct) mode, show the full Action/Observation panels plus '
+			'retry/rate-limit/fallback log chatter. Default is a quiet Thought-only '
+			'view (Panels back-to-back, no step noise). Also toggleable at runtime '
+			'with /verbose in the agentic REPL.'
+		),
 	)
 
 	# Sandbox control: --sandbox [subprocess|docker|on|off] / --no-sandbox

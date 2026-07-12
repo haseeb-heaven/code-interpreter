@@ -37,6 +37,9 @@ class NullStepPresenter:
 	def show_status(self, message: str) -> None:
 		return None
 
+	def show_result(self, observation: str) -> None:
+		return None
+
 
 class PlainStepPresenter:
 	"""Compact one-line Thought / Action / Observation (legacy ReAct look)."""
@@ -74,13 +77,29 @@ class PlainStepPresenter:
 	def show_status(self, message: str) -> None:
 		self.console.print(f"[dim]{message}[/dim]")
 
+	def show_result(self, observation: str) -> None:
+		text = (observation or "").replace("\n", " ").strip()
+		if len(text) > 200:
+			text = text[:197] + "..."
+		self.console.print(f"[bold green]Result:[/bold green] {text}")
+
 
 class GeminiStepPresenter:
-	"""Rich spinner + labeled Thought → Action → Observation blocks (Gemini-CLI feel)."""
+	"""Rich spinner + labeled Thought → Action → Observation blocks (Gemini-CLI feel).
 
-	def __init__(self, console: Any = None, *, spinner: str = "dots"):
+	By default (``verbose=False``) only the "Thought" panel is shown per step —
+	the "Action"/"Observation" panels are suppressed to give a clean, back-to-back
+	Thought-only live view. Pass ``verbose=True`` to restore the full
+	Thought → Action → Observation display. Regardless of ``verbose``, the final
+	"finish" result is always surfaced via :meth:`show_result` (it's the actual
+	deliverable, not step-level noise) and trajectory/telemetry logging in the
+	controller is entirely independent of this presenter.
+	"""
+
+	def __init__(self, console: Any = None, *, spinner: str = "dots", verbose: bool = False):
 		self.console = console or _default_console()
 		self.spinner = spinner
+		self.verbose = bool(verbose)
 
 	def _status(self, label: str):
 		"""Return a Rich Status context manager, or nullcontext if unavailable."""
@@ -138,6 +157,8 @@ class GeminiStepPresenter:
 			self.console.print(f"[bold blue]Thought (step {step}):[/bold blue] {preview}")
 
 	def show_action(self, step: int, action: str, action_input: Any = None) -> None:
+		if not self.verbose:
+			return
 		detail = ""
 		if action_input is not None:
 			try:
@@ -157,6 +178,8 @@ class GeminiStepPresenter:
 		self.console.print(line)
 
 	def show_observation(self, step: int, observation: str) -> None:
+		if not self.verbose:
+			return
 		text = (observation or "").strip() or "(empty)"
 		try:
 			from rich.panel import Panel
@@ -179,18 +202,39 @@ class GeminiStepPresenter:
 	def show_status(self, message: str) -> None:
 		self.console.print(f"[cyan]{message}[/cyan]")
 
+	def show_result(self, observation: str) -> None:
+		"""Always-visible final result/summary — shown even in the default
+		Thought-only quiet view, since it's the task's actual deliverable
+		rather than step-level Action/Observation noise."""
+		text = (observation or "").strip() or "(empty)"
+		try:
+			from rich.panel import Panel
+
+			preview = text if len(text) <= 2000 else text[:1997] + "..."
+			self.console.print(
+				Panel(preview, title="[bold green]Result[/bold green]", border_style="green", expand=False)
+			)
+		except Exception:
+			preview = text.replace("\n", " ")
+			if len(preview) > 400:
+				preview = preview[:397] + "..."
+			self.console.print(f"[bold green]Result:[/bold green] {preview}")
+
 
 def make_step_presenter(
 	*,
 	gemini_style: bool = False,
 	quiet: bool = False,
+	verbose: bool = False,
 	console: Any = None,
 ) -> Any:
-	"""Factory: quiet → Null; gemini_style → Gemini; else Plain."""
+	"""Factory: quiet → Null; gemini_style → Gemini (Thought-only unless
+	``verbose``); else Plain.
+	"""
 	if quiet:
 		return NullStepPresenter()
 	if gemini_style:
-		return GeminiStepPresenter(console=console)
+		return GeminiStepPresenter(console=console, verbose=verbose)
 	return PlainStepPresenter(console=console)
 
 

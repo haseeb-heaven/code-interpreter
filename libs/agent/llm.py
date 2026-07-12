@@ -31,6 +31,37 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
+# Retry/fallback chatter ("Rate limited; sleeping…", "Retrying … after rate
+# limit…", "Free model fallback succeeded…", "Model called a tool
+# unexpectedly…", etc.) is pure noise in the default --agentic Thought-only
+# view. This module attaches no explicit console handler, so these messages
+# only ever reach the terminal via Python logging's "handler of last resort"
+# (stderr, WARNING+, when no handler exists anywhere in the hierarchy).
+# ``_chatter`` exploits that: at DEBUG it is silent by default, and elevates
+# to WARNING (console-visible) only when verbose console output is requested
+# (``--verbose``/``-V`` or ``/verbose``). Genuine unrecoverable errors (the
+# final ``logger.error`` before raising ``FreeModelsExhaustedError``, or any
+# non-chatter failure) are untouched and always remain visible.
+_VERBOSE_CONSOLE = False
+
+
+def set_verbose_console(enabled: bool) -> None:
+	"""Toggle console visibility of retry/fallback chatter logged via ``_chatter``.
+
+	Does not affect genuine error-level logging, which always stays visible.
+	"""
+	global _VERBOSE_CONSOLE
+	_VERBOSE_CONSOLE = bool(enabled)
+
+
+def is_verbose_console() -> bool:
+	return _VERBOSE_CONSOLE
+
+
+def _chatter(msg: str, *args: Any) -> None:
+	"""Log retry/fallback/rate-limit chatter at a level gated by verbosity."""
+	logger.log(logging.WARNING if _VERBOSE_CONSOLE else logging.DEBUG, msg, *args)
+
 
 def _ensure_dotenv_loaded() -> None:
 	"""Best-effort load of repo ``.env`` without overriding existing env vars."""
@@ -156,7 +187,7 @@ def _sleep_for_rate_limit(exc: BaseException, *, sleep_fn=None) -> float:
 	hint = parse_retry_after_seconds(exc, cap=DEFAULT_RETRY_AFTER_CAP_SECONDS)
 	seconds = float(hint if hint is not None else 2.0)
 	seconds = max(0.1, min(seconds, DEFAULT_RETRY_AFTER_CAP_SECONDS))
-	logger.warning("Rate limited; sleeping %.1fs before retry…", seconds)
+	_chatter("Rate limited; sleeping %.1fs before retry…", seconds)
 	sleep_fn(seconds)
 	return seconds
 
@@ -217,7 +248,7 @@ def complete_with_free_fallback(
 
 	for index, candidate in enumerate(candidates):
 		if skip_openrouter_free and is_openrouter_free_candidate(candidate):
-			logger.warning(
+			_chatter(
 				"Skipping OpenRouter free %s after daily free quota exhausted…",
 				candidate.get("config") or candidate.get("model"),
 			)
@@ -250,7 +281,7 @@ def complete_with_free_fallback(
 					"fallback_used": 1.0 if used_fallback else 0.0,
 				}
 				if used_fallback:
-					logger.warning(
+					_chatter(
 						"Free model fallback succeeded: %s -> %s (%s)",
 						model_name,
 						label,
@@ -281,7 +312,7 @@ def complete_with_free_fallback(
 				if is_tool_choice_none_conflict(exc):
 					if tool_choice_conflict_retries < DEFAULT_TOOL_CHOICE_CONFLICT_RETRIES:
 						tool_choice_conflict_retries += 1
-						logger.warning(
+						_chatter(
 							"Model called a tool unexpectedly on %s; retrying (%s/%s)…",
 							tried[-1],
 							tool_choice_conflict_retries,
@@ -289,7 +320,7 @@ def complete_with_free_fallback(
 						)
 						continue
 					if enable_free_fallback:
-						logger.warning(
+						_chatter(
 							"Tool-choice conflict persisted on %s after retry; %s…",
 							tried[-1],
 							"trying next candidate"
@@ -297,7 +328,7 @@ def complete_with_free_fallback(
 							else "no more candidates",
 						)
 						break
-					logger.warning(
+					_chatter(
 						"Tool-choice conflict persisted on %s after retry; no more candidates…",
 						tried[-1],
 					)
@@ -311,7 +342,7 @@ def complete_with_free_fallback(
 				):
 					if or_free and has_non_or_remaining:
 						skip_openrouter_free = True
-					logger.warning(
+					_chatter(
 						"Tool use unsupported on %s; %s…",
 						tried[-1],
 						"skipping remaining OpenRouter free"
@@ -323,7 +354,7 @@ def complete_with_free_fallback(
 				# Daily free quota: do not retry same OR free model; skip remaining OR free.
 				if enable_free_fallback and is_daily_free_quota_exhausted(exc):
 					skip_openrouter_free = True
-					logger.warning(
+					_chatter(
 						"Daily free quota exhausted on %s; skipping remaining OpenRouter free…",
 						tried[-1],
 					)
@@ -333,12 +364,12 @@ def complete_with_free_fallback(
 				if enable_free_fallback and or_free and provider_returned:
 					if has_non_or_remaining:
 						skip_openrouter_free = True
-						logger.warning(
+						_chatter(
 							"OpenRouter free provider error on %s; skipping remaining OpenRouter free…",
 							tried[-1],
 						)
 					else:
-						logger.warning(
+						_chatter(
 							"OpenRouter free provider error on %s; trying next free preset…",
 							tried[-1],
 						)
@@ -355,7 +386,7 @@ def complete_with_free_fallback(
 				):
 					same_retries += 1
 					_sleep_for_rate_limit(exc, sleep_fn=sleep_fn)
-					logger.warning(
+					_chatter(
 						"Retrying %s after rate limit (%s/%s)…",
 						tried[-1],
 						same_retries,
@@ -368,13 +399,13 @@ def complete_with_free_fallback(
 				if enable_free_fallback and or_free and is_free_routing_failure(exc):
 					if has_non_or_remaining:
 						skip_openrouter_free = True
-						logger.warning(
+						_chatter(
 							"OpenRouter free %s failed (%s); skipping remaining OpenRouter free…",
 							tried[-1],
 							exc,
 						)
 					else:
-						logger.warning(
+						_chatter(
 							"Free model %s failed (%s); trying next free preset…",
 							tried[-1],
 							exc,
@@ -382,7 +413,7 @@ def complete_with_free_fallback(
 					break
 
 				if enable_free_fallback and is_free_routing_failure(exc) and index < len(candidates) - 1:
-					logger.warning(
+					_chatter(
 						"Free model %s failed (%s); trying next free preset…",
 						tried[-1],
 						exc,
@@ -397,7 +428,7 @@ def complete_with_free_fallback(
 				if enable_free_fallback and is_rate_limit_failure(exc):
 					if or_free and has_non_or_remaining:
 						skip_openrouter_free = True
-					logger.warning(
+					_chatter(
 						"Rate limit on %s; trying next free preset…",
 						tried[-1],
 					)
