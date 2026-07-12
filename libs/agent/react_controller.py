@@ -46,6 +46,7 @@ class ReActController:
         missing_binary_handler: Optional[MissingBinaryHandler] = None,
         confirm_fn: Optional[Callable[[str], bool]] = None,
         enable_missing_binary_search: bool = False,
+        execute_timeout_seconds: Optional[float] = None,
     ):
         self.model_name = model_name
         self.api_key = api_key
@@ -74,7 +75,12 @@ class ReActController:
         self.coder = CoderAction(
             model_name, api_key, code_interpreter, on_fallback=self._on_llm_fallback
         )
-        self.executor = ExecutorAction(code_interpreter, safety_manager)
+        if execute_timeout_seconds is not None:
+            self.executor = ExecutorAction(
+                code_interpreter, safety_manager, execute_timeout_seconds=execute_timeout_seconds
+            )
+        else:
+            self.executor = ExecutorAction(code_interpreter, safety_manager)
         self.reviewer = ReviewerAction(model_name, api_key, on_fallback=self._on_llm_fallback)
         self.debugger = DebuggerAction(model_name, api_key, on_fallback=self._on_llm_fallback)
 
