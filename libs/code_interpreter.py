@@ -427,7 +427,8 @@ class CodeInterpreter:
 				display_markdown_message("Error **Code not provided to save.**")
 				return
 
-			with open(filename, 'w') as file:
+			# Always use UTF-8 so non-ASCII chars (e.g. ≤, →) work on Windows cp1252.
+			with open(filename, 'w', encoding='utf-8', errors='strict') as file:
 				file.write(code)
 				self.logger.info(f"Code saved successfully to {filename}.")
 

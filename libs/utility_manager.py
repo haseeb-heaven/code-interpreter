@@ -270,7 +270,7 @@ class UtilityManager:
 
 				# Read the file and return the code
 				if latest_file:
-					with open(latest_file, "r") as code_file:
+					with open(latest_file, "r", encoding="utf-8", errors="replace") as code_file:
 						code = code_file.read()
 						return latest_file, code
 			
@@ -338,7 +338,7 @@ class UtilityManager:
 	
 	def create_file(self, file_path):
 		try:
-			with open(file_path, "w") as file:
+			with open(file_path, "w", encoding="utf-8") as file:
 				file.write("")
 		except Exception as exception:
 			self.logger.error(f"Error in creating file: {str(exception)}")
@@ -346,7 +346,7 @@ class UtilityManager:
 		
 	def read_file(self, file_path):
 		try:
-			with open(file_path, "r") as file:
+			with open(file_path, "r", encoding="utf-8", errors="replace") as file:
 				return file.read()
 		except Exception as exception:
 			self.logger.error(f"Error in reading file: {str(exception)}")
@@ -354,7 +354,7 @@ class UtilityManager:
 	
 	def write_file(self, file_path, content):
 		try:
-			with open(file_path, "w") as file:
+			with open(file_path, "w", encoding="utf-8", errors="strict") as file:
 				file.write(content)
 		except Exception as exception:
 			self.logger.error(f"Error in writing file: {str(exception)}")

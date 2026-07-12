@@ -45,6 +45,26 @@ class TestCodeInterpreterHelpers(unittest.TestCase):
 			ci.save_code(str(path), "print(1)")
 			self.assertEqual(path.read_text(encoding="utf-8"), "print(1)")
 
+	def test_save_code_unicode_non_cp1252(self):
+		"""Regression: Windows default cp1252 cannot encode ≤ and similar chars."""
+		ci = CodeInterpreter()
+		# Characters outside cp1252 / typical Windows charmap encodings.
+		unicode_code = (
+			"# range: 0 \u2264 n \u2264 100\n"  # ≤
+			"# arrow: \u2192 next\n"  # →
+			"# greek: \u03c0 approx 3.14\n"  # π
+			"# emoji: \U0001f680\n"  # 🚀
+			"print('ok')\n"
+		)
+		with tempfile.TemporaryDirectory() as tmp:
+			path = Path(tmp) / "unicode_out.py"
+			ci.save_code(str(path), unicode_code)
+			written = path.read_text(encoding="utf-8")
+			self.assertEqual(written, unicode_code)
+			self.assertIn("\u2264", written)
+			self.assertIn("\u2192", written)
+			self.assertIn("\u03c0", written)
+
 	def test_execute_code_empty(self):
 		ci = CodeInterpreter()
 		ci.UNSAFE_EXECUTION = True
