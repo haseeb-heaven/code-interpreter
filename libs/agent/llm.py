@@ -181,6 +181,8 @@ def complete_with_free_fallback(
 	"""
 	if sleep_fn is None:
 		sleep_fn = time.sleep
+	# Ensure .env keys are visible before catalog availability filtering.
+	_ensure_dotenv_loaded()
 	cat = catalog or FreeLLMCatalog.load()
 	primary = _candidate_from_model(model_name, configs_dir=configs_dir, catalog=cat)
 	candidates: List[Dict[str, Any]] = [primary]
@@ -251,6 +253,12 @@ def complete_with_free_fallback(
 				return response, metrics
 			except Exception as exc:
 				last_exc = exc
+				text_low = str(exc or "").lower()
+				or_free = is_openrouter_free_candidate(candidate)
+				provider_returned = "provider returned error" in text_low
+				has_non_or_remaining = any(
+					not is_openrouter_free_candidate(c) for c in candidates[index + 1 :]
+				)
 
 				# Daily free quota: do not retry same OR free model; skip remaining OR free.
 				if enable_free_fallback and is_daily_free_quota_exhausted(exc):
@@ -261,11 +269,29 @@ def complete_with_free_fallback(
 					)
 					break
 
-				# Rate-limit: sleep + retry same model a few times before falling through.
+				# Vague OR "Provider returned error" — jump to Groq/Gemini when available.
+				if enable_free_fallback and or_free and provider_returned:
+					if has_non_or_remaining:
+						skip_openrouter_free = True
+						logger.warning(
+							"OpenRouter free provider error on %s; skipping remaining OpenRouter free…",
+							tried[-1],
+						)
+					else:
+						logger.warning(
+							"OpenRouter free provider error on %s; trying next free preset…",
+							tried[-1],
+						)
+					break
+
+				# Rate-limit with an explicit retry-after: brief same-model retry.
+				# Skip retries for OR free when the error has no wait hint (avoid burning slots).
+				has_retry_hint = parse_retry_after_seconds(exc) is not None
 				if (
 					enable_free_fallback
 					and is_rate_limit_failure(exc)
 					and same_retries < max_same_retries
+					and (has_retry_hint or not or_free)
 				):
 					same_retries += 1
 					_sleep_for_rate_limit(exc, sleep_fn=sleep_fn)
@@ -277,6 +303,24 @@ def complete_with_free_fallback(
 					)
 					continue
 
+				# OR free rate-limit / routing failure: skip remaining OR free when
+				# Groq/Gemini/etc. are still in the candidate list.
+				if enable_free_fallback and or_free and is_free_routing_failure(exc):
+					if has_non_or_remaining:
+						skip_openrouter_free = True
+						logger.warning(
+							"OpenRouter free %s failed (%s); skipping remaining OpenRouter free…",
+							tried[-1],
+							exc,
+						)
+					else:
+						logger.warning(
+							"Free model %s failed (%s); trying next free preset…",
+							tried[-1],
+							exc,
+						)
+					break
+
 				if enable_free_fallback and is_free_routing_failure(exc) and index < len(candidates) - 1:
 					logger.warning(
 						"Free model %s failed (%s); trying next free preset…",
@@ -287,6 +331,16 @@ def complete_with_free_fallback(
 
 				if enable_free_fallback and is_free_routing_failure(exc):
 					# Last candidate exhausted
+					break
+
+				# With free fallback enabled, never surface a bare RateLimitError hard-stop.
+				if enable_free_fallback and is_rate_limit_failure(exc):
+					if or_free and has_non_or_remaining:
+						skip_openrouter_free = True
+					logger.warning(
+						"Rate limit on %s; trying next free preset…",
+						tried[-1],
+					)
 					break
 
 				logger.error("LLM call failed: %s", exc)

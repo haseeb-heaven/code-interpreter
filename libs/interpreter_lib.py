@@ -571,9 +571,25 @@ class Interpreter:
 
 			context_manager = ContextManager(token_limit=100_000, preserve_last_n=6)
 			# Prefer config basename so free-catalog fallback can rotate providers.
+			# initialize_client overwrites INTERPRETER_MODEL with the litellm id.
 			quiet = bool(getattr(self, "_structured_output_active", lambda: False)())
+			model_for_loop = str(
+				getattr(self, "INTERPRETER_MODEL_LABEL", None)
+				or self.INTERPRETER_MODEL
+				or ""
+			).strip()
+			try:
+				from libs.free_llms import resolve_model_config_name
+
+				resolved = resolve_model_config_name(model_for_loop) or resolve_model_config_name(
+					str(self.INTERPRETER_MODEL or "")
+				)
+				if resolved:
+					model_for_loop = resolved
+			except Exception:
+				pass
 			loop = AutonomousAgentLoop(
-				model=str(self.INTERPRETER_MODEL),
+				model=model_for_loop or str(self.INTERPRETER_MODEL),
 				auto_mode=auto_mode,
 				registry=registry,
 				enable_free_fallback=True,

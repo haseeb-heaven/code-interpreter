@@ -159,7 +159,8 @@ class FreeFallbackCandidateTests(unittest.TestCase):
 		self.catalog = FreeLLMCatalog.load(self.catalog_path)
 		self.env = {"OPENROUTER_API_KEY": "sk-or-test", "GROQ_API_KEY": "gsk-test"}
 
-	def test_openrouter_fallback_prefers_other_openrouter(self):
+	def test_openrouter_fallback_prefers_alt_providers(self):
+		"""OR primary → Groq/Gemini before sibling OpenRouter :free (avoid burning OR quota)."""
 		cands = free_fallback_candidates(
 			"openrouter/free",
 			catalog=self.catalog,
@@ -167,9 +168,11 @@ class FreeFallbackCandidateTests(unittest.TestCase):
 			configs_dir=self.configs_dir,
 		)
 		self.assertTrue(cands)
-		self.assertEqual(cands[0]["config"], "openrouter-qwen-free")
-		self.assertEqual(cands[0]["model"], "qwen/qwen3-coder:free")
+		self.assertEqual(cands[0]["config"], "groq-llama")
+		self.assertEqual(cands[0]["model"], "groq/llama-3.1-8b-instant")
 		self.assertNotIn("openrouter-free", [c["config"] for c in cands])
+		# Sibling OR free still available later in the list.
+		self.assertIn("openrouter-qwen-free", [c["config"] for c in cands])
 
 	def test_dead_catalog_entries_without_config_file_are_skipped(self):
 		"""Catalog rotation continues when a listed free ID has no config file."""
@@ -311,14 +314,23 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 			model = kwargs.get("model")
 			if model == "openrouter/free":
 				raise RuntimeError(STEALTH_502)
-			if model in ("qwen/qwen3-coder:free", "openrouter/qwen/qwen3-coder:free"):
+			# Groq preferred when GROQ_API_KEY is present; else OR sibling.
+			if model in (
+				"groq/llama-3.1-8b-instant",
+				"qwen/qwen3-coder:free",
+				"openrouter/qwen/qwen3-coder:free",
+			):
 				return ok
 			raise AssertionError(f"unexpected model {model}")
 
 		completion_mock.side_effect = side_effect
 		fallback_hits = []
 
-		with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-or-test"}, clear=False):
+		with patch.dict(
+			os.environ,
+			{"OPENROUTER_API_KEY": "sk-or-test", "GROQ_API_KEY": "gsk-test"},
+			clear=False,
+		):
 			content, metrics = call_llm(
 				"openrouter/free",
 				[{"role": "user", "content": "hi"}],
@@ -328,11 +340,11 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 			)
 
 		self.assertIn("Thought:", content)
-		self.assertEqual(metrics["model_used"], "qwen/qwen3-coder:free")
+		self.assertEqual(metrics["model_used"], "groq/llama-3.1-8b-instant")
 		self.assertEqual(metrics["fallback_used"], 1.0)
 		self.assertEqual(completion_mock.call_count, 2)
 		self.assertEqual(len(fallback_hits), 1)
-		self.assertEqual(fallback_hits[0]["model"], "qwen/qwen3-coder:free")
+		self.assertEqual(fallback_hits[0]["model"], "groq/llama-3.1-8b-instant")
 
 	@patch("libs.agent.llm.time.sleep")
 	@patch("libs.agent.llm.litellm.completion_cost", return_value=0.0)
@@ -379,15 +391,15 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 	@patch("libs.agent.llm.litellm.completion_cost", return_value=0.0)
 	@patch("libs.agent.llm.litellm.completion")
 	def test_rate_limit_falls_through_to_next_free_model(self, completion_mock, _cost, sleep_mock):
-		"""Persistent 429 after retries → next free catalog preset."""
+		"""Persistent 429 after retries → next free catalog preset (Groq before OR siblings)."""
 		catalog = FreeLLMCatalog.load(self.catalog_path)
-		ok = _ok_response("from-qwen")
+		ok = _ok_response("from-groq")
 
 		def side_effect(**kwargs):
 			model = kwargs.get("model")
 			if model == "openrouter/free":
 				raise RuntimeError(OPENROUTER_429)
-			if model in ("qwen/qwen3-coder:free", "openrouter/qwen/qwen3-coder:free"):
+			if model == "groq/llama-3.1-8b-instant":
 				return ok
 			raise AssertionError(f"unexpected model {model}")
 
@@ -407,8 +419,8 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 				on_fallback=fallback_hits.append,
 			)
 
-		self.assertEqual(content, "from-qwen")
-		self.assertEqual(metrics["model_used"], "qwen/qwen3-coder:free")
+		self.assertEqual(content, "from-groq")
+		self.assertEqual(metrics["model_used"], "groq/llama-3.1-8b-instant")
 		self.assertEqual(metrics["fallback_used"], 1.0)
 		self.assertTrue(fallback_hits)
 		# Must have retried same model at least once (sleep) before falling through
@@ -430,13 +442,13 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 		def side_effect(**kwargs):
 			model = kwargs.get("model")
 			seen_models.append(model)
-			# First call: primary fails, fallback succeeds
+			# First call: primary fails, fallback succeeds (Groq preferred over OR siblings)
 			if model == "openrouter/free":
 				raise RuntimeError(STEALTH_502)
-			if model in ("qwen/qwen3-coder:free", "openrouter/qwen/qwen3-coder:free"):
-				return _ok_response(f"ok:{model}")
 			if model in ("groq/llama-3.1-8b-instant",):
 				return _ok_response("ok:groq")
+			if model in ("qwen/qwen3-coder:free", "openrouter/qwen/qwen3-coder:free"):
+				return _ok_response(f"ok:{model}")
 			raise AssertionError(f"unexpected model {model}")
 
 		completion_mock.side_effect = side_effect
@@ -462,9 +474,9 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 				on_fallback=on_fallback,
 			)
 
-		self.assertEqual(metrics1["model_used"], "qwen/qwen3-coder:free")
-		self.assertEqual(shared["model"], "qwen/qwen3-coder:free")
-		self.assertEqual(metrics2["model_used"], "qwen/qwen3-coder:free")
+		self.assertEqual(metrics1["model_used"], "groq/llama-3.1-8b-instant")
+		self.assertEqual(shared["model"], "groq/llama-3.1-8b-instant")
+		self.assertEqual(metrics2["model_used"], "groq/llama-3.1-8b-instant")
 		# Second call must not re-hit the dead openrouter/free primary
 		self.assertNotEqual(seen_models[-1], "openrouter/free")
 		self.assertIn("ok:", content1)

@@ -165,6 +165,13 @@ class AutoLoopFreeFallbackTests(unittest.TestCase):
 				"temperature": 0.1,
 				"max_tokens": 1024,
 			},
+			"openrouter-qwen-free": {
+				"provider": "openrouter",
+				"api_base": "https://openrouter.ai/api/v1",
+				"model": "qwen/qwen3-coder:free",
+				"temperature": 0.1,
+				"max_tokens": 1024,
+			},
 			"groq-llama": {
 				"provider": "groq",
 				"model": "groq/llama-3.1-8b-instant",
@@ -185,6 +192,13 @@ class AutoLoopFreeFallbackTests(unittest.TestCase):
 						"tier": "free",
 					},
 					{
+						"id": "openrouter-qwen-free",
+						"config": "openrouter-qwen-free",
+						"provider": "openrouter",
+						"env_key": "OPENROUTER_API_KEY",
+						"tier": "free",
+					},
+					{
 						"id": "groq-llama",
 						"config": "groq-llama",
 						"provider": "groq",
@@ -199,13 +213,6 @@ class AutoLoopFreeFallbackTests(unittest.TestCase):
 
 	def _run_loop(self, side_effect_exc: Exception):
 		from libs.agent.auto_loop import AutonomousAgentLoop
-
-		calls = []
-
-		def completion_fn(model, messages, tools):
-			# Delegate to AutoLoop's built-in free-fallback path when no custom fn
-			# is set — this test uses enable_free_fallback on the loop itself.
-			raise AssertionError("custom completion_fn should not be used here")
 
 		attempted = []
 
@@ -227,14 +234,35 @@ class AutoLoopFreeFallbackTests(unittest.TestCase):
 						catalog=self.catalog,
 						api_key=None,
 						sleep_fn=lambda _s: None,
+						rate_limit_retries=2,
 					)
 					result = loop.run("say hi")
 		return result, attempted
 
+	def _assert_jumped_to_groq_without_or_siblings(self, result, attempted):
+		"""Daily-quota / OR RateLimit must not hard-stop or burn sibling OR free."""
+		self.assertEqual(result, "autoloop-fallback-ok", result)
+		self.assertFalse(
+			str(result).startswith("[LLM Error] litellm.RateLimitError"),
+			f"bare RateLimit hard-stop without fallback: {result!r}",
+		)
+		joined = " | ".join(attempted).lower()
+		self.assertNotIn("qwen3-coder", joined, f"burned OR sibling: {attempted}")
+		self.assertTrue(
+			any("groq" in m.lower() or "llama-3.1-8b-instant" in m.lower() for m in attempted),
+			f"expected Groq next, got {attempted}",
+		)
+		# Immediate jump: primary OR then Groq (no other OR free in between).
+		non_primary = [m for m in attempted if "openrouter/free" not in m.lower()]
+		self.assertTrue(non_primary, attempted)
+		self.assertTrue(
+			"groq" in non_primary[0].lower() or "llama-3.1" in non_primary[0].lower(),
+			f"next model after OR should be Groq, got {attempted}",
+		)
+
 	def test_autoloop_falls_back_on_daily_quota(self):
 		result, attempted = self._run_loop(RuntimeError(DAILY_QUOTA))
-		self.assertEqual(result, "autoloop-fallback-ok")
-		self.assertTrue(any("groq" in m.lower() or "llama" in m.lower() for m in attempted), attempted)
+		self._assert_jumped_to_groq_without_or_siblings(result, attempted)
 
 	def test_autoloop_falls_back_on_stealth_502(self):
 		result, attempted = self._run_loop(RuntimeError(STEALTH_502))
@@ -245,6 +273,30 @@ class AutoLoopFreeFallbackTests(unittest.TestCase):
 		result, attempted = self._run_loop(RuntimeError(OPENROUTER_429))
 		self.assertEqual(result, "autoloop-fallback-ok")
 		self.assertTrue(any("groq" in m.lower() or "llama" in m.lower() for m in attempted), attempted)
+
+	def test_autoloop_ratelimit_free_models_per_day_jumps_to_groq(self):
+		"""Regression: litellm.RateLimitError(free-models-per-day) must rotate, not hard-stop."""
+		from litellm.exceptions import RateLimitError
+
+		exc = RateLimitError(
+			message="Rate limit exceeded: free-models-per-day. Remaining: 0",
+			model="openrouter/free",
+			llm_provider="openrouter",
+		)
+		result, attempted = self._run_loop(exc)
+		self._assert_jumped_to_groq_without_or_siblings(result, attempted)
+
+	def test_autoloop_ratelimit_provider_returned_error_skips_or_siblings(self):
+		"""Provider returned error on OR free must not burn remaining OR :free slots."""
+		from litellm.exceptions import RateLimitError
+
+		exc = RateLimitError(
+			message="Provider returned error",
+			model="openrouter/free",
+			llm_provider="openrouter",
+		)
+		result, attempted = self._run_loop(exc)
+		self._assert_jumped_to_groq_without_or_siblings(result, attempted)
 
 
 class ResolveModelConfigNameTests(unittest.TestCase):

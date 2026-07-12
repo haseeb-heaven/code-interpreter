@@ -306,6 +306,11 @@ def parse_retry_after_seconds(
 
 def is_rate_limit_failure(exc: BaseException) -> bool:
 	"""True when the error is specifically a 429 / rate-limit (retryable)."""
+	# LiteLLM / OpenAI exception class names often carry the signal even when
+	# the message is a vague "Provider returned error".
+	type_name = type(exc).__name__.lower()
+	if "ratelimit" in type_name or type_name in {"rate_limit_error", "ratelimiterror"}:
+		return True
 	text = str(exc or "").lower()
 	if not text:
 		return False
@@ -317,6 +322,7 @@ def is_rate_limit_failure(exc: BaseException) -> bool:
 		"rate_limit_exceeded",
 		"too many requests",
 		"tokens per minute",
+		"provider returned error",
 	)
 	return any(marker in text for marker in markers)
 
@@ -510,8 +516,10 @@ def free_fallback_candidates(
 ) -> List[Dict[str, Any]]:
 	"""Ordered alternate free models to try after ``current_model`` fails.
 
-	Prefer other available OpenRouter free entries when the current model is
-	OpenRouter-related, then other available free catalog presets.
+	When the current model is OpenRouter-related, prefer Groq / Gemini / HF /
+	local next (OR free-tier 429 / ``free-models-per-day`` / provider errors
+	usually affect the whole OR free pool). Otherwise prefer same-provider
+	siblings first, then other free catalog presets.
 	"""
 	cat = catalog or FreeLLMCatalog.load()
 	current = (current_model or "").strip()
@@ -528,10 +536,17 @@ def free_fallback_candidates(
 
 	ordered: List[FreeModelEntry] = []
 	seen_configs: set[str] = set()
-	buckets = (
-		[e for e in available if e.provider.lower() == prefer_provider] if prefer_provider else [],
-		[e for e in available if not prefer_provider or e.provider.lower() != prefer_provider],
-	)
+	if prefer_provider == "openrouter":
+		# Jump to Groq/Gemini/etc. before burning sibling OpenRouter :free slots.
+		buckets = (
+			[e for e in available if e.provider.lower() != "openrouter"],
+			[e for e in available if e.provider.lower() == "openrouter"],
+		)
+	else:
+		buckets = (
+			[e for e in available if e.provider.lower() == prefer_provider] if prefer_provider else [],
+			[e for e in available if not prefer_provider or e.provider.lower() != prefer_provider],
+		)
 	for bucket in buckets:
 		for entry in bucket:
 			if entry.config in seen_configs:
