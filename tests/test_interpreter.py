@@ -419,8 +419,10 @@ class TestInterpreter(unittest.TestCase):
 				completion_mock.assert_called_once()
 				self.assertEqual(completion_mock.call_args.args[0], expected_model)
 
+	@patch("libs.core.wizard_config.WizardConfigStore")
 	@patch("interpreter.TerminalUI.launch")
-	def test_prepare_args_defaults_to_tui_when_no_args(self, launch_mock):
+	def test_prepare_args_defaults_to_tui_when_no_args(self, launch_mock, store_cls_mock):
+		store_cls_mock.return_value.load.return_value = None
 		parser = interpreter_entry.build_parser()
 		args = parser.parse_args([])
 		launch_mock.return_value = args
@@ -999,9 +1001,14 @@ class TestSubprocessSecurityKwargs(unittest.TestCase):
 		ctx = SimpleNamespace(cwd=None, env=custom_env)
 		kwargs = self.ci._get_subprocess_security_kwargs(sandbox_context=ctx)
 		# Expect only whitelisted keys to be present and merged with defaults
-		allowed_keys = {"PATH", "HOME", "LANG"}
+		allowed_keys = {"PATH", "HOME", "LANG", "USERPROFILE"}
 		if os.name == "nt":
-			default_env = {"PATH": os.environ.get("PATH", ""), "HOME": os.environ.get("USERPROFILE", ""), "LANG": os.environ.get("LANG", "C")}
+			default_env = {
+				"PATH": os.environ.get("PATH", ""),
+				"HOME": os.environ.get("USERPROFILE", ""),
+				"USERPROFILE": os.environ.get("USERPROFILE", ""),
+				"LANG": os.environ.get("LANG", "C"),
+			}
 		else:
 			default_env = {"PATH": "/usr/bin:/bin", "HOME": tempfile.gettempdir(), "LANG": "C"}
 		expected = default_env.copy()
