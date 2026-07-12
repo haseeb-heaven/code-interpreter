@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from rich.console import Console
 
@@ -17,6 +17,9 @@ from libs.agent.llm import call_llm
 from libs.agent.logger import TrajectoryLogger
 from libs.agent.parser import ParseError, format_trajectory, parse_react_step
 from libs.agent.prompts import REACT_SYSTEM_PROMPT
+from libs.agent.step_ui import make_step_presenter
+from libs.deps.install_flow import MissingBinaryHandler
+from libs.deps.missing_binary import is_missing_binary_error
 from libs.free_llms import FreeModelsExhaustedError, is_free_routing_failure, is_rate_limit_failure
 
 console = Console()
@@ -35,11 +38,29 @@ class ReActController:
         log_path: str = "logs/agent_react.jsonl",
         max_steps: int = 10,
         unsafe_mode: bool = False,
+        *,
+        gemini_style: bool = False,
+        quiet_ui: bool = False,
+        step_presenter: Any = None,
+        auto_yes: bool = False,
+        missing_binary_handler: Optional[MissingBinaryHandler] = None,
+        confirm_fn: Optional[Callable[[str], bool]] = None,
+        enable_missing_binary_search: bool = False,
     ):
         self.model_name = model_name
         self.api_key = api_key
         self.max_steps = max_steps
         self.log_path = log_path
+        self.gemini_style = bool(gemini_style)
+        self.auto_yes = bool(auto_yes)
+        self.enable_missing_binary_search = bool(enable_missing_binary_search)
+        self.presenter = step_presenter or make_step_presenter(
+            gemini_style=self.gemini_style,
+            quiet=quiet_ui,
+            console=console,
+        )
+        self.missing_binary_handler = missing_binary_handler
+        self.confirm_fn = confirm_fn
 
         if code_interpreter is None or safety_manager is None:
             from libs.code_interpreter import CodeInterpreter
@@ -137,7 +158,8 @@ class ReActController:
         while state["step_count"] < self.max_steps:
             step_num = state["step_count"] + 1
             try:
-                step_text, step_metrics = self._think(state)
+                with self.presenter.thinking(step_num):
+                    step_text, step_metrics = self._think(state)
                 state["cost_metrics"]["total_cost"] += step_metrics["cost"]
                 state["cost_metrics"]["total_tokens"] += step_metrics["tokens"]
                 react_step = parse_react_step(step_text)
@@ -173,8 +195,8 @@ class ReActController:
                 break
             last_signature = signature
 
-            console.print(f"[bold blue]Step {step_num}[/bold blue] Thought: {react_step.thought[:120]}")
-            console.print(f"[bold cyan]Action:[/bold cyan] {react_step.action}")
+            self.presenter.show_thought(step_num, react_step.thought)
+            self.presenter.show_action(step_num, react_step.action, react_step.action_input)
 
             if react_step.action == "finish":
                 summary = ""
@@ -207,10 +229,12 @@ class ReActController:
                     cost=0.0,
                     status="COMPLETED",
                 )
+                self.presenter.show_observation(step_num, observation)
                 break
 
             try:
-                observation, action_metrics = self._dispatch(react_step, state)
+                with self.presenter.acting(step_num, react_step.action):
+                    observation, action_metrics = self._dispatch(react_step, state)
             except FreeModelsExhaustedError as exc:
                 state["status"] = "FAILED"
                 state["failure_reason"] = self._report_llm_failure(exc)
@@ -226,6 +250,10 @@ class ReActController:
                 logger.exception("Action %s failed", react_step.action)
                 observation = f"ACTION_ERROR: {exc}"
                 action_metrics = {"cost": 0.0, "tokens": 0}
+
+            # Missing binary (ffmpeg, etc.): search/ask/install instead of static dump.
+            if react_step.action == "execute" and is_missing_binary_error(observation):
+                observation = self._recover_missing_binary(observation)
 
             state["cost_metrics"]["total_cost"] += action_metrics.get("cost", 0.0)
             state["cost_metrics"]["total_tokens"] += int(action_metrics.get("tokens", 0))
@@ -249,7 +277,7 @@ class ReActController:
                 cost=float(action_metrics.get("cost", 0.0)),
                 status="running",
             )
-            console.print(f"[dim]Observation: {observation[:200]}[/dim]\n")
+            self.presenter.show_observation(step_num, observation)
 
         if state["status"] == "RUNNING":
             state["status"] = "FAILED"
@@ -353,3 +381,49 @@ class ReActController:
             return result.observation, result.metrics
 
         raise ValueError(f"Unhandled action: {action}")
+
+    def _recover_missing_binary(self, observation: str) -> str:
+        """Ask / optionally install when execute fails due to a missing PATH tool."""
+        handler = self.missing_binary_handler
+        if handler is None:
+            search_fn = None
+            if self.enable_missing_binary_search:
+                search_fn = self._default_search
+            handler = MissingBinaryHandler(
+                confirm_fn=self.confirm_fn,
+                search_fn=search_fn,
+                print_fn=lambda msg: console.print(msg),
+            )
+
+        do_search = bool(self.enable_missing_binary_search or handler.search_fn)
+        if do_search and hasattr(self.presenter, "searching"):
+            with self.presenter.searching("install missing tool"):
+                result = handler.handle(
+                    observation,
+                    auto_yes=self.auto_yes,
+                    yolo=False,
+                    do_search=True,
+                )
+        else:
+            result = handler.handle(
+                observation,
+                auto_yes=self.auto_yes,
+                yolo=False,
+                do_search=False,
+            )
+        if result.detected and result.observation:
+            return f"{observation}\n\n{result.observation}"
+        return observation
+
+    @staticmethod
+    def _default_search(query: str) -> str:
+        """Best-effort DuckDuckGo / WebSearchTool lookup for install tips."""
+        try:
+            from libs.tools.web_search_tool import WebSearchTool
+
+            tool = WebSearchTool(provider="duckduckgo")
+            out = tool.search(query, max_results=3)
+            return out if isinstance(out, str) else str(out)
+        except Exception as exc:
+            logger.debug("Default missing-binary search failed: %s", exc)
+            return f"(web search unavailable: {exc})"

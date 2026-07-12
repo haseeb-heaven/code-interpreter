@@ -13,6 +13,9 @@ from typing import Any, Callable, Optional
 from libs.repl_guards import format_short_llm_error
 from libs.tools.bootstrap import build_native_fs_registry
 from libs.tools.tool_registry import ToolRegistry
+from libs.agent.step_ui import make_step_presenter
+from libs.deps.install_flow import MissingBinaryHandler
+from libs.deps.missing_binary import is_missing_binary_error
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +65,13 @@ class AutonomousAgentLoop:
 		on_fallback: Optional[Callable[[dict], None]] = None,
 		sleep_fn=None,
 		rate_limit_retries: int = 2,
+		gemini_style: bool = False,
+		quiet_ui: bool = False,
+		step_presenter: Any = None,
+		auto_yes: bool = False,
+		missing_binary_handler: Optional[MissingBinaryHandler] = None,
+		install_confirm_fn: Optional[Callable[[str], bool]] = None,
+		enable_missing_binary_search: bool = False,
 	):
 		"""
 		Args:
@@ -82,6 +92,13 @@ class AutonomousAgentLoop:
 			on_fallback: Called with the winning candidate dict after a fallback.
 			sleep_fn: Injectable sleep for rate-limit retries (tests).
 			rate_limit_retries: Same-model retries before falling through.
+			gemini_style: Use Gemini-CLI style step spinner / Thought panels.
+			quiet_ui: Suppress step UX (structured output).
+			step_presenter: Optional injected presenter.
+			auto_yes: ``--yes`` / ``INTERPRETER_YES`` — with yolo, auto-approve installs.
+			missing_binary_handler: Optional injected missing-tool recovery handler.
+			install_confirm_fn: Optional ``(prompt) -> bool`` for install consent.
+			enable_missing_binary_search: Web-search install tips when a tool is missing.
 		"""
 		self.llm = llm_client
 		self.model = model
@@ -98,6 +115,16 @@ class AutonomousAgentLoop:
 		self.on_fallback = on_fallback
 		self.sleep_fn = sleep_fn
 		self.rate_limit_retries = rate_limit_retries
+		self.gemini_style = bool(gemini_style)
+		self.auto_yes = bool(auto_yes)
+		self.enable_missing_binary_search = bool(enable_missing_binary_search)
+		# Live step UX when gemini_style is requested (interpreter_auto_main sets this).
+		self.presenter = step_presenter or make_step_presenter(
+			gemini_style=bool(gemini_style),
+			quiet=quiet_ui,
+		)
+		self.missing_binary_handler = missing_binary_handler
+		self.install_confirm_fn = install_confirm_fn
 
 	def run(self, task: str) -> str:
 		"""Execute the autonomous loop; never raises.
@@ -138,7 +165,8 @@ class AutonomousAgentLoop:
 
 			tools = self.registry.openai_schemas()
 			try:
-				response = self._complete(messages, tools)
+				with self.presenter.thinking(iteration):
+					response = self._complete(messages, tools)
 			except Exception as exc:
 				short_err = format_short_llm_error(exc)
 				err_low = str(exc).lower()
@@ -170,28 +198,40 @@ class AutonomousAgentLoop:
 				content = getattr(msg, "content", None)
 
 			if not tool_calls:
+				if content:
+					self.presenter.show_observation(iteration, content)
 				return content or ""
 
 			# Append assistant turn (dict form for message history portability)
 			assistant_msg = self._assistant_message_dict(msg, content, tool_calls)
 			messages.append(assistant_msg)
+			if content:
+				self.presenter.show_thought(iteration, content)
 
 			for tc in tool_calls:
 				tool_name, tool_args, tool_call_id = self._parse_tool_call(tc)
 				logger.info("[AutoLoop] Tool call: %s(%s)", tool_name, tool_args)
+				self.presenter.show_action(iteration, tool_name, tool_args)
 
 				if not self.auto:
 					approved = self._confirm(tool_name, tool_args)
 					if not approved:
 						result_text = "User denied this tool call."
 					else:
-						result = self.registry.dispatch(tool_name, tool_args)
+						with self.presenter.acting(iteration, tool_name):
+							result = self.registry.dispatch(tool_name, tool_args)
 						result_text = result.output if result.success else f"ERROR: {result.error}"
 				else:
-					result = self.registry.dispatch(tool_name, tool_args)
+					with self.presenter.acting(iteration, tool_name):
+						result = self.registry.dispatch(tool_name, tool_args)
 					result_text = result.output if result.success else f"ERROR: {result.error}"
 					logger.info("[AutoLoop] Result: %s", (result_text or "")[:200])
 
+				# Missing binary recovery (ffmpeg, etc.) — ask unless yolo+yes.
+				if is_missing_binary_error(result_text):
+					result_text = self._recover_missing_binary(result_text)
+
+				self.presenter.show_observation(iteration, result_text)
 				messages.append(
 					{
 						"role": "tool",
@@ -201,6 +241,47 @@ class AutonomousAgentLoop:
 				)
 
 		return "[AutoLoop] Max iterations reached. Task may be incomplete."
+
+	def _recover_missing_binary(self, result_text: str) -> str:
+		"""Prompt (or auto-approve with yolo+yes) to install a missing PATH tool."""
+		handler = self.missing_binary_handler
+		if handler is None:
+			search_fn = self._default_search if self.enable_missing_binary_search else None
+			handler = MissingBinaryHandler(
+				confirm_fn=self.install_confirm_fn,
+				search_fn=search_fn,
+			)
+		do_search = bool(self.enable_missing_binary_search or handler.search_fn)
+		if do_search and hasattr(self.presenter, "searching"):
+			with self.presenter.searching("install missing tool"):
+				result = handler.handle(
+					result_text,
+					auto_yes=self.auto_yes,
+					yolo=self.auto,
+					do_search=True,
+				)
+		else:
+			result = handler.handle(
+				result_text,
+				auto_yes=self.auto_yes,
+				yolo=self.auto,
+				do_search=False,
+			)
+		if result.detected and result.observation:
+			return f"{result_text}\n\n{result.observation}"
+		return result_text
+
+	@staticmethod
+	def _default_search(query: str) -> str:
+		try:
+			from libs.tools.web_search_tool import WebSearchTool
+
+			tool = WebSearchTool(provider="duckduckgo")
+			out = tool.search(query, max_results=3)
+			return out if isinstance(out, str) else str(out)
+		except Exception as exc:
+			logger.debug("[AutoLoop] missing-binary search failed: %s", exc)
+			return f"(web search unavailable: {exc})"
 
 	def _on_fallback_candidate(self, candidate: dict) -> None:
 		config_name = str(candidate.get("config") or candidate.get("model") or "").strip()

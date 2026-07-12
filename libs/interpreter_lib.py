@@ -571,6 +571,7 @@ class Interpreter:
 
 			context_manager = ContextManager(token_limit=100_000, preserve_last_n=6)
 			# Prefer config basename so free-catalog fallback can rotate providers.
+			quiet = bool(getattr(self, "_structured_output_active", lambda: False)())
 			loop = AutonomousAgentLoop(
 				model=str(self.INTERPRETER_MODEL),
 				auto_mode=auto_mode,
@@ -578,6 +579,13 @@ class Interpreter:
 				enable_free_fallback=True,
 				on_fallback=on_fallback,
 				context_manager=context_manager,
+				gemini_style=True,
+				quiet_ui=quiet,
+				auto_yes=bool(getattr(self, "AUTO_YES", False)),
+				install_confirm_fn=lambda prompt: (
+					self._safe_input(prompt, default="n").strip().lower() in ("y", "yes")
+				),
+				enable_missing_binary_search=True,
 			)
 
 			file_task = None
@@ -677,12 +685,20 @@ class Interpreter:
 		state = {"controller": None, "max_steps": max(int(getattr(self, "MAX_REPAIR_ATTEMPTS", 3) or 3), 10)}
 
 		def _make_controller(model_name: str):
+			quiet = bool(getattr(self, "_structured_output_active", lambda: False)())
 			return ReActController(
 				model_name=model_name,
 				api_key=None,
 				unsafe_mode=self.UNSAFE_EXECUTION,
 				log_path="logs/agent_react.jsonl",
 				max_steps=state["max_steps"],
+				gemini_style=True,  # Thought→Action→Observation live UX for all agentic runs
+				quiet_ui=quiet,
+				auto_yes=bool(getattr(self, "AUTO_YES", False)),
+				confirm_fn=lambda prompt: (
+					self._safe_input(prompt, default="n").strip().lower() in ("y", "yes")
+				),
+				enable_missing_binary_search=True,
 			)
 
 		def _on_model_switched(name: str):
