@@ -468,6 +468,44 @@ class TerminalUI:
 		advanced["mcp_server"] = _parse_mcp_command(mcp_raw)
 		return advanced
 
+	def _collect_codegen_task(self, existing_task=None, existing_file=None):
+		"""Prompt for the ``--task`` text (or ``-f`` prompt file) that ``generate``/``project``
+		mode requires.
+
+		``resolve_codegen_task`` (libs/code_generator.py) always raises ``ValueError`` when both
+		are empty, so unlike the other wizard answers these have no valid blank default. Retry a
+		bounded number of times, then exit cleanly instead of letting the caller hit that
+		unhandled ``ValueError``.
+		"""
+		task = (existing_task or "").strip() if isinstance(existing_task, str) else ""
+		file_path = existing_file.strip() if isinstance(existing_file, str) else ""
+		if task or file_path:
+			return {"task": task or None, "file": file_path or None}
+
+		max_attempts = 3
+		for attempt in range(max_attempts):
+			task = self._prompt_optional(
+				"Task description for code generation (--task; required for generate/project mode)"
+			)
+			if task:
+				return {"task": task, "file": None}
+			file_path = self._prompt_optional(
+				"Prompt file path instead (-f, e.g. prompt.txt; blank to re-enter task text)"
+			)
+			if file_path:
+				return {"task": None, "file": file_path}
+			if attempt < max_attempts - 1:
+				self.console.print(
+					"[yellow]Generate/project mode needs either a task description or a "
+					"prompt file path.[/yellow]"
+				)
+
+		self.console.print(
+			"[red]No task description or prompt file provided; cannot continue in "
+			"generate/project mode. Re-run with --task TEXT or -f prompt.txt.[/red]"
+		)
+		raise SystemExit(1)
+
 	def interactive_settings(self, interpreter):
 		current_model = getattr(interpreter, "INTERPRETER_MODEL_LABEL", None) or getattr(
 			interpreter, "INTERPRETER_MODEL", None
@@ -529,6 +567,13 @@ class TerminalUI:
 			)
 		)
 
+		codegen = None
+		if core["mode"] in ("generate", "project"):
+			codegen = self._collect_codegen_task(
+				existing_task=getattr(args, "task", None),
+				existing_file=getattr(args, "file", None),
+			)
+
 		advanced = self._collect_advanced_settings(args)
 
 		out.mode = core["mode"]
@@ -556,6 +601,10 @@ class TerminalUI:
 		out.image = advanced["image"]
 		out.attach = advanced["attach"]
 		out.mcp_server = advanced["mcp_server"]
+
+		if codegen is not None:
+			out.task = codegen["task"]
+			out.file = codegen["file"]
 
 		if out.output_format in ("json", "markdown"):
 			out.stream = False
