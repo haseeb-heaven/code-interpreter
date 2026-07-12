@@ -155,6 +155,7 @@ Follow the steps below to obtain and set up the API keys for each service:
     - NVIDIA API Catalog: Visit [NVIDIA Build](https://build.nvidia.com/), create a key, and use `NVIDIA_API_KEY`.
     - Z AI: Visit [Z AI Docs](https://docs.z.ai/) and use `Z_AI_API_KEY`.
     - OpenRouter: Visit [OpenRouter Keys](https://openrouter.ai/settings/keys) and use `OPENROUTER_API_KEY`.
+    - Cerebras: Visit [Cerebras Cloud](https://cloud.cerebras.ai/) (free public endpoints, rate-limited) and use `CEREBRAS_API_KEY`.
     - Browser Use: Visit [Browser Use Docs](https://docs.browser-use.com/) and use `BROWSER_USE_API_KEY`.
 
 2. **Save the API keys:**
@@ -171,6 +172,7 @@ export DEEPSEEK_API_KEY="Your Deepseek API Key"
 export NVIDIA_API_KEY="Your NVIDIA API Key"
 export Z_AI_API_KEY="Your Z AI API Key"
 export OPENROUTER_API_KEY="Your OpenRouter API Key"
+export CEREBRAS_API_KEY="Your Cerebras API Key"
 export BROWSER_USE_API_KEY="Your Browser Use API Key"
 ```
 
@@ -261,7 +263,7 @@ python interpreter.py -md 'code' -m 'local-model'
 - 🛡️ Safe sandbox execution with timeout and security
 - 🔁 Self-repair for failed executions
 - 💻 Cross-platform (Windows/macOS/Linux)
-- 🤝 Integrates with HuggingFace, OpenAI, Gemini, Groq, Claude, DeepSeek, NVIDIA, Z AI, OpenRouter, Browser Use
+- 🤝 Integrates with HuggingFace, OpenAI, Gemini, Groq, Claude, DeepSeek, NVIDIA, Z AI, Cerebras, OpenRouter, Browser Use
 - 🎯 Versatile tasks: file ops, image/video editing, data analysis
 - 🔌 Native FS/shell tool registry + MCP stdio client for autonomous agent loops (`--yolo`, `--mcp-server`)
 - ⚡ Token streaming (`--stream` / `--no-stream`) and multimodal image input (`--image`, `/image`)
@@ -458,6 +460,7 @@ python interpreter.py --upgrade
 python scripts/validate_models_cli.py --providers gemini,groq --tier stable --mode chat
 python scripts/validate_models_cli.py --providers openai,anthropic,deepseek,huggingface --tier stable --mode chat
 python scripts/validate_models_cli.py --providers nvidia,z-ai,browser-use,openrouter --tier stable --mode chat
+python scripts/validate_models_cli.py --providers cerebras --tier stable --mode chat
 ```
 
 ### Direct provider examples
@@ -466,6 +469,7 @@ python interpreter.py -m 'nvidia-nemotron' -md 'chat' -dc
 python interpreter.py -m 'z-ai-glm-5' -md 'chat' -dc
 python interpreter.py -m 'openrouter-free' -md 'chat' -dc
 python interpreter.py -m 'openrouter-qwen3-coder' -md 'chat' -dc
+python interpreter.py -m 'cerebras-gpt-oss-120b' -md 'chat' -dc
 python interpreter.py -m 'browser-use-bu-max' -md 'chat' -dc
 ```
 

@@ -1,3 +1,6 @@
+## Unreleased
+- feat(providers): add Cerebras (cloud.cerebras.ai, ultra-fast LPU inference) as a fully wired model provider — `cerebras-gpt-oss-120b`, `cerebras-gemma-4-31b`, `cerebras-zai-glm-4.7` in `configs/models.toml` (litellm `cerebras/<model>` dispatch, `CEREBRAS_API_KEY`), `[[default_priority]]` row, and `[[free_catalog]]` entries (Cerebras public endpoints are free, rate-limited); key routing added to `ModelRouter.initialize_client`/`_resolve_api_key_name`, `libs/llm_dispatcher.py::_detect_provider`, and `libs/key_manager.py::PROVIDER_ENV_MAP`; `.env.example`/README updated; new `TestCerebrasProviderConfig` suite in `tests/test_all_model_configs.py`
+
 ## v3.5.0 (2026-07-12)
 - refactor(config): replace the `configs/` folder's ~70 per-model JSON files (plus `configs/free/catalog.json` and `configs/schema.json`) with a single human-editable `configs/models.toml` registry (`[models."<key>"]` tables, `[[default_priority]]`, `[[free_catalog]]`)
 - feat(config): `libs/core/model_registry.py` — cached `tomllib`/`tomli`-backed loader (`ModelRegistry.load/get_model/has_model/list_model_names/default_model_name/free_catalog_entries`); adds `tomli; python_version < "3.11"` to `requirements.txt`

@@ -58,6 +58,7 @@ PROVIDER_API_KEYS = {
     "z-ai": "Z_AI_API_KEY",
     "browser-use": "BROWSER_USE_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
+    "cerebras": "CEREBRAS_API_KEY",
 }
 
 
@@ -94,6 +95,8 @@ def infer_provider(hf_model: str, explicit_provider: str | None = None) -> str:
         return "z-ai"
     if hf_model.startswith(("bu-", "browser-use/")):
         return "browser-use"
+    if hf_model.startswith("cerebras/"):
+        return "cerebras"
     if "gemini" in hf_model:
         return "gemini"
     if "claude" in hf_model:

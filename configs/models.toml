@@ -9,7 +9,7 @@
 # --- [models.<name>] ---------------------------------------------------------
 # model            (required) litellm-style model id, e.g. "gemini/gemini-2.5-flash"
 # provider         (optional) explicit provider tag: openai/gemini/groq/anthropic/
-#                  deepseek/openrouter/nvidia/z-ai/browser-use/local/ollama/lmstudio/huggingface
+#                  deepseek/openrouter/nvidia/z-ai/cerebras/browser-use/local/ollama/lmstudio/huggingface
 # api_base         (optional) OpenAI-compatible base URL (openrouter/nvidia/z-ai/local/...)
 # temperature      (optional, default 0.1)
 # max_tokens       (optional, default 4096)
@@ -58,6 +58,10 @@ env = "GROQ_API_KEY"
 model = "groq-gpt-oss-20b"
 
 [[default_priority]]
+env = "CEREBRAS_API_KEY"
+model = "cerebras-gpt-oss-120b"
+
+[[default_priority]]
 env = "Z_AI_API_KEY"
 model = "z-ai-glm-5"
 
@@ -90,6 +94,39 @@ max_tokens = 2048
 tier = "paid"
 browser_use_timeout = 150
 browser_use_poll_interval = 3
+
+[models."cerebras-gemma-4-31b"]
+model = "cerebras/gemma-4-31b"
+provider = "cerebras"
+temperature = 0.1
+max_tokens = 4096
+tier = "free_tier"
+notes = "Cerebras Gemma 4 31B (preview, vision input, ~1850 tok/s, free public endpoint)"
+
+[models."cerebras-gpt-oss-120b"]
+model = "cerebras/gpt-oss-120b"
+provider = "cerebras"
+temperature = 0.1
+max_tokens = 4096
+timeout_seconds = 90
+tier = "free_tier"
+notes = "Cerebras GPT-OSS 120B (production model, ~3000 tok/s, free public endpoint)"
+
+[models."cerebras-gpt-oss-120b".rate_limits]
+rpm = 30
+burst = 5
+
+[models."cerebras-gpt-oss-120b".circuit_breaker]
+threshold = 3
+cooldown_seconds = 120
+
+[models."cerebras-zai-glm-4.7"]
+model = "cerebras/zai-glm-4.7"
+provider = "cerebras"
+temperature = 0.1
+max_tokens = 4096
+tier = "free_tier"
+notes = "Cerebras Z.ai GLM 4.7 355B (preview, reasoning, ~1000 tok/s, free public endpoint)"
 
 [models."claude-2"]
 model = "claude-sonnet-4-6"
@@ -696,6 +733,30 @@ provider = "groq"
 env_key = "GROQ_API_KEY"
 tier = "free_tier"
 notes = "Groq GPT-OSS 20B (free tier)"
+
+[[free_catalog]]
+id = "cerebras-gpt-oss-120b"
+model_key = "cerebras-gpt-oss-120b"
+provider = "cerebras"
+env_key = "CEREBRAS_API_KEY"
+tier = "free_tier"
+notes = "Cerebras GPT-OSS 120B (production model, ~3000 tok/s, free public endpoint)"
+
+[[free_catalog]]
+id = "cerebras-gemma-4-31b"
+model_key = "cerebras-gemma-4-31b"
+provider = "cerebras"
+env_key = "CEREBRAS_API_KEY"
+tier = "free_tier"
+notes = "Cerebras Gemma 4 31B (preview, vision input, ~1850 tok/s, free public endpoint)"
+
+[[free_catalog]]
+id = "cerebras-zai-glm-4.7"
+model_key = "cerebras-zai-glm-4.7"
+provider = "cerebras"
+env_key = "CEREBRAS_API_KEY"
+tier = "free_tier"
+notes = "Cerebras Z.ai GLM 4.7 355B (preview, reasoning, ~1000 tok/s, free public endpoint)"
 
 [[free_catalog]]
 id = "gemini-2.5-flash"

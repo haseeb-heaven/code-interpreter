@@ -46,11 +46,15 @@ def _detect_provider(model: str, config_provider: str, api_base: str) -> str:
         return cp
     if cp in _LOCAL_OPENAI_ENDPOINT_PROVIDERS:
         return "local"
+    if cp == "cerebras":
+        return "cerebras"
 
     model_lower = model.lower()
 
     if model_lower.startswith(("gpt", "o1", "o3", "o4")):
         return "openai"
+    if model_lower.startswith("cerebras/"):
+        return "cerebras"
     if "gemini" in model_lower:
         return "gemini"
     if "groq" in model_lower:
@@ -148,8 +152,9 @@ def build_completion_kwargs(
         kwargs["custom_llm_provider"] = "openai"
         return kwargs
 
-    # ── Gemini / Groq / Claude / Deepseek / HuggingFace ─────────────────
-    # litellm handles routing via the model name; no extra kwargs needed.
+    # ── Gemini / Groq / Claude / Deepseek / Cerebras / HuggingFace ──────
+    # litellm handles routing (and CEREBRAS_API_KEY / api_base lookup for
+    # Cerebras) natively via the "cerebras/<model>" prefix; no extra kwargs.
     return kwargs
 
 

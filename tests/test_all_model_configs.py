@@ -46,12 +46,16 @@ def _expected_key_for_model(model: str, provider: str = "") -> str | None:
 		return "BROWSER_USE_API_KEY"
 	if provider == "openrouter":
 		return "OPENROUTER_API_KEY"
+	if provider == "cerebras":
+		return "CEREBRAS_API_KEY"
 	if model.startswith("nvidia/"):
 		return "NVIDIA_API_KEY"
 	if model.startswith(("glm-", "z-ai/", "zai/")):
 		return "Z_AI_API_KEY"
 	if model.startswith(("bu-", "browser-use/")):
 		return "BROWSER_USE_API_KEY"
+	if model.startswith("cerebras/"):
+		return "CEREBRAS_API_KEY"
 	if model.startswith(("gpt", "o1", "o3", "o4")):
 		return "OPENAI_API_KEY"
 	if model.startswith("groq/") or "groq" in model:
@@ -77,6 +81,7 @@ def _valid_env_for_key(key_name: str) -> dict:
 		"Z_AI_API_KEY": "zai-unittest-key-12345",
 		"OPENROUTER_API_KEY": "sk-or-v1-unittest-openrouter",
 		"BROWSER_USE_API_KEY": "bu_unittest_browser_use_key",
+		"CEREBRAS_API_KEY": "csk-unittest-cerebras-key",
 	}
 	return {key_name: samples[key_name]} if key_name in samples else {}
 
@@ -211,8 +216,82 @@ class TestModelSmokeOfflineMatrix(unittest.TestCase):
 			key = _expected_key_for_model(str(data.get("model", "")), str(data.get("provider", "")))
 			families.add(key or "LOCAL")
 		# Expect major families present in the catalog
-		for needed in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GROQ_API_KEY", "LOCAL"):
+		for needed in (
+			"OPENAI_API_KEY",
+			"ANTHROPIC_API_KEY",
+			"GEMINI_API_KEY",
+			"GROQ_API_KEY",
+			"CEREBRAS_API_KEY",
+			"LOCAL",
+		):
 			self.assertIn(needed, families)
+
+
+class TestCerebrasProviderConfig(unittest.TestCase):
+	"""Cerebras (cloud.cerebras.ai) provider registry entries and routing.
+
+	litellm dispatches Cerebras requests via the ``cerebras/<model-name>`` model-id
+	prefix and reads the API key from the ``CEREBRAS_API_KEY`` environment variable
+	(see https://docs.litellm.ai/docs/providers/cerebras and
+	https://inference-docs.cerebras.ai/integrations/litellm).
+	"""
+
+	EXPECTED_MODEL_KEYS = (
+		"cerebras-gpt-oss-120b",
+		"cerebras-gemma-4-31b",
+		"cerebras-zai-glm-4.7",
+	)
+
+	def test_cerebras_entries_present_and_well_formed(self):
+		registry = _registry()
+		for model_key in self.EXPECTED_MODEL_KEYS:
+			with self.subTest(config=model_key):
+				self.assertTrue(registry.has_model(model_key), f"{model_key} missing from models.toml")
+				data = registry.get_model(model_key)
+				self.assertTrue(str(data["model"]).startswith("cerebras/"), data["model"])
+				self.assertEqual(str(data.get("provider", "")).lower(), "cerebras")
+				for field in REQUIRED_FIELDS:
+					self.assertIn(field, data, f"{model_key} missing {field}")
+				self.assertIsInstance(data["temperature"], (int, float))
+				self.assertIsInstance(data["max_tokens"], int)
+
+	def test_cerebras_key_routing_maps_to_cerebras_api_key(self):
+		registry = _registry()
+		for model_key in self.EXPECTED_MODEL_KEYS:
+			with self.subTest(config=model_key):
+				data = registry.get_model(model_key)
+				model = str(data["model"])
+				provider = str(data.get("provider", ""))
+				self.assertEqual(_expected_key_for_model(model, provider), "CEREBRAS_API_KEY")
+				self.assertEqual(_detect_provider(model, provider, str(data.get("api_base", "None"))), "cerebras")
+
+	def test_cerebras_default_priority_entry(self):
+		registry = _registry()
+		env_names = {str(row.get("env")) for row in registry._default_priority}  # noqa: SLF001
+		self.assertIn("CEREBRAS_API_KEY", env_names)
+
+	def test_cerebras_free_catalog_entries(self):
+		registry = _registry()
+		cerebras_rows = [row for row in registry.free_catalog_entries() if row.get("provider") == "cerebras"]
+		self.assertTrue(cerebras_rows, "Expected at least one Cerebras row in [[free_catalog]]")
+		for row in cerebras_rows:
+			self.assertEqual(row.get("env_key"), "CEREBRAS_API_KEY")
+			self.assertTrue(registry.has_model(str(row.get("model_key", ""))))
+
+	def test_cerebras_build_completion_kwargs_no_extra_creds_leaked(self):
+		"""Cerebras dispatches natively via litellm; no api_key/api_base kwargs are injected here."""
+		with patch.dict(os.environ, {"CEREBRAS_API_KEY": "csk-unittest-cerebras-key"}, clear=False):
+			kwargs = build_completion_kwargs(
+				model="cerebras/gpt-oss-120b",
+				messages=[{"role": "user", "content": "ping"}],
+				temperature=0.1,
+				max_tokens=64,
+				config_provider="cerebras",
+				api_base="None",
+			)
+		self.assertIn("messages", kwargs)
+		self.assertNotIn("api_key", kwargs)
+		self.assertNotIn("custom_llm_provider", kwargs)
 
 
 if __name__ == "__main__":

@@ -82,12 +82,16 @@ class ModelRouter:
 			api_key_info = {"key_name": "BROWSER_USE_API_KEY", "prefix": "bu_"}
 		elif config_provider == "openrouter":
 			api_key_info = {"key_name": "OPENROUTER_API_KEY", "prefix": "sk-or-v1-"}
+		elif config_provider == "cerebras":
+			api_key_info = {"key_name": "CEREBRAS_API_KEY", "prefix": "csk-"}
 		elif interp.INTERPRETER_MODEL.startswith("nvidia/"):
 			api_key_info = {"key_name": "NVIDIA_API_KEY", "prefix": "nvapi-"}
 		elif interp.INTERPRETER_MODEL.startswith(("glm-", "z-ai/", "zai/")):
 			api_key_info = {"key_name": "Z_AI_API_KEY", "prefix": None, "length": 10}
 		elif interp.INTERPRETER_MODEL.startswith(("bu-", "browser-use/")):
 			api_key_info = {"key_name": "BROWSER_USE_API_KEY", "prefix": "bu_"}
+		elif interp.INTERPRETER_MODEL.startswith("cerebras/"):
+			api_key_info = {"key_name": "CEREBRAS_API_KEY", "prefix": "csk-"}
 		elif interp.INTERPRETER_MODEL.startswith(("gpt", "o1", "o3", "o4")):
 			api_key_info = {"key_name": "OPENAI_API_KEY", "prefix": "sk-"}
 		elif interp.INTERPRETER_MODEL.startswith("groq/") or "groq" in interp.INTERPRETER_MODEL:
@@ -748,12 +752,16 @@ class ModelRouter:
 			return "BROWSER_USE_API_KEY"
 		if config_provider == "openrouter":
 			return "OPENROUTER_API_KEY"
+		if config_provider == "cerebras":
+			return "CEREBRAS_API_KEY"
 		if model.startswith("nvidia/"):
 			return "NVIDIA_API_KEY"
 		if model.startswith(("glm-", "z-ai/", "zai/")):
 			return "Z_AI_API_KEY"
 		if model.startswith(("bu-", "browser-use/")):
 			return "BROWSER_USE_API_KEY"
+		if model.startswith("cerebras/"):
+			return "CEREBRAS_API_KEY"
 		if model.startswith(("gpt", "o1", "o3", "o4")):
 			return "OPENAI_API_KEY"
 		if model.startswith("groq/") or "groq" in model:
