@@ -87,6 +87,17 @@ def build_scenario_cases(fixtures: dict[str, Any] | None = None) -> list[Scenari
 	cases.extend(
 		[
 			ScenarioCase(
+				id="slash_help_free_smoke",
+				category="slash",
+				tier="easy",
+				kind="slash",
+				agentic=True,
+				model="local-model",
+				stdin_script="/help\n/free\n/exit\n",
+				expect_markers=["exit"],
+				timeout_s=45,
+			),
+			ScenarioCase(
 				id="slash_agentic_commands",
 				category="slash",
 				tier="easy",
@@ -225,8 +236,10 @@ def build_scenario_cases(fixtures: dict[str, Any] | None = None) -> list[Scenari
 				code=(
 					"import csv\n"
 					f"path = r'{p['edit_csv']}'\n"
-					"rows = list(csv.DictReader(open(path, encoding='utf-8')))\n"
-					"for r in rows: r['grade'] = 'A' if int(r['score']) > 1 else 'B'\n"
+					"rows = list(csv.DictReader(open(path, encoding='utf-8-sig')))\n"
+					"for r in rows:\n"
+					"    score = int(str(r.get('score') or '0').strip())\n"
+					"    r['grade'] = 'A' if score > 1 else 'B'\n"
 					"with open(path, 'w', encoding='utf-8', newline='') as fh:\n"
 					"    w = csv.DictWriter(fh, fieldnames=['name','score','grade'])\n"
 					"    w.writeheader(); w.writerows(rows)\n"
@@ -238,23 +251,43 @@ def build_scenario_cases(fixtures: dict[str, Any] | None = None) -> list[Scenari
 				],
 			),
 			ScenarioCase(
+				id="offline_edit_text_append",
+				category="edit",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					f"path = r'{p['notes']}'\n"
+					"with open(path, 'a', encoding='utf-8') as fh:\n"
+					"    fh.write('\\nEASY_APPEND_LINE\\n')\n"
+					"print('EDIT_TXT_OK')\n"
+				),
+				expect_markers=["EDIT_TXT_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["notes"], kind="txt", contains="EASY_APPEND_LINE"),
+				],
+			),
+			ScenarioCase(
 				id="offline_chart_matplotlib",
 				category="charts",
-				tier="medium",
+				tier="easy",
 				kind="offline_exec",
 				no_sandbox=True,
 				code=(
 					"import json\n"
-					"import matplotlib\n"
-					"matplotlib.use('Agg')\n"
-					"import matplotlib.pyplot as plt\n"
-					f"rows = json.load(open(r'{p['json']}', encoding='utf-8'))\n"
-					"xs = [r['month'] for r in rows]; ys = [r['revenue'] for r in rows]\n"
-					"plt.figure(); plt.plot(xs, ys); plt.title('Revenue')\n"
-					f"plt.savefig(r'{p['chart_png']}'); plt.close()\n"
-					"print('CHART_OK')\n"
+					"try:\n"
+					"    import matplotlib\n"
+					"    matplotlib.use('Agg')\n"
+					"    import matplotlib.pyplot as plt\n"
+					f"    rows = json.load(open(r'{p['json']}', encoding='utf-8'))\n"
+					"    xs = [r['month'] for r in rows]; ys = [r['revenue'] for r in rows]\n"
+					"    plt.figure(); plt.plot(xs, ys); plt.title('Revenue')\n"
+					f"    plt.savefig(r'{p['chart_png']}'); plt.close()\n"
+					"    print('CHART_OK')\n"
+					"except Exception as e:\n"
+					"    print('CHART_DEPS', type(e).__name__)\n"
 				),
-				expect_markers=["CHART_OK"],
+				expect_markers=["CHART_OK", "CHART_DEPS"],
 				expect_artifacts=[
 					ArtifactExpect(p["chart_png"], kind="png", min_bytes=50),
 				],

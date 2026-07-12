@@ -1,0 +1,6 @@
+[
+  {"month": "Jan", "revenue": 10, "cost": 4},
+  {"month": "Feb", "revenue": 15, "cost": 6},
+  {"month": "Mar", "revenue": 12, "cost": 5},
+  {"month": "Apr", "revenue": 18, "cost": 7}
+]

@@ -53,6 +53,10 @@ dist/
 !testsprite_tests/**/*.md
 !testsprite_tests/**/*.html
 
+# Keep live-scenario fixture JSON inputs
+!tests/fixtures/
+!tests/fixtures/**/*.json
+
 # History files (explicitly ignored)
 history.json
 history/

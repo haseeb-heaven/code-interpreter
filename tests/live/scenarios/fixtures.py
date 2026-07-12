@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
-"""Live user-scenario fixtures under INTERPRETER_TEST_DATA_DIR (never hardcoded)."""
+"""Copy committed ``tests/fixtures`` into INTERPRETER_TEST_DATA_DIR workdir."""
 
 from __future__ import annotations
 
-import json
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+# Repo fixtures are the source of truth (committed).
+REPO_FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
+REPO_INPUT = REPO_FIXTURES / "input"
+REPO_EXPECTED = REPO_FIXTURES / "expected"
 
 
 class TestDataDirError(RuntimeError):
@@ -26,7 +31,7 @@ def resolve_test_data_dir(*, require: bool = False) -> Optional[Path]:
 	if not raw:
 		if require:
 			raise TestDataDirError(
-				"Set INTERPRETER_TEST_DATA_DIR (or TEST_DATA_DIR) for live scenario fixtures"
+				"Set INTERPRETER_TEST_DATA_DIR (or TEST_DATA_DIR) for live scenario workdir"
 			)
 		return None
 	path = Path(raw).expanduser().resolve()
@@ -34,90 +39,76 @@ def resolve_test_data_dir(*, require: bool = False) -> Optional[Path]:
 	return path
 
 
-def _write_minimal_png(path: Path) -> None:
-	png = bytes.fromhex(
-		"89504e470d0a1a0a0000000d4948445200000001000000010802000000907753"
-		"de0000000c4944415408d763f8cfc000000003000101e2e27c0000000049454e"
-		"44ae426082"
-	)
-	path.write_bytes(png)
-
-
 def ensure_scenario_fixtures(root: Optional[Path] = None) -> dict[str, Any]:
-	"""Create JSON/PNG/CSV/text fixtures under ``<data>/live_scenario_fixtures``."""
+	"""Sync committed fixtures into a writable workdir and return absolute paths.
+
+	Source of truth: ``tests/fixtures/input`` (and ``expected/``).
+	Workdir: ``<INTERPRETER_TEST_DATA_DIR>/live_scenario_fixtures/``.
+	"""
 	base = root or resolve_test_data_dir(require=True)
 	assert base is not None
+
+	if not REPO_INPUT.is_dir():
+		raise FileNotFoundError(f"Committed fixtures missing: {REPO_INPUT}")
+
 	fixture_dir = base / "live_scenario_fixtures"
-	fixture_dir.mkdir(parents=True, exist_ok=True)
+	input_dir = fixture_dir / "input"
+	expected_dir = fixture_dir / "expected"
 	out_dir = fixture_dir / "output"
-	out_dir.mkdir(parents=True, exist_ok=True)
 	apps_dir = fixture_dir / "apps"
-	apps_dir.mkdir(parents=True, exist_ok=True)
+	for d in (input_dir, expected_dir, out_dir, apps_dir):
+		d.mkdir(parents=True, exist_ok=True)
 
-	json_path = fixture_dir / "sales.json"
-	if not json_path.is_file():
-		payload = [
-			{"month": "Jan", "revenue": 10, "cost": 4},
-			{"month": "Feb", "revenue": 15, "cost": 6},
-			{"month": "Mar", "revenue": 12, "cost": 5},
-			{"month": "Apr", "revenue": 18, "cost": 7},
-		]
-		json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+	# Copy inputs (overwrite editable so edit scenarios stay deterministic)
+	for src in REPO_INPUT.iterdir():
+		if src.is_file():
+			shutil.copy2(src, input_dir / src.name)
+	if REPO_EXPECTED.is_dir():
+		for src in REPO_EXPECTED.iterdir():
+			if src.is_file():
+				shutil.copy2(src, expected_dir / src.name)
 
-	png_path = fixture_dir / "sample.png"
-	if not png_path.is_file():
-		_write_minimal_png(png_path)
+	# Always reset editable sources from committed copies
+	for name in ("editable.csv", "notes.txt"):
+		src = REPO_INPUT / name
+		if src.is_file():
+			shutil.copy2(src, input_dir / name)
 
-	csv_path = fixture_dir / "sales.csv"
-	if not csv_path.is_file():
-		csv_path.write_text(
-			"month,revenue,cost\nJan,10,4\nFeb,15,6\nMar,12,5\nApr,18,7\n",
-			encoding="utf-8",
-		)
-
-	edit_csv = fixture_dir / "editable.csv"
-	# Always reset editable so edit scenarios are deterministic
-	edit_csv.write_text("name,score\nAlice,1\nBob,2\n", encoding="utf-8")
-
-	notes_path = fixture_dir / "notes.txt"
-	if not notes_path.is_file():
-		notes_path.write_text(
-			"Open Code Interpreter live scenario notes.\n"
-			"This document discusses JSON conversion, charts, and sandbox safety.\n"
-			"Key themes: automation, artifacts, and soft-skip for quota.\n",
-			encoding="utf-8",
-		)
-
-	md_path = fixture_dir / "brief.md"
-	if not md_path.is_file():
-		md_path.write_text(
-			"# Briefing\n\nSummarize this markdown for the live suite.\n\n"
-			"- Point A: convert data\n- Point B: plot charts\n",
-			encoding="utf-8",
-		)
+	def _p(*parts: str) -> str:
+		return str(Path(fixture_dir, *parts).resolve())
 
 	paths = {
-		"json": str(json_path.resolve()),
-		"png": str(png_path.resolve()),
-		"csv": str(csv_path.resolve()),
-		"edit_csv": str(edit_csv.resolve()),
-		"notes": str(notes_path.resolve()),
-		"md": str(md_path.resolve()),
-		"abs_write": str((out_dir / "user_intent_out.txt").resolve()),
-		"chart_png": str((out_dir / "chart_mpl.png").resolve()),
-		"chart_plotly": str((out_dir / "chart_plotly.html").resolve()),
-		"jpg_out": str((out_dir / "converted.jpg").resolve()),
-		"crop_out": str((out_dir / "cropped.jpg").resolve()),
-		"csv_from_json": str((out_dir / "sales_from_json.csv").resolve()),
-		"report_txt": str((out_dir / "report.txt").resolve()),
-		"summary_txt": str((out_dir / "summary.txt").resolve()),
-		"analysis_txt": str((out_dir / "analysis.txt").resolve()),
-		"app_script": str((apps_dir / "hello_app.py").resolve()),
-		"app_out": str((apps_dir / "hello_out.txt").resolve()),
-		"search_report": str((out_dir / "search_report.txt").resolve()),
+		"json": _p("input", "sales.json"),
+		"png": _p("input", "sample.png"),
+		"pdf": _p("input", "sample.pdf"),
+		"csv": _p("input", "sales.csv"),
+		"edit_csv": _p("input", "editable.csv"),
+		"notes": _p("input", "notes.txt"),
+		"md": _p("input", "brief.md"),
+		"expected_csv": _p("expected", "sales_from_json.csv"),
+		"expected_summary": _p("expected", "summary_example.txt"),
+		"expected_report": _p("expected", "report_example.txt"),
+		"abs_write": _p("output", "user_intent_out.txt"),
+		"chart_png": _p("output", "chart_mpl.png"),
+		"chart_plotly": _p("output", "chart_plotly.html"),
+		"jpg_out": _p("output", "converted.jpg"),
+		"crop_out": _p("output", "cropped.jpg"),
+		"csv_from_json": _p("output", "sales_from_json.csv"),
+		"report_txt": _p("output", "report.txt"),
+		"summary_txt": _p("output", "summary.txt"),
+		"analysis_txt": _p("output", "analysis.txt"),
+		"app_script": _p("apps", "hello_app.py"),
+		"app_out": _p("apps", "hello_out.txt"),
+		"search_report": _p("output", "search_report.txt"),
 		"fixture_dir": str(fixture_dir.resolve()),
+		"repo_fixtures": str(REPO_FIXTURES.resolve()),
 		"out_dir": str(out_dir.resolve()),
 		"apps_dir": str(apps_dir.resolve()),
 	}
-	logger.info("Live scenario fixtures ready under %s", fixture_dir)
-	return {"base": str(base), "fixture_dir": str(fixture_dir), "paths": paths}
+	logger.info("Synced fixtures %s -> %s", REPO_FIXTURES, fixture_dir)
+	return {
+		"base": str(base),
+		"fixture_dir": str(fixture_dir),
+		"repo_fixtures": str(REPO_FIXTURES.resolve()),
+		"paths": paths,
+	}

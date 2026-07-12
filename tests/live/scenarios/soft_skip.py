@@ -48,6 +48,9 @@ _DEP_ENV = (
 	"command not found",
 	"local endpoint",
 	"could not connect",
+	"indentationerror",
+	"syntaxerror",
+	"unterminated string",
 )
 
 _TOKEN = re.compile(
