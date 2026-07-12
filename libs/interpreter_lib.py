@@ -204,7 +204,13 @@ class Interpreter:
 		)
 
 	def _safe_input(self, prompt_text, default=None):
-		"""Read user input, or auto-confirm when ``--yes`` / CI non-interactive mode is on."""
+		"""Read user input, or auto-confirm when ``--yes`` / CI non-interactive mode is on.
+
+		Confirmation prompts (Y/N, execute, …) short-circuit under ``AUTO_YES``.
+		Task prompts must pass ``default=None`` so ``--yes`` never fabricates an
+		empty task (that previously spammed ``Task cannot be empty.`` forever).
+		``EOFError`` returns ``default`` (typically ``None`` for REPL tasks).
+		"""
 		auto_yes = bool(getattr(self, "AUTO_YES", False))
 		text = prompt_text or ""
 		lower = text.lower()
@@ -223,6 +229,30 @@ class Interpreter:
 			return input(prompt_text)
 		except EOFError:
 			return default
+
+	def _require_prompt_file_for_auto_yes(self, mode_label: str) -> None:
+		"""``--yes`` is one-shot: require ``-f``/``--file``, else exit 2 once."""
+		if not bool(getattr(self, "AUTO_YES", False)):
+			return
+		has_file = bool(
+			getattr(self, "INTERPRETER_PROMPT_FILE", False)
+			and getattr(self.args, "file", None)
+		)
+		if has_file:
+			return
+		self.console.print(
+			f"[red]error:[/red] --yes requires -f/--file <prompt> for {mode_label} "
+			"(non-interactive one-shot). Omit --yes for the interactive REPL."
+		)
+		raise SystemExit(2)
+
+	def _read_repl_task(self, prompt_text: str = "Enter your task: "):
+		"""Read a REPL task line.
+
+		Returns ``None`` on stdin EOF. Never auto-fills an empty task under ``--yes``
+		(pass ``default=None`` into ``_safe_input``).
+		"""
+		return self._safe_input(prompt_text)
 
 	def _structured_output_active(self) -> bool:
 		"""True when ``--output-format json|markdown`` (or piped auto-JSON) is active."""
@@ -524,6 +554,7 @@ class Interpreter:
 		auto_mode = bool(getattr(self.args, "yolo", False))
 		mcp_cmd = getattr(self.args, "mcp_server", None)
 		mcp_client = None
+		self._require_prompt_file_for_auto_yes("autonomous mode")
 
 		try:
 			mode_label = "YOLO (no approval)" if auto_mode else "tool loop (confirm each call)"
@@ -618,7 +649,10 @@ class Interpreter:
 					task = file_task
 					file_task = None
 				else:
-					task = self._safe_input("Enter your task: ", default="")
+					task = self._read_repl_task("Enter your task: ")
+					if task is None:
+						self.console.print("Exiting autonomous mode.")
+						return
 
 				raw = (task or "").strip()
 				if not raw:
@@ -697,6 +731,7 @@ class Interpreter:
 
 		gemini_style = bool(getattr(self.args, "gemini_style", False))
 		one_shot = bool(getattr(self, "INTERPRETER_PROMPT_FILE", False) and getattr(self.args, "file", None))
+		self._require_prompt_file_for_auto_yes("agentic mode")
 		# Keep a mutable holder so slash handlers can rebuild the controller.
 		state = {"controller": None, "max_steps": max(int(getattr(self, "MAX_REPAIR_ATTEMPTS", 3) or 3), 10)}
 
@@ -748,7 +783,10 @@ class Interpreter:
 					task = file_task
 					file_task = None
 				else:
-					task = self._safe_input("Enter your task: ", default="")
+					task = self._read_repl_task("Enter your task: ")
+					if task is None:
+						self.console.print("Exiting agentic mode.")
+						return
 
 				raw = (task or "").strip()
 				if not raw:

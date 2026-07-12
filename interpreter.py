@@ -562,7 +562,8 @@ if __name__ == "__main__":
     try:
         main()
     except SystemExit:
-        pass
+        # Re-raise so exit codes from argparse / --yes usage / etc. are preserved.
+        raise
     except Exception as exception:
         if ".env file" in str(exception):
             display_markdown_message("Interpreter is not setup properly. Please follow these steps \
