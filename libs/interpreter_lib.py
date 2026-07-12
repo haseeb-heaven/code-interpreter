@@ -33,7 +33,7 @@ from libs.logger import Logger
 from libs.markdown_code import display_code, display_markdown_message
 from libs.modes.code_mode import CodeModeHandler
 from libs.package_manager import PackageManager
-from libs.safety_manager import ExecutionSafetyManager
+from libs.safety_manager import ExecutionSafetyManager, SafetyLevel
 from libs.terminal_ui import TerminalUI
 from libs.utility_manager import UtilityManager
 
@@ -61,8 +61,12 @@ class Interpreter:
 		self.system_message = ""
 		self._pending_images = []
 		self._last_response_was_streamed = False
-		self.UNSAFE_EXECUTION = getattr(args, "unsafe", False)
+		_unsafe = getattr(args, "unsafe", False)
+		self.UNSAFE_EXECUTION = _unsafe if isinstance(_unsafe, bool) else False
 		safety_level = getattr(args, "safety", None)
+		# MagicMock attrs are truthy objects — only accept real strings/enums.
+		if not isinstance(safety_level, (str, SafetyLevel)) and safety_level is not None:
+			safety_level = None
 		self.safety_manager = ExecutionSafetyManager(
 			unsafe_mode=self.UNSAFE_EXECUTION,
 			safety_level=safety_level,
@@ -70,8 +74,14 @@ class Interpreter:
 		# Keep flags aligned after SafetyLevel resolution.
 		self.UNSAFE_EXECUTION = bool(self.safety_manager.unsafe_mode)
 		self.code_interpreter = CodeInterpreter(safety_manager=self.safety_manager)
-		self.EXECUTION_TIMEOUT = int(getattr(args, "timeout", 30) or 30)
-		self.SANDBOX_BACKEND = getattr(args, "sandbox_backend", None) or (
+		try:
+			self.EXECUTION_TIMEOUT = int(getattr(args, "timeout", 30) or 30)
+		except (TypeError, ValueError):
+			self.EXECUTION_TIMEOUT = 30
+		_backend = getattr(args, "sandbox_backend", None)
+		if not isinstance(_backend, str):
+			_backend = None
+		self.SANDBOX_BACKEND = _backend or (
 			"none" if self.UNSAFE_EXECUTION else "subprocess"
 		)
 		self.MAX_REPAIR_ATTEMPTS, self.MAX_LLM_RETRIES = 3, 3

@@ -48,6 +48,17 @@ class TestAPIKeysAndModels(unittest.TestCase):
 		args.list_sessions = False
 		args.delete_session = None
 		args.new_session = False
+		args.safety = "standard"
+		args.timeout = 30
+		args.sandbox_backend = "subprocess"
+		args.attach = []
+		args.eda = None
+		args.report = False
+		args.interactive_charts = False
+		args.local = False
+		args.ollama = None
+		args.ollama_model_name = None
+		args.science = False
 
 		# Mock config reading to return the requested model and provider
 		self.mock_utility_manager.read_config_file.return_value = {"model": model_name, "provider": provider}

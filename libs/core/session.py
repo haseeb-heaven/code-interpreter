@@ -7,6 +7,25 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 
+def _cli_bool(value: Any, default: bool = False) -> bool:
+	"""Coerce CLI flags; MagicMock and other non-bools become *default*."""
+	return value if isinstance(value, bool) else default
+
+
+def _cli_str(value: Any, default: Optional[str] = None) -> Optional[str]:
+	"""Coerce optional string CLI args; ignore MagicMock / non-strings."""
+	return value if isinstance(value, str) else default
+
+
+def _cli_str_list(value: Any) -> list[str]:
+	"""Coerce --attach style list args; ignore MagicMock."""
+	if isinstance(value, (list, tuple)):
+		return [str(v) for v in value if isinstance(v, str) and v.strip()]
+	if isinstance(value, str) and value.strip():
+		return [value.strip()]
+	return []
+
+
 @dataclass
 class SessionConfig:
 	"""Typed view of Interpreter CLI/runtime settings.
@@ -197,21 +216,22 @@ def bootstrap_interpreter(interp) -> None:
 	interp.INTERPRETER_MODE = args.mode if args.mode else "code"
 	interp.INTERPRETER_PROMPT_FILE, interp.INTERPRETER_PROMPT_INPUT = resolve_prompt_input_flags(args)
 	interp.INTERPRETER_HISTORY = args.history if hasattr(args, "history") else False
-	interp.AGENT_MODE = bool(getattr(args, "agent", False))
-	interp.AUTO_YES = bool(getattr(args, "yes", False))
+	interp.AGENT_MODE = _cli_bool(getattr(args, "agent", False))
+	interp.AUTO_YES = _cli_bool(getattr(args, "yes", False))
 	# Attached local files (#221) — CLI --attach and REPL /file commands.
 	from libs.context.file_context import normalize_paths
 
-	interp._attached_files = normalize_paths(getattr(args, "attach", None) or [])
-	interp.LOCAL_ONLY = bool(getattr(args, "local", False) or getattr(args, "ollama", None) is not None)
+	interp._attached_files = normalize_paths(_cli_str_list(getattr(args, "attach", None)))
+	_ollama = _cli_str(getattr(args, "ollama", None))
+	interp.LOCAL_ONLY = _cli_bool(getattr(args, "local", False)) or (_ollama is not None)
 
 	# Data analysis session (#222)
 	from libs.data.session_data import DataSession
 
 	interp.data_session = DataSession()
-	if getattr(args, "interactive_charts", False):
+	if _cli_bool(getattr(args, "interactive_charts", False)):
 		interp.data_session.chart_style = "plotly"
-	eda_path = getattr(args, "eda", None)
+	eda_path = _cli_str(getattr(args, "eda", None))
 	if eda_path:
 		try:
 			interp.data_session.load_file(eda_path)
@@ -221,7 +241,7 @@ def bootstrap_interpreter(interp) -> None:
 
 			summary = deterministic_eda_summary(interp.data_session.df)
 			print(summary)
-			if getattr(args, "report", False):
+			if _cli_bool(getattr(args, "report", False)):
 				from libs.output.chart_manager import list_charts
 				from libs.output.exporter import export_dataframe
 
@@ -300,7 +320,7 @@ def bootstrap_interpreter(interp) -> None:
 	interp.initialize_client()
 
 	# Ollama model override (#221) after config load — keep api_base from local-model.
-	ollama_name = getattr(args, "ollama_model_name", None)
+	ollama_name = _cli_str(getattr(args, "ollama_model_name", None))
 	if ollama_name:
 		if interp.config_values is None:
 			interp.config_values = {}

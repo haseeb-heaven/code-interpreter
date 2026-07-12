@@ -207,7 +207,11 @@ class ExecutionSafetyManager:
 		elif isinstance(safety_level, SafetyLevel):
 			self.safety_level = safety_level
 		else:
-			self.safety_level = SafetyLevel(str(safety_level).lower())
+			try:
+				self.safety_level = SafetyLevel(str(safety_level).lower())
+			except (ValueError, TypeError, AttributeError):
+				# Non-string mocks / unknown values -> safe default.
+				self.safety_level = SafetyLevel.OFF if unsafe_mode else SafetyLevel.STANDARD
 		# Legacy flag: only OFF disables all checks via unsafe_mode.
 		if self.safety_level == SafetyLevel.OFF:
 			self.unsafe_mode = True
