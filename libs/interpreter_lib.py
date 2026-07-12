@@ -547,6 +547,13 @@ class Interpreter:
 		mcp_client = None
 
 		try:
+			if not one_shot:
+				try:
+					from libs.agent.gemini_ui import render_persistent_banner
+
+					render_persistent_banner(self.console)
+				except Exception as exc:
+					self.logger.debug(f"Persistent banner render failed: {exc}")
 			mode_label = "YOLO (no approval)" if auto_mode else "tool loop (confirm each call)"
 			self.console.print(f"[bold cyan]Autonomous agent loop[/bold cyan] — {mode_label}")
 			self.console.print(
@@ -760,6 +767,13 @@ class Interpreter:
 					"Commands: /free  /model  /help  /exit"
 				)
 			else:
+				if not one_shot:
+					try:
+						from libs.agent.gemini_ui import render_persistent_banner
+
+						render_persistent_banner(self.console)
+					except Exception as exc:
+						self.logger.debug(f"Persistent banner render failed: {exc}")
 				self.console.print("[bold yellow]Running in ReAct Agentic Mode[/bold yellow]")
 				if not one_shot:
 					self.console.print("Commands: /free  /model  /help  /exit")

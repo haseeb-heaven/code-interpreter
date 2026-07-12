@@ -220,6 +220,19 @@ def render_banner(console=None, *, width: Optional[int] = None) -> None:
 		_safe_print(console, f"[bold magenta]{ascii_fallback}[/bold magenta]", ascii_fallback)
 
 
+def render_persistent_banner(console=None, *, width: Optional[int] = None) -> None:
+	"""Print just the INTERPRETER wordmark (no tips/footer).
+
+	Thin wrapper around ``render_banner`` used by every genuinely interactive
+	entry point (classic ``--cli`` REPL, ``--agentic``, the autonomous
+	``--yolo`` loop, and the arrow-key TUI wizard) so the banner shows at
+	session start without duplicating banner-print call sites, and by
+	``UtilityManager.clear_screen`` so the banner redraws immediately after
+	any explicit screen clear — keeping it visually "pinned" to the top.
+	"""
+	render_banner(console, width=width)
+
+
 # --------------------------------------------------------------------------
 # Tips
 # --------------------------------------------------------------------------

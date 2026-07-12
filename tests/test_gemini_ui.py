@@ -13,12 +13,14 @@ import unittest
 
 from libs.agent.gemini_ui import (
 	BANNER_LINES,
+	TIPS_HEADER,
 	context_metadata_line,
 	footer_parts,
 	gradient_color_at,
 	render_banner,
 	render_context_line,
 	render_footer,
+	render_persistent_banner,
 	render_startup_screen,
 	render_status_bar,
 	render_tips,
@@ -164,6 +166,34 @@ class TestBannerRendering(unittest.TestCase):
 	def test_render_banner_default_console_smoke(self):
 		# No console passed — must use the internal default without raising.
 		render_banner()
+
+
+class TestPersistentBanner(unittest.TestCase):
+	"""``render_persistent_banner`` is the shared banner-only entry point used by
+	every interactive REPL (--cli/--agentic/--gemini-style) and by
+	``UtilityManager.clear_screen`` to keep the banner "pinned" after a clear."""
+
+	def _console(self, width=100):
+		from rich.console import Console
+
+		buf = _FakeStream("utf-8")
+		return Console(file=buf, width=width, force_terminal=True), buf
+
+	def test_render_persistent_banner_prints_same_content_as_render_banner(self):
+		console_a, buf_a = self._console()
+		console_b, buf_b = self._console()
+		render_persistent_banner(console_a)
+		render_banner(console_b)
+		self.assertEqual(buf_a.getvalue(), buf_b.getvalue())
+
+	def test_render_persistent_banner_does_not_crash_default_console(self):
+		render_persistent_banner()
+
+	def test_render_persistent_banner_omits_tips_and_footer(self):
+		console, buf = self._console()
+		render_persistent_banner(console)
+		out = buf.getvalue()
+		self.assertNotIn(TIPS_HEADER, out)
 
 
 class TestTips(unittest.TestCase):

@@ -59,6 +59,15 @@ def run_interpreter_main(interp, version):
 
 	# Display system and Assistant information (skip in structured/piped modes).
 	input_prompt_mode = "File" if interp.INTERPRETER_PROMPT_FILE else "Input"
+	# Genuinely-interactive prompt-input REPL only — a `-f` prompt-file run is
+	# one-shot (AGENTS.md), so the big banner would just be noise there.
+	if not structured and not interp.INTERPRETER_PROMPT_FILE:
+		try:
+			from libs.agent.gemini_ui import render_persistent_banner
+
+			render_persistent_banner(interp.console)
+		except Exception as exc:
+			interp.logger.debug(f"Persistent banner render failed: {exc}")
 	if not structured:
 		interp._display_session_banner(os_name, input_prompt_mode)
 		display_markdown_message("Welcome to **Interpreter**, I'm here to **assist** you with your everyday tasks. ")

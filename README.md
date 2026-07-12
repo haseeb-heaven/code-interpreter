@@ -366,10 +366,15 @@ See the `[[free_catalog]]` entries in `configs/models.toml` for the curated list
 
 #### Startup UI
 
-`--gemini-style` now opens with a blocky, gradient "INTERPRETER" wordmark (blue → purple → pink, built from
-Unicode block-drawing glyphs via `libs/agent/gemini_ui.py`), a real-capability "Tips for getting started"
-list (`/free`, `/model`, `/settings`, `/help`), and a status bar re-printed above each prompt showing the
-current directory, sandbox state (`sandboxed (SAFE MODE)` vs `no sandbox`), and confirm mode (`auto`
+Every genuinely interactive session — the arrow-key TUI wizard, classic `--cli` REPL, `--agentic`, the
+autonomous `--yolo` loop, and `--gemini-style` — opens with a blocky, gradient "INTERPRETER" wordmark
+(blue → purple → pink, built from Unicode block-drawing glyphs via `libs/agent/gemini_ui.py`). One-shot
+`-f`/prompt-file runs and structured (`--output-format json|markdown`) runs skip it, since there's no one
+watching a live terminal to show it to. The banner is "persistent": it redraws immediately after any
+`/clear` (or other `UtilityManager.clear_screen()` call), so it visually stays pinned to the top of the
+screen. `--gemini-style` additionally shows a real-capability "Tips for getting started" list (`/free`,
+`/model`, `/settings`, `/help`) and a status bar re-printed above each prompt showing the current
+directory, sandbox state (`sandboxed (SAFE MODE)` vs `no sandbox`), and confirm mode (`auto`
 vs `manual confirm`) — the same visual language as [Gemini CLI](https://github.com/google-gemini/gemini-cli),
 rebranded for this project. ReAct steps that write code render in a bordered, line-numbered panel
 (`libs/agent/step_ui.py`'s `GeminiStepPresenter`), similar to Gemini CLI's `WriteFile` tool-call box.

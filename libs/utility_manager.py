@@ -392,8 +392,25 @@ class UtilityManager:
 	def display_version(self, version):
 		display_markdown_message(f"Interpreter - v{version}")
 
-	def clear_screen(self):
+	def clear_screen(self, redraw_banner: bool = True):
+		"""Clear the terminal.
+
+		Every clear-screen call site in this codebase (the ``/clear`` REPL
+		command, prompt-mode switches, and the arrow-key TUI wizard's
+		selector redraws) routes through this single choke point, so
+		redrawing the persistent INTERPRETER banner immediately after
+		clearing here makes the banner visually "stay pinned" to the top of
+		the screen everywhere a clear happens. Pass ``redraw_banner=False``
+		for the rare bare, banner-free clear.
+		"""
 		os.system('cls' if os.name == 'nt' else 'clear')
+		if redraw_banner:
+			try:
+				from libs.agent.gemini_ui import render_persistent_banner
+
+				render_persistent_banner()
+			except Exception as exc:
+				self.logger.debug(f"Persistent banner redraw skipped: {exc}")
 	
 	def create_file(self, file_path):
 		try:
