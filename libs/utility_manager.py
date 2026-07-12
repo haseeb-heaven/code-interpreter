@@ -200,12 +200,64 @@ class UtilityManager:
 			self.logger.error(f"Error in extracting file name: {str(exception)}")
 			raise
 
-	def get_full_file_path(self, file_name):
+	@staticmethod
+	def _is_explicit_absolute_path(path: str) -> bool:
+		"""True for host absolute paths, including Windows drive/UNC forms on any OS.
+
+		Prompt text often contains ``D:\\demo\\file.jpg``. On POSIX hosts,
+		``os.path.isabs`` does not treat drive-letter paths as absolute, so we
+		detect those forms explicitly for consistent input-file resolution.
+
+		Python 3.13+ on Windows also reports ``isabs('/tmp/x') == False`` for
+		drive-less root paths; treat a leading ``/`` or ``\\`` as explicit
+		absolute user intent for prompt input resolution.
+		"""
+		if not path:
+			return False
+		if os.path.isabs(path):
+			return True
+		# Windows drive-letter absolute: D:\foo or D:/foo
+		if re.match(r"^[A-Za-z]:[\\/]", path):
+			return True
+		# Windows UNC: \\server\share\...
+		if path.startswith("\\\\") and len(path) > 2:
+			return True
+		# POSIX absolute, or Windows drive-less root (/tmp, \Windows\...)
+		if path.startswith("/") or (path.startswith("\\") and not path.startswith("\\\\")):
+			return True
+		return False
+
+	def get_full_file_path(self, file_name, *, allow_absolute=True):
+		"""Resolve a user-named input file path with traversal protection.
+
+		Relative paths must resolve under the current working directory.
+		Explicit absolute paths (Windows drive letter, UNC, or POSIX ``/``)
+		are allowed by default for *input* file reads named in the prompt
+		(image convert, CSV attach, etc.). Write/exec sandboxing remains
+		enforced elsewhere (SAFE MODE / SafetyManager).
+
+		Pass ``allow_absolute=False`` for relative-only / sandbox-root policy;
+		that raises a clear sandbox error instead of "Path traversal".
+		"""
 		if not file_name:
 			return None
 
+		expanded = os.path.expanduser(str(file_name).strip())
+		if self._is_explicit_absolute_path(expanded):
+			if not allow_absolute:
+				raise ValueError(
+					"Security Error: Absolute paths outside sandbox not allowed: "
+					f"{file_name}. Place the file under the working directory, "
+					"or use --no-sandbox for unrestricted access."
+				)
+			# User-explicit absolute input path: normalize without forcing under cwd.
+			# Drive-letter paths on non-Windows hosts must not be joined to cwd.
+			if re.match(r"^[A-Za-z]:[\\/]", expanded) and os.name != "nt":
+				return os.path.normpath(expanded)
+			return os.path.abspath(expanded)
+
 		cwd = os.path.abspath(os.getcwd())
-		full_path = os.path.abspath(os.path.join(cwd, file_name))
+		full_path = os.path.abspath(os.path.join(cwd, expanded))
 
 		try:
 			common_path = os.path.commonpath([cwd, full_path])
@@ -213,7 +265,7 @@ class UtilityManager:
 			# Raised on Windows when paths are on different drives
 			raise ValueError(f"Security Error: Path traversal attempt detected: {file_name}") from e
 
-		if common_path != cwd:
+		if os.path.normcase(common_path) != os.path.normcase(cwd):
 			raise ValueError(f"Security Error: Path traversal attempt detected: {file_name}")
 
 		return full_path

@@ -23,14 +23,50 @@ class TestUtilityManager(unittest.TestCase):
 		self.assertEqual(self.manager.get_full_file_path(valid_path), expected_path)
 		self.assertEqual(self.manager.get_full_file_path(expected_path), expected_path)
 
-	def test_get_full_file_path_traversal(self):
+	def test_get_full_file_path_traversal_relative(self):
+		"""Relative `..` escapes from cwd must remain blocked."""
 		with self.assertRaises(ValueError) as context:
 			self.manager.get_full_file_path("../etc/passwd")
 		self.assertIn("Security Error: Path traversal attempt detected", str(context.exception))
 
 		with self.assertRaises(ValueError) as context:
-			self.manager.get_full_file_path("/etc/passwd")
+			self.manager.get_full_file_path(r"..\..\Windows\System32\drivers\etc\hosts")
 		self.assertIn("Security Error: Path traversal attempt detected", str(context.exception))
+
+	def test_get_full_file_path_absolute_windows_not_traversal(self):
+		"""User-named Windows absolute paths are input reads, not traversal."""
+		win_path = r"D:\demo\AutomatorSuitNews.jpg"
+		result = self.manager.get_full_file_path(win_path)
+		self.assertIsNotNone(result)
+		normalized = result.replace("/", "\\")
+		self.assertTrue(
+			normalized.lower().endswith(r"\demo\automatorsuitnews.jpg")
+			or normalized.lower() == win_path.lower(),
+			msg=f"Unexpected resolved path: {result!r}",
+		)
+
+	def test_get_full_file_path_absolute_posix_allowed_for_input(self):
+		"""Explicit POSIX absolute paths are allowed for prompt input-file resolution."""
+		posix_path = "/tmp/demo_input.csv"
+		result = self.manager.get_full_file_path(posix_path)
+		self.assertIsNotNone(result)
+		self.assertEqual(os.path.basename(result), "demo_input.csv")
+		# On Windows 3.13+, abspath maps /tmp/... onto the current drive.
+		self.assertTrue(
+			"tmp" in result.replace("\\", "/").lower(),
+			msg=f"Unexpected resolved path: {result!r}",
+		)
+
+	def test_get_full_file_path_absolute_disallowed_when_restricted(self):
+		"""Restricted relative-only mode uses a clear sandbox error, not 'traversal'."""
+		with self.assertRaises(ValueError) as context:
+			self.manager.get_full_file_path(
+				r"D:\demo\AutomatorSuitNews.jpg",
+				allow_absolute=False,
+			)
+		message = str(context.exception)
+		self.assertIn("Absolute paths outside sandbox not allowed", message)
+		self.assertNotIn("Path traversal attempt", message)
 
 	def test_get_full_file_path_empty(self):
 		self.assertIsNone(self.manager.get_full_file_path(""))
