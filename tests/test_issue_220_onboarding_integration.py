@@ -138,7 +138,12 @@ class TestFirstRunWelcomeInteractive(unittest.TestCase):
 			)
 
 	def test_json_one_shot_skips_welcome_noise(self):
-		"""Structured / file one-shots should not spam the welcome box."""
+		"""Structured / file one-shots should not spam the welcome box.
+
+		Welcome gating runs before Interpreter boot / any LLM call. Use a
+		missing model config so the process fails fast offline instead of
+		hanging on retries to localhost:11434 (no Ollama/stub in CI).
+		"""
 		with tempfile.TemporaryDirectory() as tmp:
 			task = Path(tmp) / "task.txt"
 			task.write_text("print(1)\n", encoding="utf-8")
@@ -153,7 +158,7 @@ class TestFirstRunWelcomeInteractive(unittest.TestCase):
 					"--cli",
 					"--yes",
 					"-m",
-					"local-model",
+					"nonexistent-model-ci-no-llm",
 					"-f",
 					str(task),
 					"--output-format",
@@ -162,13 +167,14 @@ class TestFirstRunWelcomeInteractive(unittest.TestCase):
 				cwd=str(ROOT),
 				capture_output=True,
 				text=True,
-				timeout=90,
+				timeout=60,
 				env=env,
 			)
 			combined = proc.stdout + proc.stderr
 			_soft_skip_if_billing(combined)
 			_assert_no_secrets(combined)
 			self.assertNotIn("Code Interpreter - Free & Local", combined)
+			self.assertNotIn("+==========================================================+", combined)
 
 
 class TestFreeFlagHelpSurface(unittest.TestCase):

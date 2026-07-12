@@ -24,13 +24,19 @@ class TestUtilityManager(unittest.TestCase):
 		self.assertEqual(self.manager.get_full_file_path(expected_path), expected_path)
 
 	def test_get_full_file_path_traversal_relative(self):
-		"""Relative `..` escapes from cwd must remain blocked."""
+		"""Relative `..` escapes from cwd must remain blocked.
+
+		Use ``os.sep`` so backslash paths are not treated as a single literal
+		filename on POSIX (where ``\\`` is not a separator).
+		"""
+		escape_passwd = os.path.join("..", "etc", "passwd")
 		with self.assertRaises(ValueError) as context:
-			self.manager.get_full_file_path("../etc/passwd")
+			self.manager.get_full_file_path(escape_passwd)
 		self.assertIn("Security Error: Path traversal attempt detected", str(context.exception))
 
+		escape_hosts = os.path.join("..", "..", "Windows", "System32", "drivers", "etc", "hosts")
 		with self.assertRaises(ValueError) as context:
-			self.manager.get_full_file_path(r"..\..\Windows\System32\drivers\etc\hosts")
+			self.manager.get_full_file_path(escape_hosts)
 		self.assertIn("Security Error: Path traversal attempt detected", str(context.exception))
 
 	def test_get_full_file_path_absolute_windows_not_traversal(self):

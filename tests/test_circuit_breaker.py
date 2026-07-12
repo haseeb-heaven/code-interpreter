@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import unittest
+from unittest.mock import patch
 
 from libs.key_manager import CircuitState, KeyState, ProviderKeyPool
 
@@ -83,14 +84,21 @@ class TestCircuitBreaker(unittest.TestCase):
 		self.assertEqual(pool.keys()[0].circuit_state, CircuitState.OPEN)
 
 	def test_configurable_cooldown(self):
-		ks = KeyState(value="sk-test", index=0, circuit_threshold=1, circuit_cooldown=0.1)
-		ks.record_failure()
-		self.assertEqual(ks.circuit_state, CircuitState.OPEN)
-		time.sleep(0.05)
-		self.assertTrue(ks.is_circuit_open())
-		time.sleep(0.07)  # total ~120ms > 100ms cooldown
-		self.assertFalse(ks.is_circuit_open())
-		self.assertEqual(ks.circuit_state, CircuitState.HALF_OPEN)
+		"""Cooldown transitions must not depend on wall-clock sleep (flaky on busy CI)."""
+		clock = {"t": 1000.0}
+
+		def fake_now() -> float:
+			return clock["t"]
+
+		with patch("libs.key_manager._now", side_effect=fake_now):
+			ks = KeyState(value="sk-test", index=0, circuit_threshold=1, circuit_cooldown=0.1)
+			ks.record_failure()
+			self.assertEqual(ks.circuit_state, CircuitState.OPEN)
+			clock["t"] = 1000.05  # still inside 100ms cooldown
+			self.assertTrue(ks.is_circuit_open())
+			clock["t"] = 1000.12  # past cooldown → HALF_OPEN
+			self.assertFalse(ks.is_circuit_open())
+			self.assertEqual(ks.circuit_state, CircuitState.HALF_OPEN)
 
 
 if __name__ == "__main__":
