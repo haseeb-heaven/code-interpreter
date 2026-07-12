@@ -35,12 +35,14 @@ class TestMainLoopMoreCommands(unittest.TestCase):
 		self._run(["/model does-not-exist-model"])
 
 	def test_model_existing_config(self):
-		# Use a real configs/*.json basename without extension if present
-		configs = list(Path("configs").glob("*.json"))
-		if not configs:
-			self.skipTest("no configs")
-		name = configs[0].stem
-		# main_loop resolves configs/{model}.json basenames
+		# Use a real [models.*] registry key from configs/models.toml if present.
+		from libs.core.model_registry import ModelRegistry
+
+		models = ModelRegistry.load().list_model_names()
+		if not models:
+			self.skipTest("no models in configs/models.toml")
+		name = models[0]
+		# main_loop resolves models.toml registry keys via resolve_model_config_name.
 		self._run([f"/model {name}"])
 
 	def test_install_commands(self):

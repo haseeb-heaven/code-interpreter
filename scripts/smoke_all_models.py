@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Smoke-test matrix for every configs/*.json model.
+"""Smoke-test matrix for every configs/models.toml model entry.
 
-Offline (default): validate config schema + key routing + initialize_client with fake keys.
+Offline (default): validate registry schema + key routing + initialize_client with fake keys.
 Live: set SMOKE_LIVE=1 and provide real provider keys in .env / environment.
 
 Usage:
@@ -26,7 +26,9 @@ sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
 load_dotenv(ROOT / ".env", override=True)
 
-CONFIG_DIR = ROOT / "configs"
+from libs.core.model_registry import ModelRegistry  # noqa: E402
+
+REGISTRY_PATH = ROOT / "configs" / "models.toml"
 
 
 def expected_key(model: str, provider: str = "") -> str | None:
@@ -198,27 +200,25 @@ def live_row(label: str, config: dict) -> tuple[str, str]:
 
 
 def main() -> int:
-	parser = argparse.ArgumentParser(description="Smoke matrix for all model configs")
+	parser = argparse.ArgumentParser(description="Smoke matrix for all model registry entries")
 	parser.add_argument("--only", default="", help="Comma filter: openai,anthropic,gemini,groq,openrouter,local,...")
 	parser.add_argument("--live", action="store_true", help="Hit live APIs (or set SMOKE_LIVE=1)")
 	args = parser.parse_args()
 	live = args.live or os.getenv("SMOKE_LIVE") == "1"
 	only = {x.strip().lower() for x in args.only.split(",") if x.strip()} or None
 
+	registry = ModelRegistry.load(str(REGISTRY_PATH), use_cache=False)
 	rows = []
-	for path in sorted(CONFIG_DIR.glob("*.json")):
-		if path.name == "schema.json":
-			continue
-		config = json.loads(path.read_text())
+	for label in registry.list_model_names():
+		config = registry.get_model(label) or {}
 		if "model" not in config:
-			rows.append(("SKIP", path.stem, "N/A", "not a model config"))
-			print(f"[SKIP] {path.stem:40} not a model config")
+			rows.append(("SKIP", label, "N/A", "not a model config"))
+			print(f"[SKIP] {label:40} not a model config")
 			continue
 		key = expected_key(str(config.get("model", "")), str(config.get("provider", "")))
 		provider = str(config.get("provider", "") or "unknown")
 		if not family_filter(only, key, provider):
 			continue
-		label = path.stem
 		try:
 			status, detail = live_row(label, config) if live else offline_row(label, config)
 		except Exception as exc:

@@ -70,7 +70,7 @@ def build_parser():
 		'--free',
 		action='store_true',
 		default=False,
-		help='Prefer a free/cheap model from configs/free/catalog.json when -m is omitted',
+		help='Prefer a free/cheap model from configs/models.toml [[free_catalog]] when -m is omitted',
 	)
 	parser.add_argument(
 		'--list-free',

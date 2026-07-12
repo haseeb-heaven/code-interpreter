@@ -91,21 +91,39 @@ class TestUtilityManager(unittest.TestCase):
 
 	def test_list_available_models(self):
 		with tempfile.TemporaryDirectory() as tmp:
-			(Path(tmp) / "gpt-4o.json").write_text("{}", encoding="utf-8")
-			(Path(tmp) / "schema.json").write_text("{}", encoding="utf-8")
-			(Path(tmp) / "local-model.json").write_text("{}", encoding="utf-8")
+			(Path(tmp) / "models.toml").write_text(
+				'[models."gpt-4o"]\nmodel = "gpt-4o"\n\n'
+				'[models."local-model"]\nmodel = "llama3.1:8b"\n',
+				encoding="utf-8",
+			)
 			models = self.manager.list_available_models(tmp)
 			self.assertEqual(models, ["gpt-4o", "local-model"])
 
 	def test_read_config_file(self):
+		from libs.core.model_registry import ModelRegistry
+
 		with tempfile.TemporaryDirectory() as tmp:
-			path = os.path.join(tmp, "cfg.json")
-			with open(path, "w", encoding="utf-8") as fh:
-				json.dump({"model": "gpt-4o", "provider": "openai"}, fh)
-			cfg = self.manager.read_config_file(path)
+			registry_path = os.path.join(tmp, "models.toml")
+			with open(registry_path, "w", encoding="utf-8") as fh:
+				fh.write('[models."gpt-4o"]\nmodel = "gpt-4o"\nprovider = "openai"\n')
+			fixture_registry = ModelRegistry.load(registry_path, use_cache=False)
+			with patch.object(ModelRegistry, "load", return_value=fixture_registry):
+				cfg = self.manager.read_config_file("gpt-4o")
 			self.assertEqual(cfg["model"], "gpt-4o")
 		with self.assertRaises(ValueError):
 			self.manager.read_config_file(None)
+
+	def test_read_config_file_accepts_legacy_json_path(self):
+		from libs.core.model_registry import ModelRegistry
+
+		with tempfile.TemporaryDirectory() as tmp:
+			registry_path = os.path.join(tmp, "models.toml")
+			with open(registry_path, "w", encoding="utf-8") as fh:
+				fh.write('[models."gpt-4o"]\nmodel = "gpt-4o"\n')
+			fixture_registry = ModelRegistry.load(registry_path, use_cache=False)
+			with patch.object(ModelRegistry, "load", return_value=fixture_registry):
+				cfg = self.manager.read_config_file("configs/gpt-4o.json")
+			self.assertEqual(cfg["model"], "gpt-4o")
 
 	def test_extract_file_name(self):
 		self.assertEqual(self.manager.extract_file_name("open data.csv please"), "data.csv")

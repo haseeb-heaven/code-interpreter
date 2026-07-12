@@ -5,7 +5,6 @@ Never log or return API key values — only names and present/absent.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import shutil
@@ -15,6 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
+
+from libs.core.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -58,16 +59,14 @@ def looks_real(key_name: str | None) -> bool:
 
 def probe_local_endpoint(timeout: float = 1.5) -> bool:
 	"""True when a local OpenAI-compatible endpoint answers /v1/models."""
-	cfg_path = ROOT / "configs" / "local-model.json"
 	bases: list[str] = []
-	if cfg_path.is_file():
-		try:
-			data = json.loads(cfg_path.read_text(encoding="utf-8"))
-			api_base = str(data.get("api_base") or "").rstrip("/")
-			if api_base:
-				bases.append(api_base)
-		except (OSError, json.JSONDecodeError) as exc:
-			logger.debug("local-model.json unreadable: %s", exc)
+	try:
+		data = ModelRegistry.load(str(ROOT / "configs")).get_model("local-model")
+		api_base = str((data or {}).get("api_base") or "").rstrip("/")
+		if api_base:
+			bases.append(api_base)
+	except OSError as exc:
+		logger.debug("local-model registry entry unreadable: %s", exc)
 	for fallback in (
 		"http://127.0.0.1:11434/v1",
 		"http://localhost:11434/v1",
@@ -88,15 +87,15 @@ def probe_local_endpoint(timeout: float = 1.5) -> bool:
 
 
 def _load_free_catalog() -> list[dict[str, Any]]:
-	path = ROOT / "configs" / "free" / "catalog.json"
-	if not path.is_file():
-		return []
 	try:
-		data = json.loads(path.read_text(encoding="utf-8"))
-	except (OSError, json.JSONDecodeError) as exc:
-		logger.warning("free catalog unreadable: %s", exc)
+		registry = ModelRegistry.load(str(ROOT / "configs"))
+	except OSError as exc:
+		logger.warning("models.toml unreadable: %s", exc)
 		return []
-	return list(data.get("models") or [])
+	entries = registry.free_catalog_entries()
+	for entry in entries:
+		entry.setdefault("config", entry.get("model_key") or entry.get("id"))
+	return entries
 
 
 def detect_providers() -> list[dict[str, Any]]:

@@ -175,7 +175,7 @@ def open_tui_settings(interp, setting_type):
 	return None
 
 
-def apply_runtime_settings(interp, settings, *, display_fn, path_isfile):
+def apply_runtime_settings(interp, settings, *, display_fn, model_exists_fn):
 	"""Apply interactive TUI/CLI runtime setting changes onto ``interp``."""
 	if not settings:
 		return
@@ -193,8 +193,7 @@ def apply_runtime_settings(interp, settings, *, display_fn, path_isfile):
 		interp.INTERPRETER_HISTORY = settings["history"]
 	if "model" in settings and settings["model"]:
 		model = settings["model"]
-		model_config_file = f"configs/{model}.json"
-		if not path_isfile(model_config_file):
+		if not model_exists_fn(model):
 			display_fn(f"Model {model} does not exists. Please check the model name using '/list' command.")
 		else:
 			interp.INTERPRETER_MODEL = model

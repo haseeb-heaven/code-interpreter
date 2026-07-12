@@ -1,3 +1,10 @@
+## v3.5.0 (2026-07-12)
+- refactor(config): replace the `configs/` folder's ~70 per-model JSON files (plus `configs/free/catalog.json` and `configs/schema.json`) with a single human-editable `configs/models.toml` registry (`[models."<key>"]` tables, `[[default_priority]]`, `[[free_catalog]]`)
+- feat(config): `libs/core/model_registry.py` — cached `tomllib`/`tomli`-backed loader (`ModelRegistry.load/get_model/has_model/list_model_names/default_model_name/free_catalog_entries`); adds `tomli; python_version < "3.11"` to `requirements.txt`
+- refactor(models): `libs/free_llms.py`, `libs/utility_manager.py`, `libs/core/model_router.py`, `libs/core/session.py`, `libs/interpreter_lib.py`, `libs/core/main_loop.py` now resolve models via `ModelRegistry` instead of `configs/<name>.json` paths; `/model`, `--free`, `--list-free`, `--gemini-style`, `-m <model>` behavior is unchanged end-to-end
+- chore(scripts): `scripts/smoke_all_models.py`, `scripts/config_builder.sh`/`.bat` updated to read/append `configs/models.toml` instead of per-model JSON files
+- docs: README/AGENTS.md updated to document the `configs/models.toml` registry and how to add custom models/providers without touching Python code
+
 ## v3.4.0 (2026-07-12)
 - fix(agentic/yolo): AutoLoop treats malformed tool XML (`<write_file` / `</function>`) as repairable failure and retries (cap 8) instead of exiting; skip OpenRouter free early when tools unsupported; require real tool_calls for chart/file tasks
 - fix(agentic/yolo): AutoLoop OR `RateLimitError` (`free-models-per-day` / `Provider returned error`) jumps to Groq/Gemini immediately without burning sibling OpenRouter `:free` slots; pass config basename into AutoLoop

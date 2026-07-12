@@ -1,4 +1,4 @@
-"""Offline unit tests for every configs/*.json model entry.
+"""Offline unit tests for every ``[models.*]`` entry in configs/models.toml.
 
 Covers schema validity, provider/key routing, and initialize_client validation
 without calling live provider APIs.
@@ -6,27 +6,26 @@ without calling live provider APIs.
 
 from __future__ import annotations
 
-import json
 import os
 import unittest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from libs.core.model_registry import ModelRegistry
 from libs.interpreter_lib import Interpreter
 from libs.llm_dispatcher import _detect_provider, build_completion_kwargs
 
 
-CONFIG_DIR = Path("configs")
-REQUIRED_FIELDS = ("temperature", "max_tokens", "start_sep", "end_sep", "model")
-_SKIP_CONFIG_NAMES = {"schema.json"}
+REQUIRED_FIELDS = ("temperature", "max_tokens", "model")
 
 
-def _all_configs():
-	paths = sorted(
-		p for p in CONFIG_DIR.glob("*.json") if p.name.lower() not in _SKIP_CONFIG_NAMES
-	)
-	assert paths, "No configs/*.json found"
-	return paths
+def _registry() -> ModelRegistry:
+	return ModelRegistry.load(use_cache=False)
+
+
+def _all_model_keys():
+	keys = _registry().list_model_names()
+	assert keys, "No [models.*] entries found in configs/models.toml"
+	return keys
 
 
 def _expected_key_for_model(model: str, provider: str = "") -> str | None:
@@ -84,30 +83,32 @@ def _valid_env_for_key(key_name: str) -> dict:
 
 class TestAllModelConfigsSchema(unittest.TestCase):
 	def test_every_config_has_required_fields(self):
-		for path in _all_configs():
-			with self.subTest(config=path.name):
-				data = json.loads(path.read_text())
+		registry = _registry()
+		for model_key in _all_model_keys():
+			with self.subTest(config=model_key):
+				data = registry.get_model(model_key)
 				for field in REQUIRED_FIELDS:
-					self.assertIn(field, data, f"{path.name} missing {field}")
+					self.assertIn(field, data, f"{model_key} missing {field}")
 				self.assertIsInstance(data["temperature"], (int, float))
 				self.assertIsInstance(data["max_tokens"], int)
 				self.assertTrue(str(data["model"]).strip())
 
 	def test_config_count_matches_directory(self):
-		self.assertGreaterEqual(len(_all_configs()), 50)
+		self.assertGreaterEqual(len(_all_model_keys()), 50)
 
 
 class TestAllModelKeyRouting(unittest.TestCase):
 	def test_key_routing_table_for_every_config(self):
-		for path in _all_configs():
-			with self.subTest(config=path.name):
-				data = json.loads(path.read_text())
+		registry = _registry()
+		for model_key in _all_model_keys():
+			with self.subTest(config=model_key):
+				data = registry.get_model(model_key)
 				model = str(data.get("model", ""))
 				provider = str(data.get("provider", ""))
 				key = _expected_key_for_model(model, provider)
 				detected = _detect_provider(model, provider, str(data.get("api_base", "None")))
 				if key is None:
-					self.assertIn(detected, ("local", "huggingface"), msg=f"{path.name} local expected")
+					self.assertIn(detected, ("local", "huggingface"), msg=f"{model_key} local expected")
 				else:
 					self.assertTrue(key.endswith("_API_KEY") or key.endswith("_KEY"))
 
@@ -161,22 +162,23 @@ class TestAllModelInitializeClient(unittest.TestCase):
 		return Interpreter(args)
 
 	def test_initialize_client_with_valid_key_for_each_config(self):
-		for path in _all_configs():
-			with self.subTest(config=path.name):
-				label = path.stem
-				config = json.loads(path.read_text())
+		registry = _registry()
+		for model_key in _all_model_keys():
+			with self.subTest(config=model_key):
+				config = registry.get_model(model_key)
 				model = str(config.get("model", ""))
 				provider = str(config.get("provider", ""))
 				key = _expected_key_for_model(model, provider)
 				env = _valid_env_for_key(key) if key else {}
 				with patch.dict(os.environ, env, clear=True):
-					interp = self._make(label, config)
+					interp = self._make(model_key, config)
 					self.assertEqual(interp.INTERPRETER_MODEL, model)
 
 	def test_build_completion_kwargs_for_each_config(self):
-		for path in _all_configs():
-			with self.subTest(config=path.name):
-				config = json.loads(path.read_text())
+		registry = _registry()
+		for model_key in _all_model_keys():
+			with self.subTest(config=model_key):
+				config = registry.get_model(model_key)
 				model = str(config["model"])
 				provider = str(config.get("provider", ""))
 				api_base = str(config.get("api_base", "None"))
@@ -198,13 +200,14 @@ class TestModelSmokeOfflineMatrix(unittest.TestCase):
 	"""Documented matrix: every config maps to exactly one auth strategy."""
 
 	def test_unique_config_labels(self):
-		labels = [p.stem for p in _all_configs()]
+		labels = _all_model_keys()
 		self.assertEqual(len(labels), len(set(labels)))
 
 	def test_provider_families_covered(self):
+		registry = _registry()
 		families = set()
-		for path in _all_configs():
-			data = json.loads(path.read_text())
+		for model_key in _all_model_keys():
+			data = registry.get_model(model_key)
 			key = _expected_key_for_model(str(data.get("model", "")), str(data.get("provider", "")))
 			families.add(key or "LOCAL")
 		# Expect major families present in the catalog

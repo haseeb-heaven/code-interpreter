@@ -41,51 +41,76 @@ class FreeModelEntryTests(unittest.TestCase):
 		self.assertTrue(entry.is_available(environ={"OPENROUTER_API_KEY": "sk-or-test"}))
 
 
+def _toml_scalar(value) -> str:
+	if isinstance(value, bool):
+		return "true" if value else "false"
+	if isinstance(value, (int, float)):
+		return str(value)
+	return json.dumps(str(value))
+
+
+def _write_models_toml(configs_dir: str, models: dict, free_catalog=None) -> str:
+	"""Write a minimal ``models.toml`` fixture for tests (replaces per-model JSON files)."""
+	os.makedirs(configs_dir, exist_ok=True)
+	lines = []
+	for name, payload in models.items():
+		lines.append(f'[models.{json.dumps(str(name))}]')
+		for key, value in payload.items():
+			if value is None:
+				continue
+			lines.append(f"{key} = {_toml_scalar(value)}")
+		lines.append("")
+	for entry in free_catalog or []:
+		lines.append("[[free_catalog]]")
+		for key, value in entry.items():
+			if value is None:
+				continue
+			lines.append(f"{key} = {_toml_scalar(value)}")
+		lines.append("")
+	path = os.path.join(configs_dir, "models.toml")
+	with open(path, "w", encoding="utf-8") as handle:
+		handle.write("\n".join(lines))
+	return path
+
+
 class FreeLLMCatalogTests(unittest.TestCase):
 	def setUp(self):
 		self._tmpdir = tempfile.TemporaryDirectory()
 		self.addCleanup(self._tmpdir.cleanup)
 		self.configs_dir = os.path.join(self._tmpdir.name, "configs")
 		os.makedirs(self.configs_dir)
-		# Minimal config files referenced by catalog
-		for name in ("openrouter-free", "groq-llama-3.1-8b", "local-model"):
-			with open(os.path.join(self.configs_dir, f"{name}.json"), "w", encoding="utf-8") as handle:
-				json.dump({"model": name}, handle)
-
-		catalog_dir = os.path.join(self.configs_dir, "free")
-		os.makedirs(catalog_dir)
-		self.catalog_path = os.path.join(catalog_dir, "catalog.json")
-		payload = {
-			"version": 1,
-			"models": [
-				{
-					"id": "openrouter-free",
-					"config": "openrouter-free",
-					"provider": "openrouter",
-					"env_key": "OPENROUTER_API_KEY",
-					"tier": "free",
-					"notes": "OR free",
-				},
-				{
-					"id": "groq-llama-3.1-8b",
-					"config": "groq-llama-3.1-8b",
-					"provider": "groq",
-					"env_key": "GROQ_API_KEY",
-					"tier": "free_tier",
-					"notes": "Groq",
-				},
-				{
-					"id": "local-model",
-					"config": "local-model",
-					"provider": "local",
-					"env_key": None,
-					"tier": "local",
-					"notes": "Local",
-				},
-			],
+		# Minimal registry entries referenced by the free catalog.
+		models = {
+			"openrouter-free": {"model": "openrouter-free"},
+			"groq-llama-3.1-8b": {"model": "groq-llama-3.1-8b"},
+			"local-model": {"model": "local-model"},
 		}
-		with open(self.catalog_path, "w", encoding="utf-8") as handle:
-			json.dump(payload, handle)
+		free_catalog = [
+			{
+				"id": "openrouter-free",
+				"model_key": "openrouter-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
+				"notes": "OR free",
+			},
+			{
+				"id": "groq-llama-3.1-8b",
+				"model_key": "groq-llama-3.1-8b",
+				"provider": "groq",
+				"env_key": "GROQ_API_KEY",
+				"tier": "free_tier",
+				"notes": "Groq",
+			},
+			{
+				"id": "local-model",
+				"model_key": "local-model",
+				"provider": "local",
+				"tier": "local",
+				"notes": "Local",
+			},
+		]
+		self.catalog_path = _write_models_toml(self.configs_dir, models, free_catalog)
 
 	def test_load_catalog(self):
 		catalog = FreeLLMCatalog.load(self.catalog_path)

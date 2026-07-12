@@ -1,21 +1,26 @@
 """Free / cheap LLM catalog for Gemini-CLI-style agentic runs.
 
-Loads ``configs/free/catalog.json`` and helps pick models that work without
-paid cloud lock-in (OpenRouter free, Groq/Gemini free tiers, Ollama, HF).
+Backed by the single-file ``configs/models.toml`` registry (see
+``libs/core/model_registry.py``). Helps pick models that work without paid
+cloud lock-in (OpenRouter free, Groq/Gemini free tiers, Ollama, HF).
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
+from libs.core.model_registry import DEFAULT_REGISTRY_PATH, ModelRegistry
+
 logger = logging.getLogger(__name__)
 
-DEFAULT_CATALOG_PATH = os.path.join("configs", "free", "catalog.json")
+# Kept for backwards compatibility: default location of the model registry
+# that backs the free/cheap catalog. No longer a JSON catalog file -- it now
+# points at the single-file TOML registry.
+DEFAULT_CATALOG_PATH = DEFAULT_REGISTRY_PATH
 
 # Cap how long we wait on a single rate-limit "try again in Ns" hint.
 DEFAULT_RETRY_AFTER_CAP_SECONDS = 60.0
@@ -23,9 +28,19 @@ DEFAULT_RETRY_AFTER_CAP_SECONDS = 60.0
 DEFAULT_RATE_LIMIT_RETRIES = 2
 
 
+def _registry_for(configs_dir: str) -> ModelRegistry:
+	"""Load the model registry that lives under ``configs_dir`` (or a direct .toml path)."""
+	return ModelRegistry.load(configs_dir)
+
+
 @dataclass(frozen=True)
 class FreeModelEntry:
-	"""One curated free/cheap model preset."""
+	"""One curated free/cheap model preset.
+
+	``config`` is the registry key (``[models.<config>]`` in ``models.toml``)
+	that this preset resolves to -- the name is kept for backwards
+	compatibility with the pre-TOML ``configs/<config>.json`` layout.
+	"""
 
 	id: str
 	config: str
@@ -38,9 +53,9 @@ class FreeModelEntry:
 	def from_dict(cls, data: Dict[str, Any]) -> "FreeModelEntry":
 		if not isinstance(data, dict):
 			raise ValueError("Free model entry must be a dict")
-		config = str(data.get("config") or data.get("id") or "").strip()
+		config = str(data.get("model_key") or data.get("config") or data.get("id") or "").strip()
 		if not config:
-			raise ValueError("Free model entry missing config/id")
+			raise ValueError("Free model entry missing model_key/config/id")
 		return cls(
 			id=str(data.get("id") or config).strip(),
 			config=config,
@@ -68,12 +83,11 @@ class FreeModelEntry:
 		return bool(value and str(value).strip())
 
 	def config_exists(self, configs_dir: str = "configs") -> bool:
-		path = os.path.join(configs_dir, f"{self.config}.json")
-		return os.path.isfile(path)
+		return _registry_for(configs_dir).has_model(self.config)
 
 
 class FreeLLMCatalog:
-	"""Curated catalog of free/cheap interpreter model configs."""
+	"""Curated catalog of free/cheap interpreter model presets."""
 
 	def __init__(self, entries: Sequence[FreeModelEntry]):
 		self._entries: List[FreeModelEntry] = list(entries)
@@ -87,25 +101,16 @@ class FreeLLMCatalog:
 
 	@classmethod
 	def load(cls, catalog_path: Optional[str] = None) -> "FreeLLMCatalog":
-		"""Load catalog JSON; returns empty catalog on missing/invalid file."""
-		path = catalog_path or DEFAULT_CATALOG_PATH
-		try:
-			with open(path, "r", encoding="utf-8") as handle:
-				payload = json.load(handle)
-		except FileNotFoundError:
-			logger.warning("Free LLM catalog not found at %s", path)
-			return cls([])
-		except (OSError, json.JSONDecodeError) as exc:
-			logger.error("Failed to load free LLM catalog %s: %s", path, exc)
-			return cls([])
+		"""Load the free-catalog rotation from ``models.toml``.
 
-		raw_models = payload.get("models") if isinstance(payload, dict) else None
-		if not isinstance(raw_models, list):
-			logger.error("Free LLM catalog missing models list: %s", path)
-			return cls([])
-
+		``catalog_path`` may be a directory containing ``models.toml``, a
+		direct path to a ``.toml`` registry file, or ``None`` for the repo
+		default (``configs/models.toml``). Returns an empty catalog on
+		missing/invalid registries.
+		"""
+		registry = ModelRegistry.load(catalog_path or DEFAULT_CATALOG_PATH)
 		entries: List[FreeModelEntry] = []
-		for item in raw_models:
+		for item in registry.free_catalog_entries():
 			try:
 				entries.append(FreeModelEntry.from_dict(item))
 			except ValueError as exc:
@@ -133,7 +138,7 @@ class FreeLLMCatalog:
 		configs_dir: str = "configs",
 		require_config_file: bool = True,
 	) -> List[FreeModelEntry]:
-		"""Entries whose API key (if any) is set and config file exists."""
+		"""Entries whose API key (if any) is set and registry entry exists."""
 		result: List[FreeModelEntry] = []
 		for entry in self._entries:
 			if require_config_file and not entry.config_exists(configs_dir):
@@ -177,7 +182,7 @@ class FreeLLMCatalog:
 			return "No free LLM presets found."
 
 		lines = [
-			"Free / cheap LLM presets (configs/free/catalog.json):",
+			"Free / cheap LLM presets (configs/models.toml [[free_catalog]]):",
 			"",
 			f"{'#':<3} {'Config':<36} {'Provider':<12} {'Tier':<10} {'Ready':<6} Notes",
 			"-" * 100,
@@ -435,18 +440,11 @@ def is_openrouter_free_candidate(candidate: Dict[str, Any]) -> bool:
 
 
 def load_model_config(config_name: str, configs_dir: str = "configs") -> Optional[Dict[str, Any]]:
-	"""Load ``configs/<config_name>.json``; return None if missing/invalid."""
+	"""Load ``[models.<config_name>]`` from ``models.toml``; ``None`` if missing/invalid."""
 	name = (config_name or "").strip()
 	if not name:
 		return None
-	path = os.path.join(configs_dir, f"{name}.json")
-	try:
-		with open(path, "r", encoding="utf-8") as handle:
-			payload = json.load(handle)
-	except (OSError, json.JSONDecodeError) as exc:
-		logger.debug("Could not load model config %s: %s", path, exc)
-		return None
-	return payload if isinstance(payload, dict) else None
+	return _registry_for(configs_dir).get_model(name)
 
 
 def litellm_model_id(config: Dict[str, Any], fallback: str = "") -> str:
@@ -455,17 +453,8 @@ def litellm_model_id(config: Dict[str, Any], fallback: str = "") -> str:
 
 
 def list_config_names(configs_dir: str = "configs") -> List[str]:
-	"""Return sorted config basenames under ``configs_dir`` (excludes schema.json)."""
-	try:
-		names = [
-			os.path.splitext(name)[0]
-			for name in os.listdir(configs_dir)
-			if name.endswith(".json") and name.lower() != "schema.json"
-		]
-		return sorted(names)
-	except OSError as exc:
-		logger.debug("Could not list configs in %s: %s", configs_dir, exc)
-		return []
+	"""Return sorted model keys from ``models.toml``."""
+	return _registry_for(configs_dir).list_model_names()
 
 
 def resolve_model_config_name(
@@ -474,33 +463,34 @@ def resolve_model_config_name(
 	configs_dir: str = "configs",
 	catalog: Optional[FreeLLMCatalog] = None,
 ) -> Optional[str]:
-	"""Map a user-facing model token to a ``configs/<name>.json`` basename.
+	"""Map a user-facing model token to a ``[models.<name>]`` registry key.
 
 	Accepts:
-	- Config basename (``gemini-2.5-flash``)
+	- Registry key (``gemini-2.5-flash``)
 	- Free-catalog id/config
-	- LiteLLM model id when it uniquely matches one config (``gemini/gemini-2.5-pro``)
+	- LiteLLM model id when it uniquely matches one registry entry
+	  (``gemini/gemini-2.5-pro``)
 
-	Returns None when nothing resolves. Prefer config basenames in UX; do not
+	Returns None when nothing resolves. Prefer registry keys in UX; do not
 	treat litellm ids as primary names unless that mapping exists.
 	"""
 	needle = (name or "").strip()
 	if not needle:
 		return None
 
-	direct_path = os.path.join(configs_dir, f"{needle}.json")
-	if os.path.isfile(direct_path):
+	registry = _registry_for(configs_dir)
+	if registry.has_model(needle):
 		return needle
 
-	cat = catalog or FreeLLMCatalog.load()
+	cat = catalog or FreeLLMCatalog.load(configs_dir)
 	entry = cat.get(needle)
 	if entry is not None and entry.config_exists(configs_dir):
 		return entry.config
 
 	needle_key = _normalize_key(needle)
 	matches: List[str] = []
-	for config_name in list_config_names(configs_dir):
-		cfg = load_model_config(config_name, configs_dir=configs_dir)
+	for config_name in registry.list_model_names():
+		cfg = registry.get_model(config_name)
 		if not cfg:
 			continue
 		mid = _normalize_key(litellm_model_id(cfg, config_name))
@@ -555,7 +545,7 @@ def free_fallback_candidates(
 	usually affect the whole OR free pool). Otherwise prefer same-provider
 	siblings first, then other free catalog presets.
 	"""
-	cat = catalog or FreeLLMCatalog.load()
+	cat = catalog or FreeLLMCatalog.load(configs_dir)
 	current = (current_model or "").strip()
 	current_key = _normalize_key(current)
 	matched = match_catalog_entry(current, cat, configs_dir=configs_dir)

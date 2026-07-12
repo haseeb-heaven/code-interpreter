@@ -8,25 +8,13 @@ from libs.logger import Logger
 import csv
 import glob
 from datetime import datetime
-import json
 
+from libs.core.model_registry import ModelRegistry
 from libs.markdown_code import display_code, display_markdown_message
 
 
 class UtilityManager:
 	logger = None
-	DEFAULT_MODELS = [
-		("OPENAI_API_KEY", "gpt-4o"),
-		("OPENROUTER_API_KEY", "openrouter-free"),
-		("GEMINI_API_KEY", "gemini-2.5-flash"),
-		("ANTHROPIC_API_KEY", "claude-sonnet-4-6"),
-		("GROQ_API_KEY", "groq-gpt-oss-20b"),
-		("Z_AI_API_KEY", "z-ai-glm-5"),
-		("NVIDIA_API_KEY", "nvidia-nemotron"),
-		("DEEPSEEK_API_KEY", "deepseek-chat"),
-		("HUGGINGFACE_API_KEY", "hf-meta-llama-3"),
-		("BROWSER_USE_API_KEY", "browser-use-bu-max"),
-	]
 
 	def __init__(self):
 		try:
@@ -149,26 +137,42 @@ class UtilityManager:
 			self.logger.info(f"Skipping readline history initialization: {str(exception)}")
 			return False
 
+	@staticmethod
+	def _normalize_model_key(name):
+		"""Accept a bare model key or a legacy ``configs/<name>.json`` path."""
+		key = str(name or "").strip()
+		for prefix in ("configs/", "configs\\"):
+			if key.startswith(prefix):
+				key = key[len(prefix):]
+		if key.lower().endswith(".json"):
+			key = key[: -len(".json")]
+		return key
+
 	def read_config_file(self, filename=None):
+		"""Look up a model entry in the ``configs/models.toml`` registry.
+
+		``filename`` may be a bare model key (``"gpt-4o"``) or a legacy
+		``configs/<name>.json`` style path for backwards compatibility.
+		"""
 		if not filename:
 			raise ValueError("Config filename must be provided.")
+		name = self._normalize_model_key(filename)
 		try:
-			with open(filename, "r") as config_file:
-				return json.load(config_file)
+			registry = ModelRegistry.load()
+			config = registry.get_model(name)
+			if config is None:
+				raise KeyError(
+					f"Model '{name}' not found in model registry ({registry.path})."
+				)
+			return config
 		except Exception as exception:
 			self.logger.error(f"Error in reading config file: {str(exception)}")
 			raise
 
 	def list_available_models(self, configs_path=None):
 		try:
-			configs_path = configs_path or os.path.join(os.getcwd(), 'configs')
-			# schema.json is JSON Schema for validation, not a model config.
-			configs_files = [
-				file
-				for file in os.listdir(configs_path)
-				if file.endswith('.json') and file.lower() != 'schema.json'
-			]
-			return sorted(os.path.splitext(file)[0] for file in configs_files)
+			registry = ModelRegistry.load(configs_path)
+			return registry.list_model_names()
 		except Exception as exception:
 			self.logger.error(f"Error in listing available models: {str(exception)}")
 			raise
@@ -177,11 +181,8 @@ class UtilityManager:
 	def get_default_model_name():
 		env_path = os.path.join(os.getcwd(), ".env")
 		load_dotenv(dotenv_path=env_path, override=False)
-
-		for env_name, model_name in UtilityManager.DEFAULT_MODELS:
-			if os.getenv(env_name):
-				return model_name
-		return "gpt-4o"
+		registry = ModelRegistry.load()
+		return registry.default_model_name(environ=os.environ)
 
 	def extract_file_name(self, prompt):
 		try:

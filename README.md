@@ -243,7 +243,7 @@ Attach files mid-session with `/file path`, list with `/files`, clear with `/cle
 - In the app go to **Local Server** option and select the model.
 - Start the server and copy the **URL** (LM-Studio will provide you with the URL).
 - Run command `ollama serve` and copy the **URL** (Ollama will provide you with the URL).
-- Open config file `configs/local-model.json` and paste the **URL** in the `api_base` field.
+- Open `configs/models.toml`, find the `[models."local-model"]` table, and paste the **URL** into the `api_base` field.
 - Set the model name to `local-model` and run the interpreter.
 
 ```bash
@@ -362,7 +362,7 @@ python interpreter.py --cli --free -md code
 
 In the agentic REPL (and classic `--cli`), use `/free` to discover presets and `/model <name>` to switch.
 
-See `configs/free/catalog.json` for the curated list. Existing `--agentic` / `--agent` flags remain unchanged.
+See the `[[free_catalog]]` entries in `configs/models.toml` for the curated list. Existing `--agentic` / `--agent` flags remain unchanged.
 
 ### Structured output (`--output-format`)
 Machine-readable results for shell pipelines, CI, and editor wrappers. Non-TTY (piped) stdout auto-selects JSON and disables colors; override with an explicit format.
@@ -482,7 +482,7 @@ Choose between `code`, `chat`, `script`, `command`, `vision`, plus codegen-only 
 After mode, the TUI also lets you pick:
 
 - **Workflow** — classic, `--agentic` (ReAct), `--agent` (multi-agent pipeline), or `--gemini-style`
-- **Free/cheap presets** — `--free` catalog models from `configs/free/catalog.json`
+- **Free/cheap presets** — `--free` catalog models from the `[[free_catalog]]` entries in `configs/models.toml`
 - **Sandbox / safety** — `subprocess` | `docker` | `off`, and `--safety` levels
 - **Streaming / search / output** — `--stream`, `--search`, `--output-format`
 - **Session** — optional `--session` name
@@ -640,35 +640,58 @@ Here are the available commands:
 
 ## **Settings**
 
-You can customize the settings of the current model from the `.json` file. It contains all the necessary parameters such as `temperature`, `max_tokens`, and more.
+All model configuration lives in a single human-editable registry file: **`configs/models.toml`**.
+It replaces the old per-model JSON files with one TOML document containing:
+
+- `default_model` / `[[default_priority]]` — which model is picked when `-m` is omitted, keyed off
+  which provider API key is present in your environment (checked in order).
+- `[models."<key>"]` tables — one per model, e.g. `[models."gpt-4o"]`, `[models."gemini-2.5-flash"]`,
+  `[models."local-model"]`. Supported fields: `model` (litellm-style id, required), `provider`,
+  `api_base`, `temperature`, `max_tokens`, `notes`, plus optional extras like `timeout_seconds`,
+  `rate_limits`, `circuit_breaker`, `browser_use_timeout`, `browser_use_poll_interval`.
+- `[[free_catalog]]` — the curated rotation used by `--free` / `/free` / `--list-free` and the
+  automatic free-fallback logic. Each entry has `id`, `model_key` (points at a `[models.*]` table),
+  `provider`, `env_key` (API key env var required, or omit for local/no-key models), `tier`, `notes`.
+
+The registry is loaded by `libs/core/model_registry.py` (`tomllib` on Python 3.11+, the `tomli`
+backport on 3.10) and cached until the file's mtime changes, so edits are picked up automatically.
 
 ### Steps to add your own custom API Server
-To integrate your own API server for OpenAI instead of the default server, follow these steps:
+To integrate your own API server for OpenAI (or any provider) instead of the default endpoint:
 
-1. Navigate to the `Configs` directory.
-2. Open the configuration file for the model you want to modify (`gpt-3.5-turbo.json` or `gpt-4.json`).
-3. Add the following key-value pair to the JSON object:
-   ```json
-   "api_base": "https://my-custom-base.com"
+1. Open `configs/models.toml`.
+2. Find (or add) the `[models."<your-model-key>"]` table for the model you want to modify.
+3. Add or edit the `api_base` field:
+   ```toml
+   [models."gpt-4o"]
+   model = "gpt-4o"
+   api_base = "https://my-custom-base.com"
    ```
-4. Save and close the file.
+4. Save the file.
 
 Now, whenever you select that model, the system will automatically use your custom server.
 
 ## **Steps to add new models**
 
 ### Manual Method
-1. Copy the `.json` file and rename it to `configs/hf-model-new.json`.
-2. Modify the parameters of the model like `start_sep`, `end_sep`.
-3. Set the model name from Hugging Face: `"model": "Model name here"`.
-4. Use it like this: `python interpreter.py -m 'hf-model-new' -md 'code'`.
-5. Make sure the `-m 'hf-model-new'` matches the config file inside the `configs` folder.
+1. Open `configs/models.toml` and add a new `[models."hf-model-new"]` table, e.g.:
+   ```toml
+   [models."hf-model-new"]
+   model = "huggingface/org/Model-Name-Here"
+   provider = "huggingface"
+   temperature = 0.1
+   max_tokens = 2048
+   notes = "Custom HuggingFace model"
+   ```
+2. (Optional) Add it to `[[free_catalog]]` if it's free/cheap and should show up in `/free`.
+3. Use it like this: `python interpreter.py -m 'hf-model-new' -md 'code'`.
+4. Make sure `-m 'hf-model-new'` matches the table key you added (`[models."hf-model-new"]`).
 
 ### Automatic Method
 1. Go to the `scripts` directory and run the `config_builder` script.
 2. For Linux/MacOS run `config_builder.sh`, for Windows run `config_builder.bat`.
 3. Follow the instructions and enter the model name and parameters.
-4. The script will automatically create the `.json` file for you.
+4. The script will automatically append a new `[models."<name>"]` table to `configs/models.toml`.
 
 ## Star History
 

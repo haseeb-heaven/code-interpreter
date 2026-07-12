@@ -41,7 +41,7 @@ external LLM providers over HTTP; there is nothing long-running to "start" besid
   `langgraph-agents`. Interactive runs are a multi-turn REPL (`/free`, `/model`, `/exit`);
   `-f` stays one-shot.
 - `--gemini-style` → Gemini-CLI-inspired UX: enables `--agentic` + `--free`, classic CLI (not TUI),
-  prefers a model from `configs/free/catalog.json`, and prints a REPL banner.
+  prefers a model from the `[[free_catalog]]` entries in `configs/models.toml`, and prints a REPL banner.
 - `--free` / `--list-free` / in-session `/free` → curated free/cheap presets (OpenRouter free, Groq,
   Gemini Flash free tier, HuggingFace, local/Ollama).
 - `--agent` → multi-agent pipeline in `libs/agents/` (IntentRouter → Planner → SafetyGuard →
@@ -67,8 +67,9 @@ Do **not** add frontend/Playwright TestSprite cases. To use the official portal 
 `TESTSPRITE_API_KEY` and register a backend project.
 
 ### Running the app end-to-end without cloud API keys
-The documented "offline model" flow (README → *Offline models setup*) points `configs/local-model.json`
-at an OpenAI-compatible endpoint (`api_base`, default `http://localhost:11434/v1`), i.e. LM Studio /
+The documented "offline model" flow (README → *Offline models setup*) points the `[models."local-model"]`
+table in `configs/models.toml` at an OpenAI-compatible endpoint (`api_base`, default
+`http://localhost:11434/v1`), i.e. LM Studio /
 Ollama / vLLM. In this environment there are no provider keys and no Ollama, so end-to-end runs use a
 tiny local OpenAI-compatible stub server that returns a fenced code block. The interpreter's real
 pipeline (litellm dispatch → HTTP → response parse → code extraction → sandbox execution) runs

@@ -681,8 +681,7 @@ def run_interpreter_main(interp, version):
 					from libs.free_llms import resolve_model_config_name
 
 					resolved = resolve_model_config_name(model)
-					model_config_file = f"configs/{resolved or model}.json"
-					if not resolved or not os.path.isfile(model_config_file):
+					if not resolved:
 						display_markdown_message(
 							f"Model {model} does not exists. Opening model picker…"
 						)

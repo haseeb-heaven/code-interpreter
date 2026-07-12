@@ -47,10 +47,32 @@ def _ok_response(text: str = "ok"):
 	)
 
 
-def _write_json(path: str, payload: dict) -> None:
-	os.makedirs(os.path.dirname(path), exist_ok=True)
+def _toml_scalar(value) -> str:
+	if isinstance(value, bool):
+		return "true" if value else "false"
+	if isinstance(value, (int, float)):
+		return str(value)
+	return json.dumps(str(value))
+
+
+def _write_models_toml(configs_dir: str, models: dict, free_catalog=None) -> str:
+	"""Write a minimal ``models.toml`` fixture for tests (replaces per-model JSON files)."""
+	os.makedirs(configs_dir, exist_ok=True)
+	lines = []
+	for name, payload in models.items():
+		lines.append(f'[models.{json.dumps(str(name))}]')
+		for key, value in payload.items():
+			lines.append(f"{key} = {_toml_scalar(value)}")
+		lines.append("")
+	for entry in free_catalog or []:
+		lines.append("[[free_catalog]]")
+		for key, value in entry.items():
+			lines.append(f"{key} = {_toml_scalar(value)}")
+		lines.append("")
+	path = os.path.join(configs_dir, "models.toml")
 	with open(path, "w", encoding="utf-8") as handle:
-		json.dump(payload, handle)
+		handle.write("\n".join(lines))
+	return path
 
 
 class DailyQuotaSkipOpenRouterTests(unittest.TestCase):
@@ -77,38 +99,30 @@ class DailyQuotaSkipOpenRouterTests(unittest.TestCase):
 				"model": "groq/llama-3.1-8b-instant",
 			},
 		}
-		for name, payload in specs.items():
-			_write_json(os.path.join(self.configs_dir, f"{name}.json"), payload)
-		catalog_dir = os.path.join(self.configs_dir, "free")
-		self.catalog_path = os.path.join(catalog_dir, "catalog.json")
-		_write_json(
-			self.catalog_path,
+		free_catalog = [
 			{
-				"models": [
-					{
-						"id": "openrouter-free",
-						"config": "openrouter-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "openrouter-qwen-free",
-						"config": "openrouter-qwen-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "groq-llama",
-						"config": "groq-llama",
-						"provider": "groq",
-						"env_key": "GROQ_API_KEY",
-						"tier": "free_tier",
-					},
-				]
+				"id": "openrouter-free",
+				"model_key": "openrouter-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
 			},
-		)
+			{
+				"id": "openrouter-qwen-free",
+				"model_key": "openrouter-qwen-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
+			},
+			{
+				"id": "groq-llama",
+				"model_key": "groq-llama",
+				"provider": "groq",
+				"env_key": "GROQ_API_KEY",
+				"tier": "free_tier",
+			},
+		]
+		self.catalog_path = _write_models_toml(self.configs_dir, specs, free_catalog)
 		self.catalog = FreeLLMCatalog.load(self.catalog_path)
 		self.env = {"OPENROUTER_API_KEY": "sk-or-test", "GROQ_API_KEY": "gsk-test"}
 
@@ -207,7 +221,7 @@ class AutoLoopFreeFallbackTests(unittest.TestCase):
 		self.addCleanup(self._tmpdir.cleanup)
 		self.configs_dir = os.path.join(self._tmpdir.name, "configs")
 		os.makedirs(self.configs_dir)
-		for name, payload in {
+		models = {
 			"openrouter-free": {
 				"provider": "openrouter",
 				"api_base": "https://openrouter.ai/api/v1",
@@ -228,37 +242,32 @@ class AutoLoopFreeFallbackTests(unittest.TestCase):
 				"temperature": 0.1,
 				"max_tokens": 1024,
 			},
-		}.items():
-			_write_json(os.path.join(self.configs_dir, f"{name}.json"), payload)
-		_write_json(
-			os.path.join(self.configs_dir, "free", "catalog.json"),
+		}
+		free_catalog = [
 			{
-				"models": [
-					{
-						"id": "openrouter-free",
-						"config": "openrouter-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "openrouter-qwen-free",
-						"config": "openrouter-qwen-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "groq-llama",
-						"config": "groq-llama",
-						"provider": "groq",
-						"env_key": "GROQ_API_KEY",
-						"tier": "free_tier",
-					},
-				]
+				"id": "openrouter-free",
+				"model_key": "openrouter-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
 			},
-		)
-		self.catalog = FreeLLMCatalog.load(os.path.join(self.configs_dir, "free", "catalog.json"))
+			{
+				"id": "openrouter-qwen-free",
+				"model_key": "openrouter-qwen-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
+			},
+			{
+				"id": "groq-llama",
+				"model_key": "groq-llama",
+				"provider": "groq",
+				"env_key": "GROQ_API_KEY",
+				"tier": "free_tier",
+			},
+		]
+		registry_path = _write_models_toml(self.configs_dir, models, free_catalog)
+		self.catalog = FreeLLMCatalog.load(registry_path)
 		self.env = {"OPENROUTER_API_KEY": "sk-or-test", "GROQ_API_KEY": "gsk-test"}
 
 	def _run_loop(self, side_effect_exc: Exception):
@@ -354,13 +363,12 @@ class ResolveModelConfigNameTests(unittest.TestCase):
 		self._tmpdir = tempfile.TemporaryDirectory()
 		self.addCleanup(self._tmpdir.cleanup)
 		self.configs_dir = self._tmpdir.name
-		_write_json(
-			os.path.join(self.configs_dir, "gemini-2.5-flash.json"),
-			{"model": "gemini/gemini-2.5-flash", "temperature": 0.1, "max_tokens": 2048},
-		)
-		_write_json(
-			os.path.join(self.configs_dir, "gemini-2.5-pro.json"),
-			{"model": "gemini/gemini-2.5-pro", "temperature": 0.1, "max_tokens": 3072},
+		_write_models_toml(
+			self.configs_dir,
+			{
+				"gemini-2.5-flash": {"model": "gemini/gemini-2.5-flash", "temperature": 0.1, "max_tokens": 2048},
+				"gemini-2.5-pro": {"model": "gemini/gemini-2.5-pro", "temperature": 0.1, "max_tokens": 3072},
+			},
 		)
 
 	def test_resolves_config_basename(self):
