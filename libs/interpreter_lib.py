@@ -697,16 +697,16 @@ class Interpreter:
 					continue
 
 				# Refuse traceback/error pastes (B4/B5).
-			if is_non_task_input(raw):
-				self.console.print(
-					"[yellow]Tip:[/yellow] That looks like an error traceback, not a task. "
-					"Please describe what you want me to do instead."
-				)
-				if one_shot:
-					return
-				continue
+				if is_non_task_input(raw):
+					self.console.print(
+						"[yellow]Tip:[/yellow] That looks like an error traceback, not a task. "
+						"Please describe what you want me to do instead."
+					)
+					if one_shot:
+						return
+					continue
 
-			controller.run(raw)
+				controller.run(raw)
 				if one_shot:
 					return
 		except KeyboardInterrupt:
