@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any, Callable, Optional
 
 from libs.repl_guards import format_short_llm_error
@@ -34,7 +35,77 @@ _REPAIR_ERROR_MARKERS = (
 	"maximum context",
 )
 
-MAX_REPAIR_ATTEMPTS = 2
+# Cap shared by exception repairs and malformed tool-markup repairs.
+MAX_REPAIR_ATTEMPTS = 8
+
+# Known native tool names that models sometimes dump as fake XML instead of tool_calls.
+_KNOWN_TOOL_NAMES = (
+	"write_file",
+	"read_file",
+	"run_shell",
+	"list_dir",
+	"glob_search",
+	"web_search",
+)
+
+_MALFORMED_TOOL_RE = re.compile(
+	r"(?:"
+	r"</?\s*function\b"
+	r"|</?\s*tool_call\b"
+	r"|</?\s*tool_calls\b"
+	r"|<\s*(?:" + "|".join(_KNOWN_TOOL_NAMES) + r")\b"
+	r"|invoke\s+(?:" + "|".join(_KNOWN_TOOL_NAMES) + r")\b"
+	r")",
+	re.IGNORECASE,
+)
+
+_TASK_NEEDS_TOOLS_RE = re.compile(
+	r"\b(?:"
+	r"chart|png|plot|matplotlib|write|create|save|generate|file|csv|json|"
+	r"shell|run|execute|read|list|directory|folder|tmp|path"
+	r")\b",
+	re.IGNORECASE,
+)
+
+_REPAIR_TOOL_MARKUP_PROMPT = (
+	"Your previous reply dumped invalid tool markup as plain text "
+	"(e.g. <write_file ...</function>) instead of structured tool_calls. "
+	"Do NOT invent XML/HTML tags. Emit proper OpenAI-style tool_calls JSON only. "
+	"Use write_file / run_shell (or other available tools) to complete the task — "
+	"for chart work, write Python that generates the requested PNG files and run it. "
+	"When the work is actually done, reply with a short final answer and no tool calls."
+)
+
+_REPAIR_NO_TOOLS_PROMPT = (
+	"You returned a final answer without using any tools, but this task still needs "
+	"filesystem/shell work (write files, run Python, create charts, etc.). "
+	"Emit proper tool_calls now (write_file / run_shell / …). "
+	"Do not dump XML tags. Do not claim success until tools have executed."
+)
+
+
+def looks_like_malformed_tool_markup(content: Optional[str]) -> bool:
+	"""True when assistant text looks like failed/pseudo tool XML, not a real answer."""
+	if not content or not isinstance(content, str):
+		return False
+	text = content.strip()
+	if not text:
+		return False
+	if _MALFORMED_TOOL_RE.search(text):
+		return True
+	# Angle-bracket + known tool name + JSON-ish payload (Groq-style dumps).
+	lower = text.lower()
+	if "<" in text and any(name in lower for name in _KNOWN_TOOL_NAMES):
+		if "{" in text or "</" in text:
+			return True
+	return False
+
+
+def task_likely_needs_tools(task: str) -> bool:
+	"""Heuristic: user task looks like it requires write/run/file tools."""
+	if not task or not isinstance(task, str):
+		return False
+	return bool(_TASK_NEEDS_TOOLS_RE.search(task))
 
 
 class AutonomousAgentLoop:
@@ -72,6 +143,7 @@ class AutonomousAgentLoop:
 		missing_binary_handler: Optional[MissingBinaryHandler] = None,
 		install_confirm_fn: Optional[Callable[[str], bool]] = None,
 		enable_missing_binary_search: bool = False,
+		max_repair_attempts: int = MAX_REPAIR_ATTEMPTS,
 	):
 		"""
 		Args:
@@ -99,6 +171,7 @@ class AutonomousAgentLoop:
 			missing_binary_handler: Optional injected missing-tool recovery handler.
 			install_confirm_fn: Optional ``(prompt) -> bool`` for install consent.
 			enable_missing_binary_search: Web-search install tips when a tool is missing.
+			max_repair_attempts: Cap for exception / malformed-tool repairs (default 8).
 		"""
 		self.llm = llm_client
 		self.model = model
@@ -118,6 +191,7 @@ class AutonomousAgentLoop:
 		self.gemini_style = bool(gemini_style)
 		self.auto_yes = bool(auto_yes)
 		self.enable_missing_binary_search = bool(enable_missing_binary_search)
+		self.max_repair_attempts = max(1, int(max_repair_attempts))
 		# Live step UX when gemini_style is requested (interpreter_auto_main sets this).
 		self.presenter = step_presenter or make_step_presenter(
 			gemini_style=bool(gemini_style),
@@ -145,6 +219,8 @@ class AutonomousAgentLoop:
 				"content": (
 					"You are an autonomous coding agent with access to filesystem and shell tools. "
 					"Use tools when needed to complete the user's task. "
+					"Always emit structured tool_calls (never invent XML tags like "
+					"<write_file> or </function>). "
 					"When finished, reply with a concise final answer and no further tool calls."
 				),
 			},
@@ -152,6 +228,8 @@ class AutonomousAgentLoop:
 		]
 		iteration = 0
 		repair_attempts = 0
+		tools_attempted = 0
+		expects_tools = task_likely_needs_tools(task)
 
 		while iteration < self.max_iterations:
 			iteration += 1
@@ -171,18 +249,22 @@ class AutonomousAgentLoop:
 				short_err = format_short_llm_error(exc)
 				err_low = str(exc).lower()
 				is_rep = any(m in err_low for m in _REPAIR_ERROR_MARKERS)
-				if is_rep and repair_attempts < MAX_REPAIR_ATTEMPTS:
+				if is_rep and repair_attempts < self.max_repair_attempts:
 					repair_attempts += 1
 					logger.warning(
 						"[AutoLoop] Repairable LLM error (attempt %s/%s): %s",
 						repair_attempts,
-						MAX_REPAIR_ATTEMPTS,
+						self.max_repair_attempts,
 						exc,
 					)
 					messages.append(
 						{
 							"role": "user",
-							"content": f"Error: {short_err}. Please respond with valid tool call or text.",
+							"content": (
+								f"Error: {short_err}. "
+								"Please respond with valid tool_calls JSON or a short final text answer. "
+								"Do not emit XML tool tags."
+							),
 						}
 					)
 					continue
@@ -198,6 +280,58 @@ class AutonomousAgentLoop:
 				content = getattr(msg, "content", None)
 
 			if not tool_calls:
+				content_str = content if isinstance(content, str) else (str(content) if content else "")
+				malformed = looks_like_malformed_tool_markup(content_str)
+				# Require tool attempts for write/run/chart-style tasks; denials still count.
+				incomplete = (
+					expects_tools
+					and tools_attempted == 0
+					and bool(content_str.strip())
+					and not malformed
+				)
+
+				if (malformed or incomplete) and repair_attempts < self.max_repair_attempts:
+					repair_attempts += 1
+					reason = "malformed tool markup" if malformed else "final answer with no tools used"
+					logger.warning(
+						"[AutoLoop] Repairable incomplete turn (%s, attempt %s/%s)",
+						reason,
+						repair_attempts,
+						self.max_repair_attempts,
+					)
+					preview = (content_str or "")[:240].replace("\n", " ")
+					self.presenter.show_observation(
+						iteration,
+						f"[repair] Invalid/incomplete tool use detected — retrying "
+						f"({repair_attempts}/{self.max_repair_attempts}). "
+						f"Preview: {preview}",
+					)
+					messages.append({"role": "assistant", "content": content_str or ""})
+					messages.append(
+						{
+							"role": "user",
+							"content": (
+								_REPAIR_TOOL_MARKUP_PROMPT if malformed else _REPAIR_NO_TOOLS_PROMPT
+							),
+						}
+					)
+					continue
+
+				if malformed:
+					# Exhausted repairs — do not surface broken XML as the answer.
+					logger.error(
+						"[AutoLoop] Exhausted repairs on malformed tool markup after %s attempts",
+						repair_attempts,
+					)
+					self.presenter.show_observation(
+						iteration,
+						"[repair] Model kept emitting invalid tool markup; stopping.",
+					)
+					return (
+						"[AutoLoop] Model kept emitting invalid tool markup after "
+						f"{repair_attempts} repair attempts. Task may be incomplete."
+					)
+
 				if content:
 					self.presenter.show_observation(iteration, content)
 				return content or ""
@@ -213,6 +347,7 @@ class AutonomousAgentLoop:
 				logger.info("[AutoLoop] Tool call: %s(%s)", tool_name, tool_args)
 				self.presenter.show_action(iteration, tool_name, tool_args)
 
+				tools_attempted += 1
 				if not self.auto:
 					approved = self._confirm(tool_name, tool_args)
 					if not approved:

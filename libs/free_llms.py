@@ -225,6 +225,14 @@ _FREE_ROUTING_FAILURE_MARKERS = (
 	"stealth",
 	"provider returned error",
 	"no endpoints found",
+	"support tool use",
+	"supports tool use",
+	"does not support tool",
+	"does not support tools",
+	"tools are not supported",
+	"tool use is not supported",
+	"tool calling is not supported",
+	"function calling is not supported",
 	"temporarily unavailable",
 	"overloaded",
 	"all providers failed",
@@ -382,6 +390,32 @@ def is_daily_free_quota_exhausted(exc: BaseException) -> bool:
 		"x-ratelimit-remaining:0",
 		"quota exceeded",
 		"daily quota",
+	)
+	return any(marker in text for marker in markers)
+
+
+def is_tool_use_unsupported(exc: BaseException) -> bool:
+	"""True when the provider/model rejects tool/function calling.
+
+	OpenRouter free often returns ``No endpoints found that support tool use``.
+	Those models should be skipped quickly when tools are required.
+	"""
+	text = str(exc or "").lower()
+	if not text:
+		return False
+	markers = (
+		"no endpoints found that support tool use",
+		"support tool use",
+		"supports tool use",
+		"does not support tool",
+		"does not support tools",
+		"tools are not supported",
+		"tool use is not supported",
+		"tool calling is not supported",
+		"function calling is not supported",
+		"functions are not supported",
+		"tool_choice is not supported",
+		"tools parameter is not supported",
 	)
 	return any(marker in text for marker in markers)
 

@@ -19,6 +19,7 @@ from libs.free_llms import (
 	is_free_routing_failure,
 	is_openrouter_free_candidate,
 	is_rate_limit_failure,
+	is_tool_use_unsupported,
 	load_model_config,
 	match_catalog_entry,
 	parse_retry_after_seconds,
@@ -259,6 +260,25 @@ def complete_with_free_fallback(
 				has_non_or_remaining = any(
 					not is_openrouter_free_candidate(c) for c in candidates[index + 1 :]
 				)
+				tools_requested = tools is not None
+
+				# Tool/function calling unsupported: skip remaining OR free immediately
+				# when tools were requested (avoid hammering more :free routers).
+				if (
+					enable_free_fallback
+					and tools_requested
+					and is_tool_use_unsupported(exc)
+				):
+					if or_free and has_non_or_remaining:
+						skip_openrouter_free = True
+					logger.warning(
+						"Tool use unsupported on %s; %s…",
+						tried[-1],
+						"skipping remaining OpenRouter free"
+						if skip_openrouter_free
+						else "trying next free preset",
+					)
+					break
 
 				# Daily free quota: do not retry same OR free model; skip remaining OR free.
 				if enable_free_fallback and is_daily_free_quota_exhausted(exc):

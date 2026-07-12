@@ -1,4 +1,5 @@
 ## v3.4.0 (2026-07-12)
+- fix(agentic/yolo): AutoLoop treats malformed tool XML (`<write_file` / `</function>`) as repairable failure and retries (cap 8) instead of exiting; skip OpenRouter free early when tools unsupported; require real tool_calls for chart/file tasks
 - fix(agentic/yolo): AutoLoop OR `RateLimitError` (`free-models-per-day` / `Provider returned error`) jumps to Groq/Gemini immediately without burning sibling OpenRouter `:free` slots; pass config basename into AutoLoop
 - feat(ux): Gemini-style step UX for ReAct/agentic + YOLO AutoLoop — Thinking/Executing/Searching spinners and Thought→Action→Observation panels (`libs/agent/step_ui.py`)
 - feat(agentic): Missing-binary recovery (ffmpeg, etc.) — detect PATH failures, optional web search, ask before winget/choco/apt/brew install (yolo+yes auto-approves; yolo alone still asks)

@@ -148,6 +148,56 @@ class DailyQuotaSkipOpenRouterTests(unittest.TestCase):
 			f"expected Groq attempt, got {tried_models}",
 		)
 
+	def test_tool_use_unsupported_skips_remaining_openrouter_free(self):
+		"""OR free 'No endpoints found that support tool use' → skip OR free → Groq."""
+		from libs.agent.llm import complete_with_free_fallback
+		from libs.free_llms import is_tool_use_unsupported
+
+		tool_err = RuntimeError(
+			"Error code: 404 - {'error': {'message': "
+			"'No endpoints found that support tool use. To learn more about provider "
+			"routing, visit: https://openrouter.ai/docs/provider-routing', "
+			"'code': 404}}"
+		)
+		self.assertTrue(is_tool_use_unsupported(tool_err))
+
+		tried_models = []
+		fake_tools = [
+			{
+				"type": "function",
+				"function": {"name": "read_file", "parameters": {"type": "object"}},
+			}
+		]
+
+		def fake_completion(**kwargs):
+			model = kwargs.get("model") or ""
+			tried_models.append(model)
+			if "openrouter" in model.lower() or ":free" in model.lower() or model == "openrouter/free":
+				raise tool_err
+			# Groq accepts tools
+			self.assertIsNotNone(kwargs.get("tools"))
+			return _ok_response("from-groq-with-tools")
+
+		with patch.dict(os.environ, self.env, clear=False):
+			with patch("libs.agent.llm.litellm.completion", side_effect=fake_completion):
+				response, metrics = complete_with_free_fallback(
+					"openrouter-free",
+					[{"role": "user", "content": "read a file"}],
+					tools=fake_tools,
+					tool_choice="auto",
+					enable_free_fallback=True,
+					configs_dir=self.configs_dir,
+					catalog=self.catalog,
+					rate_limit_retries=1,
+					sleep_fn=lambda _s: None,
+				)
+
+		content = response.choices[0].message.content
+		self.assertEqual(content, "from-groq-with-tools")
+		self.assertEqual(metrics.get("model_used"), "groq/llama-3.1-8b-instant")
+		joined = " | ".join(tried_models).lower()
+		self.assertNotIn("qwen3-coder", joined)
+
 
 class AutoLoopFreeFallbackTests(unittest.TestCase):
 	"""AutoLoop / YOLO path must not hard-fail on OR free daily quota / 502 / 429."""
