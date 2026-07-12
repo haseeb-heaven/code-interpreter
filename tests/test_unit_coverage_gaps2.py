@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -180,9 +181,15 @@ class TestUtilityManagerExtra(unittest.TestCase):
 			self.assertTrue(headers)
 
 	def test_get_output_history_empty(self):
+		# Isolate via chdir: get_output_history globs relative "output/", which
+		# resolves against the process cwd (patching os.getcwd alone is not enough).
 		with tempfile.TemporaryDirectory() as tmp:
-			with patch("libs.utility_manager.os.getcwd", return_value=tmp):
+			prev = os.getcwd()
+			try:
+				os.chdir(tmp)
 				result = self.um.get_output_history(mode="code", os_name="windows", language="python")
+			finally:
+				os.chdir(prev)
 		self.assertTrue(result is None or isinstance(result, tuple))
 
 	def test_upgrade_interpreter_mocked(self):

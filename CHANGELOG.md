@@ -1,5 +1,7 @@
 ## v3.4.0 (2026-07-12)
-- test(unit): raise `libs/*` + `interpreter.py` coverage to ≥80% (worktree unit suite)
+- test(unit): raise `libs/*` + `interpreter.py` coverage to ≥80% (worktree unit suite); make data/output/context/local unit modules discoverable under `unittest discover -s tests`
+- test(integration): expand mocked CLI/pipeline/tools/session coverage (25/25 worktree integration suite)
+- test(live): provider × mode × language matrix + agentic media suite with soft-skip (FAIL=0)
 - test(interactive): slash commands, REPL loop, session round-trip, live exec, streaming, -f prompt coverage (#226)
 - feat(security): subprocess/Docker sandbox backends, `--timeout`/`--safety` levels, audit log, secret scan, path ignore (#225)
 - test(ci): Matrix CI (3 OS × 3 Python), critical-module coverage ≥60%, Codecov badge, shared pytest fixtures (#224)

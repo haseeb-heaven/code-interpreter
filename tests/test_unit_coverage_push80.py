@@ -279,5 +279,42 @@ class TestModelRouterMore(unittest.TestCase):
 		self.assertNotIn("https://", cleaned)
 
 
+class TestCoverageGateNudge(unittest.TestCase):
+	"""Tiny exercises to clear the ≥80% fail-under gate on develop."""
+
+	def test_model_utils_gemini_groq_prefixes(self):
+		from libs.model_utils import normalize_model_name
+
+		self.assertEqual(normalize_model_name("gemini-2.0-flash"), "gemini/gemini-2.0-flash")
+		self.assertEqual(normalize_model_name("groq-llama"), "groq/groq-llama")
+
+	def test_plot_theme_already_injected(self):
+		from libs.output.plot_themes import inject_plot_theme
+
+		code = "# _ci_plot_theme=paper\nimport matplotlib.pyplot as plt\n"
+		self.assertEqual(inject_plot_theme(code, "paper"), code)
+
+	def test_code_mode_js_exact_print_and_cwd(self):
+		from libs.modes.code_mode import CodeModeHandler
+
+		interp = MagicMock()
+		interp.CODE_MODE = True
+		interp.INTERPRETER_LANGUAGE = "javascript"
+		handler = CodeModeHandler(interp)
+		self.assertEqual(
+			handler.maybe_simplify_generated_code('print exactly "hi"', "noise()"),
+			"console.log('hi')",
+		)
+		self.assertEqual(
+			handler.maybe_simplify_generated_code("print current working directory", "noise()"),
+			"console.log(process.cwd())",
+		)
+
+	def test_is_simple_directory_listing_empty(self):
+		from libs.modes.code_mode import CodeModeHandler
+
+		self.assertFalse(CodeModeHandler(MagicMock()).is_simple_directory_listing_task(""))
+
+
 if __name__ == "__main__":
 	unittest.main()
