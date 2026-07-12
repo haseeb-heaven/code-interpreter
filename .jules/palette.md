@@ -1,3 +1,6 @@
 ## 2024-07-08 - Displaying choices in Rich prompts without breaking case-insensitivity
 **Learning:** When using `rich.prompt.Prompt.ask()`, providing the `choices` argument enforces strict, case-sensitive input matching which overrides custom case-insensitivity logic. Additionally, to manually format the choices into the prompt string, brackets must be escaped as `\\[` to prevent `rich` from incorrectly parsing them as markup and to avoid Python syntax warnings.
 **Action:** When we need to show choices but still allow custom validation (like case-insensitivity), format the choices directly into the prompt string and escape the brackets.
+## 2025-02-12 - Handling KeyboardInterrupt gracefully in Terminal UIs
+**Learning:** In terminal UIs reading raw standard input byte-by-byte, users intuitively expect Ctrl-C (`\x03`) to exit/cancel. We cannot advertise the 'Esc' (`\x1b`) key for cancelling, as it requires a blocking read for potential subsequent ANSI sequence characters, causing the app to hang. Instead, directly capturing the `\x03` byte and raising `KeyboardInterrupt` explicitly offers better UX and avoids keyboard traps.
+**Action:** Always capture standard interrupt bytes like `\x03` and explicitly map them to interrupts in raw read modes, and explicitly hint users with 'Ctrl-C to cancel'.
