@@ -232,6 +232,20 @@ class ReActController:
                 self.presenter.show_observation(step_num, observation)
                 break
 
+            if react_step.action == "execute":
+                # Confirm *before* entering the spinner: a Rich Status/Live
+                # display collides with a blocking input() prompt (the prompt
+                # text gets hidden behind spinner redraws), which is exactly
+                # what made the original hang look unrecoverable. Resolving
+                # this here also guarantees --yes/auto_yes never touches
+                # stdin at all.
+                approved, deny_reason = self._authorize_execute()
+                if not approved:
+                    self._finalize_step(
+                        traj_logger, state, step_num, react_step, deny_reason, {"cost": 0.0, "tokens": 0}
+                    )
+                    continue
+
             try:
                 with self.presenter.acting(step_num, react_step.action):
                     observation, action_metrics = self._dispatch(react_step, state)
@@ -255,29 +269,7 @@ class ReActController:
             if react_step.action == "execute" and is_missing_binary_error(observation):
                 observation = self._recover_missing_binary(observation)
 
-            state["cost_metrics"]["total_cost"] += action_metrics.get("cost", 0.0)
-            state["cost_metrics"]["total_tokens"] += int(action_metrics.get("tokens", 0))
-            state["last_observation"] = observation
-            state["step_count"] = step_num
-            state["trajectory"].append(
-                {
-                    "thought": react_step.thought,
-                    "action": react_step.action,
-                    "action_input": react_step.action_input,
-                    "observation": observation,
-                }
-            )
-            traj_logger.log_step(
-                step=step_num,
-                thought=react_step.thought,
-                action=react_step.action,
-                action_input=react_step.action_input,
-                observation=observation,
-                tokens=int(action_metrics.get("tokens", 0)),
-                cost=float(action_metrics.get("cost", 0.0)),
-                status="running",
-            )
-            self.presenter.show_observation(step_num, observation)
+            self._finalize_step(traj_logger, state, step_num, react_step, observation, action_metrics)
 
         if state["status"] == "RUNNING":
             state["status"] = "FAILED"
@@ -298,6 +290,66 @@ class ReActController:
         console.print(f"Tokens: {state['cost_metrics']['total_tokens']}")
         console.print(f"Cost: ${state['cost_metrics']['total_cost']:.4f}")
         return state
+
+    def _authorize_execute(self) -> tuple[bool, str]:
+        """Gate the "execute" action on user confirmation, fully honouring
+        ``--yes``/``auto_yes`` and never blocking on stdin.
+
+        Runs outside any presenter spinner (see ``run()``) so a real Y/N
+        prompt is never obscured by a live-updating Rich Status display —
+        that collision, combined with ``--yes`` not being wired here at all,
+        is what made the original "Execute the code? Y/N" step hang forever.
+        """
+        if self.auto_yes:
+            return True, ""
+        if self.confirm_fn is None:
+            # No controller-level confirm wired (e.g. direct/test construction).
+            # Never fall back to a blocking input() here — proceed, matching
+            # the rest of the agentic/tool execution paths in this codebase.
+            return True, ""
+        prompt = "Execute the code? Y/N "
+        try:
+            approved = bool(self.confirm_fn(prompt))
+        except Exception as exc:
+            logger.debug("confirm_fn failed during execute authorization: %s", exc)
+            approved = False
+        if approved:
+            return True, ""
+        return False, "Execution cancelled: user declined."
+
+    def _finalize_step(
+        self,
+        traj_logger: TrajectoryLogger,
+        state: Dict[str, Any],
+        step_num: int,
+        react_step: Any,
+        observation: str,
+        action_metrics: Dict[str, Any],
+    ) -> None:
+        """Record cost/trajectory/log/observation for one completed step."""
+        state["cost_metrics"]["total_cost"] += action_metrics.get("cost", 0.0)
+        state["cost_metrics"]["total_tokens"] += int(action_metrics.get("tokens", 0))
+        state["last_observation"] = observation
+        state["step_count"] = step_num
+        state["trajectory"].append(
+            {
+                "thought": react_step.thought,
+                "action": react_step.action,
+                "action_input": react_step.action_input,
+                "observation": observation,
+            }
+        )
+        traj_logger.log_step(
+            step=step_num,
+            thought=react_step.thought,
+            action=react_step.action,
+            action_input=react_step.action_input,
+            observation=observation,
+            tokens=int(action_metrics.get("tokens", 0)),
+            cost=float(action_metrics.get("cost", 0.0)),
+            status="running",
+        )
+        self.presenter.show_observation(step_num, observation)
 
     def _think(self, state: Dict[str, Any]) -> tuple[str, Dict[str, Any]]:
         history = format_trajectory(state["trajectory"])
