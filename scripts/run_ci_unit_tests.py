@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """Run ``unittest discover`` in fresh processes to stay under CI memory limits.
 
-GitHub-hosted runners (~7GB) OOM (exit 137/152) when the full suite loads
-litellm + scientific stack into one long-lived process. Splitting by filename
-pattern keeps the same coverage with lower peak RSS.
+GitHub-hosted runners (~7GB) OOM/SIGKILL the ``test_[t-z]*`` cohort when
+unit-coverage + tools + vision load together. Finer batches keep the same
+coverage with lower peak RSS.
 """
 
 from __future__ import annotations
@@ -13,12 +13,16 @@ import subprocess
 import sys
 
 
-# Overlapping-free partitions of top-level and nested test_*.py modules.
+# Fresh process per pattern. Keep unit-coverage isolated — it imports most of
+# the app and is what tipped Linux/macOS runners over the edge.
 _PATTERNS = (
 	"test_[a-d]*.py",
 	"test_[e-m]*.py",
 	"test_[n-s]*.py",
-	"test_[t-z]*.py",
+	"test_t*.py",
+	"test_unit*.py",
+	"test_u[!n]*.py",
+	"test_[v-z]*.py",
 )
 
 
