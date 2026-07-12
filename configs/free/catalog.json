@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Curated free/cheap LLM presets for Gemini-CLI-style agentic runs. Config names map to configs/<name>.json.",
+  "description": "Curated free/cheap LLM presets for Gemini-CLI-style agentic runs. Config names map to configs/<name>.json. Prefer currently valid OpenRouter :free + Groq + Gemini flash free + HF + local.",
   "models": [
     {
       "id": "openrouter-free",
@@ -11,44 +11,44 @@
       "notes": "OpenRouter free router (many free upstream models)"
     },
     {
-      "id": "openrouter-qwen3-coder-480b-free",
-      "config": "openrouter-qwen3-coder-480b-free",
+      "id": "openrouter-qwen3-coder",
+      "config": "openrouter-qwen3-coder",
       "provider": "openrouter",
       "env_key": "OPENROUTER_API_KEY",
       "tier": "free",
-      "notes": "Qwen3 Coder 480B via OpenRouter :free"
+      "notes": "Qwen3 Coder via OpenRouter :free (coding)"
     },
     {
-      "id": "openrouter-mimo-v2-flash-free",
-      "config": "openrouter-mimo-v2-flash-free",
+      "id": "openrouter-llama-3.3-70b-free",
+      "config": "openrouter-llama-3.3-70b-free",
       "provider": "openrouter",
       "env_key": "OPENROUTER_API_KEY",
       "tier": "free",
-      "notes": "Xiaomi MiMo V2 Flash via OpenRouter :free"
+      "notes": "Llama 3.3 70B Instruct via OpenRouter :free"
     },
     {
-      "id": "openrouter-nemotron-3-super-free",
-      "config": "openrouter-nemotron-3-super-free",
+      "id": "openrouter-gpt-oss-20b-free",
+      "config": "openrouter-gpt-oss-20b-free",
       "provider": "openrouter",
       "env_key": "OPENROUTER_API_KEY",
       "tier": "free",
-      "notes": "Nemotron 3 Super via OpenRouter :free"
+      "notes": "GPT-OSS 20B via OpenRouter :free"
     },
     {
-      "id": "openrouter-minimax-m2-5-free",
-      "config": "openrouter-minimax-m2-5-free",
+      "id": "openrouter-gemma-4-31b-free",
+      "config": "openrouter-gemma-4-31b-free",
       "provider": "openrouter",
       "env_key": "OPENROUTER_API_KEY",
       "tier": "free",
-      "notes": "MiniMax M2.5 via OpenRouter :free"
+      "notes": "Gemma 4 31B IT via OpenRouter :free"
     },
     {
-      "id": "openrouter-qwen3-6-plus-free",
-      "config": "openrouter-qwen3-6-plus-free",
+      "id": "openrouter-nemotron-nano-free",
+      "config": "openrouter-nemotron-nano-free",
       "provider": "openrouter",
       "env_key": "OPENROUTER_API_KEY",
       "tier": "free",
-      "notes": "Qwen3.6 Plus via OpenRouter :free"
+      "notes": "Nemotron 3 Nano 30B via OpenRouter :free"
     },
     {
       "id": "groq-llama-3.1-8b",

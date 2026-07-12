@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from libs.agent.llm import call_llm
 from libs.agent.prompts import CODER_SYSTEM
@@ -22,10 +22,12 @@ class CoderAction:
         model_name: str,
         api_key: Optional[str] = None,
         code_interpreter: Optional[CodeInterpreter] = None,
+        on_fallback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ):
         self.model_name = model_name
         self.api_key = api_key
         self.code_interpreter = code_interpreter or CodeInterpreter()
+        self.on_fallback = on_fallback
 
     def run(
         self,
@@ -47,7 +49,12 @@ class CoderAction:
                 {"role": "user", "content": prompt},
             ],
             self.api_key,
+            on_fallback=self.on_fallback,
         )
+        # Keep specialist model in sync if fallback happened without shared hook.
+        used = str(metrics.get("model_used") or "").strip()
+        if used and used != self.model_name:
+            self.model_name = used
         code = self.code_interpreter.extract_code(content, "```python", "```")
         if not code or code == content:
             code = self.code_interpreter.extract_code(content, "```", "```")

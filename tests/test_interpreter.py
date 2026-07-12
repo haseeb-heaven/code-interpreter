@@ -325,11 +325,15 @@ class TestInterpreter(unittest.TestCase):
 			"openrouter-mimo-v2-pro.json": "xiaomi/mimo-v2-pro",
 			"openrouter-gpt-5-4.json": "openai/gpt-5.4",
 			"openrouter-deepseek-v3-2.json": "deepseek/deepseek-v3.2",
-			"openrouter-qwen3-coder-480b-free.json": "qwen/qwen3-coder-480b:free",
-			"openrouter-mimo-v2-flash-free.json": "xiaomi/mimo-v2-flash:free",
-			"openrouter-nemotron-3-super-free.json": "nvidia/nemotron-3-super:free",
-			"openrouter-minimax-m2-5-free.json": "minimax/minimax-m2.5:free",
-			"openrouter-qwen3-6-plus-free.json": "qwen/qwen3.6-plus:free",
+			"openrouter-qwen3-coder-480b-free.json": "qwen/qwen3-coder:free",
+			"openrouter-mimo-v2-flash-free.json": "google/gemma-4-31b-it:free",
+			"openrouter-nemotron-3-super-free.json": "nvidia/nemotron-3-nano-30b-a3b:free",
+			"openrouter-minimax-m2-5-free.json": "openai/gpt-oss-20b:free",
+			"openrouter-qwen3-6-plus-free.json": "meta-llama/llama-3.3-70b-instruct:free",
+			"openrouter-llama-3.3-70b-free.json": "meta-llama/llama-3.3-70b-instruct:free",
+			"openrouter-gpt-oss-20b-free.json": "openai/gpt-oss-20b:free",
+			"openrouter-gemma-4-31b-free.json": "google/gemma-4-31b-it:free",
+			"openrouter-nemotron-nano-free.json": "nvidia/nemotron-3-nano-30b-a3b:free",
 		}
 		for config_name, expected_hf_model in required_configs.items():
 			with self.subTest(config=config_name):

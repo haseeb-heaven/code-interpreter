@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from libs.agent.llm import call_llm
 from libs.agent.prompts import REVIEWER_SYSTEM
@@ -19,9 +19,15 @@ class ReviewerResult:
 
 
 class ReviewerAction:
-    def __init__(self, model_name: str, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: str,
+        api_key: Optional[str] = None,
+        on_fallback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ):
         self.model_name = model_name
         self.api_key = api_key
+        self.on_fallback = on_fallback
 
     def run(self, task: str, code: str, execution_result: str) -> ReviewerResult:
         prompt = (
@@ -36,7 +42,11 @@ class ReviewerAction:
                 {"role": "user", "content": prompt},
             ],
             self.api_key,
+            on_fallback=self.on_fallback,
         )
+        used = str(metrics.get("model_used") or "").strip()
+        if used and used != self.model_name:
+            self.model_name = used
         passed, reason = self._parse_review(content)
         observation = json.dumps({"passed": passed, "reason": reason})
         return ReviewerResult(

@@ -9,12 +9,18 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CATALOG_PATH = os.path.join("configs", "free", "catalog.json")
+
+# Cap how long we wait on a single rate-limit "try again in Ns" hint.
+DEFAULT_RETRY_AFTER_CAP_SECONDS = 35.0
+# Same-model retries after a rate-limit before falling through to the next free preset.
+DEFAULT_RATE_LIMIT_RETRIES = 2
 
 
 @dataclass(frozen=True)
@@ -232,6 +238,22 @@ _FREE_ROUTING_FAILURE_MARKERS = (
 	"notfounderror",
 	"404",
 	"no longer available",
+	# Rate limits — retry same model briefly, then fall through to next free preset.
+	"429",
+	"rate_limit",
+	"rate limit",
+	"ratelimit",
+	"rate_limit_exceeded",
+	"too many requests",
+	"tokens per minute",
+	"tpm",
+)
+
+_RETRY_AFTER_PATTERNS = (
+	re.compile(r"try again in\s+(\d+(?:\.\d+)?)\s*s", re.IGNORECASE),
+	re.compile(r"retry[- ]after[:\s]+(\d+(?:\.\d+)?)", re.IGNORECASE),
+	re.compile(r"please retry in\s+(\d+(?:\.\d+)?)\s*s", re.IGNORECASE),
+	re.compile(r"wait\s+(\d+(?:\.\d+)?)\s*s(?:ec(?:ond)?s?)?", re.IGNORECASE),
 )
 
 
@@ -250,15 +272,64 @@ class FreeModelsExhaustedError(RuntimeError):
 		self.last_error = last_error
 
 
+def parse_retry_after_seconds(
+	exc_or_text: Any,
+	*,
+	cap: float = DEFAULT_RETRY_AFTER_CAP_SECONDS,
+) -> Optional[float]:
+	"""Extract a sleep duration from rate-limit messages like \"try again in 2.5s\".
+
+	Returns seconds capped at ``cap``, or None when no hint is found.
+	"""
+	text = str(exc_or_text or "")
+	if not text:
+		return None
+	for pattern in _RETRY_AFTER_PATTERNS:
+		match = pattern.search(text)
+		if not match:
+			continue
+		try:
+			seconds = float(match.group(1))
+		except (TypeError, ValueError):
+			continue
+		if seconds < 0:
+			continue
+		if cap is not None and cap > 0:
+			seconds = min(seconds, float(cap))
+		return seconds
+	return None
+
+
+def is_rate_limit_failure(exc: BaseException) -> bool:
+	"""True when the error is specifically a 429 / rate-limit (retryable)."""
+	text = str(exc or "").lower()
+	if not text:
+		return False
+	markers = (
+		"429",
+		"rate_limit",
+		"rate limit",
+		"ratelimit",
+		"rate_limit_exceeded",
+		"too many requests",
+		"tokens per minute",
+	)
+	return any(marker in text for marker in markers)
+
+
 def is_free_routing_failure(exc: BaseException) -> bool:
 	"""True when the error looks like a flaky free-router / upstream provider failure.
 
-	Examples: OpenRouter 502 Invalid URL with provider Stealth, 503 overloaded, etc.
+	Examples: OpenRouter 502 Invalid URL with provider Stealth, 503 overloaded,
+	Groq/OpenRouter 429 rate limits, invalid/deprecated free model ids, etc.
 	Auth / billing / missing-key errors are not treated as routing failures.
 	"""
 	text = str(exc or "").lower()
 	if not text:
 		return False
+	# Rate limits are routing failures even if the message also mentions quota/TPM.
+	if is_rate_limit_failure(exc):
+		return True
 	fatal = (
 		"invalid api key",
 		"incorrect api key",
@@ -266,7 +337,6 @@ def is_free_routing_failure(exc: BaseException) -> bool:
 		"unauthorized",
 		"401",
 		"403",
-		"quota",
 		"credits",
 		"billing",
 		"payment required",
@@ -274,7 +344,11 @@ def is_free_routing_failure(exc: BaseException) -> bool:
 		"not found in environment",
 		"not found in .env",
 	)
+	# "quota" alone can appear in rate-limit messages; only treat as fatal
+	# when it is not clearly a retryable rate limit.
 	if any(marker in text for marker in fatal):
+		return False
+	if "quota" in text and not is_rate_limit_failure(exc):
 		return False
 	return any(marker in text for marker in _FREE_ROUTING_FAILURE_MARKERS)
 

@@ -48,11 +48,11 @@ This document lists all supported models in Code-Interpreter.
 - `openrouter-mimo-v2-pro` -> `xiaomi/mimo-v2-pro`
 - `openrouter-gpt-5-4` -> `openai/gpt-5.4`
 - `openrouter-deepseek-v3-2` -> `deepseek/deepseek-v3.2`
-- `openrouter-qwen3-coder-480b-free` -> `qwen/qwen3-coder-480b:free`
-- `openrouter-mimo-v2-flash-free` -> `xiaomi/mimo-v2-flash:free`
-- `openrouter-nemotron-3-super-free` -> `nvidia/nemotron-3-super:free`
-- `openrouter-minimax-m2-5-free` -> `minimax/minimax-m2.5:free`
-- `openrouter-qwen3-6-plus-free` -> `qwen/qwen3.6-plus:free`
+- `openrouter-llama-3.3-70b-free` -> `meta-llama/llama-3.3-70b-instruct:free`
+- `openrouter-gpt-oss-20b-free` -> `openai/gpt-oss-20b:free`
+- `openrouter-gemma-4-31b-free` -> `google/gemma-4-31b-it:free`
+- `openrouter-nemotron-nano-free` -> `nvidia/nemotron-3-nano-30b-a3b:free`
+- Legacy aliases (retargeted to valid `:free` ids): `openrouter-qwen3-coder-480b-free`, `openrouter-mimo-v2-flash-free`, `openrouter-nemotron-3-super-free`, `openrouter-minimax-m2-5-free`, `openrouter-qwen3-6-plus-free`
 
 ## Browser Use
 - `browser-use-bu-max` -> `bu-max` (session-based model).

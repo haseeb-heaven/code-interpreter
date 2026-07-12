@@ -641,6 +641,7 @@ class Interpreter:
 					self.console.print(
 						"Agentic commands:\n"
 						"  /free           List free/cheap LLM presets\n"
+						"  /model          List free/cheap LLM presets\n"
 						"  /model <name>   Switch model config for next ReAct run\n"
 						"  /help           Show this help\n"
 						"  /exit           Leave the agentic REPL\n"
@@ -654,16 +655,20 @@ class Interpreter:
 					if one_shot:
 						return
 					continue
-				if lower.startswith("/model"):
+				if lower == "/model" or lower.startswith("/model "):
 					parts = raw.split(maxsplit=1)
 					if len(parts) < 2 or not parts[1].strip():
-						self.console.print("Usage: /model <config-name>")
+						# Bare /model lists presets (same as /free)
+						print(FreeLLMCatalog.load().format_table())
+						self.console.print(
+							"[dim]Tip: /model <config-name> to switch for the next ReAct run.[/dim]"
+						)
 					else:
 						model = parts[1].strip()
 						config_path = f"configs/{model}.json"
 						if not os.path.exists(config_path):
 							self.console.print(
-								f"Model {model} does not exist. Use /free or /list (in --cli)."
+								f"Model {model} does not exist. Use /free or /model to list presets."
 							)
 						else:
 							self.INTERPRETER_MODEL = model
@@ -676,6 +681,16 @@ class Interpreter:
 								max_steps=max_steps,
 							)
 							self.console.print(f"Model switched to [bold]{model}[/bold]")
+					if one_shot:
+						return
+					continue
+				# Unknown slash commands must not start a ReAct task
+				if raw.startswith("/") and not raw.startswith("//"):
+					cmd = raw.split(maxsplit=1)[0]
+					self.console.print(
+						f"[yellow]Unknown command:[/yellow] {cmd}. "
+						"Try /help, /free, /model, or /exit."
+					)
 					if one_shot:
 						return
 					continue

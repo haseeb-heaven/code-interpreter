@@ -17,7 +17,7 @@ from libs.agent.llm import call_llm
 from libs.agent.logger import TrajectoryLogger
 from libs.agent.parser import ParseError, format_trajectory, parse_react_step
 from libs.agent.prompts import REACT_SYSTEM_PROMPT
-from libs.free_llms import FreeModelsExhaustedError
+from libs.free_llms import FreeModelsExhaustedError, is_free_routing_failure, is_rate_limit_failure
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -50,17 +50,28 @@ class ReActController:
 
         self.code_interpreter = code_interpreter
         self.safety_manager = safety_manager
-        self.coder = CoderAction(model_name, api_key, code_interpreter)
+        self.coder = CoderAction(
+            model_name, api_key, code_interpreter, on_fallback=self._on_llm_fallback
+        )
         self.executor = ExecutorAction(code_interpreter, safety_manager)
-        self.reviewer = ReviewerAction(model_name, api_key)
-        self.debugger = DebuggerAction(model_name, api_key)
+        self.reviewer = ReviewerAction(model_name, api_key, on_fallback=self._on_llm_fallback)
+        self.debugger = DebuggerAction(model_name, api_key, on_fallback=self._on_llm_fallback)
 
-    def _apply_model(self, model_name: str) -> None:
+    def _apply_model(self, model_name: str, api_key: Optional[str] = None) -> None:
         """Keep controller + specialist actions on the same active model."""
         self.model_name = model_name
+        if api_key is not None:
+            self.api_key = api_key
         self.coder.model_name = model_name
         self.reviewer.model_name = model_name
         self.debugger.model_name = model_name
+        self.coder.api_key = self.api_key
+        self.reviewer.api_key = self.api_key
+        self.debugger.api_key = self.api_key
+        # Keep specialist fallback hooks wired to the shared updater.
+        self.coder.on_fallback = self._on_llm_fallback
+        self.reviewer.on_fallback = self._on_llm_fallback
+        self.debugger.on_fallback = self._on_llm_fallback
 
     def _on_llm_fallback(self, candidate: Dict[str, Any]) -> None:
         model_id = str(candidate.get("model") or "").strip()
@@ -194,7 +205,18 @@ class ReActController:
 
             try:
                 observation, action_metrics = self._dispatch(react_step, state)
+            except FreeModelsExhaustedError as exc:
+                state["status"] = "FAILED"
+                state["failure_reason"] = self._report_llm_failure(exc)
+                state["step_count"] = step_num
+                break
             except Exception as exc:
+                # Avoid dumping huge litellm rate-limit / routing tracebacks to the CLI.
+                if is_free_routing_failure(exc) or is_rate_limit_failure(exc):
+                    state["status"] = "FAILED"
+                    state["failure_reason"] = self._report_llm_failure(exc)
+                    state["step_count"] = step_num
+                    break
                 logger.exception("Action %s failed", react_step.action)
                 observation = f"ACTION_ERROR: {exc}"
                 action_metrics = {"cost": 0.0, "tokens": 0}

@@ -1,4 +1,5 @@
 ## v3.4.0 (2026-07-12)
+- fix(agentic): Free-LLM resilience — drop dead OpenRouter `:free` catalog IDs; treat 429/RateLimitError as routing failure with capped sleep/retry then catalog fallback; keep controller+specialist models in sync after fallback; `/model` lists presets; suppress rate-limit traceback dumps
 - test(unit): raise `libs/*` + `interpreter.py` coverage to ≥80% (worktree unit suite); make data/output/context/local unit modules discoverable under `unittest discover -s tests`
 - test(integration): expand mocked CLI/pipeline/tools/session coverage (25/25 worktree integration suite)
 - test(live): provider × mode × language matrix + agentic media suite with soft-skip (FAIL=0)

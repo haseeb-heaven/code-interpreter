@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from libs.agent.llm import call_llm
 from libs.agent.prompts import DEBUGGER_SYSTEM
@@ -15,9 +15,15 @@ class DebuggerResult:
 
 
 class DebuggerAction:
-    def __init__(self, model_name: str, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: str,
+        api_key: Optional[str] = None,
+        on_fallback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ):
         self.model_name = model_name
         self.api_key = api_key
+        self.on_fallback = on_fallback
 
     def run(
         self,
@@ -40,5 +46,9 @@ class DebuggerAction:
                 {"role": "user", "content": prompt},
             ],
             self.api_key,
+            on_fallback=self.on_fallback,
         )
+        used = str(metrics.get("model_used") or "").strip()
+        if used and used != self.model_name:
+            self.model_name = used
         return DebuggerResult(observation=content.strip(), metrics=metrics)

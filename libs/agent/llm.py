@@ -3,18 +3,23 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import litellm
 
 from libs.free_llms import (
+	DEFAULT_RATE_LIMIT_RETRIES,
+	DEFAULT_RETRY_AFTER_CAP_SECONDS,
 	FreeLLMCatalog,
 	FreeModelsExhaustedError,
 	format_free_models_exhausted_message,
 	free_fallback_candidates,
 	is_free_routing_failure,
+	is_rate_limit_failure,
 	load_model_config,
 	match_catalog_entry,
+	parse_retry_after_seconds,
 )
 
 logger = logging.getLogger(__name__)
@@ -139,6 +144,18 @@ def _extract_content_and_metrics(response: Any) -> Tuple[str, Dict[str, Any]]:
 	return content, {"cost": cost, "tokens": tokens}
 
 
+def _sleep_for_rate_limit(exc: BaseException, *, sleep_fn=None) -> float:
+	"""Sleep using parsed retry-after (capped). Returns seconds slept."""
+	if sleep_fn is None:
+		sleep_fn = time.sleep
+	hint = parse_retry_after_seconds(exc, cap=DEFAULT_RETRY_AFTER_CAP_SECONDS)
+	seconds = float(hint if hint is not None else 2.0)
+	seconds = max(0.1, min(seconds, DEFAULT_RETRY_AFTER_CAP_SECONDS))
+	logger.warning("Rate limited; sleeping %.1fs before retry…", seconds)
+	sleep_fn(seconds)
+	return seconds
+
+
 def call_llm(
 	model_name: str,
 	messages: List[Dict[str, str]],
@@ -148,14 +165,19 @@ def call_llm(
 	configs_dir: str = "configs",
 	catalog: Optional[FreeLLMCatalog] = None,
 	on_fallback: Optional[Any] = None,
+	rate_limit_retries: int = DEFAULT_RATE_LIMIT_RETRIES,
+	sleep_fn=None,
 ) -> Tuple[str, Dict[str, Any]]:
 	"""Call litellm and return (content, metrics).
 
-	On free-router failures (502 / Invalid URL / Stealth, etc.), automatically
-	tries the next available free catalog model when ``enable_free_fallback``.
+	On free-router failures (502 / Invalid URL / Stealth, 429 rate limits, etc.),
+	automatically retries rate-limited models briefly, then tries the next available
+	free catalog model when ``enable_free_fallback``.
 
 	Metrics include cost/tokens plus optional ``model_used`` / ``fallback_used``.
 	"""
+	if sleep_fn is None:
+		sleep_fn = time.sleep
 	cat = catalog or FreeLLMCatalog.load()
 	primary = _candidate_from_model(model_name, configs_dir=configs_dir, catalog=cat)
 	candidates: List[Dict[str, Any]] = [primary]
@@ -182,44 +204,67 @@ def call_llm(
 
 	tried: List[str] = []
 	last_exc: Optional[BaseException] = None
+	max_same_retries = max(0, int(rate_limit_retries))
 
 	for index, candidate in enumerate(candidates):
 		label = str(candidate.get("config") or candidate.get("model") or "?")
 		model_id = str(candidate["model"])
 		tried.append(f"{label} ({model_id})" if label != model_id else model_id)
-		try:
-			kwargs = _build_kwargs(candidate, messages, api_key)
-			response = litellm.completion(**kwargs)
-			content, metrics = _extract_content_and_metrics(response)
-			metrics = dict(metrics)
-			metrics["model_used"] = model_id
-			metrics["fallback_used"] = 1.0 if index > 0 else 0.0
-			if index > 0:
-				logger.warning(
-					"Free model fallback succeeded: %s -> %s (%s)",
-					model_name,
-					label,
-					model_id,
-				)
-				if callable(on_fallback):
-					try:
-						on_fallback(candidate)
-					except Exception as hook_exc:
-						logger.debug("on_fallback hook failed: %s", hook_exc)
-			return content, metrics
-		except Exception as exc:
-			last_exc = exc
-			if enable_free_fallback and is_free_routing_failure(exc) and index < len(candidates) - 1:
-				logger.warning(
-					"Free model %s failed (%s); trying next free preset…",
-					tried[-1],
-					exc,
-				)
-				continue
-			if enable_free_fallback and is_free_routing_failure(exc):
-				break
-			logger.error("LLM call failed: %s", exc)
-			raise
+		same_retries = 0
+
+		while True:
+			try:
+				kwargs = _build_kwargs(candidate, messages, api_key)
+				response = litellm.completion(**kwargs)
+				content, metrics = _extract_content_and_metrics(response)
+				metrics = dict(metrics)
+				metrics["model_used"] = model_id
+				metrics["fallback_used"] = 1.0 if index > 0 else 0.0
+				if index > 0:
+					logger.warning(
+						"Free model fallback succeeded: %s -> %s (%s)",
+						model_name,
+						label,
+						model_id,
+					)
+					if callable(on_fallback):
+						try:
+							on_fallback(candidate)
+						except Exception as hook_exc:
+							logger.debug("on_fallback hook failed: %s", hook_exc)
+				return content, metrics
+			except Exception as exc:
+				last_exc = exc
+				# Rate-limit: sleep + retry same model a few times before falling through.
+				if (
+					enable_free_fallback
+					and is_rate_limit_failure(exc)
+					and same_retries < max_same_retries
+				):
+					same_retries += 1
+					_sleep_for_rate_limit(exc, sleep_fn=sleep_fn)
+					logger.warning(
+						"Retrying %s after rate limit (%s/%s)…",
+						tried[-1],
+						same_retries,
+						max_same_retries,
+					)
+					continue
+
+				if enable_free_fallback and is_free_routing_failure(exc) and index < len(candidates) - 1:
+					logger.warning(
+						"Free model %s failed (%s); trying next free preset…",
+						tried[-1],
+						exc,
+					)
+					break  # next candidate
+
+				if enable_free_fallback and is_free_routing_failure(exc):
+					# Last candidate exhausted
+					break
+
+				logger.error("LLM call failed: %s", exc)
+				raise
 
 	message = format_free_models_exhausted_message(tried, last_exc)
 	logger.error(message)
