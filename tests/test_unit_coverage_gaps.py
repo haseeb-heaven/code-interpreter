@@ -44,9 +44,19 @@ class TestCodeInterpreterExtra(unittest.TestCase):
 		with patch("libs.code_interpreter.os.name", "nt"):
 			_kill_process_group(proc2)
 
-	def test_limit_resources_noop_on_windows(self):
-		# Should not raise even if resource is None
-		_limit_resources()
+	def test_limit_resources_skips_when_unavailable(self):
+		"""Must not apply rlimits in the parent test process (would SIGXCPU/OOM CI)."""
+		with patch("libs.code_interpreter.resource", None):
+			_limit_resources()  # no-op; must not raise
+
+	def test_limit_resources_sets_unix_rlimits_via_mock(self):
+		mock_res = MagicMock()
+		mock_res.RLIMIT_CPU = 0
+		mock_res.RLIMIT_AS = 1
+		mock_res.RLIMIT_NPROC = 2
+		with patch("libs.code_interpreter.resource", mock_res):
+			_limit_resources()
+		self.assertGreaterEqual(mock_res.setrlimit.call_count, 2)
 
 	def test_safe_input_eof(self):
 		with patch("builtins.input", side_effect=EOFError):
