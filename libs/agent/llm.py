@@ -158,25 +158,26 @@ def _sleep_for_rate_limit(exc: BaseException, *, sleep_fn=None) -> float:
 	return seconds
 
 
-def call_llm(
+def complete_with_free_fallback(
 	model_name: str,
 	messages: List[Dict[str, str]],
 	api_key: Optional[str] = None,
 	*,
+	tools: Optional[List[Dict[str, Any]]] = None,
+	tool_choice: Optional[str] = None,
 	enable_free_fallback: bool = True,
 	configs_dir: str = "configs",
 	catalog: Optional[FreeLLMCatalog] = None,
 	on_fallback: Optional[Any] = None,
 	rate_limit_retries: int = DEFAULT_RATE_LIMIT_RETRIES,
 	sleep_fn=None,
-) -> Tuple[str, Dict[str, Any]]:
-	"""Call litellm and return (content, metrics).
+) -> Tuple[Any, Dict[str, Any]]:
+	"""Call litellm with free-catalog fallback; return ``(raw_response, metrics)``.
 
-	On free-router failures (502 / Invalid URL / Stealth, 429 rate limits, etc.),
-	automatically retries rate-limited models briefly, then tries the next available
-	free catalog model when ``enable_free_fallback``.
-
-	Metrics include cost/tokens plus optional ``model_used`` / ``fallback_used``.
+	On free-router failures (502 / Invalid URL / Stealth, 429 rate limits,
+	``free-models-per-day``, etc.), retries rate-limited models briefly (except
+	daily free quota), skips remaining OpenRouter free after daily quota, then
+	tries Groq / Gemini / HF / local catalog presets when ``enable_free_fallback``.
 	"""
 	if sleep_fn is None:
 		sleep_fn = time.sleep
@@ -207,8 +208,16 @@ def call_llm(
 	tried: List[str] = []
 	last_exc: Optional[BaseException] = None
 	max_same_retries = max(0, int(rate_limit_retries))
+	skip_openrouter_free = False
 
 	for index, candidate in enumerate(candidates):
+		if skip_openrouter_free and is_openrouter_free_candidate(candidate):
+			logger.warning(
+				"Skipping OpenRouter free %s after daily free quota exhausted…",
+				candidate.get("config") or candidate.get("model"),
+			)
+			continue
+
 		label = str(candidate.get("config") or candidate.get("model") or "?")
 		model_id = str(candidate["model"])
 		tried.append(f"{label} ({model_id})" if label != model_id else model_id)
@@ -217,12 +226,17 @@ def call_llm(
 		while True:
 			try:
 				kwargs = _build_kwargs(candidate, messages, api_key)
+				if tools is not None:
+					kwargs["tools"] = tools
+					kwargs["tool_choice"] = tool_choice or "auto"
 				response = litellm.completion(**kwargs)
-				content, metrics = _extract_content_and_metrics(response)
-				metrics = dict(metrics)
-				metrics["model_used"] = model_id
-				metrics["fallback_used"] = 1.0 if index > 0 else 0.0
-				if index > 0:
+				used_fallback = bool(index > 0 or (len(tried) > 1))
+				metrics = {
+					"model_used": model_id,
+					"config_used": str(candidate.get("config") or model_id),
+					"fallback_used": 1.0 if used_fallback else 0.0,
+				}
+				if used_fallback:
 					logger.warning(
 						"Free model fallback succeeded: %s -> %s (%s)",
 						model_name,
@@ -234,9 +248,19 @@ def call_llm(
 							on_fallback(candidate)
 						except Exception as hook_exc:
 							logger.debug("on_fallback hook failed: %s", hook_exc)
-				return content, metrics
+				return response, metrics
 			except Exception as exc:
 				last_exc = exc
+
+				# Daily free quota: do not retry same OR free model; skip remaining OR free.
+				if enable_free_fallback and is_daily_free_quota_exhausted(exc):
+					skip_openrouter_free = True
+					logger.warning(
+						"Daily free quota exhausted on %s; skipping remaining OpenRouter free…",
+						tried[-1],
+					)
+					break
+
 				# Rate-limit: sleep + retry same model a few times before falling through.
 				if (
 					enable_free_fallback
@@ -271,3 +295,44 @@ def call_llm(
 	message = format_free_models_exhausted_message(tried, last_exc)
 	logger.error(message)
 	raise FreeModelsExhaustedError(message, tried=tried, last_error=last_exc) from last_exc
+
+
+def call_llm(
+	model_name: str,
+	messages: List[Dict[str, str]],
+	api_key: Optional[str] = None,
+	*,
+	enable_free_fallback: bool = True,
+	configs_dir: str = "configs",
+	catalog: Optional[FreeLLMCatalog] = None,
+	on_fallback: Optional[Any] = None,
+	rate_limit_retries: int = DEFAULT_RATE_LIMIT_RETRIES,
+	sleep_fn=None,
+) -> Tuple[str, Dict[str, Any]]:
+	"""Call litellm and return (content, metrics).
+
+	On free-router failures (502 / Invalid URL / Stealth, 429 rate limits, etc.),
+	automatically retries rate-limited models briefly, then tries the next available
+	free catalog model when ``enable_free_fallback``.
+
+	Metrics include cost/tokens plus optional ``model_used`` / ``fallback_used``.
+	"""
+	response, metrics = complete_with_free_fallback(
+		model_name,
+		messages,
+		api_key,
+		enable_free_fallback=enable_free_fallback,
+		configs_dir=configs_dir,
+		catalog=catalog,
+		on_fallback=on_fallback,
+		rate_limit_retries=rate_limit_retries,
+		sleep_fn=sleep_fn,
+	)
+	content, content_metrics = _extract_content_and_metrics(response)
+	out = dict(metrics)
+	out.update(content_metrics)
+	out["model_used"] = metrics.get("model_used")
+	out["fallback_used"] = metrics.get("fallback_used", 0.0)
+	if metrics.get("config_used"):
+		out["config_used"] = metrics["config_used"]
+	return content, out

@@ -40,7 +40,7 @@ class TestMainLoopMoreCommands(unittest.TestCase):
 		if not configs:
 			self.skipTest("no configs")
 		name = configs[0].stem
-		# main_loop looks for configs/{model}.config — may not exist; still covers branch
+		# main_loop resolves configs/{model}.json basenames
 		self._run([f"/model {name}"])
 
 	def test_install_commands(self):

@@ -654,6 +654,7 @@ class AgenticReplSlashCommandTests(unittest.TestCase):
 			interp.INTERPRETER_PROMPT_FILE = False
 			interp.UNSAFE_EXECUTION = False
 			interp.MAX_REPAIR_ATTEMPTS = 3
+			interp.terminal_ui = None
 			interp.logger = type("L", (), {"error": lambda *a, **k: None})()
 			interp.console = type(
 				"C",
@@ -665,23 +666,28 @@ class AgenticReplSlashCommandTests(unittest.TestCase):
 			return interp, printed
 
 	def test_model_no_args_lists_presets_not_react_task(self):
+		"""Bare /model opens TUI picker and must not start a ReAct task."""
 		interp, printed = self._make_interp(["/model", "/exit"])
+		mock_ui = MagicMock()
+		mock_ui.select_free_model.return_value = "local-model"
+		mock_ui.select_model.return_value = "local-model"
 		with patch("libs.agent.react_controller.ReActController") as mock_ctrl:
-			with patch("libs.free_llms.FreeLLMCatalog.load") as mock_load:
-				mock_cat = MagicMock()
-				mock_cat.format_table.return_value = "Free / cheap LLM presets (configs/free/catalog.json):"
-				mock_load.return_value = mock_cat
-				from libs.interpreter_lib import Interpreter
+			with patch("libs.interpreter_lib.TerminalUI", return_value=mock_ui):
+				with patch("os.path.isfile", return_value=True):
+					from libs.interpreter_lib import Interpreter
 
-				Interpreter.interpreter_agentic_main(interp)
-				mock_ctrl.return_value.run.assert_not_called()
-				mock_cat.format_table.assert_called()
+					Interpreter.interpreter_agentic_main(interp)
+					mock_ctrl.return_value.run.assert_not_called()
+		self.assertTrue(
+			mock_ui.select_free_model.called or mock_ui.select_model.called,
+			"expected TUI model picker for bare /model",
+		)
 		joined = "\n".join(printed)
-		# Should not have started a ReAct run for bare /model
+		self.assertNotIn("Usage: /model", joined)
 		self.assertNotIn("ReAct agent starting", joined)
 
 	def test_unknown_slash_mode_is_not_react_task(self):
-		interp, printed = self._make_interp(["/mode", "/exit"])
+		interp, printed = self._make_interp(["/foobar", "/exit"])
 		with patch("libs.agent.react_controller.ReActController") as mock_ctrl:
 			from libs.interpreter_lib import Interpreter
 

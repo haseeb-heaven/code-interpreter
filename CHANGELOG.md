@@ -1,4 +1,5 @@
 ## v3.4.0 (2026-07-12)
+- fix(agentic/yolo): AutoLoop free-catalog fallback on `free-models-per-day` / OpenRouter 429 / Stealth 502 (skip remaining OR free → Groq/Gemini/HF); `/model` and settings-like slash commands open TUI pickers; resolve `configs/<name>.json` basenames (e.g. `gemini-2.5-flash`)
 - fix(live-session): parse OpenRouter retry-after (cap 60s); skip daily free-quota models; YOLO tool_use_failed repair; REPL paste/slash guards; `.json` not vision; sandbox HOME/MPLCONFIGDIR/Plotly; user-intent absolute writes; neutralize tkinter.mainloop; short litellm errors
 - test(fixtures): committed `tests/fixtures/` inputs/expected as live-scenario source of truth (`INTERPRETER_TEST_DATA_DIR` workdir copy)
 - test(live): easy/medium/complex scenario suite + master `scratch/live_scenario_report.md|.html` (FAIL=0 soft-skip)

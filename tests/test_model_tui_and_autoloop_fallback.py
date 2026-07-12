@@ -1,0 +1,418 @@
+"""TDD: AutoLoop free-catalog fallback + /model TUI picker.
+
+Covers (mocked, no live keys):
+1. call_llm on free-models-per-day skips remaining OpenRouter free → Groq/Gemini
+2. AutoLoop uses same free-catalog fallback (429 / Stealth 502 / daily quota)
+3. /model with no args opens TerminalUI model picker (not bare usage text)
+4. /model with invalid name opens picker and lists valid config names
+5. /model gemini-2.5-flash resolves configs/<name>.json (not litellm id alone)
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+import unittest
+from argparse import Namespace
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+from libs.agent.llm import call_llm
+from libs.free_llms import FreeLLMCatalog, is_daily_free_quota_exhausted
+
+
+DAILY_QUOTA = (
+	"litellm.RateLimitError: OpenrouterException - "
+	'{"error":{"message":"Rate limit exceeded: free-models-per-day. '
+	'Remaining: 0","code":429}}'
+)
+
+STEALTH_502 = (
+	'litellm.APIError: OpenrouterException - '
+	'{"error":{"message":"Invalid URL: ","code":502,'
+	'"metadata":{"provider_name":"Stealth"}}}'
+)
+
+OPENROUTER_429 = (
+	"litellm.RateLimitError: RateLimitError: OpenrouterException - "
+	'{"error":{"message":"Rate limit exceeded: try again in 1.2s","code":429}}'
+)
+
+
+def _ok_response(text: str = "ok"):
+	return SimpleNamespace(
+		choices=[SimpleNamespace(message=SimpleNamespace(content=text, tool_calls=None))],
+		usage=SimpleNamespace(total_tokens=3),
+	)
+
+
+def _write_json(path: str, payload: dict) -> None:
+	os.makedirs(os.path.dirname(path), exist_ok=True)
+	with open(path, "w", encoding="utf-8") as handle:
+		json.dump(payload, handle)
+
+
+class DailyQuotaSkipOpenRouterTests(unittest.TestCase):
+	"""On free-models-per-day, skip remaining OR free and land on Groq."""
+
+	def setUp(self):
+		self._tmpdir = tempfile.TemporaryDirectory()
+		self.addCleanup(self._tmpdir.cleanup)
+		self.configs_dir = os.path.join(self._tmpdir.name, "configs")
+		os.makedirs(self.configs_dir)
+		specs = {
+			"openrouter-free": {
+				"provider": "openrouter",
+				"api_base": "https://openrouter.ai/api/v1",
+				"model": "openrouter/free",
+			},
+			"openrouter-qwen-free": {
+				"provider": "openrouter",
+				"api_base": "https://openrouter.ai/api/v1",
+				"model": "qwen/qwen3-coder:free",
+			},
+			"groq-llama": {
+				"provider": "groq",
+				"model": "groq/llama-3.1-8b-instant",
+			},
+		}
+		for name, payload in specs.items():
+			_write_json(os.path.join(self.configs_dir, f"{name}.json"), payload)
+		catalog_dir = os.path.join(self.configs_dir, "free")
+		self.catalog_path = os.path.join(catalog_dir, "catalog.json")
+		_write_json(
+			self.catalog_path,
+			{
+				"models": [
+					{
+						"id": "openrouter-free",
+						"config": "openrouter-free",
+						"provider": "openrouter",
+						"env_key": "OPENROUTER_API_KEY",
+						"tier": "free",
+					},
+					{
+						"id": "openrouter-qwen-free",
+						"config": "openrouter-qwen-free",
+						"provider": "openrouter",
+						"env_key": "OPENROUTER_API_KEY",
+						"tier": "free",
+					},
+					{
+						"id": "groq-llama",
+						"config": "groq-llama",
+						"provider": "groq",
+						"env_key": "GROQ_API_KEY",
+						"tier": "free_tier",
+					},
+				]
+			},
+		)
+		self.catalog = FreeLLMCatalog.load(self.catalog_path)
+		self.env = {"OPENROUTER_API_KEY": "sk-or-test", "GROQ_API_KEY": "gsk-test"}
+
+	def test_daily_quota_detector(self):
+		self.assertTrue(is_daily_free_quota_exhausted(RuntimeError(DAILY_QUOTA)))
+
+	def test_daily_quota_skips_remaining_openrouter_free(self):
+		tried_models = []
+
+		def fake_completion(**kwargs):
+			model = kwargs.get("model") or ""
+			tried_models.append(model)
+			if "openrouter" in model.lower() or ":free" in model.lower() or model == "openrouter/free":
+				# Primary OR free hits daily quota; sibling OR must not be retried long.
+				raise RuntimeError(DAILY_QUOTA)
+			return _ok_response("from-groq")
+
+		with patch.dict(os.environ, self.env, clear=False):
+			with patch("libs.agent.llm.litellm.completion", side_effect=fake_completion):
+				content, metrics = call_llm(
+					"openrouter-free",
+					[{"role": "user", "content": "hi"}],
+					enable_free_fallback=True,
+					configs_dir=self.configs_dir,
+					catalog=self.catalog,
+					rate_limit_retries=2,
+					sleep_fn=lambda _s: None,
+				)
+
+		self.assertEqual(content, "from-groq")
+		self.assertEqual(metrics.get("model_used"), "groq/llama-3.1-8b-instant")
+		# Must not spend attempts on the sibling OR free after daily quota.
+		joined = " | ".join(tried_models).lower()
+		self.assertNotIn("qwen3-coder", joined)
+		self.assertTrue(
+			any("groq" in m.lower() or "llama-3.1" in m.lower() for m in tried_models),
+			f"expected Groq attempt, got {tried_models}",
+		)
+
+
+class AutoLoopFreeFallbackTests(unittest.TestCase):
+	"""AutoLoop / YOLO path must not hard-fail on OR free daily quota / 502 / 429."""
+
+	def setUp(self):
+		self._tmpdir = tempfile.TemporaryDirectory()
+		self.addCleanup(self._tmpdir.cleanup)
+		self.configs_dir = os.path.join(self._tmpdir.name, "configs")
+		os.makedirs(self.configs_dir)
+		for name, payload in {
+			"openrouter-free": {
+				"provider": "openrouter",
+				"api_base": "https://openrouter.ai/api/v1",
+				"model": "openrouter/free",
+				"temperature": 0.1,
+				"max_tokens": 1024,
+			},
+			"groq-llama": {
+				"provider": "groq",
+				"model": "groq/llama-3.1-8b-instant",
+				"temperature": 0.1,
+				"max_tokens": 1024,
+			},
+		}.items():
+			_write_json(os.path.join(self.configs_dir, f"{name}.json"), payload)
+		_write_json(
+			os.path.join(self.configs_dir, "free", "catalog.json"),
+			{
+				"models": [
+					{
+						"id": "openrouter-free",
+						"config": "openrouter-free",
+						"provider": "openrouter",
+						"env_key": "OPENROUTER_API_KEY",
+						"tier": "free",
+					},
+					{
+						"id": "groq-llama",
+						"config": "groq-llama",
+						"provider": "groq",
+						"env_key": "GROQ_API_KEY",
+						"tier": "free_tier",
+					},
+				]
+			},
+		)
+		self.catalog = FreeLLMCatalog.load(os.path.join(self.configs_dir, "free", "catalog.json"))
+		self.env = {"OPENROUTER_API_KEY": "sk-or-test", "GROQ_API_KEY": "gsk-test"}
+
+	def _run_loop(self, side_effect_exc: Exception):
+		from libs.agent.auto_loop import AutonomousAgentLoop
+
+		calls = []
+
+		def completion_fn(model, messages, tools):
+			# Delegate to AutoLoop's built-in free-fallback path when no custom fn
+			# is set — this test uses enable_free_fallback on the loop itself.
+			raise AssertionError("custom completion_fn should not be used here")
+
+		attempted = []
+
+		def fake_litellm(**kwargs):
+			model = str(kwargs.get("model") or "")
+			attempted.append(model)
+			if "openrouter" in model.lower() or model.endswith("/free") or ":free" in model:
+				raise side_effect_exc
+			return _ok_response("autoloop-fallback-ok")
+
+		with patch.dict(os.environ, self.env, clear=False):
+			with patch("libs.agent.llm.litellm.completion", side_effect=fake_litellm):
+				with patch("litellm.completion", side_effect=fake_litellm):
+					loop = AutonomousAgentLoop(
+						model="openrouter-free",
+						auto_mode=True,
+						enable_free_fallback=True,
+						configs_dir=self.configs_dir,
+						catalog=self.catalog,
+						api_key=None,
+						sleep_fn=lambda _s: None,
+					)
+					result = loop.run("say hi")
+		return result, attempted
+
+	def test_autoloop_falls_back_on_daily_quota(self):
+		result, attempted = self._run_loop(RuntimeError(DAILY_QUOTA))
+		self.assertEqual(result, "autoloop-fallback-ok")
+		self.assertTrue(any("groq" in m.lower() or "llama" in m.lower() for m in attempted), attempted)
+
+	def test_autoloop_falls_back_on_stealth_502(self):
+		result, attempted = self._run_loop(RuntimeError(STEALTH_502))
+		self.assertEqual(result, "autoloop-fallback-ok")
+		self.assertTrue(any("groq" in m.lower() or "llama" in m.lower() for m in attempted), attempted)
+
+	def test_autoloop_falls_back_on_openrouter_429(self):
+		result, attempted = self._run_loop(RuntimeError(OPENROUTER_429))
+		self.assertEqual(result, "autoloop-fallback-ok")
+		self.assertTrue(any("groq" in m.lower() or "llama" in m.lower() for m in attempted), attempted)
+
+
+class ResolveModelConfigNameTests(unittest.TestCase):
+	def setUp(self):
+		self._tmpdir = tempfile.TemporaryDirectory()
+		self.addCleanup(self._tmpdir.cleanup)
+		self.configs_dir = self._tmpdir.name
+		_write_json(
+			os.path.join(self.configs_dir, "gemini-2.5-flash.json"),
+			{"model": "gemini/gemini-2.5-flash", "temperature": 0.1, "max_tokens": 2048},
+		)
+		_write_json(
+			os.path.join(self.configs_dir, "gemini-2.5-pro.json"),
+			{"model": "gemini/gemini-2.5-pro", "temperature": 0.1, "max_tokens": 3072},
+		)
+
+	def test_resolves_config_basename(self):
+		from libs.free_llms import resolve_model_config_name
+
+		self.assertEqual(
+			resolve_model_config_name("gemini-2.5-flash", configs_dir=self.configs_dir),
+			"gemini-2.5-flash",
+		)
+
+	def test_resolves_litellm_id_to_config_when_unique(self):
+		from libs.free_llms import resolve_model_config_name
+
+		self.assertEqual(
+			resolve_model_config_name("gemini/gemini-2.5-pro", configs_dir=self.configs_dir),
+			"gemini-2.5-pro",
+		)
+
+	def test_unknown_returns_none(self):
+		from libs.free_llms import resolve_model_config_name
+
+		self.assertIsNone(
+			resolve_model_config_name("not-a-real-model", configs_dir=self.configs_dir)
+		)
+
+
+class ModelSlashOpensTuiTests(unittest.TestCase):
+	"""Agentic + auto REPLS: bare /model opens TUI picker."""
+
+	def _make_interp(self, inputs, *, agentic=True, auto=False):
+		from libs.interpreter_lib import Interpreter
+
+		args = Namespace(
+			lang="python",
+			mode="code",
+			model="local-model",
+			save_code=False,
+			exec=False,
+			display_code=False,
+			unsafe=False,
+			sandbox=True,
+			history=False,
+			file=None,
+			agent=False,
+			agentic=agentic,
+			gemini_style=True,
+			free=True,
+			cli=True,
+			tui=False,
+			yolo=True,
+			mcp_server=None,
+			search=False,
+		)
+		printed = []
+		with patch.object(Interpreter, "__init__", lambda self, a: None):
+			interp = Interpreter(args)
+			interp.args = args
+			interp.INTERPRETER_MODEL = "local-model"
+			interp.INTERPRETER_MODEL_LABEL = "local-model"
+			interp.INTERPRETER_PROMPT_FILE = False
+			interp.UNSAFE_EXECUTION = False
+			interp.MAX_REPAIR_ATTEMPTS = 3
+			interp.config_values = {"model": "local-model"}
+			interp.terminal_ui = None
+			interp.logger = type("L", (), {"error": lambda *a, **k: None, "info": lambda *a, **k: None})()
+			interp.console = type(
+				"C",
+				(),
+				{"print": lambda self, *a, **k: printed.append(" ".join(str(x) for x in a))},
+			)()
+			it = iter(inputs)
+			interp._safe_input = lambda prompt, default="": next(it)
+			interp.initialize_client = MagicMock()
+			return interp, printed
+
+	def test_agentic_model_no_args_opens_tui_not_usage(self):
+		interp, printed = self._make_interp(["/model", "/exit"], agentic=True)
+		mock_ui = MagicMock()
+		mock_ui.select_free_model.return_value = "gemini-2.5-flash"
+		mock_ui.select_model.return_value = "gemini-2.5-flash"
+
+		with patch("libs.agent.react_controller.ReActController") as mock_ctrl:
+			with patch("libs.interpreter_lib.TerminalUI", return_value=mock_ui):
+				with patch("os.path.isfile", return_value=True):
+					from libs.interpreter_lib import Interpreter
+
+					Interpreter.interpreter_agentic_main(interp)
+
+		joined = "\n".join(printed)
+		self.assertNotIn("Usage: /model", joined)
+		self.assertTrue(
+			mock_ui.select_free_model.called or mock_ui.select_model.called,
+			"expected TUI model picker",
+		)
+		mock_ctrl.return_value.run.assert_not_called()
+
+	def test_agentic_invalid_model_opens_tui(self):
+		interp, printed = self._make_interp(["/model nope-model", "/exit"], agentic=True)
+		mock_ui = MagicMock()
+		mock_ui.select_free_model.return_value = "gemini-2.5-flash"
+		mock_ui.select_model.return_value = "gemini-2.5-flash"
+
+		with patch("libs.agent.react_controller.ReActController") as mock_ctrl:
+			with patch("libs.interpreter_lib.TerminalUI", return_value=mock_ui):
+				with patch(
+					"libs.free_llms.resolve_model_config_name",
+					side_effect=lambda name, **k: None if "nope" in name else name,
+				):
+					with patch("os.path.isfile", return_value=True):
+						from libs.interpreter_lib import Interpreter
+
+						Interpreter.interpreter_agentic_main(interp)
+
+		joined = "\n".join(printed).lower()
+		self.assertTrue(
+			"does not" in joined
+			or "invalid" in joined
+			or "not a valid" in joined
+			or "not exist" in joined,
+			printed,
+		)
+		self.assertTrue(mock_ui.select_free_model.called or mock_ui.select_model.called)
+		mock_ctrl.return_value.run.assert_not_called()
+
+	def test_agentic_valid_config_name_switches(self):
+		interp, printed = self._make_interp(["/model gemini-2.5-flash", "/exit"], agentic=True)
+
+		with patch("libs.agent.react_controller.ReActController") as mock_ctrl:
+			with patch(
+				"libs.free_llms.resolve_model_config_name",
+				return_value="gemini-2.5-flash",
+			):
+				with patch("os.path.isfile", return_value=True):
+					from libs.interpreter_lib import Interpreter
+
+					Interpreter.interpreter_agentic_main(interp)
+
+		self.assertEqual(interp.INTERPRETER_MODEL, "gemini-2.5-flash")
+		joined = "\n".join(printed).lower()
+		self.assertIn("gemini-2.5-flash", joined)
+		mock_ctrl.assert_called()
+		# Second controller construction is the switch (first is startup)
+		self.assertGreaterEqual(mock_ctrl.call_count, 2)
+
+	def test_help_mentions_model_opens_picker(self):
+		interp, printed = self._make_interp(["/help", "/exit"], agentic=True)
+		with patch("libs.agent.react_controller.ReActController"):
+			from libs.interpreter_lib import Interpreter
+
+			Interpreter.interpreter_agentic_main(interp)
+		joined = "\n".join(printed).lower()
+		self.assertIn("/model", joined)
+		self.assertTrue("picker" in joined or "select" in joined or "tui" in joined or "interactive" in joined)
+
+
+if __name__ == "__main__":
+	unittest.main()

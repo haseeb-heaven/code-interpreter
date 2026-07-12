@@ -367,10 +367,109 @@ class Interpreter:
 		return True
 
 	def _open_tui_settings(self, setting_type):
+		self._ensure_terminal_ui()
 		return open_tui_settings(self, setting_type)
 
 	def _apply_runtime_settings(self, settings):
 		apply_runtime_settings(self, settings, display_fn=display_markdown_message, path_isfile=os.path.isfile)
+
+	def _ensure_terminal_ui(self):
+		"""Lazily create TerminalUI so slash pickers work under ``--cli`` too."""
+		if getattr(self, "terminal_ui", None) is None:
+			self.terminal_ui = TerminalUI()
+		return self.terminal_ui
+
+	def _prefer_free_model_picker(self) -> bool:
+		args = getattr(self, "args", None)
+		return bool(
+			getattr(args, "free", False)
+			or getattr(args, "gemini_style", False)
+			or getattr(args, "agentic", False)
+			or getattr(args, "yolo", False)
+		)
+
+	def _list_valid_model_configs(self, limit: int = 24) -> list:
+		from libs.free_llms import list_config_names
+
+		names = list_config_names("configs")
+		if not names and hasattr(self, "utility_manager") and self.utility_manager:
+			try:
+				names = list(self.utility_manager.list_available_models())
+			except Exception:
+				names = []
+		return names[: max(0, int(limit))]
+
+	def _switch_model_config(self, config_name: str, *, on_switched=None) -> bool:
+		"""Apply a resolved config basename; return True on success."""
+		from libs.free_llms import resolve_model_config_name
+
+		resolved = resolve_model_config_name(config_name) or (
+			config_name if os.path.isfile(f"configs/{config_name}.json") else None
+		)
+		if not resolved:
+			return False
+		self.INTERPRETER_MODEL = resolved
+		self.INTERPRETER_MODEL_LABEL = resolved
+		try:
+			self.initialize_client()
+		except Exception as exc:
+			self.logger.error(f"Failed to initialize client for {resolved}: {exc}")
+		if callable(on_switched):
+			on_switched(resolved)
+		self.console.print(f"Model switched to [bold]{resolved}[/bold]")
+		return True
+
+	def _open_model_picker(self, *, on_switched=None) -> None:
+		"""Open TUI model / free-model picker and apply the selection."""
+		ui = self._ensure_terminal_ui()
+		default = self.INTERPRETER_MODEL_LABEL or self.INTERPRETER_MODEL
+		if self._prefer_free_model_picker() and hasattr(ui, "select_free_model"):
+			chosen = ui.select_free_model(default)
+		else:
+			chosen = ui.select_model(default)
+		if chosen:
+			if not self._switch_model_config(chosen, on_switched=on_switched):
+				self.console.print(
+					f"[yellow]Selected model '{chosen}' has no configs/{chosen}.json[/yellow]"
+				)
+
+	def _handle_model_slash_command(self, raw: str, *, on_switched=None) -> None:
+		"""``/model`` → TUI picker; ``/model <name>`` → resolve config or open picker."""
+		from libs.free_llms import resolve_model_config_name
+
+		parts = (raw or "").split(maxsplit=1)
+		name = parts[1].strip() if len(parts) > 1 else ""
+		if not name:
+			self._open_model_picker(on_switched=on_switched)
+			return
+
+		resolved = resolve_model_config_name(name)
+		if resolved:
+			self._switch_model_config(resolved, on_switched=on_switched)
+			return
+
+		valid = self._list_valid_model_configs()
+		self.console.print(
+			f"[yellow]Model '{name}' is not a valid config name.[/yellow] "
+			"Use a configs/<name>.json basename (e.g. gemini-2.5-flash), not a raw LiteLLM id "
+			"unless that config exists."
+		)
+		if valid:
+			preview = ", ".join(valid[:12])
+			more = f" (+{len(valid) - 12} more)" if len(valid) > 12 else ""
+			self.console.print(f"Valid configs include: {preview}{more}")
+		self._open_model_picker(on_switched=on_switched)
+
+	def _handle_free_slash_command(self, *, on_switched=None) -> None:
+		"""``/free`` opens the free-catalog TUI picker (also prints the table)."""
+		from libs.free_llms import FreeLLMCatalog
+
+		print(FreeLLMCatalog.load().format_table())
+		ui = self._ensure_terminal_ui()
+		default = self.INTERPRETER_MODEL_LABEL or self.INTERPRETER_MODEL
+		chosen = ui.select_free_model(default) if hasattr(ui, "select_free_model") else None
+		if chosen:
+			self._switch_model_config(chosen, on_switched=on_switched)
 
 	def _get_subprocess_security_kwargs(self, sandbox_context=None):
 		return self.code_interpreter._get_subprocess_security_kwargs(sandbox_context=sandbox_context)
@@ -418,7 +517,6 @@ class Interpreter:
 		``--yolo`` skips tool-call approval. ``--mcp-server CMD...`` attaches an MCP server.
 		"""
 		from libs.agent.auto_loop import AutonomousAgentLoop
-		from libs.free_llms import FreeLLMCatalog
 		from libs.memory import ContextManager
 		from libs.tools.bootstrap import build_native_fs_registry
 
@@ -432,7 +530,7 @@ class Interpreter:
 			self.console.print(f"[bold cyan]Autonomous agent loop[/bold cyan] — {mode_label}")
 			self.console.print(
 				f"Model: [bold]{self.INTERPRETER_MODEL}[/bold]  ·  "
-				"Commands: /free  /model <name>  /help  /exit"
+				"Commands: /free  /model  /help  /exit"
 			)
 
 			registry = build_native_fs_registry()
@@ -458,37 +556,27 @@ class Interpreter:
 					f"({len(mcp_tools)} tools)"
 				)
 
-			config = self.config_values or {}
-			litellm_model = str(config.get("model") or self.INTERPRETER_MODEL)
-			temperature = float(config.get("temperature", 0.2) or 0.2)
-			max_tokens = int(config.get("max_tokens", 4096) or 4096)
-			config_provider = str(config.get("provider") or config.get("config_provider") or "")
-			api_base = str(config.get("api_base") or "")
-
-			def completion_fn(model, messages, tools):
-				from libs.llm_dispatcher import build_completion_kwargs
-
-				# Prefer live config after /model switches
-				cfg = self.config_values or {}
-				active_model = str(cfg.get("model") or litellm_model)
-				kwargs = build_completion_kwargs(
-					model=active_model,
-					messages=messages,
-					temperature=float(cfg.get("temperature", temperature) or temperature),
-					max_tokens=int(cfg.get("max_tokens", max_tokens) or max_tokens),
-					config_provider=str(cfg.get("provider") or cfg.get("config_provider") or config_provider),
-					api_base=str(cfg.get("api_base") or api_base),
-				)
-				kwargs["tools"] = tools
-				kwargs["tool_choice"] = "auto"
-				return litellm.completion(model=active_model, **kwargs)
+			def on_fallback(candidate):
+				config_name = str(candidate.get("config") or "").strip()
+				if config_name:
+					self.INTERPRETER_MODEL = config_name
+					self.INTERPRETER_MODEL_LABEL = config_name
+					try:
+						self.initialize_client()
+					except Exception:
+						pass
+					self.console.print(
+						f"[yellow]Fell back to[/yellow] [bold]{config_name}[/bold]"
+					)
 
 			context_manager = ContextManager(token_limit=100_000, preserve_last_n=6)
+			# Prefer config basename so free-catalog fallback can rotate providers.
 			loop = AutonomousAgentLoop(
-				model=litellm_model,
+				model=str(self.INTERPRETER_MODEL),
 				auto_mode=auto_mode,
 				registry=registry,
-				completion_fn=completion_fn,
+				enable_free_fallback=True,
+				on_fallback=on_fallback,
 				context_manager=context_manager,
 			)
 
@@ -522,13 +610,21 @@ class Interpreter:
 				if lower in ("/help", "help"):
 					self.console.print(
 						"Autonomous commands:\n"
-						"  /free           List free/cheap LLM presets\n"
-						"  /model <name>   Switch model config for next run\n"
+						"  /free           Free-catalog table + interactive picker\n"
+						"  /model          Interactive model picker (TUI)\n"
+						"  /model <name>   Switch to configs/<name>.json\n"
+						"  /settings       Interactive settings (TUI)\n"
 						"  /tools          List registered tools\n"
 						"  /help           Show this help\n"
 						"  /exit           Leave the autonomous REPL\n"
 						"Or type a natural-language task to run the tool loop."
 					)
+					if one_shot:
+						return
+					continue
+				if lower in ("/settings", "/mode"):
+					setting = "settings" if lower == "/settings" else "mode"
+					self._apply_runtime_settings(self._open_tui_settings(setting))
 					if one_shot:
 						return
 					continue
@@ -539,28 +635,17 @@ class Interpreter:
 						return
 					continue
 				if lower == "/free":
-					print(FreeLLMCatalog.load().format_table())
+					self._handle_free_slash_command(
+						on_switched=lambda name: setattr(loop, "model", name)
+					)
 					if one_shot:
 						return
 					continue
-				if lower.startswith("/model"):
-					parts = raw.split(maxsplit=1)
-					if len(parts) < 2 or not parts[1].strip():
-						self.console.print("Usage: /model <config-name>")
-					else:
-						model = parts[1].strip()
-						config_path = f"configs/{model}.json"
-						if not os.path.exists(config_path):
-							self.console.print(
-								f"Model {model} does not exist. Use /free or /list (in --cli)."
-							)
-						else:
-							self.INTERPRETER_MODEL = model
-							self.INTERPRETER_MODEL_LABEL = model
-							self.initialize_client()
-							cfg = self.config_values or {}
-							loop.model = str(cfg.get("model") or self.INTERPRETER_MODEL)
-							self.console.print(f"Model switched to [bold]{model}[/bold]")
+				if lower == "/model" or lower.startswith("/model "):
+					self._handle_model_slash_command(
+						raw,
+						on_switched=lambda name: setattr(loop, "model", name),
+					)
 					if one_shot:
 						return
 					continue
@@ -585,31 +670,37 @@ class Interpreter:
 		A ``-f`` / prompt-file run remains one-shot for scripts/CI.
 		"""
 		from libs.agent.react_controller import ReActController
-		from libs.free_llms import FreeLLMCatalog
 
 		gemini_style = bool(getattr(self.args, "gemini_style", False))
 		one_shot = bool(getattr(self, "INTERPRETER_PROMPT_FILE", False) and getattr(self.args, "file", None))
+		# Keep a mutable holder so slash handlers can rebuild the controller.
+		state = {"controller": None, "max_steps": max(int(getattr(self, "MAX_REPAIR_ATTEMPTS", 3) or 3), 10)}
+
+		def _make_controller(model_name: str):
+			return ReActController(
+				model_name=model_name,
+				api_key=None,
+				unsafe_mode=self.UNSAFE_EXECUTION,
+				log_path="logs/agent_react.jsonl",
+				max_steps=state["max_steps"],
+			)
+
+		def _on_model_switched(name: str):
+			state["controller"] = _make_controller(name)
 
 		try:
 			if gemini_style:
 				self.console.print("[bold cyan]Gemini-style agentic REPL[/bold cyan] (ReAct · free LLMs)")
 				self.console.print(
 					f"Model: [bold]{self.INTERPRETER_MODEL}[/bold]  ·  "
-					"Commands: /free  /model <name>  /help  /exit"
+					"Commands: /free  /model  /help  /exit"
 				)
 			else:
 				self.console.print("[bold yellow]Running in ReAct Agentic Mode[/bold yellow]")
 				if not one_shot:
-					self.console.print("Commands: /free  /model <name>  /help  /exit")
+					self.console.print("Commands: /free  /model  /help  /exit")
 
-			max_steps = max(int(getattr(self, "MAX_REPAIR_ATTEMPTS", 3) or 3), 10)
-			controller = ReActController(
-				model_name=self.INTERPRETER_MODEL,
-				api_key=None,
-				unsafe_mode=self.UNSAFE_EXECUTION,
-				log_path="logs/agent_react.jsonl",
-				max_steps=max_steps,
-			)
+			state["controller"] = _make_controller(self.INTERPRETER_MODEL)
 
 			file_task = None
 			if one_shot:
@@ -641,9 +732,10 @@ class Interpreter:
 				if lower in ("/help", "help"):
 					self.console.print(
 						"Agentic commands:\n"
-						"  /free           List free/cheap LLM presets\n"
-						"  /model          List free/cheap LLM presets\n"
-						"  /model <name>   Switch model config for next ReAct run\n"
+						"  /free           Free-catalog table + interactive picker\n"
+						"  /model          Interactive model picker (TUI)\n"
+						"  /model <name>   Switch to configs/<name>.json (e.g. gemini-2.5-flash)\n"
+						"  /settings       Interactive settings (TUI)\n"
 						"  /help           Show this help\n"
 						"  /exit           Leave the agentic REPL\n"
 						"Or type a natural-language task to plan/act/observe."
@@ -651,37 +743,19 @@ class Interpreter:
 					if one_shot:
 						return
 					continue
+				if lower in ("/settings", "/mode"):
+					setting = "settings" if lower == "/settings" else "mode"
+					self._apply_runtime_settings(self._open_tui_settings(setting))
+					if one_shot:
+						return
+					continue
 				if lower == "/free":
-					print(FreeLLMCatalog.load().format_table())
+					self._handle_free_slash_command(on_switched=_on_model_switched)
 					if one_shot:
 						return
 					continue
 				if lower == "/model" or lower.startswith("/model "):
-					parts = raw.split(maxsplit=1)
-					if len(parts) < 2 or not parts[1].strip():
-						# Bare /model lists presets (same as /free)
-						print(FreeLLMCatalog.load().format_table())
-						self.console.print(
-							"[dim]Tip: /model <config-name> to switch for the next ReAct run.[/dim]"
-						)
-					else:
-						model = parts[1].strip()
-						config_path = f"configs/{model}.json"
-						if not os.path.exists(config_path):
-							self.console.print(
-								f"Model {model} does not exist. Use /free or /model to list presets."
-							)
-						else:
-							self.INTERPRETER_MODEL = model
-							self.INTERPRETER_MODEL_LABEL = model
-							controller = ReActController(
-								model_name=model,
-								api_key=None,
-								unsafe_mode=self.UNSAFE_EXECUTION,
-								log_path="logs/agent_react.jsonl",
-								max_steps=max_steps,
-							)
-							self.console.print(f"Model switched to [bold]{model}[/bold]")
+					self._handle_model_slash_command(raw, on_switched=_on_model_switched)
 					if one_shot:
 						return
 					continue
@@ -706,7 +780,7 @@ class Interpreter:
 						return
 					continue
 
-				controller.run(raw)
+				state["controller"].run(raw)
 				if one_shot:
 					return
 		except KeyboardInterrupt:

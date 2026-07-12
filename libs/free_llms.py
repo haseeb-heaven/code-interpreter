@@ -414,6 +414,63 @@ def litellm_model_id(config: Dict[str, Any], fallback: str = "") -> str:
 	return str(config.get("model") or fallback or "").strip()
 
 
+def list_config_names(configs_dir: str = "configs") -> List[str]:
+	"""Return sorted config basenames under ``configs_dir`` (excludes schema.json)."""
+	try:
+		names = [
+			os.path.splitext(name)[0]
+			for name in os.listdir(configs_dir)
+			if name.endswith(".json") and name.lower() != "schema.json"
+		]
+		return sorted(names)
+	except OSError as exc:
+		logger.debug("Could not list configs in %s: %s", configs_dir, exc)
+		return []
+
+
+def resolve_model_config_name(
+	name: str,
+	*,
+	configs_dir: str = "configs",
+	catalog: Optional[FreeLLMCatalog] = None,
+) -> Optional[str]:
+	"""Map a user-facing model token to a ``configs/<name>.json`` basename.
+
+	Accepts:
+	- Config basename (``gemini-2.5-flash``)
+	- Free-catalog id/config
+	- LiteLLM model id when it uniquely matches one config (``gemini/gemini-2.5-pro``)
+
+	Returns None when nothing resolves. Prefer config basenames in UX; do not
+	treat litellm ids as primary names unless that mapping exists.
+	"""
+	needle = (name or "").strip()
+	if not needle:
+		return None
+
+	direct_path = os.path.join(configs_dir, f"{needle}.json")
+	if os.path.isfile(direct_path):
+		return needle
+
+	cat = catalog or FreeLLMCatalog.load()
+	entry = cat.get(needle)
+	if entry is not None and entry.config_exists(configs_dir):
+		return entry.config
+
+	needle_key = _normalize_key(needle)
+	matches: List[str] = []
+	for config_name in list_config_names(configs_dir):
+		cfg = load_model_config(config_name, configs_dir=configs_dir)
+		if not cfg:
+			continue
+		mid = _normalize_key(litellm_model_id(cfg, config_name))
+		if mid and mid == needle_key:
+			matches.append(config_name)
+	if len(matches) == 1:
+		return matches[0]
+	return None
+
+
 def _normalize_key(value: str) -> str:
 	return (value or "").strip().lower()
 

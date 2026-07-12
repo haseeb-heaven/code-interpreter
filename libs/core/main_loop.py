@@ -640,12 +640,14 @@ def run_interpreter_main(interp, version):
 				continue
 
 			# MODE - Command section.
-			elif task.lower() == '/settings' and interp.terminal_ui:
+			elif task.lower() == '/settings':
+				interp._ensure_terminal_ui()
 				interp._apply_runtime_settings(interp._open_tui_settings("settings"))
 				display_markdown_message("Settings updated.")
 				continue
 
-			elif task.lower() == '/mode' and interp.terminal_ui:
+			elif task.lower() == '/mode':
+				interp._ensure_terminal_ui()
 				interp._apply_runtime_settings(interp._open_tui_settings("mode"))
 				display_markdown_message(f"Mode changed to '{interp.INTERPRETER_MODE}'")
 				continue
@@ -663,27 +665,43 @@ def run_interpreter_main(interp, version):
 				continue
 
 			# MODEL - Command section.
-			elif task.lower() == '/model' and interp.terminal_ui:
-				interp._apply_runtime_settings(interp._open_tui_settings("model"))
+			elif task.lower() == '/model':
+				# Always open TUI picker (works under --cli via lazy TerminalUI).
+				if hasattr(interp, "_handle_model_slash_command"):
+					interp._handle_model_slash_command(task)
+				else:
+					interp._ensure_terminal_ui()
+					interp._apply_runtime_settings(interp._open_tui_settings("model"))
 				display_markdown_message(f"Model changed to '{interp.INTERPRETER_MODEL_LABEL}'")
 				continue
 
 			elif any(command in task.lower() for command in ['/model ']):
 				model = task.split(' ')[1]
 				if model:
-					model_config_file = f"configs/{model}.config"
-					if not os.path.isfile(model_config_file):
-						display_markdown_message(f"Model {model} does not exists. Please check the model name using '/list' command.")
+					from libs.free_llms import resolve_model_config_name
+
+					resolved = resolve_model_config_name(model)
+					model_config_file = f"configs/{resolved or model}.json"
+					if not resolved or not os.path.isfile(model_config_file):
+						display_markdown_message(
+							f"Model {model} does not exists. Opening model picker…"
+						)
+						if hasattr(interp, "_handle_model_slash_command"):
+							interp._handle_model_slash_command("/model")
+						else:
+							interp._ensure_terminal_ui()
+							interp._apply_runtime_settings(interp._open_tui_settings("model"))
 						continue
 					else:
-						interp.INTERPRETER_MODEL = model
-						interp.INTERPRETER_MODEL_LABEL = model
+						interp.INTERPRETER_MODEL = resolved
+						interp.INTERPRETER_MODEL_LABEL = resolved
 						display_markdown_message(f"Model changed to '{interp.INTERPRETER_MODEL}'")
 						interp.initialize_client()  # Reinitialize the client with new model.
 				continue
 
 			# LANGUAGE - Command section.
-			elif task.lower() in ['/language', '/lang'] and interp.terminal_ui:
+			elif task.lower() in ['/language', '/lang']:
+				interp._ensure_terminal_ui()
 				interp._apply_runtime_settings(interp._open_tui_settings("language"))
 				display_markdown_message(f"Language changed to '{interp.INTERPRETER_LANGUAGE}'")
 				continue

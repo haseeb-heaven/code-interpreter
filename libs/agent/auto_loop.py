@@ -20,15 +20,15 @@ MAX_ITERATIONS = 30
 
 # Error markers that indicate the LLM could not produce a valid response.
 _REPAIR_ERROR_MARKERS = (
-    "tool_use_failed",
-    "failed_generation",
-    "badrequesterror",
-    "bad request",
-    "invalid_request_error",
-    "invalid request",
-    "context_length_exceeded",
-    "context length",
-    "maximum context",
+	"tool_use_failed",
+	"failed_generation",
+	"badrequesterror",
+	"bad request",
+	"invalid_request_error",
+	"invalid request",
+	"context_length_exceeded",
+	"context length",
+	"maximum context",
 )
 
 MAX_REPAIR_ATTEMPTS = 2
@@ -55,6 +55,13 @@ class AutonomousAgentLoop:
 		max_iterations: int = MAX_ITERATIONS,
 		api_key: Optional[str] = None,
 		context_manager: Any = None,
+		*,
+		enable_free_fallback: bool = False,
+		configs_dir: str = "configs",
+		catalog: Any = None,
+		on_fallback: Optional[Callable[[dict], None]] = None,
+		sleep_fn=None,
+		rate_limit_retries: int = 2,
 	):
 		"""
 		Args:
@@ -63,11 +70,18 @@ class AutonomousAgentLoop:
 			auto_mode: True = execute tools without asking (``--yolo``).
 			registry: Tool registry; defaults to native FS/shell tools.
 			completion_fn: Optional ``(model, messages, tools) -> response`` override
-				(preferred for tests / litellm wiring).
+				(preferred for tests / litellm wiring). Ignored when
+				``enable_free_fallback`` is True (uses catalog fallback instead).
 			confirm_fn: Optional ``(tool_name, tool_args) -> bool`` approval callback.
 			max_iterations: Hard cap to prevent runaway loops.
 			api_key: Optional API key for litellm fallback.
 			context_manager: Optional message compactor with ``maybe_compact``.
+			enable_free_fallback: Use free-catalog rotation on OR 429 / daily quota / 502.
+			configs_dir: Directory of model JSON configs.
+			catalog: Optional ``FreeLLMCatalog`` instance.
+			on_fallback: Called with the winning candidate dict after a fallback.
+			sleep_fn: Injectable sleep for rate-limit retries (tests).
+			rate_limit_retries: Same-model retries before falling through.
 		"""
 		self.llm = llm_client
 		self.model = model
@@ -78,6 +92,12 @@ class AutonomousAgentLoop:
 		self.max_iterations = max_iterations
 		self.api_key = api_key
 		self.context_manager = context_manager
+		self.enable_free_fallback = enable_free_fallback
+		self.configs_dir = configs_dir
+		self.catalog = catalog
+		self.on_fallback = on_fallback
+		self.sleep_fn = sleep_fn
+		self.rate_limit_retries = rate_limit_retries
 
 	def run(self, task: str) -> str:
 		"""Execute the autonomous loop; never raises.
@@ -125,10 +145,18 @@ class AutonomousAgentLoop:
 				is_rep = any(m in err_low for m in _REPAIR_ERROR_MARKERS)
 				if is_rep and repair_attempts < MAX_REPAIR_ATTEMPTS:
 					repair_attempts += 1
-					logger.warning("[AutoLoop] Repairable LLM error (attempt %s/%s): %s",
-						repair_attempts, MAX_REPAIR_ATTEMPTS, exc)
-					messages.append({"role": "user", "content":
-						f"Error: {short_err}. Please respond with valid tool call or text."})
+					logger.warning(
+						"[AutoLoop] Repairable LLM error (attempt %s/%s): %s",
+						repair_attempts,
+						MAX_REPAIR_ATTEMPTS,
+						exc,
+					)
+					messages.append(
+						{
+							"role": "user",
+							"content": f"Error: {short_err}. Please respond with valid tool call or text.",
+						}
+					)
 					continue
 				logger.error("[AutoLoop] LLM error: %s", exc)
 				return short_err
@@ -174,7 +202,38 @@ class AutonomousAgentLoop:
 
 		return "[AutoLoop] Max iterations reached. Task may be incomplete."
 
+	def _on_fallback_candidate(self, candidate: dict) -> None:
+		config_name = str(candidate.get("config") or candidate.get("model") or "").strip()
+		if config_name:
+			self.model = config_name
+		if callable(self.on_fallback):
+			try:
+				self.on_fallback(candidate)
+			except Exception as exc:
+				logger.debug("[AutoLoop] on_fallback hook failed: %s", exc)
+
 	def _complete(self, messages: list[dict], tools: list[dict]) -> Any:
+		if self.enable_free_fallback:
+			from libs.agent.llm import complete_with_free_fallback
+
+			response, metrics = complete_with_free_fallback(
+				self.model,
+				messages,
+				self.api_key,
+				tools=tools,
+				tool_choice="auto",
+				enable_free_fallback=True,
+				configs_dir=self.configs_dir,
+				catalog=self.catalog,
+				on_fallback=self._on_fallback_candidate,
+				rate_limit_retries=self.rate_limit_retries,
+				sleep_fn=self.sleep_fn,
+			)
+			used = str(metrics.get("config_used") or metrics.get("model_used") or "").strip()
+			if used:
+				self.model = used
+			return response
+
 		if self.completion_fn is not None:
 			return self.completion_fn(model=self.model, messages=messages, tools=tools)
 
