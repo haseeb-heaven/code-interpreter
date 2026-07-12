@@ -182,7 +182,7 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 			model = kwargs.get("model")
 			if model == "openrouter/free":
 				raise RuntimeError(STEALTH_502)
-			if model == "qwen/qwen3-coder-480b:free":
+			if model in ("qwen/qwen3-coder-480b:free", "openrouter/qwen/qwen3-coder-480b:free"):
 				return ok
 			raise AssertionError(f"unexpected model {model}")
 

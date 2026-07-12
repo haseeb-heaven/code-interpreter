@@ -95,8 +95,10 @@ def _build_kwargs(
 		key = api_key or os.getenv("OPENROUTER_API_KEY")
 		if key:
 			kwargs["api_key"] = key
-		kwargs["api_base"] = api_base or _DEFAULT_OPENROUTER_BASE
-		kwargs["custom_llm_provider"] = "openai"
+		# Prefer LiteLLM native OpenRouter routing (openrouter/<author>/<model>).
+		# Avoid openai-shim model-ID validation that rejects *:free upstream ids.
+		if not model.lower().startswith("openrouter/"):
+			kwargs["model"] = f"openrouter/{model}"
 		kwargs["extra_headers"] = {
 			"HTTP-Referer": "https://github.com/haseeb-heaven/code-interpreter",
 			"X-OpenRouter-Title": "Code Interpreter",

@@ -223,6 +223,11 @@ _FREE_ROUTING_FAILURE_MARKERS = (
 	"overloaded",
 	"all providers failed",
 	"model is currently overloaded",
+	"not a valid model id",
+	"invalid model",
+	"model_not_found",
+	"no healthy upstream",
+	"bad gateway",
 )
 
 
