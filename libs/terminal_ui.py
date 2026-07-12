@@ -262,7 +262,7 @@ class TerminalUI:
 		)
 
 	def select_free_model(self, default_model=None):
-		"""Pick from curated free/cheap presets (configs/free/catalog.json)."""
+		"""Pick from curated free/cheap presets (configs/models.toml [[free_catalog]])."""
 		try:
 			from libs.free_llms import FreeLLMCatalog
 
@@ -281,7 +281,7 @@ class TerminalUI:
 			"Free / cheap model",
 			configs,
 			default,
-			"Curated free/cheap presets (--free / configs/free/catalog.json).",
+			"Curated free/cheap presets (--free / configs/models.toml [[free_catalog]]).",
 		)
 
 	def select_language(self, default_lang="python"):

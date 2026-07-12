@@ -67,7 +67,7 @@ class TestApplyRuntimeSettings(unittest.TestCase):
 				args.sandbox_backend = "none"
 			apply_sb.side_effect = _apply
 			apply_runtime_settings(
-				interp, settings, display_fn=msgs.append, path_isfile=lambda p: False
+				interp, settings, display_fn=msgs.append, model_exists_fn=lambda p: False
 			)
 		interp._apply_mode.assert_called_with("chat")
 		self.assertEqual(interp.INTERPRETER_LANGUAGE, "javascript")
@@ -81,25 +81,27 @@ class TestApplyRuntimeSettings(unittest.TestCase):
 		self.assertTrue(any("does not exists" in m for m in msgs))
 
 	def test_apply_model_existing(self):
+		from libs.core.model_registry import ModelRegistry
+
 		interp = MagicMock()
 		interp.args = SimpleNamespace()
-		configs = list(Path("configs").glob("*.json"))
-		if not configs:
-			self.skipTest("no configs")
-		model = configs[0].stem
+		models = ModelRegistry.load().list_model_names()
+		if not models:
+			self.skipTest("no models in configs/models.toml")
+		model = models[0]
 		apply_runtime_settings(
 			interp,
 			{"model": model},
 			display_fn=lambda *_: None,
-			path_isfile=lambda p: True,
+			model_exists_fn=lambda p: True,
 		)
 		self.assertEqual(interp.INTERPRETER_MODEL, model)
 		interp.initialize_client.assert_called()
 
 	def test_apply_empty(self):
 		interp = MagicMock()
-		apply_runtime_settings(interp, None, display_fn=lambda *_: None, path_isfile=lambda p: False)
-		apply_runtime_settings(interp, {}, display_fn=lambda *_: None, path_isfile=lambda p: False)
+		apply_runtime_settings(interp, None, display_fn=lambda *_: None, model_exists_fn=lambda p: False)
+		apply_runtime_settings(interp, {}, display_fn=lambda *_: None, model_exists_fn=lambda p: False)
 
 
 class TestBootstrapInterpreter(unittest.TestCase):

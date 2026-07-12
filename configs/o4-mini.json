@@ -1,7 +1,0 @@
-{
-    "temperature": 0.1,
-    "max_tokens": 3072,
-    "start_sep": "```",
-    "end_sep": "```",
-    "model": "o4-mini"
-}

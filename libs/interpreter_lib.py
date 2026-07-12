@@ -383,7 +383,15 @@ class Interpreter:
 		return open_tui_settings(self, setting_type)
 
 	def _apply_runtime_settings(self, settings):
-		apply_runtime_settings(self, settings, display_fn=display_markdown_message, path_isfile=os.path.isfile)
+		apply_runtime_settings(
+			self, settings, display_fn=display_markdown_message, model_exists_fn=self._model_exists
+		)
+
+	@staticmethod
+	def _model_exists(name: str) -> bool:
+		from libs.core.model_registry import get_model_registry
+
+		return get_model_registry().has_model(name)
 
 	def _ensure_terminal_ui(self):
 		"""Lazily create TerminalUI so slash pickers work under ``--cli`` too."""
@@ -413,10 +421,11 @@ class Interpreter:
 
 	def _switch_model_config(self, config_name: str, *, on_switched=None) -> bool:
 		"""Apply a resolved config basename; return True on success."""
+		from libs.core.model_registry import get_model_registry
 		from libs.free_llms import resolve_model_config_name
 
 		resolved = resolve_model_config_name(config_name) or (
-			config_name if os.path.isfile(f"configs/{config_name}.json") else None
+			config_name if get_model_registry().has_model(config_name) else None
 		)
 		if not resolved:
 			return False
@@ -442,7 +451,7 @@ class Interpreter:
 		if chosen:
 			if not self._switch_model_config(chosen, on_switched=on_switched):
 				self.console.print(
-					f"[yellow]Selected model '{chosen}' has no configs/{chosen}.json[/yellow]"
+					f"[yellow]Selected model '{chosen}' is not in the models.toml registry[/yellow]"
 				)
 
 	def _handle_model_slash_command(self, raw: str, *, on_switched=None) -> None:
@@ -463,8 +472,8 @@ class Interpreter:
 		valid = self._list_valid_model_configs()
 		self.console.print(
 			f"[yellow]Model '{name}' is not a valid config name.[/yellow] "
-			"Use a configs/<name>.json basename (e.g. gemini-2.5-flash), not a raw LiteLLM id "
-			"unless that config exists."
+			"Use a models.toml registry key (e.g. gemini-2.5-flash), not a raw LiteLLM id "
+			"unless that entry exists."
 		)
 		if valid:
 			preview = ", ".join(valid[:12])
@@ -651,7 +660,7 @@ class Interpreter:
 						"Autonomous commands:\n"
 						"  /free           Free-catalog table + interactive picker\n"
 						"  /model          Interactive model picker (TUI)\n"
-						"  /model <name>   Switch to configs/<name>.json\n"
+						"  /model <name>   Switch to a models.toml registry key\n"
 						"  /settings       Interactive settings (TUI)\n"
 						"  /tools          List registered tools\n"
 						"  /help           Show this help\n"
@@ -784,7 +793,7 @@ class Interpreter:
 						"Agentic commands:\n"
 						"  /free           Free-catalog table + interactive picker\n"
 						"  /model          Interactive model picker (TUI)\n"
-						"  /model <name>   Switch to configs/<name>.json (e.g. gemini-2.5-flash)\n"
+						"  /model <name>   Switch to a models.toml registry key (e.g. gemini-2.5-flash)\n"
 						"  /settings       Interactive settings (TUI)\n"
 						"  /help           Show this help\n"
 						"  /exit           Leave the agentic REPL\n"

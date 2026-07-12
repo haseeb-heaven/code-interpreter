@@ -39,11 +39,9 @@ dist/
 # JSON files (ignore ALL json files)
 *.json
 
-# BUT keep config JSONs
+# BUT keep the single-file model registry directory
+# (configs/models.toml is not a .json file, so no exception is needed for it)
 !configs/
-!configs/*.json
-!configs/free/
-!configs/free/*.json
 
 # Keep TestSprite backend suite artifacts (GitHub App Pre-Check requires these)
 !testsprite_tests/

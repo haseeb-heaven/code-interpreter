@@ -63,6 +63,34 @@ def _write_json(path: str, payload: dict) -> None:
 		json.dump(payload, handle)
 
 
+def _toml_scalar(value) -> str:
+	if isinstance(value, bool):
+		return "true" if value else "false"
+	if isinstance(value, (int, float)):
+		return str(value)
+	return json.dumps(str(value))
+
+
+def _write_models_toml(configs_dir: str, models: dict, free_catalog=None) -> str:
+	"""Write a minimal ``models.toml`` fixture for tests (replaces per-model JSON files)."""
+	os.makedirs(configs_dir, exist_ok=True)
+	lines = []
+	for name, payload in models.items():
+		lines.append(f'[models.{json.dumps(str(name))}]')
+		for key, value in payload.items():
+			lines.append(f"{key} = {_toml_scalar(value)}")
+		lines.append("")
+	for entry in free_catalog or []:
+		lines.append("[[free_catalog]]")
+		for key, value in entry.items():
+			lines.append(f"{key} = {_toml_scalar(value)}")
+		lines.append("")
+	path = os.path.join(configs_dir, "models.toml")
+	with open(path, "w", encoding="utf-8") as handle:
+		handle.write("\n".join(lines))
+	return path
+
+
 class FreeRoutingFailureDetectionTests(unittest.TestCase):
 	def test_detects_stealth_502(self):
 		self.assertTrue(is_free_routing_failure(RuntimeError(STEALTH_502)))
@@ -123,39 +151,30 @@ class FreeFallbackCandidateTests(unittest.TestCase):
 				"model": "groq/llama-3.1-8b-instant",
 			},
 		}
-		for name, payload in specs.items():
-			_write_json(os.path.join(self.configs_dir, f"{name}.json"), payload)
-
-		catalog_dir = os.path.join(self.configs_dir, "free")
-		self.catalog_path = os.path.join(catalog_dir, "catalog.json")
-		_write_json(
-			self.catalog_path,
+		free_catalog = [
 			{
-				"models": [
-					{
-						"id": "openrouter-free",
-						"config": "openrouter-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "openrouter-qwen-free",
-						"config": "openrouter-qwen-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "groq-llama",
-						"config": "groq-llama",
-						"provider": "groq",
-						"env_key": "GROQ_API_KEY",
-						"tier": "free_tier",
-					},
-				]
+				"id": "openrouter-free",
+				"model_key": "openrouter-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
 			},
-		)
+			{
+				"id": "openrouter-qwen-free",
+				"model_key": "openrouter-qwen-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
+			},
+			{
+				"id": "groq-llama",
+				"model_key": "groq-llama",
+				"provider": "groq",
+				"env_key": "GROQ_API_KEY",
+				"tier": "free_tier",
+			},
+		]
+		self.catalog_path = _write_models_toml(self.configs_dir, specs, free_catalog)
 		self.catalog = FreeLLMCatalog.load(self.catalog_path)
 		self.env = {"OPENROUTER_API_KEY": "sk-or-test", "GROQ_API_KEY": "gsk-test"}
 
@@ -175,37 +194,44 @@ class FreeFallbackCandidateTests(unittest.TestCase):
 		self.assertIn("openrouter-qwen-free", [c["config"] for c in cands])
 
 	def test_dead_catalog_entries_without_config_file_are_skipped(self):
-		"""Catalog rotation continues when a listed free ID has no config file."""
-		# Inject a dead catalog entry pointing at a missing config file
-		_write_json(
-			self.catalog_path,
-			{
-				"models": [
-					{
-						"id": "openrouter-free",
-						"config": "openrouter-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "openrouter-dead-qwen-480b",
-						"config": "openrouter-qwen3-coder-480b-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "groq-llama",
-						"config": "groq-llama",
-						"provider": "groq",
-						"env_key": "GROQ_API_KEY",
-						"tier": "free_tier",
-					},
-				]
+		"""Catalog rotation continues when a listed free ID has no registry entry."""
+		# Inject a dead catalog entry pointing at a missing model registry key.
+		specs = {
+			"openrouter-free": {
+				"provider": "openrouter",
+				"api_base": "https://openrouter.ai/api/v1",
+				"model": "openrouter/free",
 			},
-		)
-		catalog = FreeLLMCatalog.load(self.catalog_path)
+			"groq-llama": {
+				"provider": "groq",
+				"model": "groq/llama-3.1-8b-instant",
+			},
+		}
+		free_catalog = [
+			{
+				"id": "openrouter-free",
+				"model_key": "openrouter-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
+			},
+			{
+				"id": "openrouter-dead-qwen-480b",
+				"model_key": "openrouter-qwen3-coder-480b-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
+			},
+			{
+				"id": "groq-llama",
+				"model_key": "groq-llama",
+				"provider": "groq",
+				"env_key": "GROQ_API_KEY",
+				"tier": "free_tier",
+			},
+		]
+		catalog_path = _write_models_toml(self.configs_dir, specs, free_catalog)
+		catalog = FreeLLMCatalog.load(catalog_path)
 		available = catalog.available(environ=self.env, configs_dir=self.configs_dir)
 		configs = [e.config for e in available]
 		self.assertIn("openrouter-free", configs)
@@ -235,16 +261,18 @@ class RepoCatalogHygieneTests(unittest.TestCase):
 	)
 
 	def test_repo_free_catalog_omits_dead_openrouter_ids(self):
-		catalog_path = os.path.join("configs", "free", "catalog.json")
-		self.assertTrue(os.path.isfile(catalog_path), "configs/free/catalog.json missing")
-		with open(catalog_path, "r", encoding="utf-8") as handle:
-			payload = json.load(handle)
-		blob = json.dumps(payload).lower()
+		from libs.core.model_registry import ModelRegistry
+
+		registry_path = os.path.join("configs", "models.toml")
+		self.assertTrue(os.path.isfile(registry_path), "configs/models.toml missing")
+		registry = ModelRegistry.load(registry_path, use_cache=False)
+		entries = registry.free_catalog_entries()
+		blob = json.dumps(entries).lower()
 		for dead in self.DEAD_MODEL_SNIPPETS:
 			self.assertNotIn(dead.lower(), blob, f"dead free id still in catalog: {dead}")
 
 		# Prefer currently valid free presets still present
-		ids = [m.get("id") or m.get("config") for m in payload.get("models", [])]
+		ids = [m.get("id") or m.get("model_key") for m in entries]
 		self.assertIn("openrouter-free", ids)
 		self.assertTrue(
 			any("groq" in str(i) for i in ids),
@@ -258,6 +286,7 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 		self.addCleanup(self._tmpdir.cleanup)
 		self.configs_dir = os.path.join(self._tmpdir.name, "configs")
 		os.makedirs(self.configs_dir)
+		models = {}
 		for name, model in (
 			("openrouter-free", "openrouter/free"),
 			("openrouter-qwen-free", "qwen/qwen3-coder:free"),
@@ -272,37 +301,32 @@ class CallLlmFreeFallbackTests(unittest.TestCase):
 			}
 			if provider == "openrouter":
 				payload["api_base"] = "https://openrouter.ai/api/v1"
-			_write_json(os.path.join(self.configs_dir, f"{name}.json"), payload)
+			models[name] = payload
 
-		self.catalog_path = os.path.join(self.configs_dir, "free", "catalog.json")
-		_write_json(
-			self.catalog_path,
+		free_catalog = [
 			{
-				"models": [
-					{
-						"id": "openrouter-free",
-						"config": "openrouter-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "openrouter-qwen-free",
-						"config": "openrouter-qwen-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "groq-llama",
-						"config": "groq-llama",
-						"provider": "groq",
-						"env_key": "GROQ_API_KEY",
-						"tier": "free_tier",
-					},
-				]
+				"id": "openrouter-free",
+				"model_key": "openrouter-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
 			},
-		)
+			{
+				"id": "openrouter-qwen-free",
+				"model_key": "openrouter-qwen-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
+			},
+			{
+				"id": "groq-llama",
+				"model_key": "groq-llama",
+				"provider": "groq",
+				"env_key": "GROQ_API_KEY",
+				"tier": "free_tier",
+			},
+		]
+		self.catalog_path = _write_models_toml(self.configs_dir, models, free_catalog)
 
 	@patch("libs.agent.llm.litellm.completion_cost", return_value=0.0)
 	@patch("libs.agent.llm.litellm.completion")
@@ -563,42 +587,35 @@ class ReActControllerFallbackUxTests(unittest.TestCase):
 		self.addCleanup(tmpdir.cleanup)
 		configs_dir = os.path.join(tmpdir.name, "configs")
 		os.makedirs(configs_dir)
+		models = {}
 		for name, model in (
 			("openrouter-free", "openrouter/free"),
 			("openrouter-qwen-free", "qwen/qwen3-coder:free"),
 		):
-			_write_json(
-				os.path.join(configs_dir, f"{name}.json"),
-				{
-					"provider": "openrouter",
-					"api_base": "https://openrouter.ai/api/v1",
-					"model": model,
-					"temperature": 0.1,
-					"max_tokens": 256,
-				},
-			)
-		catalog_path = os.path.join(configs_dir, "free", "catalog.json")
-		_write_json(
-			catalog_path,
+			models[name] = {
+				"provider": "openrouter",
+				"api_base": "https://openrouter.ai/api/v1",
+				"model": model,
+				"temperature": 0.1,
+				"max_tokens": 256,
+			}
+		free_catalog = [
 			{
-				"models": [
-					{
-						"id": "openrouter-free",
-						"config": "openrouter-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-					{
-						"id": "openrouter-qwen-free",
-						"config": "openrouter-qwen-free",
-						"provider": "openrouter",
-						"env_key": "OPENROUTER_API_KEY",
-						"tier": "free",
-					},
-				]
+				"id": "openrouter-free",
+				"model_key": "openrouter-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
 			},
-		)
+			{
+				"id": "openrouter-qwen-free",
+				"model_key": "openrouter-qwen-free",
+				"provider": "openrouter",
+				"env_key": "OPENROUTER_API_KEY",
+				"tier": "free",
+			},
+		]
+		catalog_path = _write_models_toml(configs_dir, models, free_catalog)
 		catalog = FreeLLMCatalog.load(catalog_path)
 
 		# First think fails on openrouter/free, succeeds on qwen → finish

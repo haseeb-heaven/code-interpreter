@@ -32,20 +32,17 @@ class ModelRouter:
 		env_path = os.path.join(os.getcwd(), ".env")
 		load_dotenv_fn(dotenv_path=env_path, override=True)
 		interp.logger.info("Initializing Client")
-		config_file_name: str = ""
 
 		interp.logger.info(f"Interpreter model selected is '{interp.INTERPRETER_MODEL}'")
 		if interp.INTERPRETER_MODEL is None or interp.INTERPRETER_MODEL == "":
 			interp.logger.info("Model is not provided, using default model.")
 			interp.INTERPRETER_MODEL = interp.utility_manager.get_default_model_name()
 			interp.INTERPRETER_MODEL_LABEL = interp.INTERPRETER_MODEL
-			config_file_name = f"configs/{interp.INTERPRETER_MODEL}.json"
 		else:
 			interp.INTERPRETER_MODEL_LABEL = interp.INTERPRETER_MODEL
-			config_file_name = f"configs/{interp.INTERPRETER_MODEL}.json"
 
-		interp.logger.info(f"Reading config file {config_file_name}")
-		interp.config_values = interp.utility_manager.read_config_file(config_file_name)
+		interp.logger.info(f"Reading model registry entry '{interp.INTERPRETER_MODEL}'")
+		interp.config_values = interp.utility_manager.read_config_file(interp.INTERPRETER_MODEL)
 		interp.INTERPRETER_MODEL = str(interp.config_values.get("model", interp.INTERPRETER_MODEL))
 		model_name = interp.INTERPRETER_MODEL.strip().split("/")[-1]
 

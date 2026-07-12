@@ -11,6 +11,7 @@ import interpreter as interpreter_entry
 from interpreter import Interpreter
 from libs.history_manager import History
 from libs.code_interpreter import CodeInterpreter
+from libs.core.model_registry import ModelRegistry
 from libs.model_utils import normalize_model_name
 from libs.safety_manager import ExecutionSafetyManager, RepairCircuitBreaker
 from libs.utility_manager import UtilityManager
@@ -19,18 +20,28 @@ from libs.llm_dispatcher import build_completion_kwargs
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 CONFIGS_DIR = ROOT_DIR / "configs"
-_SKIP_CONFIG_NAMES = {"schema.json"}
+REGISTRY_PATH = CONFIGS_DIR / "models.toml"
 
 
-def _model_config_files():
-	return sorted(p for p in CONFIGS_DIR.glob("*.json") if p.name.lower() not in _SKIP_CONFIG_NAMES)
+def _model_registry() -> ModelRegistry:
+	return ModelRegistry.load(str(REGISTRY_PATH), use_cache=False)
 
 
-def _read_hf_model(config_path: Path) -> str:
-	data = json.loads(config_path.read_text(encoding="utf-8-sig"))
-	if "model" in data:
-		return data["model"]
-	raise AssertionError(f"model missing in config: {config_path}")
+def _model_keys():
+	return _model_registry().list_model_names()
+
+
+def _read_hf_model(model_key: str) -> str:
+	"""Return the litellm model id for a ``models.toml`` registry key.
+
+	``model_key`` accepts either a bare key (``"gpt-4o"``) or the legacy
+	``"gpt-4o.json"`` spelling for readability in parametrized tables below.
+	"""
+	key = model_key[:-len(".json")] if model_key.lower().endswith(".json") else model_key
+	config = _model_registry().get_model(key)
+	if not config or "model" not in config:
+		raise AssertionError(f"model missing in registry entry: {model_key}")
+	return config["model"]
 
 
 
@@ -152,12 +163,12 @@ class TestInterpreter(unittest.TestCase):
 
 	def test_every_config_is_parseable_and_has_hf_model(self):
 		utility_manager = UtilityManager()
-		config_files = _model_config_files()
-		self.assertTrue(config_files, "No config files found")
+		model_keys = _model_keys()
+		self.assertTrue(model_keys, "No models found in configs/models.toml")
 
-		for config_file in config_files:
-			with self.subTest(config=config_file.name):
-				values = utility_manager.read_config_file(str(config_file))
+		for model_key in model_keys:
+			with self.subTest(config=model_key):
+				values = utility_manager.read_config_file(model_key)
 				self.assertIn("model", values)
 				self.assertTrue(values["model"].strip())
 
@@ -295,49 +306,49 @@ class TestInterpreter(unittest.TestCase):
 
 	def test_legacy_alias_configs_are_mapped_to_modern_targets(self):
 		expected_aliases = {
-			"gpt-3.5-turbo.json": "gpt-4o-mini",
-			"gpt-4.json": "gpt-4.1",
-			"gpt-o1-mini.json": "o1",
-			"gpt-o1-preview.json": "o1",
-			"gemini-pro.json": "gemini/gemini-2.5-pro",
-			"gemini-1.5-pro.json": "gemini/gemini-2.5-pro",
-			"gemini-1.5-flash.json": "gemini/gemini-2.5-flash",
-			"claude-2.json": "claude-sonnet-4-6",
-			"claude-2.1.json": "claude-sonnet-4-6",
-			"claude-3-7-sonnet.json": "claude-sonnet-4-6",
-			"deepseek-coder.json": "deepseek-chat",
-			"groq-mixtral.json": "groq/llama-3.3-70b-versatile",
-			"groq-llama2.json": "groq/llama-3.1-8b-instant",
+			"gpt-3.5-turbo": "gpt-4o-mini",
+			"gpt-4": "gpt-4.1",
+			"gpt-o1-mini": "o1",
+			"gpt-o1-preview": "o1",
+			"gemini-pro": "gemini/gemini-2.5-pro",
+			"gemini-1.5-pro": "gemini/gemini-2.5-pro",
+			"gemini-1.5-flash": "gemini/gemini-2.5-flash",
+			"claude-2": "claude-sonnet-4-6",
+			"claude-2.1": "claude-sonnet-4-6",
+			"claude-3-7-sonnet": "claude-sonnet-4-6",
+			"deepseek-coder": "deepseek-chat",
+			"groq-mixtral": "groq/llama-3.3-70b-versatile",
+			"groq-llama2": "groq/llama-3.1-8b-instant",
 		}
-		for config_name, expected_hf_model in expected_aliases.items():
-			with self.subTest(config=config_name):
-				hf_model = _read_hf_model(CONFIGS_DIR / config_name)
+		for model_key, expected_hf_model in expected_aliases.items():
+			with self.subTest(config=model_key):
+				hf_model = _read_hf_model(model_key)
 				self.assertEqual(hf_model, expected_hf_model)
 
 	def test_new_provider_configs_exist(self):
 		required_configs = {
-			"openrouter-free.json": "openrouter/free",
-			"nvidia-nemotron.json": "nvidia/nemotron-3-super-120b-a12b",
-			"z-ai-glm-5.json": "glm-5",
-			"browser-use-bu-max.json": "bu-max",
-			"openrouter-qwen3-coder.json": "qwen/qwen3-coder:free",
-			"openrouter-claude-opus-4-6.json": "anthropic/claude-opus-4.6",
-			"openrouter-mimo-v2-pro.json": "xiaomi/mimo-v2-pro",
-			"openrouter-gpt-5-4.json": "openai/gpt-5.4",
-			"openrouter-deepseek-v3-2.json": "deepseek/deepseek-v3.2",
-			"openrouter-qwen3-coder-480b-free.json": "qwen/qwen3-coder:free",
-			"openrouter-mimo-v2-flash-free.json": "google/gemma-4-31b-it:free",
-			"openrouter-nemotron-3-super-free.json": "nvidia/nemotron-3-nano-30b-a3b:free",
-			"openrouter-minimax-m2-5-free.json": "openai/gpt-oss-20b:free",
-			"openrouter-qwen3-6-plus-free.json": "meta-llama/llama-3.3-70b-instruct:free",
-			"openrouter-llama-3.3-70b-free.json": "meta-llama/llama-3.3-70b-instruct:free",
-			"openrouter-gpt-oss-20b-free.json": "openai/gpt-oss-20b:free",
-			"openrouter-gemma-4-31b-free.json": "google/gemma-4-31b-it:free",
-			"openrouter-nemotron-nano-free.json": "nvidia/nemotron-3-nano-30b-a3b:free",
+			"openrouter-free": "openrouter/free",
+			"nvidia-nemotron": "nvidia/nemotron-3-super-120b-a12b",
+			"z-ai-glm-5": "glm-5",
+			"browser-use-bu-max": "bu-max",
+			"openrouter-qwen3-coder": "qwen/qwen3-coder:free",
+			"openrouter-claude-opus-4-6": "anthropic/claude-opus-4.6",
+			"openrouter-mimo-v2-pro": "xiaomi/mimo-v2-pro",
+			"openrouter-gpt-5-4": "openai/gpt-5.4",
+			"openrouter-deepseek-v3-2": "deepseek/deepseek-v3.2",
+			"openrouter-qwen3-coder-480b-free": "qwen/qwen3-coder:free",
+			"openrouter-mimo-v2-flash-free": "google/gemma-4-31b-it:free",
+			"openrouter-nemotron-3-super-free": "nvidia/nemotron-3-nano-30b-a3b:free",
+			"openrouter-minimax-m2-5-free": "openai/gpt-oss-20b:free",
+			"openrouter-qwen3-6-plus-free": "meta-llama/llama-3.3-70b-instruct:free",
+			"openrouter-llama-3.3-70b-free": "meta-llama/llama-3.3-70b-instruct:free",
+			"openrouter-gpt-oss-20b-free": "openai/gpt-oss-20b:free",
+			"openrouter-gemma-4-31b-free": "google/gemma-4-31b-it:free",
+			"openrouter-nemotron-nano-free": "nvidia/nemotron-3-nano-30b-a3b:free",
 		}
-		for config_name, expected_hf_model in required_configs.items():
-			with self.subTest(config=config_name):
-				hf_model = _read_hf_model(CONFIGS_DIR / config_name)
+		for model_key, expected_hf_model in required_configs.items():
+			with self.subTest(config=model_key):
+				hf_model = _read_hf_model(model_key)
 				self.assertEqual(hf_model, expected_hf_model)
 
 	@patch("libs.utility_manager.load_dotenv", return_value=None)
@@ -350,19 +361,19 @@ class TestInterpreter(unittest.TestCase):
 	def test_routing_matrix_for_all_non_local_configs(self, _mock_history, _mock_client):
 		interpreter = Interpreter(self._make_args(model="gpt-4o"))
 		utility_manager = UtilityManager()
-		config_files = _model_config_files()
+		model_keys = _model_keys()
 
-		for config_file in config_files:
-			if config_file.name == "local-model.json":
+		for model_key in model_keys:
+			if model_key == "local-model":
 				continue
 
-			model_name = _read_hf_model(config_file)
+			model_name = _read_hf_model(model_key)
 			expected_model = normalize_model_name(model_name)
-			model_config_values = utility_manager.read_config_file(str(config_file))
+			model_config_values = utility_manager.read_config_file(model_key)
 			config_provider = str(model_config_values.get("provider", "")).strip().lower()
 			interpreter.INTERPRETER_MODEL = model_name
 
-			with self.subTest(config=config_file.name, model=model_name):
+			with self.subTest(config=model_key, model=model_name):
 				if config_provider in {"browser-use", "browser_use"} or model_name.startswith(("bu-", "browser-use/")):
 					with patch.object(interpreter, "_generate_browser_use_content", return_value="ok-browser-use") as browser_mock:
 						response = interpreter.generate_content(
@@ -1118,124 +1129,125 @@ class TestExecuteScriptInvalidShell(unittest.TestCase):
 class TestNewConfigFilesFromPR(unittest.TestCase):
 	"""Tests for new and modified config files introduced in this PR."""
 
-	def _read_config(self, name):
+	def _read_config(self, model_key):
 		from libs.utility_manager import UtilityManager
-		return UtilityManager().read_config_file(str(CONFIGS_DIR / name))
+		return UtilityManager().read_config_file(model_key)
 
-	def _read_hf_model(self, name):
-		return _read_hf_model(CONFIGS_DIR / name)
+	def _read_hf_model(self, model_key):
+		return _read_hf_model(model_key)
 
 	# --- New Claude configs ---
 
 	def test_claude_3_7_sonnet_config_maps_to_claude_sonnet_4_6(self):
-		self.assertEqual(self._read_hf_model("claude-3-7-sonnet.json"), "claude-sonnet-4-6")
+		self.assertEqual(self._read_hf_model("claude-3-7-sonnet"), "claude-sonnet-4-6")
 
 	def test_claude_3_5_sonnet_config_maps_to_claude_sonnet_4_6(self):
-		self.assertEqual(self._read_hf_model("claude-3-5-sonnet.json"), "claude-sonnet-4-6")
+		self.assertEqual(self._read_hf_model("claude-3-5-sonnet"), "claude-sonnet-4-6")
 
 	def test_claude_sonnet_4_6_config_has_correct_model(self):
-		self.assertEqual(self._read_hf_model("claude-sonnet-4-6.json"), "claude-sonnet-4-6")
+		self.assertEqual(self._read_hf_model("claude-sonnet-4-6"), "claude-sonnet-4-6")
 
 	def test_claude_opus_4_6_config_has_correct_model(self):
-		self.assertEqual(self._read_hf_model("claude-opus-4-6.json"), "claude-opus-4-6")
+		self.assertEqual(self._read_hf_model("claude-opus-4-6"), "claude-opus-4-6")
 
 	def test_claude_haiku_4_5_config_has_correct_model(self):
-		self.assertEqual(self._read_hf_model("claude-haiku-4-5.json"), "claude-haiku-4-5")
+		self.assertEqual(self._read_hf_model("claude-haiku-4-5"), "claude-haiku-4-5")
 
 	def test_claude_3_opus_remapped_to_claude_opus_4_6(self):
-		self.assertEqual(self._read_hf_model("claude-3-opus.json"), "claude-opus-4-6")
+		self.assertEqual(self._read_hf_model("claude-3-opus"), "claude-opus-4-6")
 
 	# --- Legacy HuggingFace configs remapped ---
 
 	def test_code_llama_maps_to_meta_llama_3(self):
 		self.assertEqual(
-			self._read_hf_model("code-llama.json"),
+			self._read_hf_model("code-llama"),
 			"huggingface/meta-llama/Meta-Llama-3-8B-Instruct",
 		)
 
 	def test_code_llama_phind_maps_to_meta_llama_3(self):
 		self.assertEqual(
-			self._read_hf_model("code-llama-phind.json"),
+			self._read_hf_model("code-llama-phind"),
 			"huggingface/meta-llama/Meta-Llama-3-8B-Instruct",
 		)
 
 	# --- New Gemini configs (legacy aliases) ---
 
 	def test_gemini_1_5_pro_maps_to_gemini_2_5_pro(self):
-		self.assertEqual(self._read_hf_model("gemini-1.5-pro.json"), "gemini/gemini-2.5-pro")
+		self.assertEqual(self._read_hf_model("gemini-1.5-pro"), "gemini/gemini-2.5-pro")
 
 	def test_gemini_1_5_flash_maps_to_gemini_2_5_flash(self):
-		self.assertEqual(self._read_hf_model("gemini-1.5-flash.json"), "gemini/gemini-2.5-flash")
+		self.assertEqual(self._read_hf_model("gemini-1.5-flash"), "gemini/gemini-2.5-flash")
 
-	# --- Separator changes: all new configs use single backtick ---
+	# --- Separators: no explicit start_sep/end_sep in the registry; the main
+	# loop defaults both to triple backtick (libs/core/main_loop.py). ---
 
 	def test_claude_sonnet_4_6_config_uses_triple_backtick_separator(self):
-		config = self._read_config("claude-sonnet-4-6.json")
-		self.assertEqual(config.get("start_sep"), "```")
-		self.assertEqual(config.get("end_sep"), "```")
+		config = self._read_config("claude-sonnet-4-6")
+		self.assertEqual(config.get("start_sep", "```"), "```")
+		self.assertEqual(config.get("end_sep", "```"), "```")
 
 	def test_gemini_1_5_pro_config_uses_triple_backtick_separator(self):
-		config = self._read_config("gemini-1.5-pro.json")
-		self.assertEqual(config.get("start_sep"), "```")
-		self.assertEqual(config.get("end_sep"), "```")
+		config = self._read_config("gemini-1.5-pro")
+		self.assertEqual(config.get("start_sep", "```"), "```")
+		self.assertEqual(config.get("end_sep", "```"), "```")
 
 	def test_deepseek_chat_config_uses_triple_backtick_separator(self):
-		config = self._read_config("deepseek-chat.json")
-		self.assertEqual(config.get("start_sep"), "```")
-		self.assertEqual(config.get("end_sep"), "```")
+		config = self._read_config("deepseek-chat")
+		self.assertEqual(config.get("start_sep", "```"), "```")
+		self.assertEqual(config.get("end_sep", "```"), "```")
 
 	def test_deepseek_reasoner_config_uses_triple_backtick_separator(self):
-		config = self._read_config("deepseek-reasoner.json")
-		self.assertEqual(config.get("start_sep"), "```")
-		self.assertEqual(config.get("end_sep"), "```")
+		config = self._read_config("deepseek-reasoner")
+		self.assertEqual(config.get("start_sep", "```"), "```")
+		self.assertEqual(config.get("end_sep", "```"), "```")
 
 	# --- max_tokens updated in deepseek configs ---
 
 	def test_deepseek_chat_config_max_tokens_is_4096(self):
-		config = self._read_config("deepseek-chat.json")
+		config = self._read_config("deepseek-chat")
 		self.assertEqual(config.get("max_tokens"), 4096)
 
 	def test_deepseek_coder_config_max_tokens_is_4096(self):
-		config = self._read_config("deepseek-coder.json")
+		config = self._read_config("deepseek-coder")
 		self.assertEqual(config.get("max_tokens"), 4096)
 
 	def test_deepseek_reasoner_config_max_tokens_is_4096(self):
-		config = self._read_config("deepseek-reasoner.json")
+		config = self._read_config("deepseek-reasoner")
 		self.assertEqual(config.get("max_tokens"), 4096)
 
 	# --- Browser Use config specific fields ---
 
 	def test_browser_use_config_has_provider_field(self):
-		config = self._read_config("browser-use-bu-max.json")
+		config = self._read_config("browser-use-bu-max")
 		self.assertEqual(config.get("provider"), "browser-use")
 
 	def test_browser_use_config_has_correct_api_base(self):
-		config = self._read_config("browser-use-bu-max.json")
+		config = self._read_config("browser-use-bu-max")
 		self.assertEqual(config.get("api_base"), "https://api.browser-use.com/api/v3")
 
 	def test_browser_use_config_has_timeout_setting(self):
-		config = self._read_config("browser-use-bu-max.json")
+		config = self._read_config("browser-use-bu-max")
 		self.assertIn("browser_use_timeout", config)
 
 	def test_browser_use_config_has_poll_interval(self):
-		config = self._read_config("browser-use-bu-max.json")
+		config = self._read_config("browser-use-bu-max")
 		self.assertIn("browser_use_poll_interval", config)
 
 	def test_browser_use_config_max_tokens_is_2048(self):
-		config = self._read_config("browser-use-bu-max.json")
+		config = self._read_config("browser-use-bu-max")
 		self.assertEqual(config.get("max_tokens"), 2048)
 
 	# --- deepseek-coder remapped to deepseek-chat ---
 
 	def test_deepseek_coder_config_remapped_to_deepseek_chat_model(self):
-		self.assertEqual(self._read_hf_model("deepseek-coder.json"), "deepseek-chat")
+		self.assertEqual(self._read_hf_model("deepseek-coder"), "deepseek-chat")
 
 	def test_deepseek_chat_has_no_skip_first_line_key(self):
-		config = self._read_config("deepseek-chat.json")
+		config = self._read_config("deepseek-chat")
 		self.assertNotIn("skip_first_line", config)
 
 	def test_deepseek_coder_has_no_skip_first_line_key(self):
-		config = self._read_config("deepseek-coder.json")
+		config = self._read_config("deepseek-coder")
 		self.assertNotIn("skip_first_line", config)
 
 

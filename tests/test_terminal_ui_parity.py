@@ -351,7 +351,7 @@ class TestApplyRuntimeSettingsParity(unittest.TestCase):
 			"interactive_charts": True,
 		}
 		apply_runtime_settings(
-			interp, settings, display_fn=MagicMock(), path_isfile=lambda p: True,
+			interp, settings, display_fn=MagicMock(), model_exists_fn=lambda p: True,
 		)
 
 		interp._apply_mode.assert_called_with("chat")

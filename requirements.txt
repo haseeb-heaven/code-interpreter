@@ -5,6 +5,9 @@ Pygments
 pyreadline3 
 python-dotenv 
 pytest
+# TOML model registry (configs/models.toml). tomllib is stdlib on 3.11+;
+# tomli is the same parser backported for Python 3.10 (still CI-pinned).
+tomli; python_version < "3.11"
 
 # Libraries for making HTTP requests
 Requests 

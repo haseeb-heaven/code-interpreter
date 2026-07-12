@@ -159,7 +159,7 @@ class AutonomousAgentLoop:
 			api_key: Optional API key for litellm fallback.
 			context_manager: Optional message compactor with ``maybe_compact``.
 			enable_free_fallback: Use free-catalog rotation on OR 429 / daily quota / 502.
-			configs_dir: Directory of model JSON configs.
+			configs_dir: Directory containing the models.toml registry.
 			catalog: Optional ``FreeLLMCatalog`` instance.
 			on_fallback: Called with the winning candidate dict after a fallback.
 			sleep_fn: Injectable sleep for rate-limit retries (tests).
