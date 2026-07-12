@@ -99,11 +99,16 @@ class TestTerminalUILaunchWiring(unittest.TestCase):
 							   output_format="markdown", session="my-session",
 							   yolo=False, yes=False, science=False,
 							   interactive_charts=False, configure_more=False,
-							   image=None, attach=None, mcp=None):
+							   image=None, attach=None, mcp=None,
+							   codegen_task="a codegen task", codegen_file=None):
 		"""Drive launch() through mocked selectors / prompts.
 
 		Assumes ``_base_args()`` defaults (display/exec/save/history all False), so those
 		selectors are always asked when mode warrants it. Answers come from the kwargs.
+
+		``codegen_task``/``codegen_file`` answer the task-description / prompt-file prompt
+		that ``generate``/``project`` mode requires (see ``_collect_codegen_task``); they are
+		harmless no-ops for other modes since that prompt is never asked.
 		"""
 		gemini = workflow == WORKFLOW_GEMINI
 		bool_queue = []
@@ -152,6 +157,8 @@ class TestTerminalUILaunchWiring(unittest.TestCase):
 			"image path": ",".join(image) if image else "",
 			"attach file path": ",".join(attach) if attach else "",
 			"mcp server command": mcp or "",
+			"task description": codegen_task or "",
+			"prompt file path instead": codegen_file or "",
 		}
 
 		def prompt_ask(prompt, default=""):
@@ -231,7 +238,7 @@ class TestTerminalUILaunchWiring(unittest.TestCase):
 		args = _base_args()
 		with self._stub_launch_selectors(
 			ui, mode="generate", workflow=WORKFLOW_CLASSIC, free=False,
-			sandbox="docker", safety="relaxed",
+			sandbox="docker", safety="relaxed", codegen_task="write a binary search",
 		):
 			with patch.object(ui.utility_manager, "clear_screen"):
 				with patch.object(ui.console, "print"):
@@ -242,6 +249,10 @@ class TestTerminalUILaunchWiring(unittest.TestCase):
 		self.assertEqual(result.sandbox_backend, "docker")
 		self.assertFalse(result.unsafe)
 		self.assertEqual(result.safety, "relaxed")
+		# Regression (#TUI wizard missing task): generate/project mode must collect
+		# --task upfront, otherwise resolve_codegen_task() later raises ValueError.
+		self.assertEqual(result.task, "write a binary search")
+		self.assertIsNone(result.file)
 
 	def test_launch_no_sandbox_sets_unsafe(self):
 		ui = TerminalUI()
