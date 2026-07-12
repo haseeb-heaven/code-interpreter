@@ -41,6 +41,7 @@ PROVIDER_ENV_MAP: Dict[str, str] = {
 	"openrouter": "OPENROUTER_API_KEY",
 	"z-ai": "Z_AI_API_KEY",
 	"browser-use": "BROWSER_USE_API_KEY",
+	"cerebras": "CEREBRAS_API_KEY",
 }
 
 # Map config/env key names → provider id
