@@ -36,7 +36,8 @@ jobs:
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,build,dist
 
       - name: Unit tests (unittest)
-        run: python -m unittest discover -s tests
+        # Batched in fresh processes — full discover OOMs GitHub runners (~7GB).
+        run: python scripts/run_ci_unit_tests.py
         env:
           # Stub keys so config loaders that check presence do not fail offline.
           OPENAI_API_KEY: sk-test-ci-not-a-real-key

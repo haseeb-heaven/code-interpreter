@@ -115,10 +115,16 @@ class UtilityManager:
 				import readline
 			except ImportError:
 				try:
-					import pyreadline as readline
+					# pyreadline3 (modern) then legacy pyreadline for older envs.
+					import pyreadline3 as readline  # type: ignore
 				except ImportError:
-					self.logger.info("Readline support is unavailable. Continuing without input history.")
-					return False
+					try:
+						import pyreadline as readline  # type: ignore
+					except ImportError:
+						self.logger.info(
+							"Readline support is unavailable. Continuing without input history."
+						)
+						return False
 				
 			histfile = os.path.join(os.path.expanduser("~"), ".python_history")
 			

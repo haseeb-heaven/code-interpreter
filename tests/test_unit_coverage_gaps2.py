@@ -195,14 +195,16 @@ class TestUtilityManagerExtra(unittest.TestCase):
 	def test_upgrade_interpreter_mocked(self):
 		from libs.utility_manager import UtilityManager
 
-		with patch("libs.utility_manager.subprocess.run") as run, patch(
-			"builtins.print"
+		with patch.object(UtilityManager, "_download_file", return_value=True), patch(
+			"libs.utility_manager.CodeInterpreter"
+		) as mock_ci_cls, patch("libs.utility_manager.display_markdown_message"), patch(
+			"libs.utility_manager.display_code"
 		):
-			run.return_value = MagicMock(returncode=0)
-			try:
-				UtilityManager.upgrade_interpreter()
-			except Exception:
-				pass  # some envs may raise; still exercised
+			mock_ci = MagicMock()
+			mock_ci.execute_command.return_value = ("ok", None)
+			mock_ci_cls.return_value = mock_ci
+			UtilityManager.upgrade_interpreter()
+			self.assertGreaterEqual(mock_ci.execute_command.call_count, 1)
 
 	def test_download_file_mocked(self):
 		from libs.utility_manager import UtilityManager

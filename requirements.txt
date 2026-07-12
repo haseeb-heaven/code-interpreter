@@ -2,7 +2,7 @@
 litellm>=1.83.0
 litellm[proxy]
 Pygments 
-pyreadline 
+pyreadline3 
 python-dotenv 
 pytest
 
@@ -34,4 +34,5 @@ stdlib_list
 legacy-cgi
 # Optional: web search tool (--search). DuckDuckGo needs no API key.
 duckduckgo-search>=6.0.0
+
 

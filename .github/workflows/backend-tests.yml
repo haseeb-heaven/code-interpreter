@@ -25,7 +25,8 @@ jobs:
     - name: Lint (fatal)
       run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,testsprite_tests
     - name: Unit tests
-      run: python -m unittest discover -s tests
+      # Batched in fresh processes — full discover OOMs GitHub runners (~7GB).
+      run: python scripts/run_ci_unit_tests.py
     - name: TestSprite backend suite (CLI / integration)
       id: testsprite_suite
       run: |

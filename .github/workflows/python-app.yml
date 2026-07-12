@@ -42,4 +42,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with unittest
       run: |
-        python -m unittest discover -s tests
+        python scripts/run_ci_unit_tests.py
