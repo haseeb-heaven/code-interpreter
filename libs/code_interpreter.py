@@ -484,14 +484,28 @@ class CodeInterpreter:
 		Python code is written to a temp .py file instead of using `python -c`
 		to avoid issues with multi-line code.
 		"""
-		language = (language or "").lower()
+		raw_language = language
+		language = (language or "").strip().lower()
 
-		# Some tests/callers pass OS names instead of actual language names.
-		# Normalize those values so execution still works.
-		if language in ("linux", "windows", "windows 10", "windows 11", "mac", "macos", "darwin"):
-			language = "python"
+		# Some tests/callers pass OS names / fence aliases instead of canonical names.
+		_language_aliases = {
+			"py": "python",
+			"py3": "python",
+			"python3": "python",
+			"js": "javascript",
+			"node": "javascript",
+			"nodejs": "javascript",
+			"linux": "python",
+			"windows": "python",
+			"windows 10": "python",
+			"windows 11": "python",
+			"mac": "python",
+			"macos": "python",
+			"darwin": "python",
+		}
+		language = _language_aliases.get(language, language)
 
-		self.logger.info(f"Running code {code[:100]} in language {language}")
+		self.logger.info(f"Running code {code[:100]} in language {language!r} (raw={raw_language!r})")
 
 		unsafe = self.UNSAFE_EXECUTION
 
@@ -592,8 +606,9 @@ class CodeInterpreter:
 				args = [exec_bin, "-e", code]
 
 			else:
-				self.logger.info("Unsupported language.")
-				raise Exception("Unsupported language.")
+				msg = f"Unsupported language: {raw_language!r} (normalized={language!r})"
+				self.logger.info(msg)
+				raise Exception(msg)
 
 			if os.name != "nt":
 				process = subprocess.Popen(args, **popen_kwargs, **posix_extra)
