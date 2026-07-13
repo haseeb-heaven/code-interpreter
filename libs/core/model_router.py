@@ -729,6 +729,20 @@ class ModelRouter:
 							latency_ms=latency_ms,
 							success=True,
 						)
+					# Some models (esp. reasoning models under load) occasionally
+					# return a well-formed but blank completion. Treat that like a
+					# retryable failure instead of handing empty content downstream.
+					if (
+						isinstance(result, str)
+						and not result.strip()
+						and attempt < interp.MAX_LLM_RETRIES
+					):
+						display_fn(
+							f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} "
+							"(empty response) — retrying."
+						)
+						sleep_fn(self._jitter_backoff_seconds(attempt))
+						continue
 					return result
 				except Exception as exception:
 					last_exception = exception
@@ -849,6 +863,24 @@ class ModelRouter:
 							latency_ms=latency_ms,
 							success=True,
 						)
+					# Some models (esp. reasoning models under load) occasionally
+					# return a well-formed but blank completion. Treat that like a
+					# retryable failure instead of handing empty content downstream.
+					if (
+						isinstance(result, str)
+						and not result.strip()
+						and attempt < interp.MAX_LLM_RETRIES
+					):
+						_display(
+							f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} "
+							"(empty response) — retrying."
+						)
+						delay = self._jitter_backoff_seconds(attempt)
+						if sleep_fn is None:
+							await asyncio.sleep(delay)
+						else:
+							await asyncio.to_thread(sleep_fn, delay)
+						continue
 					return result
 				except Exception as exception:
 					last_exception = exception

@@ -152,6 +152,68 @@ class TestMainLoopDeepCoverage(unittest.TestCase):
 			run_interpreter_main(interp, "3.4.0")
 		fake.search.assert_called()
 
+	def test_search_flag_injects_live_results_into_classic_prompt(self):
+		"""When --search is set, a plain (non-`/search`) task must still get
+		live web-search results injected into the LLM prompt, since the
+		classic one-shot flow has no function-calling loop for the model to
+		invoke web_search itself (#stability-fixes live-scenario FAIL:
+		medium_web_search)."""
+		interp = make_interp()
+		interp.args.search = True
+		interp._safe_input.side_effect = [
+			"Search the web for 'Open Code Interpreter GitHub' and summarize it.",
+			"/exit",
+		]
+		fake = MagicMock()
+		fake.search.return_value = "Search results for 'Open Code Interpreter GitHub':\n\n### Hit\nURL: x\n"
+		with patch("libs.interpreter_lib.display_markdown_message"), patch(
+			"libs.interpreter_lib.display_code"
+		), patch(
+			"libs.key_manager.resolve_search_provider", return_value=("duckduckgo", None)
+		), patch(
+			"libs.tools.web_search_tool.WebSearchTool", return_value=fake
+		):
+			run_interpreter_main(interp, "3.4.0")
+		fake.search.assert_called_once()
+		self.assertEqual(fake.search.call_args[0][0], "Open Code Interpreter GitHub")
+		sent_prompt = interp._generate_content_with_retries.call_args[0][0]
+		self.assertIn("Search results for 'Open Code Interpreter GitHub'", sent_prompt)
+
+	def test_search_flag_notes_unavailability_when_search_fails(self):
+		"""When the search tool itself reports it's unavailable (e.g. the
+		duckduckgo-search package isn't installed), the prompt should tell the
+		model search is unavailable rather than pretend real results were
+		fetched — so the model can honor 'If search unavailable, print
+		SEARCH_SKIP' instead of hallucinating."""
+		interp = make_interp()
+		interp.args.search = True
+		interp._safe_input.side_effect = ["Search the web for cats.", "/exit"]
+		fake = MagicMock()
+		fake.search.return_value = "duckduckgo-search not installed. Run: pip install duckduckgo-search"
+		with patch("libs.interpreter_lib.display_markdown_message"), patch(
+			"libs.interpreter_lib.display_code"
+		), patch(
+			"libs.key_manager.resolve_search_provider", return_value=("duckduckgo", None)
+		), patch(
+			"libs.tools.web_search_tool.WebSearchTool", return_value=fake
+		):
+			run_interpreter_main(interp, "3.4.0")
+		sent_prompt = interp._generate_content_with_retries.call_args[0][0]
+		self.assertIn("unavailable", sent_prompt.lower())
+		self.assertNotIn("already fetched", sent_prompt.lower())
+
+	def test_search_flag_not_set_skips_injection(self):
+		"""Default (--search not passed) must not touch WebSearchTool at all."""
+		interp = make_interp()
+		interp._safe_input.side_effect = ["Search the web for cats.", "/exit"]
+		with patch("libs.interpreter_lib.display_markdown_message"), patch(
+			"libs.interpreter_lib.display_code"
+		), patch(
+			"libs.tools.web_search_tool.WebSearchTool"
+		) as tool_cls:
+			run_interpreter_main(interp, "3.4.0")
+		tool_cls.assert_not_called()
+
 	def test_memory_commands(self):
 		interp = make_interp()
 		interp.memory.get_context.return_value = [
@@ -336,6 +398,39 @@ class TestMainLoopDeepCoverage(unittest.TestCase):
 				"libs.interpreter_lib.display_code"
 			):
 				run_interpreter_main(interp, "3.4.0")
+
+	def test_file_prompt_one_shot_breaks_on_persistent_key_exhaustion(self):
+		"""AUTO_YES + INTERPRETER_PROMPT_FILE one-shot runs must not spin
+		forever re-reading the same prompt file when AllKeysExhaustedError
+		persists. Before the fix, the exception handler's bare `continue`
+		looped back to the top even in one-shot mode, re-raising the same
+		error against the same file indefinitely (only stopped by an external
+		process timeout)."""
+		from libs.key_manager import AllKeysExhaustedError
+
+		with tempfile.TemporaryDirectory() as tmp:
+			prompt = Path(tmp) / "prompt.txt"
+			prompt.write_text("print hello", encoding="utf-8")
+			interp = make_interp(
+				INTERPRETER_PROMPT_FILE=True,
+				INTERPRETER_PROMPT_INPUT=False,
+				AUTO_YES=True,
+			)
+			interp.args.file = str(prompt)
+			interp.args.free = False
+			interp._generate_content_with_retries = MagicMock(
+				side_effect=AllKeysExhaustedError(
+					"All keys exhausted for provider 'gemini'. Earliest recovery: 2026-07-13T12:00:00Z",
+					provider="gemini",
+					earliest_recovery_ts=1783944000.0,
+				)
+			)
+			interp._safe_input.side_effect = ["/exit"]
+			with patch("libs.interpreter_lib.display_markdown_message"), patch(
+				"libs.interpreter_lib.display_code"
+			):
+				run_interpreter_main(interp, "3.4.0")
+		self.assertEqual(interp._generate_content_with_retries.call_count, 1)
 
 	def test_structured_output_skips_banner(self):
 		interp = make_interp()

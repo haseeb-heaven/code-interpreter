@@ -256,6 +256,74 @@ class TestModelRouterKeyRotation(unittest.TestCase):
 		self.assertEqual(seen_keys[0], "sk-1")
 		self.assertEqual(seen_keys[1], "sk-2")
 
+	def test_generate_content_with_retries_retries_on_blank_content(self):
+		"""A 'successful' call that returns blank content (e.g. a reasoning
+		model that only emitted tool-call/reasoning tokens) must be retried
+		like a recoverable failure instead of propagating empty text downstream
+		into extract_code (#stability-fixes live-scenario FAIL: medium_live_chart_mpl)."""
+		env = {"OPENAI_API_KEY_1": "sk-1", "OPENAI_API_KEY_2": "sk-2"}
+		from libs.key_manager import KeyManager
+
+		km = KeyManager(getenv_fn=self._env(env))
+		interp = self._make_interp()
+		interp.INTERPRETER_MODEL = "gpt-4o"
+		interp.MAX_LLM_RETRIES = 3
+		interp.config_values = {}
+		interp._key_manager = km
+		interp.args.free = False
+
+		call_count = {"n": 0}
+
+		def fake_generate_content(message, chat_history, config_values=None, image_file=None):
+			call_count["n"] += 1
+			if call_count["n"] == 1:
+				return ""
+			return "print('ok')"
+
+		interp.generate_content = fake_generate_content
+
+		result = interp.model_router.generate_content_with_retries(
+			"hello", [], config_values={},
+			sleep_fn=lambda *_: None, display_fn=lambda *_: None,
+		)
+
+		self.assertEqual(result, "print('ok')")
+		self.assertEqual(call_count["n"], 2)
+
+	def test_generate_content_with_retries_async_retries_on_blank_content(self):
+		import asyncio
+
+		from libs.key_manager import KeyManager
+
+		env = {"OPENAI_API_KEY_1": "sk-1", "OPENAI_API_KEY_2": "sk-2"}
+		km = KeyManager(getenv_fn=self._env(env))
+		interp = self._make_interp()
+		interp.INTERPRETER_MODEL = "gpt-4o"
+		interp.MAX_LLM_RETRIES = 3
+		interp.config_values = {}
+		interp._key_manager = km
+		interp.args.free = False
+
+		call_count = {"n": 0}
+
+		async def fake_generate_content_async(message, chat_history, config_values=None, image_file=None):
+			call_count["n"] += 1
+			if call_count["n"] == 1:
+				return "   "
+			return "print('ok async')"
+
+		interp.generate_content_async = fake_generate_content_async
+
+		result = asyncio.run(
+			interp.model_router.generate_content_with_retries_async(
+				"hello", [], config_values={},
+				sleep_fn=lambda *_: None, display_fn=lambda *_: None,
+			)
+		)
+
+		self.assertEqual(result, "print('ok async')")
+		self.assertEqual(call_count["n"], 2)
+
 
 if __name__ == "__main__":
 	unittest.main()

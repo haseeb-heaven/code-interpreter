@@ -17,6 +17,7 @@ def make_interp(**overrides):
 		output_format=None,
 		yolo=False,
 		yes=False,
+		search=False,
 		search_provider=None,
 		search_api_key=None,
 	)

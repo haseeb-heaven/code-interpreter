@@ -58,14 +58,18 @@ class UtilityManager:
 				return output
 			
 			if hasattr(output, 'choices') and len(output.choices) > 0:
-				return output.choices[0].message.content
+				# Some providers/models (e.g. reasoning models that only emit
+				# tool calls or reasoning tokens) return content=None on an
+				# otherwise-successful response; coalesce so callers always
+				# get a string instead of crashing on None downstream.
+				return output.choices[0].message.content or ""
 			elif isinstance(output, dict):
 				if 'choices' in output and len(output['choices']) > 0:
-					return output['choices'][0]['message']['content']
+					return output['choices'][0]['message']['content'] or ""
 				elif 'response' in output:
 					return output['response']
-			
-			return output['choices'][0]['message']['content']
+
+			return output['choices'][0]['message']['content'] or ""
 		except (KeyError, TypeError, AttributeError) as e:
 			self.logger.error(f"Error extracting content: {str(e)}. Output: {output}")
 			return ""
