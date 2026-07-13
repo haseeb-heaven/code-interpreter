@@ -148,7 +148,7 @@ def display_session_banner(console, *, unsafe: bool, os_name: str, language: str
 		f"Mode={mode} | Src={short_prompt_mode} | "
 		f"Model={model_label}"
 	)
-	console.print(f"[{mode_style}]{session_line}[/{mode_style}]", overflow="ignore", no_wrap=True)
+	console.print(f"[{mode_style}]{session_line}[/{mode_style}]", overflow="crop", no_wrap=True)
 
 
 def resolve_prompt_input_flags(args) -> tuple[bool, bool]:

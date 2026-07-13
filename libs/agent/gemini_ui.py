@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 from typing import Dict, List, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
@@ -142,19 +143,21 @@ def _safe_print(console, renderable, ascii_fallback: str) -> None:
 
 	Mirrors the Windows cp1252-safe pattern already used by
 	``libs/onboarding.py`` so glyph-heavy output never crashes narrow consoles.
+	Always forces ``overflow="crop", no_wrap=True`` so a wrong width reading
+	degrades to a clipped-but-legible line instead of wraparound corruption.
 	"""
 	try:
-		console.print(renderable)
+		console.print(renderable, overflow="crop", no_wrap=True)
 	except UnicodeEncodeError:
 		logger.debug("Unicode render failed; using ASCII-safe fallback")
 		try:
-			console.print(ascii_fallback)
+			console.print(ascii_fallback, overflow="crop", no_wrap=True)
 		except Exception:
 			print(ascii_fallback)
 	except Exception as exc:
 		logger.debug("Console print failed (%s); using ASCII-safe fallback", exc)
 		try:
-			console.print(ascii_fallback)
+			console.print(ascii_fallback, overflow="crop", no_wrap=True)
 		except Exception:
 			print(ascii_fallback)
 
@@ -195,6 +198,10 @@ def render_banner(console=None, *, width: Optional[int] = None) -> None:
 
 	try:
 		term_width = int(width if width is not None else getattr(console, "width", 80) or 80)
+		try:
+			term_width = min(term_width, shutil.get_terminal_size(fallback=(80, 24)).columns)
+		except Exception:
+			pass
 	except (TypeError, ValueError):
 		term_width = 80
 
