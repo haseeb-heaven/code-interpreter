@@ -259,9 +259,9 @@ def tips_lines() -> List[str]:
 def render_tips(console=None) -> None:
 	console = console or _default_console()
 	try:
-		console.print(f"[bold]{TIPS_HEADER}[/bold]")
+		_safe_print(console, f"[bold]{TIPS_HEADER}[/bold]", TIPS_HEADER)
 		for idx, line in enumerate(tips_lines(), start=1):
-			console.print(f"[dim]{idx}. {line}[/dim]")
+			_safe_print(console, f"[dim]{idx}. {line}[/dim]", f"{idx}. {line}")
 	except Exception as exc:
 		logger.debug("Tips render failed, using plain print: %s", exc)
 		print(TIPS_HEADER)
@@ -340,7 +340,7 @@ def render_context_line(console=None, *, actions_count: Optional[int] = None,
 	if not line:
 		return
 	try:
-		console.print(f"[dim]{line}[/dim]")
+		_safe_print(console, f"[dim]{line}[/dim]", line)
 	except Exception as exc:
 		logger.debug("Context line render failed, using plain print: %s", exc)
 		print(line)

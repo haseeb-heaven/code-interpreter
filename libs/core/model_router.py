@@ -769,7 +769,7 @@ class ModelRouter:
 
 			if last_exception:
 				raise last_exception
-		except AllKeysExhaustedError as exc:
+		except AllKeysExhaustedError:
 			if getattr(interp.args, "free", False):
 				fallback_text = self._attempt_free_fallback_retry(
 					interp, message, chat_history, config_values
@@ -910,7 +910,7 @@ class ModelRouter:
 
 			if last_exception:
 				raise last_exception
-		except AllKeysExhaustedError as exc:
+		except AllKeysExhaustedError:
 			if getattr(interp.args, "free", False):
 				fallback_text = await asyncio.to_thread(
 					self._attempt_free_fallback_retry, interp, message, chat_history, config_values
