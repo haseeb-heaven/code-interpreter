@@ -295,13 +295,6 @@ class ExecutionSafetyManager:
 			return Decision(True, warnings)
 
 		# =========================
-		# AST BLOCK
-		# =========================
-		ast_reasons = self._ast_check(code)
-		if ast_reasons:
-			return Decision(False, ast_reasons)
-
-		# =========================
 		# GLOBAL WRITE BLOCK
 		# =========================
 		if self._has_write_operation(code):
@@ -342,6 +335,13 @@ class ExecutionSafetyManager:
 		# =========================
 		if mode == "command" and "\n" in code.strip():
 			return Decision(False, ["Command must be single line."])
+
+		# =========================
+		# AST BLOCK (Moved after fast regex checks for performance)
+		# =========================
+		ast_reasons = self._ast_check(code)
+		if ast_reasons:
+			return Decision(False, ast_reasons)
 
 		return Decision(True, [])
 
