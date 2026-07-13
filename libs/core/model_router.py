@@ -11,6 +11,7 @@ from typing import Callable, Optional
 
 import requests
 
+from libs.key_manager import AllKeysExhaustedError
 from libs.model_utils import normalize_model_name
 
 
@@ -605,6 +606,26 @@ class ModelRouter:
 	def _log_route(self, model, keys):
 		self.interp.logger.info(f"ModelRouter.route model={model} kwargs_keys={keys}")
 
+	def _attempt_free_fallback_retry(self, interp, message, chat_history, config_values):
+		"""One-shot fallback to a free/open model after the configured provider is exhausted.
+
+		Returns the extracted response text on success, or ``None`` if the fallback
+		itself failed (callers should then surface the original exhaustion error).
+		"""
+		from libs.agent.llm import complete_with_free_fallback
+
+		prompt = interp.get_prompt(message, chat_history)
+		messages = prompt if isinstance(prompt, list) else [{"role": "user", "content": str(prompt)}]
+		try:
+			response, _metrics = complete_with_free_fallback(
+				model_name=getattr(interp, "INTERPRETER_MODEL", "gpt-4o"),
+				messages=messages,
+				enable_free_fallback=True,
+			)
+		except Exception:
+			return None
+		return interp.utility_manager._extract_content(response)
+
 	def _prepare_retry_key(self, km, provider: str, api_key_name: str, last_exception):
 		"""Acquire a healthy key or decide whether to proceed / raise exhausted."""
 		key_state = km.acquire_key(provider)
@@ -682,58 +703,66 @@ class ModelRouter:
 		from libs.key_manager import KeyManager, provider_from_api_key_name
 
 		interp = self.interp
-		last_exception = None
-		config_values = config_values or interp.config_values or {}
-		km = getattr(interp, "_key_manager", None) or KeyManager(config=config_values)
-		interp._key_manager = km
+		try:
+			last_exception = None
+			config_values = config_values or interp.config_values or {}
+			km = getattr(interp, "_key_manager", None) or KeyManager(config=config_values)
+			interp._key_manager = km
 
-		api_key_name = self._resolve_api_key_name(config_values)
-		provider = provider_from_api_key_name(api_key_name)
+			api_key_name = self._resolve_api_key_name(config_values)
+			provider = provider_from_api_key_name(api_key_name)
 
-		for attempt in range(1, interp.MAX_LLM_RETRIES + 1):
-			key_state = self._prepare_retry_key(km, provider, api_key_name, last_exception)
+			for attempt in range(1, interp.MAX_LLM_RETRIES + 1):
+				key_state = self._prepare_retry_key(km, provider, api_key_name, last_exception)
 
-			started = time.time()
-			try:
-				result = interp.generate_content(
-					message, chat_history, config_values=config_values, image_file=image_file
-				)
-				latency_ms = (time.time() - started) * 1000.0
-				if key_state is not None:
-					km.record_success(provider, key_state.index)
-					km.metrics.log(
-						provider=provider,
-						key_index=key_state.index,
-						latency_ms=latency_ms,
-						success=True,
+				started = time.time()
+				try:
+					result = interp.generate_content(
+						message, chat_history, config_values=config_values, image_file=image_file
 					)
-				return result
-			except Exception as exception:
-				last_exception = exception
-				latency_ms = (time.time() - started) * 1000.0
-				err_type, should_retry = self._record_retry_failure(
-					km, provider, key_state, exception, latency_ms
+					latency_ms = (time.time() - started) * 1000.0
+					if key_state is not None:
+						km.record_success(provider, key_state.index)
+						km.metrics.log(
+							provider=provider,
+							key_index=key_state.index,
+							latency_ms=latency_ms,
+							success=True,
+						)
+					return result
+				except Exception as exception:
+					last_exception = exception
+					latency_ms = (time.time() - started) * 1000.0
+					err_type, should_retry = self._record_retry_failure(
+						km, provider, key_state, exception, latency_ms
+					)
+
+					if attempt >= interp.MAX_LLM_RETRIES or not should_retry:
+						# Prefer AllKeysExhaustedError (with ETA) when the pool is fully dark
+						if km.has_pool(provider):
+
+							try:
+								km.raise_if_exhausted(provider)
+							except AllKeysExhaustedError:
+								raise
+						raise
+
+					display_fn(
+						f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} "
+						f"({err_type.value}) — rotating key / backoff."
+					)
+					sleep_fn(self._jitter_backoff_seconds(attempt))
+
+			if last_exception:
+				raise last_exception
+		except AllKeysExhaustedError as exc:
+			if getattr(interp.args, "free", False):
+				fallback_text = self._attempt_free_fallback_retry(
+					interp, message, chat_history, config_values
 				)
-
-				if attempt >= interp.MAX_LLM_RETRIES or not should_retry:
-					# Prefer AllKeysExhaustedError (with ETA) when the pool is fully dark
-					if km.has_pool(provider):
-						from libs.key_manager import AllKeysExhaustedError
-
-						try:
-							km.raise_if_exhausted(provider)
-						except AllKeysExhaustedError:
-							raise
-					raise
-
-				display_fn(
-					f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} "
-					f"({err_type.value}) — rotating key / backoff."
-				)
-				sleep_fn(self._jitter_backoff_seconds(attempt))
-
-		if last_exception:
-			raise last_exception
+				if fallback_text is not None:
+					return fallback_text
+			raise
 
 	def _resolve_api_key_name(self, config_values) -> str:
 		"""Mirror initialize_client provider → env key mapping."""
@@ -784,68 +813,76 @@ class ModelRouter:
 		from libs.key_manager import KeyManager, provider_from_api_key_name
 
 		interp = self.interp
-		last_exception = None
-		config_values = config_values or interp.config_values or {}
-		km = getattr(interp, "_key_manager", None) or KeyManager(config=config_values)
-		interp._key_manager = km
-		api_key_name = self._resolve_api_key_name(config_values)
-		provider = provider_from_api_key_name(api_key_name)
-		_display = display_fn or (lambda *_: None)
+		try:
+			last_exception = None
+			config_values = config_values or interp.config_values or {}
+			km = getattr(interp, "_key_manager", None) or KeyManager(config=config_values)
+			interp._key_manager = km
+			api_key_name = self._resolve_api_key_name(config_values)
+			provider = provider_from_api_key_name(api_key_name)
+			_display = display_fn or (lambda *_: None)
 
-		for attempt in range(1, interp.MAX_LLM_RETRIES + 1):
-			key_state = self._prepare_retry_key(km, provider, api_key_name, last_exception)
+			for attempt in range(1, interp.MAX_LLM_RETRIES + 1):
+				key_state = self._prepare_retry_key(km, provider, api_key_name, last_exception)
 
-			started = time.time()
-			try:
-				generate_async = getattr(interp, "generate_content_async", None)
-				if generate_async:
-					result = await generate_async(
-						message, chat_history, config_values=config_values, image_file=image_file
+				started = time.time()
+				try:
+					generate_async = getattr(interp, "generate_content_async", None)
+					if generate_async:
+						result = await generate_async(
+							message, chat_history, config_values=config_values, image_file=image_file
+						)
+					else:
+						result = await asyncio.to_thread(
+							interp.generate_content,
+							message,
+							chat_history,
+							config_values=config_values,
+							image_file=image_file,
+						)
+					latency_ms = (time.time() - started) * 1000.0
+					if key_state is not None:
+						km.record_success(provider, key_state.index)
+						km.metrics.log(
+							provider=provider,
+							key_index=key_state.index,
+							latency_ms=latency_ms,
+							success=True,
+						)
+					return result
+				except Exception as exception:
+					last_exception = exception
+					latency_ms = (time.time() - started) * 1000.0
+					err_type, should_retry = self._record_retry_failure(
+						km, provider, key_state, exception, latency_ms
 					)
-				else:
-					result = await asyncio.to_thread(
-						interp.generate_content,
-						message,
-						chat_history,
-						config_values=config_values,
-						image_file=image_file,
+
+					if attempt >= interp.MAX_LLM_RETRIES or not should_retry:
+						if km.has_pool(provider):
+
+							try:
+								km.raise_if_exhausted(provider)
+							except AllKeysExhaustedError:
+								raise
+						raise
+
+					_display(
+						f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} "
+						f"({err_type.value}) — rotating key / backoff."
 					)
-				latency_ms = (time.time() - started) * 1000.0
-				if key_state is not None:
-					km.record_success(provider, key_state.index)
-					km.metrics.log(
-						provider=provider,
-						key_index=key_state.index,
-						latency_ms=latency_ms,
-						success=True,
-					)
-				return result
-			except Exception as exception:
-				last_exception = exception
-				latency_ms = (time.time() - started) * 1000.0
-				err_type, should_retry = self._record_retry_failure(
-					km, provider, key_state, exception, latency_ms
+					delay = self._jitter_backoff_seconds(attempt)
+					if sleep_fn is None:
+						await asyncio.sleep(delay)
+					else:
+						await asyncio.to_thread(sleep_fn, delay)
+
+			if last_exception:
+				raise last_exception
+		except AllKeysExhaustedError as exc:
+			if getattr(interp.args, "free", False):
+				fallback_text = await asyncio.to_thread(
+					self._attempt_free_fallback_retry, interp, message, chat_history, config_values
 				)
-
-				if attempt >= interp.MAX_LLM_RETRIES or not should_retry:
-					if km.has_pool(provider):
-						from libs.key_manager import AllKeysExhaustedError
-
-						try:
-							km.raise_if_exhausted(provider)
-						except AllKeysExhaustedError:
-							raise
-					raise
-
-				_display(
-					f"LLM request retry {attempt}/{interp.MAX_LLM_RETRIES} "
-					f"({err_type.value}) — rotating key / backoff."
-				)
-				delay = self._jitter_backoff_seconds(attempt)
-				if sleep_fn is None:
-					await asyncio.sleep(delay)
-				else:
-					await asyncio.to_thread(sleep_fn, delay)
-
-		if last_exception:
-			raise last_exception
+				if fallback_text is not None:
+					return fallback_text
+			raise

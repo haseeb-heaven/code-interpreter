@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import unittest
 from argparse import Namespace
 from unittest.mock import MagicMock, patch
@@ -82,6 +83,120 @@ class TestModelRouter(unittest.TestCase):
 				environ=environ,
 			)
 		self.assertEqual(environ.get("OPENAI_API_KEY"), "sk-1234567890")
+
+	def test_generate_content_with_retries_free_fallback_success(self):
+		from libs.key_manager import AllKeysExhaustedError
+
+		interp = self._make_interp()
+		interp.INTERPRETER_MODEL = "gpt-4o"
+		interp.MAX_LLM_RETRIES = 1
+		interp.config_values = {}
+		interp.args.free = True
+		km = MagicMock()
+		km.acquire_key.return_value = None
+		km.has_pool.return_value = True
+		km.raise_if_exhausted.side_effect = AllKeysExhaustedError(
+			"All keys exhausted for provider 'openai'. Earliest recovery: 2026-07-13T12:00:00Z",
+			provider="openai",
+			earliest_recovery_ts=1815000000.0,
+		)
+		interp._key_manager = km
+
+		with patch("libs.agent.llm.complete_with_free_fallback") as fallback, \
+		     patch.object(interp.utility_manager, "_extract_content", return_value="fallback text"):
+			fake_response = MagicMock()
+			fallback.return_value = (fake_response, {"provider": "groq"})
+			result = interp.model_router.generate_content_with_retries(
+				"hello", [], config_values={},
+				sleep_fn=lambda *_: None, display_fn=lambda *_: None,
+			)
+
+		self.assertEqual(result, "fallback text")
+		fallback.assert_called_once()
+
+	def test_generate_content_with_retries_free_fallback_disabled_raises(self):
+		from libs.key_manager import AllKeysExhaustedError
+
+		interp = self._make_interp()
+		interp.INTERPRETER_MODEL = "gpt-4o"
+		interp.MAX_LLM_RETRIES = 1
+		interp.config_values = {}
+		interp.args.free = False
+		km = MagicMock()
+		km.acquire_key.return_value = None
+		km.has_pool.return_value = True
+		km.raise_if_exhausted.side_effect = AllKeysExhaustedError(
+			"All keys exhausted for provider 'openai'. Earliest recovery: 2026-07-13T12:00:00Z",
+			provider="openai",
+			earliest_recovery_ts=1815000000.0,
+		)
+		interp._key_manager = km
+
+		with patch("libs.agent.llm.complete_with_free_fallback") as fallback:
+			with self.assertRaises(AllKeysExhaustedError):
+				interp.model_router.generate_content_with_retries(
+					"hello", [], config_values={},
+					sleep_fn=lambda *_: None, display_fn=lambda *_: None,
+				)
+		fallback.assert_not_called()
+
+	def test_generate_content_with_retries_free_fallback_itself_fails_raises_original(self):
+		from libs.key_manager import AllKeysExhaustedError
+
+		interp = self._make_interp()
+		interp.INTERPRETER_MODEL = "gpt-4o"
+		interp.MAX_LLM_RETRIES = 1
+		interp.config_values = {}
+		interp.args.free = True
+		km = MagicMock()
+		km.acquire_key.return_value = None
+		km.has_pool.return_value = True
+		km.raise_if_exhausted.side_effect = AllKeysExhaustedError(
+			"All keys exhausted for provider 'openai'. Earliest recovery: 2026-07-13T12:00:00Z",
+			provider="openai",
+			earliest_recovery_ts=1815000000.0,
+		)
+		interp._key_manager = km
+
+		with patch("libs.agent.llm.complete_with_free_fallback", side_effect=RuntimeError("no free provider configured")):
+			with self.assertRaises(AllKeysExhaustedError):
+				interp.model_router.generate_content_with_retries(
+					"hello", [], config_values={},
+					sleep_fn=lambda *_: None, display_fn=lambda *_: None,
+				)
+
+	def test_generate_content_with_retries_async_free_fallback_success(self):
+		import asyncio
+		from libs.key_manager import AllKeysExhaustedError
+
+		interp = self._make_interp()
+		interp.INTERPRETER_MODEL = "gpt-4o"
+		interp.MAX_LLM_RETRIES = 1
+		interp.config_values = {}
+		interp.args.free = True
+		km = MagicMock()
+		km.acquire_key.return_value = None
+		km.has_pool.return_value = True
+		km.raise_if_exhausted.side_effect = AllKeysExhaustedError(
+			"All keys exhausted for provider 'openai'. Earliest recovery: 2026-07-13T12:00:00Z",
+			provider="openai",
+			earliest_recovery_ts=1815000000.0,
+		)
+		interp._key_manager = km
+
+		with patch("libs.agent.llm.complete_with_free_fallback") as fallback, \
+		     patch.object(interp.utility_manager, "_extract_content", return_value="async fallback text"):
+			fake_response = MagicMock()
+			fallback.return_value = (fake_response, {"provider": "groq"})
+			result = asyncio.run(
+				interp.model_router.generate_content_with_retries_async(
+					"hello", [], config_values={},
+					sleep_fn=lambda *_: None, display_fn=lambda *_: None,
+				)
+			)
+
+		self.assertEqual(result, "async fallback text")
+		fallback.assert_called_once()
 
 
 if __name__ == "__main__":
