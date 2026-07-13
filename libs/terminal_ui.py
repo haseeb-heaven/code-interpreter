@@ -27,6 +27,8 @@ class TerminalUI:
                 return 'enter'
             if key == '\x1b':
                 return 'escape'
+            if key == '\x03':
+                raise KeyboardInterrupt('Selection cancelled by user.')
             return key
 
         import termios
@@ -43,6 +45,8 @@ class TerminalUI:
                 return mapping.get(next_chars, 'escape')
             if key in ('\r', '\n'):
                 return 'enter'
+            if key == '\x03':
+                raise KeyboardInterrupt('Selection cancelled by user.')
             return key
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
@@ -68,6 +72,7 @@ class TerminalUI:
             table.add_row(marker, label, style=style)
 
         footer = help_text or 'Use Up/Down arrows and Enter to select.'
+        footer += ' (Ctrl-C to cancel)'
         self.console.print(Panel.fit(footer, title='Interpreter TUI', border_style='green'))
         self.console.print(f"[bold cyan]{title}[/bold cyan]")
         self.console.print(table)
