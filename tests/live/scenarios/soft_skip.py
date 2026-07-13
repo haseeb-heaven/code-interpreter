@@ -5,53 +5,8 @@ from __future__ import annotations
 
 import re
 
-_BILLING_AUTH = (
-	"429",
-	"rate limit",
-	"ratelimit",
-	"rate_limit",
-	"quota",
-	"free-models-per-day",
-	"insufficient balance",
-	"billing",
-	"please recharge",
-	"credit balance",
-	"unauthorized",
-	"authentication",
-	"api key",
-	"401",
-	"403",
-	"forbidden",
-	"payment required",
-	"resource_exhausted",
-	"all free",
-	"models failed",
-	"provider returned error",
-	"no healthy upstream",
-	"overloaded",
-	"capacity",
-	"503",
-	"502",
-	"stealth",
-)
-
-_DEP_ENV = (
-	"modulenotfounderror",
-	"no module named",
-	"filenotfounderror",
-	"connection refused",
-	"connection reset",
-	"timed out",
-	"timeout",
-	"temporarily unavailable",
-	"not installed",
-	"command not found",
-	"local endpoint",
-	"could not connect",
-	"indentationerror",
-	"syntaxerror",
-	"unterminated string",
-)
+from libs.core.error_classification import BILLING_AUTH_MARKERS as _BILLING_AUTH
+from libs.core.error_classification import DEPENDENCY_ENV_MARKERS as _DEP_ENV
 
 _TOKEN = re.compile(
 	r"(?i)\b(sk-[a-z0-9_\-]{16,}|gsk_[a-z0-9_\-]{16,}|hf_[a-z0-9_\-]{16,}|or-[a-z0-9_\-]{16,})\b"

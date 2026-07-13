@@ -146,26 +146,22 @@ class ModelRouter:
 
 	@staticmethod
 	def is_recoverable_runtime_error(error_text) -> bool:
-		recoverable_errors = [
-			"rate limit",
-			"ratelimit",
-			"quota",
+		from libs.core.error_classification import BILLING_AUTH_MARKERS, is_billing_or_auth_condition
+
+		error_text = (error_text or "").lower()
+		if is_billing_or_auth_condition(error_text):
+			return True
+		extra_recoverable_errors = [
 			"credits",
 			"requires more credits",
-			"resource_exhausted",
 			"temporarily rate-limited",
 			"402",
-			"429",
-			"api key",
-			"authentication",
-			"unauthorized",
 			"model_not_found",
 			"not found",
 			"timeout",
 			"connection",
 		]
-		error_text = (error_text or "").lower()
-		return any(error in error_text for error in recoverable_errors)
+		return any(error in error_text for error in extra_recoverable_errors)
 
 	@staticmethod
 	def format_runtime_error_message(error_text) -> str:

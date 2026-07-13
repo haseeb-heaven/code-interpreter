@@ -24,6 +24,15 @@ class TestModelRouter(unittest.TestCase):
 		self.assertTrue(ModelRouter.is_recoverable_runtime_error("HTTP 429 Too Many Requests"))
 		self.assertFalse(ModelRouter.is_recoverable_runtime_error("syntax error near unexpected token"))
 
+	def test_is_recoverable_runtime_error_uses_shared_billing_auth_markers(self):
+		from libs.core.error_classification import BILLING_AUTH_MARKERS
+
+		for marker in BILLING_AUTH_MARKERS:
+			self.assertTrue(
+				ModelRouter.is_recoverable_runtime_error(f"boom: {marker} happened"),
+				f"expected marker {marker!r} to be recoverable",
+			)
+
 	def test_is_retryable_excludes_billing(self):
 		self.assertFalse(ModelRouter.is_retryable_request_error("requires more credits"))
 		self.assertTrue(ModelRouter.is_retryable_request_error("timeout talking to provider"))
