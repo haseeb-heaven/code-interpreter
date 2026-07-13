@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import time
 
+from libs.key_manager import AllKeysExhaustedError
 from libs.logger import Logger
 
 
@@ -1147,6 +1148,25 @@ def run_interpreter_main(interp, version):
 				break
 
 		except Exception as exception:
+			if isinstance(exception, AllKeysExhaustedError):
+				provider = exception.provider or "the configured provider"
+				eta = exception.earliest_recovery_ts
+				eta_str = (
+					time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(eta))
+					if eta is not None
+					else "unknown"
+				)
+				interp.logger.warning(
+					f"All keys exhausted for provider '{provider}'. Earliest recovery: {eta_str}"
+				)
+				display_markdown_message(
+					f"**All API keys for `{provider}` are currently exhausted.** Earliest recovery: `{eta_str}`."
+				)
+				display_markdown_message(
+					"Try `/model <name>` to switch providers, or re-run with `--free` to "
+					"auto-fallback to a free model next time."
+				)
+				continue
 			error_text = str(exception)
 			if interp._is_recoverable_runtime_error(error_text):
 				interp.logger.warning(f"Recoverable interpreter error: {error_text}")

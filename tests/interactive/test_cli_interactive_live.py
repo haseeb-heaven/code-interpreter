@@ -233,5 +233,34 @@ class TestInteractiveSlashCommandsMocked(unittest.TestCase):
 		self.assertTrue(md.called)
 
 
+class TestInteractiveKeyExhaustion(unittest.TestCase):
+	"""AllKeysExhaustedError must degrade gracefully, not crash the REPL."""
+
+	def test_all_keys_exhausted_prints_friendly_message_and_continues(self):
+		from libs.core.main_loop import run_interpreter_main
+		from libs.key_manager import AllKeysExhaustedError
+		from tests.interactive.helpers import make_interp
+
+		interp = make_interp()
+		interp.args.free = False
+		interp._safe_input.side_effect = ["do something", "/exit"]
+		interp._generate_content_with_retries = MagicMock(
+			side_effect=AllKeysExhaustedError(
+				"All keys exhausted for provider 'openai'. Earliest recovery: 2026-07-13T12:00:00Z",
+				provider="openai",
+				earliest_recovery_ts=1783944000.0,
+			)
+		)
+
+		with patch("libs.interpreter_lib.display_markdown_message") as md, \
+		     patch("libs.interpreter_lib.display_code"):
+			run_interpreter_main(interp, "3.4.0")
+
+		self.assertTrue(md.called)
+		messages = " ".join(str(call.args[0]) for call in md.call_args_list if call.args)
+		self.assertIn("openai", messages)
+		self.assertIn("2026-07-13T12:00:00Z", messages)
+
+
 if __name__ == "__main__":
 	unittest.main()
