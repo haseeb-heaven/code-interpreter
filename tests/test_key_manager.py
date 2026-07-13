@@ -260,6 +260,21 @@ class TestKeyManager(unittest.TestCase):
 		self.assertIsNotNone(recovered)
 		self.assertEqual(recovered.index, 1)
 
+	def test_all_keys_exhausted_error_has_structured_attributes(self):
+		from libs.key_manager import AllKeysExhaustedError
+
+		env = {"OPENAI_API_KEY_1": "sk-1", "OPENAI_API_KEY_2": "sk-2"}
+		km = KeyManager(getenv_fn=self._env(env))
+		for i in range(2):
+			km.record_failure("openai", i, is_rate_limit=True, rate_limit_seconds=120.0)
+		with self.assertRaises(AllKeysExhaustedError) as ctx:
+			km.raise_if_exhausted("openai")
+		err = ctx.exception
+		self.assertIn("All keys exhausted for provider 'openai'", str(err))
+		self.assertIn("Earliest recovery:", str(err))
+		self.assertEqual(err.provider, "openai")
+		self.assertIsInstance(err.earliest_recovery_ts, float)
+
 
 class TestErrorClassifierAndMetrics(unittest.TestCase):
 	def test_classify_auth_quota_fatal_transient(self):
