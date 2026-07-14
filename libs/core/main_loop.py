@@ -924,23 +924,41 @@ def run_interpreter_main(interp, version):
 			else:
 				interp.logger.info("No file name found in the prompt.")
 
-			# If graph were requested.
+			# If graph/chart/table were requested, nudge the model toward a
+			# default library + output filename -- but only when the task
+			# hasn't already pinned those choices itself. A fully-specified
+			# task ("...with matplotlib Agg, save PNG to <path>...") that
+			# still gets told to use Plotly and 'chart.png' receives two
+			# contradictory instructions, which measurably confuses smaller
+			# models into never completing the task (#stability-fixes).
 			task_lower = task.lower()
-			if any(word in task_lower for word in ['graph', 'graphs']):
+			output_already_specified = any(
+				ext in task_lower for ext in ('.png', '.jpg', '.jpeg', '.svg', '.html', '.md')
+			)
+			library_already_specified = any(
+				lib in task_lower
+				for lib in (
+					'matplotlib', 'plotly', 'seaborn', 'bokeh', 'altair',
+					'chart.js', 'chartjs', 'pandas', 'datatables',
+				)
+			)
+			hint_already_covered = output_already_specified or library_already_specified
+
+			if not hint_already_covered and any(word in task_lower for word in ['graph', 'graphs']):
 				if interp.INTERPRETER_LANGUAGE == 'python':
 					prompt += "\n" + "using Python use Matplotlib save the graph in file called 'graph.png'"
 				elif interp.INTERPRETER_LANGUAGE == 'javascript':
 					prompt += "\n" + "using JavaScript use Chart.js save the graph in file called 'graph.png'"
 
 			# if Chart were requested
-			if any(word in task_lower for word in ['chart', 'charts', 'plot', 'plots']):    
+			if not hint_already_covered and any(word in task_lower for word in ['chart', 'charts', 'plot', 'plots']):
 				if interp.INTERPRETER_LANGUAGE == 'python':
 					prompt += "\n" + "using Python use Plotly save the chart in file called 'chart.png'"
 				elif interp.INTERPRETER_LANGUAGE == 'javascript':
 					prompt += "\n" + "using JavaScript use Chart.js save the chart in file called 'chart.png'"
 
 			# if Table were requested
-			if 'table' in task_lower:
+			if not hint_already_covered and 'table' in task_lower:
 				if interp.INTERPRETER_LANGUAGE == 'python':
 					prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
 				elif interp.INTERPRETER_LANGUAGE == 'javascript':

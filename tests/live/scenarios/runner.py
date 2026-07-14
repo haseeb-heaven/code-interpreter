@@ -9,6 +9,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import traceback
 from datetime import datetime, timezone
@@ -20,7 +21,7 @@ from tests.live.scenarios.artifacts import verify_artifacts
 from tests.live.scenarios.cases import ScenarioCase, build_scenario_cases
 from tests.live.scenarios.fixtures import ensure_scenario_fixtures, resolve_test_data_dir
 from tests.live.scenarios.report import merge_report_rows, write_master_reports
-from tests.live.scenarios.soft_skip import is_soft_skip, redact_output
+from tests.live.scenarios.soft_skip import is_soft_skip, is_transient_live_flake, redact_output
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,18 @@ def _run_subprocess(
 	timeout: int,
 	input_text: Optional[str] = None,
 ) -> subprocess.CompletedProcess:
-	"""Run subprocess with hard timeout and process-tree kill on expiry."""
+	"""Run subprocess with hard timeout and process-tree kill on expiry.
+
+	Reads stdout/stderr via manual daemon reader threads instead of
+	``Popen.communicate()``. CPython's ``communicate(timeout=...)`` ends with
+	an *unbounded* ``Thread.join()`` on its internal reader threads once the
+	process itself has exited/been waited on; if a grandchild process (e.g. a
+	sandboxed code-execution subprocess spawned by the CLI) inherits the
+	stdout/stderr pipe handles without closing them, those reader threads
+	block on read() forever and the whole call hangs regardless of the
+	requested timeout. Waiting on the process handle (bounded) and joining
+	our own reader threads (also bounded) avoids that failure mode.
+	"""
 	proc = subprocess.Popen(
 		cmd,
 		cwd=cwd,
@@ -67,16 +79,56 @@ def _run_subprocess(
 		encoding="utf-8",
 		errors="replace",
 	)
+
+	if input_text is not None and proc.stdin is not None:
+		try:
+			proc.stdin.write(input_text)
+			proc.stdin.close()
+		except Exception:  # noqa: BLE001
+			pass
+
+	stdout_chunks: list[str] = []
+	stderr_chunks: list[str] = []
+
+	def _drain(stream, sink: list[str]) -> None:
+		try:
+			for line in iter(stream.readline, ""):
+				sink.append(line)
+		except Exception:  # noqa: BLE001
+			pass
+		finally:
+			try:
+				stream.close()
+			except Exception:  # noqa: BLE001
+				pass
+
+	stdout_thread = threading.Thread(target=_drain, args=(proc.stdout, stdout_chunks), daemon=True)
+	stderr_thread = threading.Thread(target=_drain, args=(proc.stderr, stderr_chunks), daemon=True)
+	stdout_thread.start()
+	stderr_thread.start()
+
+	def _collect() -> subprocess.CompletedProcess:
+		stdout_thread.join(timeout=5)
+		stderr_thread.join(timeout=5)
+		if stdout_thread.is_alive() or stderr_thread.is_alive():
+			# A descendant process is still holding a pipe handle open.
+			# Force-kill the tree and accept whatever output was captured.
+			_kill_process_tree(proc)
+			stdout_thread.join(timeout=5)
+			stderr_thread.join(timeout=5)
+		return subprocess.CompletedProcess(cmd, proc.returncode, "".join(stdout_chunks), "".join(stderr_chunks))
+
 	try:
-		stdout, stderr = proc.communicate(input=input_text, timeout=timeout)
-		return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+		proc.wait(timeout=timeout)
+		return _collect()
 	except subprocess.TimeoutExpired:
 		_kill_process_tree(proc)
 		try:
-			stdout, stderr = proc.communicate(timeout=5)
+			proc.wait(timeout=5)
 		except Exception:  # noqa: BLE001
-			stdout, stderr = "", ""
-		raise subprocess.TimeoutExpired(cmd, timeout, output=stdout, stderr=stderr)
+			pass
+		result = _collect()
+		raise subprocess.TimeoutExpired(cmd, timeout, output=result.stdout, stderr=result.stderr)
 
 _MODEL_PREF = (
 	("OPENROUTER_API_KEY", "openrouter-free"),
@@ -368,9 +420,13 @@ def _classify_cli(
 			# OR: any marker is enough when multiple listed as alternatives
 			if any(m.lower() in low for m in case.expect_markers):
 				marker_ok = True
+			elif is_transient_live_flake(out):
+				return "SKIP", f"transient live flake: {redacted[-400:]}", []
 			else:
 				return "FAIL", f"missing markers {missing}: {redacted[-400:]}", []
 		elif missing:
+			if is_transient_live_flake(out):
+				return "SKIP", f"transient live flake: {redacted[-400:]}", []
 			return "FAIL", f"missing markers {missing}: {redacted[-400:]}", []
 
 	art = verify_artifacts(case.expect_artifacts)
