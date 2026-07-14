@@ -307,6 +307,27 @@ class TestRenderBannerTerminalSizeCrossCheck(TestBannerRendering):
 			render_banner(console)
 		self.assertIn("INTERPRETER", buf.getvalue())
 
+	def test_render_banner_clamps_pixel_width_when_terminal_size_undetectable(self):
+		# Piped/redirected/wrapped stdout (no real console attached, no COLUMNS
+		# env var) makes both Rich's console.width and shutil.get_terminal_size()
+		# collapse to a generous 80-col guess. Verify we don't trust that guess
+		# and instead clamp to the safe pixel_width=1 tier.
+		from libs.agent import gemini_ui
+
+		console, _buf = self._console(width=200)
+		with patch(
+			"libs.agent.gemini_ui.shutil.get_terminal_size",
+			return_value=os.terminal_size((200, 24)),
+		), patch(
+			"libs.agent.gemini_ui.os.get_terminal_size", side_effect=OSError
+		), patch(
+			"libs.agent.gemini_ui.render_wordmark_text", wraps=gemini_ui.render_wordmark_text
+		) as mock_wordmark, patch.dict(os.environ, {}, clear=False):
+			os.environ.pop("COLUMNS", None)
+			render_banner(console)
+		used_pixel_widths = {call.kwargs["pixel_width"] for call in mock_wordmark.call_args_list}
+		self.assertEqual(used_pixel_widths, {1})
+
 
 if __name__ == "__main__":
 	unittest.main()

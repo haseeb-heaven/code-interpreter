@@ -207,6 +207,21 @@ def render_banner(console=None, *, width: Optional[int] = None) -> None:
 	except (TypeError, ValueError):
 		term_width = 80
 
+	# shutil/Rich both collapse to a generous 80-col guess when stdout isn't a
+	# real attached console (piped/redirected/wrapped output, e.g. this CLI
+	# running inside another tool's capture) and COLUMNS isn't set. That guess
+	# can be wider than whatever actually renders the captured text downstream,
+	# which hard-wraps the banner. If width wasn't explicitly given, verify
+	# detection was real before trusting it — otherwise clamp to a safe tier.
+	if width is None:
+		try:
+			os.get_terminal_size()
+			reliable = True
+		except Exception:
+			reliable = bool(os.environ.get("COLUMNS"))
+		if not reliable:
+			term_width = min(term_width, 40)
+
 	# Widest scaled row is ~70 cols at pixel_width=2, ~35 at pixel_width=1.
 	if term_width >= 72:
 		pixel_width = 2
