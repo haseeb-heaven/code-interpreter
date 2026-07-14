@@ -40,6 +40,6 @@ legacy-cgi
 # still installs but silently returns empty results); keep both so
 # environments pinned to the old name still resolve a working import.
 ddgs>=9.0.0
-duckduckgo-search>=6.0.0
+duckduckgo-search>=8.1.1
 
 
