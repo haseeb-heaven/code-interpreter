@@ -78,7 +78,7 @@ class MCPClient:
 				"params": {
 					"protocolVersion": "2024-11-05",
 					"capabilities": {},
-					"clientInfo": {"name": "code-interpreter", "version": "3.4.0"},
+					"clientInfo": {"name": "code-interpreter", "version": "3.6.0"},
 				},
 			}
 		)

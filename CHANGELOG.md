@@ -1,8 +1,24 @@
 ## Unreleased
+
+## v3.6.0 (2026-07-14)
+- fix(key-manager): `AllKeysExhaustedError` now carries structured `provider`/`retry_after_eta` attributes instead of a plain message, so callers can classify and react instead of string-matching (`libs/key_manager.py`)
+- refactor(errors): extract shared billing/auth-vs-rate-limit classification (`libs/core/error_classification.py`) so product code and tests never drift on what counts as "exhausted"
+- fix(repl): the classic `--cli` REPL catches `AllKeysExhaustedError` and reports it cleanly instead of crashing with a raw traceback
+- feat(model-router): attempt one free-model fallback before surfacing key exhaustion to the user (parity with the existing agentic/yolo fallback behavior)
+- fix(ui): persistent banner/status line forces crop-overflow and cross-checks terminal width so it never wraps or truncates on narrow terminals (`libs/agent/gemini_ui.py`, `libs/core/session.py`)
+- test(live-scenarios): committed representative fixtures and added 10 new create/analyze/summarize/convert/edit `ScenarioCase`s covering `zip`, `mp3`, `java`, `sqlite`, `docx`, `svg`, `webm` — stdlib-only, no `javac`/`python-docx`/video codec dependency in CI
+- test(model-router): lock in multi-key rotation behavior on retry as a regression guard
+- test(e2e): fill remaining all-modes smoke gaps (yolo, gemini-style, and other previously-uncovered modes)
+- fix(live-scenarios): coalesce blank LLM content responses and wire `--search` into the classic one-shot flow (found and fixed during the live scenario re-run)
+- fix(resilience): bound `litellm.completion()` calls with a 90s request timeout to stop indefinite hangs
+- fix(web-search): correct DDGS import order, resolve a chart prompt-injection contradiction, and scope live-flake soft-skip handling correctly
+- fix(windows): force `legacy_windows=False` on every `rich.Console()` construction site — rich's auto-detected legacy-console path raised `OSError: Bad file descriptor` when stdout was redirected to a file/pipe
+- fix(tests): `tests/interactive/helpers.py`'s shared mock interpreter now explicitly returns `None` from `extract_file_name`; left unconfigured, the `MagicMock` default `__index__` (`1`) caused `main_loop.py`'s file-attachment branch to silently open/close real stdout (fd 1), corrupting it for the remainder of the test run (`OSError: Bad file descriptor`, CPython exit code 120) — root-caused and fixed across all 19 test files sharing the helper
 - feat(providers): add Cerebras (cloud.cerebras.ai, ultra-fast LPU inference) as a fully wired model provider — `cerebras-gpt-oss-120b`, `cerebras-gemma-4-31b`, `cerebras-zai-glm-4.7` in `configs/models.toml` (litellm `cerebras/<model>` dispatch, `CEREBRAS_API_KEY`), `[[default_priority]]` row, and `[[free_catalog]]` entries (Cerebras public endpoints are free, rate-limited); key routing added to `ModelRouter.initialize_client`/`_resolve_api_key_name`, `libs/llm_dispatcher.py::_detect_provider`, and `libs/key_manager.py::PROVIDER_ENV_MAP`; `.env.example`/README updated; new `TestCerebrasProviderConfig` suite in `tests/test_all_model_configs.py`
 - feat(tui): Persist no-args wizard answers to `~/.code-interpreter/config.json` (`libs/core/wizard_config.py`); bare `python interpreter.py` skips the wizard and reuses saved settings once one exists; new `--config` flag forces the wizard to (re)run and re-save. Explicit CLI flags still take precedence over both the saved config and the wizard. Never persists API keys/secrets or one-shot `--task`/`-f` text.
 - fix(tui): "Configure advanced options?" → **no** now genuinely skips *every* subsequent advanced prompt (session, YOLO, `--yes`, science, interactive-charts, image, attach, MCP), instead of still asking for the session name right after.
 - fix(tui): Cancelling a wizard selector (Ctrl+C / Esc) no longer produces an unhandled `KeyboardInterrupt` traceback; `interpreter.py:main()` catches it around `prepare_args()` and exits cleanly with a short `Cancelled.` message.
+- test(ci): raised combined `libs` coverage to 81% (≥80% gate); fixed a CI-breaking bug where a live-scenario test required `INTERPRETER_TEST_DATA_DIR` that `ci.yml` never sets
 
 ## v3.5.0 (2026-07-12)
 - feat(agentic/ux): `--agentic` default live view now shows only "Thought" panels, back-to-back — suppresses per-step "Action"/"Observation" panels and retry/rate-limit/fallback log chatter; final result and workflow Status/Steps/Tokens/Cost summary still print, and `logs/agent_react.jsonl` trajectory logging is unaffected. New `--verbose`/`-V` flag (and in-REPL `/verbose` toggle) restores the full detailed view (`libs/agent/step_ui.py`, `libs/agent/react_controller.py`, `libs/agent/llm.py`)

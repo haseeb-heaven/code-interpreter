@@ -565,7 +565,7 @@ When sandbox mode is disabled, execution runs in unsafe mode without sandbox res
 
 ## **Agentic & Free LLMs**
 
-v3.3.0 added Gemini-CLI-style agentic UX and resilience. **v3.4.0** adds MCP/tools, streaming + vision, sessions, structured output, data/science engines, Docker sandbox levels, and CI/coverage.
+v3.3.0 added Gemini-CLI-style agentic UX and resilience. v3.4.0 added MCP/tools, streaming + vision, sessions, structured output, data/science engines, Docker sandbox levels, and CI/coverage. **v3.6.0** hardens the resilience path (key-exhaustion handling, banner width, Windows console fd fixes) and expands live-scenario test coverage.
 
 ### Help & flags
 ![CLI help (v3.3)](resources/interpreter-help-v33.png)
@@ -762,9 +762,11 @@ If you're interested in contributing to **Code-Interpreter**, we'd love to have 
 
 ## **Versioning**
 
-Current version: **3.4.0**
+Current version: **3.6.0**
 
 Quick highlights:
+- **v3.6.0** - Stability fixes (key-exhaustion no longer crashes the classic REPL, free-model fallback before exhaustion, banner never wraps on narrow terminals, fixed Windows `rich.Console` bad-file-descriptor crash and a test-suite stdout-fd corruption root cause) + live-testing expansion (10 new zip/mp3/java/sqlite/docx/svg/webm scenario cases, key-rotation and all-modes-smoke regression coverage, 81% combined `libs` coverage).
+- **v3.5.0** - Gemini-CLI-style agentic thought-only view (`--verbose`/`-V` for full detail), `configs/models.toml` single-file model registry replacing ~70 per-model JSON files.
 - **v3.4.0** - MCP + native tools/`--yolo`, streaming + multimodal images, web search, codegen modes, `--output-format`, persistent `--session`, identity/onboarding, Ollama/`--local` + `--attach`, data analysis + science engines, Docker/subprocess sandbox levels, matrix CI/coverage, interactive live tests (#212, #215–#226).
 - **v3.3.0** - Gemini-CLI-style `--gemini-style` free LLM catalog, multi-key resilience (rate limiter + circuit breaker), metrics CLI, `--yes` non-interactive e2e, refreshed screenshots.
 - **v3.2.3** - Fixed Windows command injection, path traversal hardening, HTTP timeouts, SafetyManager regex precompile, Ollama fixes, expanded tests.
