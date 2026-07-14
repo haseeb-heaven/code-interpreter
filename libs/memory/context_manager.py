@@ -10,6 +10,9 @@ from libs.memory.memory_entry import MemoryEntry
 
 
 class ContextWindowManager:
+	_KEYWORDS_RE = re.compile(r"[a-z0-9_]+")
+	_TOKENS_RE = re.compile(r"\S+")
+
 	def __init__(self, max_tokens: int = 8000, history_file: str = "history/history.json"):
 		self.max_tokens = max_tokens
 		self.history_file = history_file
@@ -62,7 +65,7 @@ class ContextWindowManager:
 		return [item[3] for item in scored[:limit]]
 
 	def _estimate_tokens(self, text: str) -> int:
-		words = re.findall(r"\S+", text or "")
+		words = self._TOKENS_RE.findall(text or "")
 		return max(1, len(words)) if text else 0
 
 	def _enforce_budget(self) -> None:
@@ -111,7 +114,7 @@ class ContextWindowManager:
 		}
 
 	def _keywords(self, text: str) -> set[str]:
-		return set(re.findall(r"[a-z0-9_]+", (text or "").lower()))
+		return set(self._KEYWORDS_RE.findall((text or "").lower()))
 
 	def _entry_from_data(self, data: dict) -> MemoryEntry:
 		if "assistant" not in data:
