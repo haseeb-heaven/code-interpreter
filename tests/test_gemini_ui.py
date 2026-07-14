@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Unit tests for the Gemini-CLI-inspired startup banner/tips/footer (libs.agent.gemini_ui).
 
-Tests assert on *structure* (row counts/widths, substrings, tuple shapes) and
+Tests assert on *structure* (substrings, tuple shapes, color stops) and
 that rendering never raises for a range of terminal widths and console
 encodings — not on exact ANSI byte output, which is brittle and unnecessary.
 """
@@ -9,13 +9,13 @@ encodings — not on exact ANSI byte output, which is brittle and unnecessary.
 from __future__ import annotations
 
 import io
-import os
+import re
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from libs.agent.gemini_ui import (
-	BANNER_LINES,
 	TIPS_HEADER,
+	WORDMARK,
 	_safe_print,
 	context_metadata_line,
 	footer_parts,
@@ -28,49 +28,10 @@ from libs.agent.gemini_ui import (
 	render_status_bar,
 	render_tips,
 	render_wordmark_text,
-	scale_rows,
 	shorten_cwd,
 	supports_unicode,
 	tips_lines,
-	word_bitmap_rows,
 )
-
-
-class TestBitmapFont(unittest.TestCase):
-	def test_word_bitmap_has_expected_row_count(self):
-		rows = word_bitmap_rows("INTER")
-		self.assertEqual(len(rows), 6)
-		# All rows must be the same width for a rectangular glyph grid.
-		widths = {len(r) for r in rows}
-		self.assertEqual(len(widths), 1)
-
-	def test_banner_lines_concatenate_to_interpreter(self):
-		self.assertEqual("".join(BANNER_LINES), "INTERPRETER")
-
-	def test_unknown_letters_render_as_blank_cell_not_crash(self):
-		rows = word_bitmap_rows("ZQ!")
-		self.assertEqual(len(rows), 6)
-		self.assertTrue(all(set(r) <= {"."} for r in rows))
-
-	def test_empty_word_returns_blank_rows(self):
-		rows = word_bitmap_rows("")
-		self.assertEqual(len(rows), 6)
-
-	def test_prefix_glyph_is_prepended(self):
-		plain = word_bitmap_rows("I")
-		with_prefix = word_bitmap_rows("I", prefix=("#....", ".#...", "..#..", "..#..", ".#...", "#...."))
-		for p, wp in zip(plain, with_prefix):
-			self.assertTrue(wp.endswith(p))
-			self.assertGreater(len(wp), len(p))
-
-	def test_scale_rows_widens_each_column(self):
-		rows = [".#."]
-		scaled = scale_rows(rows, pixel_width=3)
-		self.assertEqual(scaled[0], "...###...")
-
-	def test_scale_rows_noop_for_pixel_width_one(self):
-		rows = ["#.#"]
-		self.assertEqual(scale_rows(rows, pixel_width=1), rows)
 
 
 class TestGradient(unittest.TestCase):
@@ -136,6 +97,9 @@ class _FakeStream:
 		return self._buf.getvalue()
 
 
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
 class TestBannerRendering(unittest.TestCase):
 	def _console(self, width=100, encoding="utf-8", legacy_windows=False):
 		from rich.console import Console
@@ -149,10 +113,10 @@ class TestBannerRendering(unittest.TestCase):
 			render_banner(console, width=width)
 			self.assertTrue(buf.getvalue())  # something was printed
 
-	def test_render_banner_narrow_width_falls_back_to_plain_text(self):
+	def test_render_banner_narrow_width_still_prints_full_wordmark(self):
 		console, buf = self._console(width=20)
 		render_banner(console, width=20)
-		self.assertIn("INTERPRETER", buf.getvalue())
+		self.assertIn("INTERPRETER", _ANSI_RE.sub("", buf.getvalue()))
 
 	def test_render_banner_legacy_windows_never_emits_raw_block_glyph(self):
 		console, buf = self._console(legacy_windows=True)
@@ -160,11 +124,14 @@ class TestBannerRendering(unittest.TestCase):
 		self.assertNotIn("\u2588", buf.getvalue())
 		self.assertIn("INTERPRETER", buf.getvalue())
 
-	def test_render_wordmark_text_width_matches_scaling(self):
-		text = render_wordmark_text("I", pixel_width=2)
-		lines = text.plain.split("\n")
-		self.assertEqual(len(lines), 6)
-		self.assertTrue(all(len(line) == 10 for line in lines))
+	def test_render_wordmark_text_is_single_line_with_chevron(self):
+		text = render_wordmark_text()
+		self.assertNotIn("\n", text.plain)
+		self.assertEqual(text.plain, "\u276f " + WORDMARK)
+
+	def test_render_wordmark_text_without_chevron_is_bare_word(self):
+		text = render_wordmark_text(with_chevron=False)
+		self.assertEqual(text.plain, WORDMARK)
 
 	def test_render_banner_default_console_smoke(self):
 		# No console passed — must use the internal default without raising.
@@ -295,38 +262,6 @@ class TestSafePrintOverflow(unittest.TestCase):
 		console = MagicMock()
 		_safe_print(console, "hello", "hello-ascii")
 		console.print.assert_called_once_with("hello", overflow="crop", no_wrap=True)
-
-
-class TestRenderBannerTerminalSizeCrossCheck(TestBannerRendering):
-	def test_render_banner_uses_min_of_console_width_and_terminal_size(self):
-		console, buf = self._console(width=200)
-		with patch(
-			"libs.agent.gemini_ui.shutil.get_terminal_size",
-			return_value=os.terminal_size((20, 24)),
-		):
-			render_banner(console)
-		self.assertIn("INTERPRETER", buf.getvalue())
-
-	def test_render_banner_clamps_pixel_width_when_terminal_size_undetectable(self):
-		# Piped/redirected/wrapped stdout (no real console attached, no COLUMNS
-		# env var) makes both Rich's console.width and shutil.get_terminal_size()
-		# collapse to a generous 80-col guess. Verify we don't trust that guess
-		# and instead clamp to the safe pixel_width=1 tier.
-		from libs.agent import gemini_ui
-
-		console, _buf = self._console(width=200)
-		with patch(
-			"libs.agent.gemini_ui.shutil.get_terminal_size",
-			return_value=os.terminal_size((200, 24)),
-		), patch(
-			"libs.agent.gemini_ui.os.get_terminal_size", side_effect=OSError
-		), patch(
-			"libs.agent.gemini_ui.render_wordmark_text", wraps=gemini_ui.render_wordmark_text
-		) as mock_wordmark, patch.dict(os.environ, {}, clear=False):
-			os.environ.pop("COLUMNS", None)
-			render_banner(console)
-		used_pixel_widths = {call.kwargs["pixel_width"] for call in mock_wordmark.call_args_list}
-		self.assertEqual(used_pixel_widths, {1})
 
 
 if __name__ == "__main__":

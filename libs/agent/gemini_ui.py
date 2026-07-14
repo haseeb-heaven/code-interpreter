@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """Gemini-CLI-inspired startup banner, tips, and status bar for the agentic REPL.
 
-Renders a blocky "INTERPRETER" wordmark (blue -> purple -> pink gradient),
+Renders a single-line "INTERPRETER" wordmark (blue -> purple -> pink gradient),
 a "Tips for getting started" section, and a persistent-feeling footer status
 bar (cwd / sandbox mode / confirm mode), matching the visual language of
 Google's Gemini CLI but branded for this project.
 
 All rendering helpers are split from small, independently-testable pure
-functions (bitmap/gradient/text builders) so unit tests can assert on
-*structure* (row counts, substrings) without depending on exact ANSI output.
+functions (gradient/text builders) so unit tests can assert on
+*structure* (substrings, color stops) without depending on exact ANSI output.
 Every renderer degrades gracefully: Rich/Unicode failures fall back to
 plain ASCII-safe text instead of raising, matching ``libs/onboarding.py``'s
 Windows cp1252-safe printing convention.
@@ -18,33 +18,13 @@ from __future__ import annotations
 
 import logging
 import os
-import shutil
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-# --------------------------------------------------------------------------
-# Blocky 5x6 bitmap font — only the letters needed for "INTERPRETER".
-# '#' = filled pixel, '.' = empty. Each glyph row must stay 5 chars wide.
-# --------------------------------------------------------------------------
-_FONT_WIDTH = 5
-_FONT_HEIGHT = 6
-
-_FONT: Dict[str, Tuple[str, ...]] = {
-	"I": (".###.", ".###.", ".###.", ".###.", ".###.", ".###."),
-	"N": ("#...#", "##..#", "#.#.#", "#.#.#", "#..##", "#...#"),
-	"T": ("#####", "..#..", "..#..", "..#..", "..#..", "..#.."),
-	"E": ("#####", "#....", "####.", "#....", "#....", "#####"),
-	"R": ("####.", "#...#", "####.", "#..#.", "#...#", "#...#"),
-	"P": ("####.", "#...#", "####.", "#....", "#....", "#...."),
-}
-
-# Small right-pointing chevron, same cell size, printed left of the wordmark.
-_CHEVRON: Tuple[str, ...] = ("#....", ".#...", "..#..", "..#..", ".#...", "#....")
-
-# "INTERPRETER" split across two rows so it stays inside ~80 columns while
-# keeping the chunky, wide pixel-art look from the reference screenshot.
-BANNER_LINES: Tuple[str, str] = ("INTER", "PRETER")
+# Single-line wordmark, chevron-prefixed, gradient-colored per character.
+WORDMARK = "INTERPRETER"
+_CHEVRON_CHAR = "❯"  # ❯
 
 # Blue -> purple -> pink, approximating the Gemini CLI wordmark gradient.
 _GRADIENT_STOPS: Tuple[Tuple[int, int, int], ...] = (
@@ -52,34 +32,6 @@ _GRADIENT_STOPS: Tuple[Tuple[int, int, int], ...] = (
 	(168, 85, 247),   # purple
 	(236, 72, 153),   # pink
 )
-
-
-def _glyph_rows(char: str) -> Tuple[str, ...]:
-	"""Return the bitmap rows for one character, or a blank cell if unknown."""
-	return _FONT.get(char.upper(), ("." * _FONT_WIDTH,) * _FONT_HEIGHT)
-
-
-def word_bitmap_rows(word: str, *, gap: int = 1, prefix: Optional[Sequence[str]] = None) -> List[str]:
-	"""Compose a word's per-row bitmap strings from the block font.
-
-	Returns exactly ``_FONT_HEIGHT`` strings. Unknown characters render as a
-	blank cell rather than raising, so this never crashes on unexpected input.
-	"""
-	if not word:
-		return ["" for _ in range(_FONT_HEIGHT)]
-	glyphs = [_glyph_rows(ch) for ch in word]
-	gap_col = "." * max(gap, 0)
-	rows = [gap_col.join(g[r] for g in glyphs) for r in range(_FONT_HEIGHT)]
-	if prefix:
-		rows = [f"{prefix[r]}{gap_col}{rows[r]}" for r in range(_FONT_HEIGHT)]
-	return rows
-
-
-def scale_rows(rows: Sequence[str], pixel_width: int = 2) -> List[str]:
-	"""Widen each bitmap column by ``pixel_width`` chars for squarer pixels."""
-	if pixel_width <= 1:
-		return list(rows)
-	return ["".join(ch * pixel_width for ch in row) for row in rows]
 
 
 def gradient_color_at(t: float) -> Tuple[int, int, int]:
@@ -164,30 +116,28 @@ def _safe_print(console, renderable, ascii_fallback: str) -> None:
 			print(ascii_fallback)
 
 
-def render_wordmark_text(word: str, *, pixel_width: int = 2, with_chevron: bool = False):
-	"""Build a Rich ``Text`` for one bitmap-font word with a per-column gradient."""
+def render_wordmark_text(word: str = WORDMARK, *, with_chevron: bool = True):
+	"""Build a Rich ``Text`` for the single-line wordmark with a per-character gradient."""
 	from rich.text import Text
 
-	prefix_rows = _CHEVRON if with_chevron else None
-	rows = word_bitmap_rows(word, prefix=prefix_rows)
-	scaled = scale_rows(rows, pixel_width=pixel_width)
-	width = len(scaled[0]) if scaled else 0
-
+	label = f"{_CHEVRON_CHAR} {word}" if with_chevron else word
 	text = Text()
-	for row_idx, row in enumerate(scaled):
-		for col_idx, cell in enumerate(row):
-			if cell == "#":
-				t = col_idx / max(width - 1, 1)
-				text.append("\u2588", style=_hex_color(gradient_color_at(t)))
-			else:
-				text.append(" ")
-		if row_idx != len(scaled) - 1:
-			text.append("\n")
+	width = len(word)
+	prefix_len = len(label) - width
+	for idx, ch in enumerate(label):
+		if ch == " ":
+			text.append(" ")
+			continue
+		# Gradient position tracks the wordmark letters, not the chevron/space
+		# prefix, so the color ramp starts exactly at the first letter.
+		letter_idx = idx - prefix_len
+		t = letter_idx / max(width - 1, 1)
+		text.append(ch, style=_hex_color(gradient_color_at(t)))
 	return text
 
 
 def render_banner(console=None, *, width: Optional[int] = None) -> None:
-	"""Print the blocky INTERPRETER wordmark, sized to fit the terminal width."""
+	"""Print the single-line, gradient-colored INTERPRETER wordmark."""
 	console = console or _default_console()
 	ascii_fallback = "> INTERPRETER"
 
@@ -198,47 +148,12 @@ def render_banner(console=None, *, width: Optional[int] = None) -> None:
 		_safe_print(console, f"[bold magenta]{ascii_fallback}[/bold magenta]", ascii_fallback)
 		return
 
+	# ``width`` is accepted for backward compatibility with existing callers
+	# and tests, but a ~13-character single line never wraps on any
+	# realistic terminal, and _safe_print already forces crop/no-wrap.
 	try:
-		term_width = int(width if width is not None else getattr(console, "width", 80) or 80)
-		try:
-			term_width = min(term_width, shutil.get_terminal_size(fallback=(80, 24)).columns)
-		except Exception:
-			pass
-	except (TypeError, ValueError):
-		term_width = 80
-
-	# shutil/Rich both collapse to a generous 80-col guess when stdout isn't a
-	# real attached console (piped/redirected/wrapped output, e.g. this CLI
-	# running inside another tool's capture) and COLUMNS isn't set. That guess
-	# can be wider than whatever actually renders the captured text downstream,
-	# which hard-wraps the banner. If width wasn't explicitly given, verify
-	# detection was real before trusting it — otherwise clamp to a safe tier.
-	if width is None:
-		try:
-			os.get_terminal_size()
-			reliable = True
-		except Exception:
-			reliable = bool(os.environ.get("COLUMNS"))
-		if not reliable:
-			term_width = min(term_width, 40)
-
-	# Widest scaled row is ~70 cols at pixel_width=2, ~35 at pixel_width=1.
-	if term_width >= 72:
-		pixel_width = 2
-	elif term_width >= 36:
-		pixel_width = 1
-	else:
-		pixel_width = 0  # Too narrow for the block font — plain text fallback.
-
-	if pixel_width == 0:
-		_safe_print(console, f"[bold magenta]{ascii_fallback}[/bold magenta]", ascii_fallback)
-		return
-
-	try:
-		line1 = render_wordmark_text(BANNER_LINES[0], pixel_width=pixel_width, with_chevron=True)
-		line2 = render_wordmark_text(BANNER_LINES[1], pixel_width=pixel_width)
-		_safe_print(console, line1, ascii_fallback)
-		_safe_print(console, line2, "")
+		line = render_wordmark_text()
+		_safe_print(console, line, ascii_fallback)
 	except Exception as exc:
 		logger.debug("Banner render failed entirely, using plain fallback: %s", exc)
 		_safe_print(console, f"[bold magenta]{ascii_fallback}[/bold magenta]", ascii_fallback)
