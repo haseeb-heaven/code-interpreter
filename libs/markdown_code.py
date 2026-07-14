@@ -1,9 +1,14 @@
 import time
+import rich
 from rich import print as rich_print
 from rich.markdown import Markdown
 from rich.rule import Rule
 from rich.syntax import Syntax
 from pygments.formatters import TerminalFormatter
+
+# legacy_windows=False: rich's auto-detected legacy console path crashes with
+# "OSError: Bad file descriptor" when stdout is redirected to a file/pipe on Windows.
+rich.reconfigure(legacy_windows=False)
 
 def display_markdown_message(message):
 	"""
@@ -54,7 +59,7 @@ def display_code_stream(stream):
 	"""
 	try:
 		code = ""
-		console = Console(record=True)  # Create a Console object that records print calls
+		console = Console(record=True, legacy_windows=False)  # Create a Console object that records print calls
 
 		for output in stream:
 			output_code = output.token.text

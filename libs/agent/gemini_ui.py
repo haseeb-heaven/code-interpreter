@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import os
+import shutil
 from typing import Dict, List, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
@@ -123,7 +124,9 @@ def _default_console():
 	try:
 		from rich.console import Console
 
-		return Console()
+		# legacy_windows=False: rich's auto-detected legacy console path crashes with
+		# "OSError: Bad file descriptor" when stdout is redirected to a file/pipe on Windows.
+		return Console(legacy_windows=False)
 	except Exception:
 		return _FallbackConsole()
 
@@ -142,19 +145,21 @@ def _safe_print(console, renderable, ascii_fallback: str) -> None:
 
 	Mirrors the Windows cp1252-safe pattern already used by
 	``libs/onboarding.py`` so glyph-heavy output never crashes narrow consoles.
+	Always forces ``overflow="crop", no_wrap=True`` so a wrong width reading
+	degrades to a clipped-but-legible line instead of wraparound corruption.
 	"""
 	try:
-		console.print(renderable)
+		console.print(renderable, overflow="crop", no_wrap=True)
 	except UnicodeEncodeError:
 		logger.debug("Unicode render failed; using ASCII-safe fallback")
 		try:
-			console.print(ascii_fallback)
+			console.print(ascii_fallback, overflow="crop", no_wrap=True)
 		except Exception:
 			print(ascii_fallback)
 	except Exception as exc:
 		logger.debug("Console print failed (%s); using ASCII-safe fallback", exc)
 		try:
-			console.print(ascii_fallback)
+			console.print(ascii_fallback, overflow="crop", no_wrap=True)
 		except Exception:
 			print(ascii_fallback)
 
@@ -195,6 +200,10 @@ def render_banner(console=None, *, width: Optional[int] = None) -> None:
 
 	try:
 		term_width = int(width if width is not None else getattr(console, "width", 80) or 80)
+		try:
+			term_width = min(term_width, shutil.get_terminal_size(fallback=(80, 24)).columns)
+		except Exception:
+			pass
 	except (TypeError, ValueError):
 		term_width = 80
 
@@ -252,9 +261,9 @@ def tips_lines() -> List[str]:
 def render_tips(console=None) -> None:
 	console = console or _default_console()
 	try:
-		console.print(f"[bold]{TIPS_HEADER}[/bold]")
+		_safe_print(console, f"[bold]{TIPS_HEADER}[/bold]", TIPS_HEADER)
 		for idx, line in enumerate(tips_lines(), start=1):
-			console.print(f"[dim]{idx}. {line}[/dim]")
+			_safe_print(console, f"[dim]{idx}. {line}[/dim]", f"{idx}. {line}")
 	except Exception as exc:
 		logger.debug("Tips render failed, using plain print: %s", exc)
 		print(TIPS_HEADER)
@@ -333,7 +342,7 @@ def render_context_line(console=None, *, actions_count: Optional[int] = None,
 	if not line:
 		return
 	try:
-		console.print(f"[dim]{line}[/dim]")
+		_safe_print(console, f"[dim]{line}[/dim]", line)
 	except Exception as exc:
 		logger.debug("Context line render failed, using plain print: %s", exc)
 		print(line)

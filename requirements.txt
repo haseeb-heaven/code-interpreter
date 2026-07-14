@@ -36,6 +36,10 @@ stdlib_list
 # Legacy libraries
 legacy-cgi
 # Optional: web search tool (--search). DuckDuckGo needs no API key.
+# ddgs is the actively-maintained successor to duckduckgo-search (which
+# still installs but silently returns empty results); keep both so
+# environments pinned to the old name still resolve a working import.
+ddgs>=9.0.0
 duckduckgo-search>=6.0.0
 
 

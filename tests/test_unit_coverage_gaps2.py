@@ -317,6 +317,7 @@ class TestCoreSessionHelpers(unittest.TestCase):
 			mode="code", input_prompt_mode="Input", model_label="gpt",
 		)
 		console.print.assert_called()
+		self.assertEqual(console.print.call_args.kwargs.get("overflow"), "crop")
 
 		logger = MagicMock()
 		try:

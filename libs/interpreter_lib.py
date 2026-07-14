@@ -50,7 +50,9 @@ class Interpreter:
 	logger = None
 	client = None
 	interpreter_version = None
-	console = Console()
+	# legacy_windows=False: rich's auto-detected legacy console path crashes with
+	# "OSError: Bad file descriptor" when stdout is redirected to a file/pipe on Windows.
+	console = Console(legacy_windows=False)
 
 	def __init__(self, args):
 		self.args = args

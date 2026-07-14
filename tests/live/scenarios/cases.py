@@ -327,6 +327,230 @@ def build_scenario_cases(fixtures: dict[str, Any] | None = None) -> list[Scenari
 					ArtifactExpect(p["abs_write"], kind="txt", contains="HELLO_SCENARIO"),
 				],
 			),
+			ScenarioCase(
+				id="dummy_zip_list",
+				category="analyze",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import zipfile\n"
+					f"zf = zipfile.ZipFile(r'{p['archive_zip']}')\n"
+					"names = zf.namelist()\n"
+					"lines = ['{} {}'.format(n, zf.getinfo(n).file_size) for n in names]\n"
+					f"open(r'{p['zip_list_txt']}', 'w', encoding='utf-8').write('\\n'.join(lines) + '\\n')\n"
+					"print('ZIP_LIST_OK', len(names))\n"
+				),
+				expect_markers=["ZIP_LIST_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["zip_list_txt"], kind="txt"),
+				],
+			),
+			ScenarioCase(
+				id="dummy_zip_extract",
+				category="convert",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import os, zipfile\n"
+					f"extract_dir = r'{p['zip_extract_dir']}'\n"
+					"os.makedirs(extract_dir, exist_ok=True)\n"
+					f"zf = zipfile.ZipFile(r'{p['archive_zip']}')\n"
+					"zf.extractall(extract_dir)\n"
+					"extracted = sorted(os.listdir(extract_dir))\n"
+					f"open(r'{p['zip_extract_manifest']}', 'w', encoding='utf-8').write('\\n'.join(extracted) + '\\n')\n"
+					"print('ZIP_EXTRACT_OK', len(extracted))\n"
+				),
+				expect_markers=["ZIP_EXTRACT_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["zip_extract_manifest"], kind="txt"),
+				],
+			),
+			ScenarioCase(
+				id="dummy_zip_create",
+				category="create",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import zipfile\n"
+					f"with zipfile.ZipFile(r'{p['zip_created']}', 'w', zipfile.ZIP_DEFLATED) as zf:\n"
+					f"    zf.write(r'{p['notes']}', arcname='notes.txt')\n"
+					f"created = zipfile.ZipFile(r'{p['zip_created']}')\n"
+					"names = created.namelist()\n"
+					"assert 'notes.txt' in names\n"
+					"print('ZIP_CREATE_OK', names)\n"
+				),
+				expect_markers=["ZIP_CREATE_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["zip_created"], kind="any"),
+				],
+			),
+			ScenarioCase(
+				id="dummy_java_summarize",
+				category="summarize",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import re\n"
+					f"src = open(r'{p['java_src']}', encoding='utf-8').read()\n"
+					"cls_match = re.search(r'class\\s+(\\w+)', src)\n"
+					"cls_name = cls_match.group(1) if cls_match else 'unknown'\n"
+					"methods = re.findall(r'(?:public|private|protected)\\s+[\\w<>\\[\\]]+\\s+(\\w+)\\s*\\([^)]*\\)', src)\n"
+					"out_lines = ['CLASS=' + cls_name, 'METHODS=' + ','.join(methods)]\n"
+					f"open(r'{p['java_summary_txt']}', 'w', encoding='utf-8').write('\\n'.join(out_lines) + '\\n')\n"
+					"print('JAVA_SUMMARY_OK', cls_name, len(methods))\n"
+				),
+				expect_markers=["JAVA_SUMMARY_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["java_summary_txt"], kind="txt", contains="CLASS="),
+				],
+			),
+			ScenarioCase(
+				id="dummy_sqlite_report",
+				category="analyze",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import sqlite3\n"
+					f"conn = sqlite3.connect(r'{p['app_sqlite']}')\n"
+					"cur = conn.cursor()\n"
+					"cur.execute(\"SELECT name FROM sqlite_master WHERE type='table'\")\n"
+					"tables = [row[0] for row in cur.fetchall()]\n"
+					"lines = []\n"
+					"for t in tables:\n"
+					"    cur.execute('SELECT COUNT(*) FROM \"' + t + '\"')\n"
+					"    lines.append(t + ': ' + str(cur.fetchone()[0]) + ' rows')\n"
+					"conn.close()\n"
+					f"open(r'{p['sqlite_report_txt']}', 'w', encoding='utf-8').write('\\n'.join(lines) + '\\n')\n"
+					"print('SQLITE_REPORT_OK', len(tables))\n"
+				),
+				expect_markers=["SQLITE_REPORT_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["sqlite_report_txt"], kind="txt"),
+				],
+			),
+			ScenarioCase(
+				id="dummy_sqlite_edit",
+				category="edit",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import shutil, sqlite3\n"
+					f"shutil.copy2(r'{p['app_sqlite']}', r'{p['sqlite_edit_copy']}')\n"
+					f"conn = sqlite3.connect(r'{p['sqlite_edit_copy']}')\n"
+					"cur = conn.cursor()\n"
+					"cur.execute('CREATE TABLE IF NOT EXISTS _edit_marker (note TEXT)')\n"
+					"cur.execute('INSERT INTO _edit_marker (note) VALUES (?)', ('dummy_sqlite_edit scenario',))\n"
+					"conn.commit()\n"
+					"cur.execute('SELECT COUNT(*) FROM _edit_marker')\n"
+					"count = cur.fetchone()[0]\n"
+					"conn.close()\n"
+					"assert count >= 1\n"
+					"print('SQLITE_EDIT_OK', count)\n"
+				),
+				expect_markers=["SQLITE_EDIT_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["sqlite_edit_copy"], kind="any"),
+				],
+			),
+			ScenarioCase(
+				id="dummy_docx_extract_text",
+				category="convert",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import zipfile\n"
+					"import xml.etree.ElementTree as ET\n"
+					f"zf = zipfile.ZipFile(r'{p['docx_doc']}')\n"
+					"xml_bytes = zf.read('word/document.xml')\n"
+					"root = ET.fromstring(xml_bytes)\n"
+					"wns = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'\n"
+					"paragraphs = []\n"
+					"for p_el in root.iter(wns + 'p'):\n"
+					"    texts = [t.text or '' for t in p_el.iter(wns + 't')]\n"
+					"    paragraphs.append(''.join(texts))\n"
+					f"open(r'{p['docx_text_txt']}', 'w', encoding='utf-8').write('\\n'.join(paragraphs) + '\\n')\n"
+					"print('DOCX_TEXT_OK', len(paragraphs))\n"
+				),
+				expect_markers=["DOCX_TEXT_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["docx_text_txt"], kind="txt"),
+				],
+			),
+			ScenarioCase(
+				id="dummy_svg_analyze",
+				category="analyze",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import xml.etree.ElementTree as ET\n"
+					f"tree = ET.parse(r'{p['svg_logo']}')\n"
+					"root = tree.getroot()\n"
+					"width = root.get('width', 'unknown')\n"
+					"height = root.get('height', 'unknown')\n"
+					"elem_count = sum(1 for _ in root.iter())\n"
+					"out_lines = ['WIDTH=' + str(width), 'HEIGHT=' + str(height), 'ELEMENTS=' + str(elem_count)]\n"
+					f"open(r'{p['svg_analysis_txt']}', 'w', encoding='utf-8').write('\\n'.join(out_lines) + '\\n')\n"
+					"print('SVG_ANALYZE_OK', elem_count)\n"
+				),
+				expect_markers=["SVG_ANALYZE_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["svg_analysis_txt"], kind="txt", contains="ELEMENTS="),
+				],
+			),
+			ScenarioCase(
+				id="dummy_webm_probe",
+				category="analyze",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import os\n"
+					f"path = r'{p['video_webm']}'\n"
+					"data = open(path, 'rb').read(4)\n"
+					"is_ebml = data == b'\\x1a\\x45\\xdf\\xa3'\n"
+					"size_bytes = os.path.getsize(path)\n"
+					"out_lines = ['EBML_HEADER=' + str(is_ebml), 'SIZE_BYTES=' + str(size_bytes)]\n"
+					f"open(r'{p['webm_probe_txt']}', 'w', encoding='utf-8').write('\\n'.join(out_lines) + '\\n')\n"
+					"assert is_ebml\n"
+					"print('WEBM_PROBE_OK', size_bytes)\n"
+				),
+				expect_markers=["WEBM_PROBE_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["webm_probe_txt"], kind="txt", contains="EBML_HEADER=True"),
+				],
+			),
+			ScenarioCase(
+				id="dummy_mp3_probe",
+				category="analyze",
+				tier="easy",
+				kind="offline_exec",
+				no_sandbox=True,
+				code=(
+					"import os\n"
+					f"path = r'{p['audio_mp3']}'\n"
+					"data = open(path, 'rb').read(4)\n"
+					"has_id3 = data[:3] == b'ID3'\n"
+					"has_frame_sync = len(data) >= 2 and data[0] == 0xFF and (data[1] & 0xE0) == 0xE0\n"
+					"is_mp3 = has_id3 or has_frame_sync\n"
+					"size_bytes = os.path.getsize(path)\n"
+					"out_lines = ['IS_MP3=' + str(is_mp3), 'SIZE_BYTES=' + str(size_bytes)]\n"
+					f"open(r'{p['mp3_probe_txt']}', 'w', encoding='utf-8').write('\\n'.join(out_lines) + '\\n')\n"
+					"assert is_mp3\n"
+					"print('MP3_PROBE_OK', size_bytes)\n"
+				),
+				expect_markers=["MP3_PROBE_OK"],
+				expect_artifacts=[
+					ArtifactExpect(p["mp3_probe_txt"], kind="txt", contains="IS_MP3=True"),
+				],
+			),
 		]
 	)
 

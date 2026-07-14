@@ -9,11 +9,14 @@ encodings — not on exact ANSI byte output, which is brittle and unnecessary.
 from __future__ import annotations
 
 import io
+import os
 import unittest
+from unittest.mock import MagicMock, patch
 
 from libs.agent.gemini_ui import (
 	BANNER_LINES,
 	TIPS_HEADER,
+	_safe_print,
 	context_metadata_line,
 	footer_parts,
 	gradient_color_at,
@@ -285,6 +288,24 @@ class TestCompositeEntryPoints(unittest.TestCase):
 
 		console = Console(file=io.StringIO(), force_terminal=True, width=100)
 		render_status_bar(console, cwd="/x", sandboxed=False, auto_yes=True, actions_count=4, session_turns=2)
+
+
+class TestSafePrintOverflow(unittest.TestCase):
+	def test_safe_print_forces_crop_and_no_wrap(self):
+		console = MagicMock()
+		_safe_print(console, "hello", "hello-ascii")
+		console.print.assert_called_once_with("hello", overflow="crop", no_wrap=True)
+
+
+class TestRenderBannerTerminalSizeCrossCheck(TestBannerRendering):
+	def test_render_banner_uses_min_of_console_width_and_terminal_size(self):
+		console, buf = self._console(width=200)
+		with patch(
+			"libs.agent.gemini_ui.shutil.get_terminal_size",
+			return_value=os.terminal_size((20, 24)),
+		):
+			render_banner(console)
+		self.assertIn("INTERPRETER", buf.getvalue())
 
 
 if __name__ == "__main__":

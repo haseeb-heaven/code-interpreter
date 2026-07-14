@@ -17,6 +17,7 @@ def make_interp(**overrides):
 		output_format=None,
 		yolo=False,
 		yes=False,
+		search=False,
 		search_provider=None,
 		search_api_key=None,
 	)
@@ -45,6 +46,13 @@ def make_interp(**overrides):
 	interp.terminal_ui = None
 	interp.utility_manager = MagicMock()
 	interp.utility_manager.get_os_platform.return_value = ("Windows", "10", "x64")
+	# extract_file_name must default to None (no file in prompt): a bare
+	# MagicMock return value here is not None, so it's not-None-checked into
+	# main_loop's file-attachment branch, where the mocked full_path is
+	# treated as an int fd via MagicMock's default __index__ (returns 1) by
+	# os.path.isfile/open — silently operating on fd 1 (stdout) and closing
+	# it, corrupting the process's stdout handle.
+	interp.utility_manager.extract_file_name.return_value = None
 	def _read_file(path):
 		with open(path, encoding="utf-8") as fh:
 			return fh.read()

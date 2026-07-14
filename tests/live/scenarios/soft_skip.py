@@ -5,53 +5,8 @@ from __future__ import annotations
 
 import re
 
-_BILLING_AUTH = (
-	"429",
-	"rate limit",
-	"ratelimit",
-	"rate_limit",
-	"quota",
-	"free-models-per-day",
-	"insufficient balance",
-	"billing",
-	"please recharge",
-	"credit balance",
-	"unauthorized",
-	"authentication",
-	"api key",
-	"401",
-	"403",
-	"forbidden",
-	"payment required",
-	"resource_exhausted",
-	"all free",
-	"models failed",
-	"provider returned error",
-	"no healthy upstream",
-	"overloaded",
-	"capacity",
-	"503",
-	"502",
-	"stealth",
-)
-
-_DEP_ENV = (
-	"modulenotfounderror",
-	"no module named",
-	"filenotfounderror",
-	"connection refused",
-	"connection reset",
-	"timed out",
-	"timeout",
-	"temporarily unavailable",
-	"not installed",
-	"command not found",
-	"local endpoint",
-	"could not connect",
-	"indentationerror",
-	"syntaxerror",
-	"unterminated string",
-)
+from libs.core.error_classification import BILLING_AUTH_MARKERS as _BILLING_AUTH
+from libs.core.error_classification import DEPENDENCY_ENV_MARKERS as _DEP_ENV
 
 _TOKEN = re.compile(
 	r"(?i)\b(sk-[a-z0-9_\-]{16,}|gsk_[a-z0-9_\-]{16,}|hf_[a-z0-9_\-]{16,}|or-[a-z0-9_\-]{16,})\b"
@@ -61,6 +16,26 @@ _TOKEN = re.compile(
 def is_soft_skip(text: str) -> bool:
 	low = (text or "").lower()
 	return any(m in low for m in _BILLING_AUTH) or any(m in low for m in _DEP_ENV)
+
+
+# Signature seen only after a live scenario already failed to produce its
+# expected marker(s) -- checked as a downgrade from FAIL, never as a blanket
+# upfront skip (a passing run's output could legitimately mention a retry
+# that later succeeded). Scoped narrowly to the plan's quota/billing/auth
+# soft-skip criterion: model_router.py only logs "rotating key / backoff"
+# when its own ErrorClassifier already tagged the failure AUTH/QUOTA/
+# TRANSIENT (see libs/core/model_router.py's _record_retry_failure), i.e.
+# this text is the product's own billing/auth-adjacent retry surfacing, not
+# generic model-output flakiness. Deliberately excludes the sibling "LLM
+# request retry N/M (empty response) -- retrying." message (blank-completion
+# retry, unrelated to billing/auth) so that a genuine empty-output bug still
+# FAILs and gets root-caused per Task 9 Step 3.
+_LIVE_FLAKE_MARKERS: tuple[str, ...] = ("rotating key / backoff",)
+
+
+def is_transient_live_flake(text: str) -> bool:
+	low = (text or "").lower()
+	return any(m in low for m in _LIVE_FLAKE_MARKERS)
 
 
 def redact_output(text: str, *, max_len: int = 2000) -> str:

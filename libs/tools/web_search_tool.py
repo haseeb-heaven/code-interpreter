@@ -168,15 +168,20 @@ class WebSearchTool(BaseTool):
 
 	@staticmethod
 	def _import_ddgs():
-		"""Import DDGS from duckduckgo_search or the newer ddgs package."""
+		"""Import DDGS, preferring the actively-maintained ``ddgs`` package.
+
+		The old ``duckduckgo_search`` name still imports successfully post-rename
+		but silently returns empty results for every query, so import success
+		alone can't gate the choice here -- ``ddgs`` is tried first.
+		"""
 		try:
-			from duckduckgo_search import DDGS  # type: ignore
+			from ddgs import DDGS  # type: ignore
 
 			return DDGS
 		except ImportError:
 			pass
 		try:
-			from ddgs import DDGS  # type: ignore
+			from duckduckgo_search import DDGS  # type: ignore
 
 			return DDGS
 		except ImportError:

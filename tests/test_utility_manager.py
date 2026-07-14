@@ -89,6 +89,18 @@ class TestUtilityManager(unittest.TestCase):
 		)
 		self.assertEqual(self.manager._extract_content({"response": "legacy"}), "legacy")
 
+	def test_extract_content_none_message_content_coalesces_to_empty_string(self):
+		"""Reasoning-style models can return a well-formed response with a blank
+		``message.content`` (e.g. tool-call-only or reasoning-only turns). This
+		must coalesce to ``""`` (not ``None``) so callers/retry logic always see
+		a string, matching the ``or ""`` convention used in llm_dispatcher.py."""
+		obj = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=None))])
+		self.assertEqual(self.manager._extract_content(obj), "")
+		self.assertEqual(
+			self.manager._extract_content({"choices": [{"message": {"content": None}}]}),
+			"",
+		)
+
 	def test_list_available_models(self):
 		with tempfile.TemporaryDirectory() as tmp:
 			(Path(tmp) / "models.toml").write_text(

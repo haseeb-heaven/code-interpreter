@@ -28,6 +28,17 @@ class ErrorType(str, Enum):
 class AllKeysExhaustedError(Exception):
 	"""Raised when every key for a provider is unavailable."""
 
+	def __init__(
+		self,
+		message: str,
+		*,
+		provider: Optional[str] = None,
+		earliest_recovery_ts: Optional[float] = None,
+	) -> None:
+		super().__init__(message)
+		self.provider = provider
+		self.earliest_recovery_ts = earliest_recovery_ts
+
 
 # Env var base names keyed by provider id used in KeyManager.
 PROVIDER_ENV_MAP: Dict[str, str] = {
@@ -554,7 +565,9 @@ class KeyManager:
 			eta = pool.earliest_recovery()
 			eta_str = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(eta))
 			raise AllKeysExhaustedError(
-				f"All keys exhausted for provider '{provider}'. Earliest recovery: {eta_str}"
+				f"All keys exhausted for provider '{provider}'. Earliest recovery: {eta_str}",
+				provider=provider,
+				earliest_recovery_ts=eta,
 			)
 
 

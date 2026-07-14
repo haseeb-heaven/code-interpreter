@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import time
 
+from libs.key_manager import AllKeysExhaustedError
 from libs.logger import Logger
 
 
@@ -923,29 +924,92 @@ def run_interpreter_main(interp, version):
 			else:
 				interp.logger.info("No file name found in the prompt.")
 
-			# If graph were requested.
+			# If graph/chart/table were requested, nudge the model toward a
+			# default library + output filename -- but only when the task
+			# hasn't already pinned those choices itself. A fully-specified
+			# task ("...with matplotlib Agg, save PNG to <path>...") that
+			# still gets told to use Plotly and 'chart.png' receives two
+			# contradictory instructions, which measurably confuses smaller
+			# models into never completing the task (#stability-fixes).
 			task_lower = task.lower()
-			if any(word in task_lower for word in ['graph', 'graphs']):
+			output_already_specified = any(
+				ext in task_lower for ext in ('.png', '.jpg', '.jpeg', '.svg', '.html', '.md')
+			)
+			library_already_specified = any(
+				lib in task_lower
+				for lib in (
+					'matplotlib', 'plotly', 'seaborn', 'bokeh', 'altair',
+					'chart.js', 'chartjs', 'pandas', 'datatables',
+				)
+			)
+			hint_already_covered = output_already_specified or library_already_specified
+
+			if not hint_already_covered and any(word in task_lower for word in ['graph', 'graphs']):
 				if interp.INTERPRETER_LANGUAGE == 'python':
 					prompt += "\n" + "using Python use Matplotlib save the graph in file called 'graph.png'"
 				elif interp.INTERPRETER_LANGUAGE == 'javascript':
 					prompt += "\n" + "using JavaScript use Chart.js save the graph in file called 'graph.png'"
 
 			# if Chart were requested
-			if any(word in task_lower for word in ['chart', 'charts', 'plot', 'plots']):    
+			if not hint_already_covered and any(word in task_lower for word in ['chart', 'charts', 'plot', 'plots']):
 				if interp.INTERPRETER_LANGUAGE == 'python':
 					prompt += "\n" + "using Python use Plotly save the chart in file called 'chart.png'"
 				elif interp.INTERPRETER_LANGUAGE == 'javascript':
 					prompt += "\n" + "using JavaScript use Chart.js save the chart in file called 'chart.png'"
 
 			# if Table were requested
-			if 'table' in task_lower:
+			if not hint_already_covered and 'table' in task_lower:
 				if interp.INTERPRETER_LANGUAGE == 'python':
 					prompt += "\n" + "using Python use Pandas save the table in file called 'table.md'"
 				elif interp.INTERPRETER_LANGUAGE == 'javascript':
 					prompt += "\n" + "using JavaScript use DataTables save the table in file called 'table.html'"
 
-			# Start the LLM Request.     
+			# If --search was requested (#217), this classic one-shot flow has
+			# no function-calling loop to let the model invoke the web_search
+			# tool itself (unlike the agentic auto-loop), so pre-fetch results
+			# and inject them into the prompt before the LLM request.
+			if getattr(interp.args, "search", False):
+				import re
+
+				from libs.key_manager import resolve_search_provider
+				from libs.tools.web_search_tool import WebSearchTool
+
+				quoted = re.search(r"['\"]([^'\"]+)['\"]", task)
+				search_query = quoted.group(1) if quoted else task
+				soft_fail_prefixes = (
+					"duckduckgo-search not installed",
+					"requests not installed",
+					"search failed:",
+					"unknown search provider",
+				)
+				try:
+					provider, api_key = resolve_search_provider(
+						cli_provider=getattr(interp.args, "search_provider", None),
+						cli_api_key=getattr(interp.args, "search_api_key", None),
+					)
+					searcher = WebSearchTool(provider=provider, api_key=api_key)
+					search_results = searcher.search(search_query)
+					interp.logger.info(f"Web search for {search_query!r} via {provider}: {search_results[:200]}")
+					if search_results.lower().startswith(soft_fail_prefixes):
+						prompt += (
+							"\n\nWeb search was requested but is unavailable in this "
+							f"environment ({search_results}). If the task allows it, "
+							"say so instead of guessing."
+						)
+					else:
+						prompt += (
+							"\n\nLive web search results for "
+							f"'{search_query}' (already fetched, use them):\n{search_results}"
+						)
+				except Exception as search_exc:
+					interp.logger.warning(f"Web search unavailable: {search_exc}")
+					prompt += (
+						"\n\nWeb search was requested but is unavailable in this "
+						f"environment ({search_exc}). If the task allows it, say so "
+						"instead of guessing."
+					)
+
+			# Start the LLM Request.
 			interp.logger.info(f"Prompt: {prompt}")
 
 			# Add relevance-based memory context.
@@ -1147,11 +1211,41 @@ def run_interpreter_main(interp, version):
 				break
 
 		except Exception as exception:
+			if isinstance(exception, AllKeysExhaustedError):
+				provider = exception.provider or "the configured provider"
+				eta = exception.earliest_recovery_ts
+				eta_str = (
+					time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(eta))
+					if eta is not None
+					else "unknown"
+				)
+				interp.logger.warning(
+					f"All keys exhausted for provider '{provider}'. Earliest recovery: {eta_str}"
+				)
+				display_markdown_message(
+					f"**All API keys for `{provider}` are currently exhausted.** Earliest recovery: `{eta_str}`."
+				)
+				display_markdown_message(
+					"Try `/model <name>` to switch providers, or re-run with `--free` to "
+					"auto-fallback to a free model next time."
+				)
+				# Non-interactive file runs are one-shot (CI / scripts) — without
+				# this, a persistent exhausted-quota state re-reads the same
+				# prompt file and re-raises the same error forever, spinning
+				# until the external process timeout kills it (#stability-fixes).
+				if getattr(interp, "AUTO_YES", False) and interp.INTERPRETER_PROMPT_FILE:
+					break
+				continue
 			error_text = str(exception)
 			if interp._is_recoverable_runtime_error(error_text):
 				interp.logger.warning(f"Recoverable interpreter error: {error_text}")
 				display_markdown_message(f"Request failed: {interp._format_runtime_error_message(error_text)}")
 				display_markdown_message("Try `/model <name>` to switch models or `/list` to see the available options.")
+				# Non-interactive file runs are one-shot (CI / scripts) — see
+				# comment above; avoid an infinite retry loop on a persistent
+				# recoverable error against the same prompt file.
+				if getattr(interp, "AUTO_YES", False) and interp.INTERPRETER_PROMPT_FILE:
+					break
 				continue
 			interp.logger.error(f"An error occurred in interpreter_lib: {error_text}")
 			raise

@@ -12,6 +12,12 @@ from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
+# Bound on every litellm.completion()/acompletion() call. Without this,
+# a provider that accepts the connection but never responds (observed with
+# the "openrouter-free" preset's upstream routing) hangs the CLI forever --
+# litellm/openai's own client has no default timeout of its own to fall
+# back on. 90s matches the sandboxed-execution default elsewhere in the CLI.
+DEFAULT_LLM_REQUEST_TIMEOUT_SECONDS = 90
 
 # Providers whose configs route through the OpenAI-compatible shim.
 _OPENAI_COMPATIBLE_PROVIDERS = frozenset({"nvidia", "z-ai", "zai", "openrouter", "browser-use", "browser_use"})
@@ -101,6 +107,7 @@ def build_completion_kwargs(
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        "timeout": DEFAULT_LLM_REQUEST_TIMEOUT_SECONDS,
     }
     if stream:
         kwargs["stream"] = True

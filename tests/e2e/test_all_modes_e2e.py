@@ -7,6 +7,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+# Pre-import pandas before any test patches ``sys.stdout`` with a MagicMock
+# (see TestModeFlagsBootstrap below). pandas registers a console-encoding
+# option at import time by reading ``sys.stdout.encoding``; if the first
+# import happens while stdout is mocked, pandas raises ValueError because a
+# MagicMock attribute isn't a str/bytes. Importing it here, while stdout is
+# still real, avoids that Windows-only ordering flake.
+import pandas as _pd  # noqa: F401
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -188,6 +196,140 @@ class TestAgenticEntry(unittest.TestCase):
 
             mock_cls.return_value.run.assert_called_once_with("Print hello")
             interp._safe_input.assert_not_called()
+
+
+class TestGeminiStyleAgentic(unittest.TestCase):
+    def test_gemini_style_reads_file_and_runs_once(self):
+        """--gemini-style drives the same ReAct entrypoint as --agentic but takes
+        the gemini_style banner branch (verified via the console.print text)."""
+        from libs.interpreter_lib import Interpreter
+
+        with tempfile.TemporaryDirectory() as tmp:
+            task_path = Path(tmp) / "react.txt"
+            task_path.write_text("Print hello", encoding="utf-8")
+
+            interp = MagicMock(spec=Interpreter)
+            interp.args = MagicMock(file=str(task_path), gemini_style=True)
+            interp.INTERPRETER_PROMPT_FILE = True
+            interp.INTERPRETER_MODEL = "gpt-4o"
+            interp.UNSAFE_EXECUTION = False
+            interp.MAX_REPAIR_ATTEMPTS = 3
+            interp.console = MagicMock()
+            interp.logger = MagicMock()
+            interp._safe_input.side_effect = AssertionError("no interactive prompt")
+
+            with patch("libs.agent.react_controller.ReActController") as mock_cls:
+                mock_cls.return_value.run.return_value = {"status": "COMPLETED"}
+                Interpreter.interpreter_agentic_main(interp)
+
+            mock_cls.return_value.run.assert_called_once_with("Print hello")
+            interp._safe_input.assert_not_called()
+
+            printed = [str(call.args[0]) for call in interp.console.print.call_args_list if call.args]
+            self.assertTrue(
+                any("Commands: /free" in text for text in printed),
+                "gemini-style banner (with /free /model /verbose commands) was not printed",
+            )
+            self.assertFalse(
+                any("Running in ReAct Agentic Mode" in text for text in printed),
+                "plain --agentic banner text should not appear on the gemini-style path",
+            )
+
+
+class TestYoloAutoLoop(unittest.TestCase):
+    def test_yolo_runs_tool_loop_once(self):
+        """--yolo drives the autonomous FS/shell tool loop with approval prompts skipped."""
+        from libs.interpreter_lib import Interpreter
+
+        with tempfile.TemporaryDirectory() as tmp:
+            task_path = Path(tmp) / "task.txt"
+            task_path.write_text("List files in the current directory", encoding="utf-8")
+
+            interp = MagicMock(spec=Interpreter)
+            interp.args = MagicMock(file=str(task_path), yolo=True, mcp_server=None, search=False)
+            interp.INTERPRETER_PROMPT_FILE = True
+            interp.INTERPRETER_MODEL = "gpt-4o"
+            interp.INTERPRETER_MODEL_LABEL = "gpt-4o"
+            interp.AUTO_YES = True
+            interp.console = MagicMock()
+            interp.logger = MagicMock()
+            interp._safe_input.side_effect = AssertionError("no interactive prompt")
+
+            with patch("libs.agent.auto_loop.AutonomousAgentLoop") as mock_cls:
+                mock_cls.return_value.run.return_value = "Listed 3 files."
+                Interpreter.interpreter_auto_main(interp)
+
+            mock_cls.return_value.run.assert_called_once_with("List files in the current directory")
+            interp._safe_input.assert_not_called()
+            interp.console.print.assert_any_call("Listed 3 files.")
+
+
+class TestModeFamilyNonInteractive(unittest.TestCase):
+    """Real-request-shaped coverage for script/command/vision/chat (code mode's
+    siblings are already covered by TestFilePromptNonInteractive above), reusing
+    that same file-prompt + AUTO_YES + AGENT_MODE fixture per mode flag."""
+
+    def test_agent_pipeline_runs_for_each_mode(self):
+        from libs.agents.base_agent import AgentContext
+        from libs.core.main_loop import run_interpreter_main
+
+        for mode in ("script", "command", "vision", "chat"):
+            with self.subTest(mode=mode):
+                with tempfile.TemporaryDirectory() as tmp:
+                    task_path = Path(tmp) / "task.txt"
+                    task_path.write_text("print hello", encoding="utf-8")
+
+                    interp = MagicMock()
+                    interp.args = MagicMock(file=str(task_path))
+                    interp.INTERPRETER_PROMPT_FILE = True
+                    interp.INTERPRETER_PROMPT_INPUT = False
+                    interp.AUTO_YES = True
+                    interp.AGENT_MODE = True
+                    interp.SCRIPT_MODE = mode == "script"
+                    interp.COMMAND_MODE = mode == "command"
+                    interp.VISION_MODE = mode == "vision"
+                    interp.CHAT_MODE = mode == "chat"
+                    interp.INTERPRETER_MODE = mode
+                    interp.INTERPRETER_LANGUAGE = "python"
+                    interp.INTERPRETER_MODEL = "gpt-4o"
+                    interp.INTERPRETER_MODEL_LABEL = "gpt-4o"
+                    interp.UNSAFE_EXECUTION = False
+                    interp.DISPLAY_CODE = False
+                    interp.SAVE_CODE = False
+                    interp.EXECUTE_CODE = False
+                    interp.config_values = {"start_sep": "```", "end_sep": "```"}
+                    interp.logger = MagicMock()
+                    interp.console = MagicMock()
+                    interp.utility_manager = MagicMock()
+                    interp.utility_manager.get_os_platform.return_value = ("Windows",)
+                    interp.utility_manager.read_file.return_value = "print hello"
+                    interp.utility_manager.extract_file_name.return_value = None
+                    interp.history_manager = MagicMock()
+                    interp.package_manager = MagicMock()
+                    interp._safe_input.side_effect = AssertionError("input must not be called")
+                    interp._display_session_banner = MagicMock()
+                    interp._is_recoverable_runtime_error.return_value = False
+                    interp.run_agent_pipeline.return_value = AgentContext(
+                        task="print hello",
+                        os_name="Windows",
+                        language="python",
+                        intent=mode,
+                        plan=["step"],
+                        code="print(1)" if mode in ("script", "command") else None,
+                        output=f"{mode} mode response",
+                        safe=True,
+                        verified=True,
+                        approved=True,
+                        metadata={"mode": mode, "review_reason": "ok"},
+                    )
+
+                    with patch("libs.interpreter_lib.display_markdown_message"), \
+                         patch("libs.interpreter_lib.display_code"):
+                        run_interpreter_main(interp, "3.4.0")
+
+                    interp.run_agent_pipeline.assert_called_once()
+                    interp._safe_input.assert_not_called()
+                    self.assertTrue(interp.run_agent_pipeline.return_value.output)
 
 
 class TestLiveRepresentativeSmoke(unittest.TestCase):
