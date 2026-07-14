@@ -202,6 +202,11 @@ class ExecutionSafetyManager:
 	_NETWORK_PATTERNS_COMPILED = tuple(re.compile(p, re.IGNORECASE) for p in _NETWORK_PATTERNS)
 
 	def __init__(self, unsafe_mode: bool = False, safety_level: SafetyLevel | str | None = None):
+		self._resolve_safety_level(unsafe_mode, safety_level)
+		# B8: Absolute paths explicitly mentioned in the user task.
+		self._user_intent_paths: List[str] = []
+
+	def _resolve_safety_level(self, unsafe_mode: bool, safety_level: SafetyLevel | str | None) -> None:
 		if safety_level is None:
 			self.safety_level = SafetyLevel.OFF if unsafe_mode else SafetyLevel.STANDARD
 		elif isinstance(safety_level, SafetyLevel):
@@ -217,8 +222,16 @@ class ExecutionSafetyManager:
 			self.unsafe_mode = True
 		else:
 			self.unsafe_mode = False
-		# B8: Absolute paths explicitly mentioned in the user task.
-		self._user_intent_paths: List[str] = []
+
+	def set_safety_level(self, safety_level: SafetyLevel | str | None) -> None:
+		"""Update the active safety level in place (e.g. from ``/settings`` or
+		``/safety <level>``). Without this, changing safety after startup only
+		updated the CLI ``args`` object cosmetically — this instance, which
+		every execution/safety check actually reads, never changed, so
+		"safety=off" set mid-session kept blocking code as if still on the
+		startup default (standard).
+		"""
+		self._resolve_safety_level(self.unsafe_mode, safety_level)
 
 	# =========================
 	# USER INTENT PATH TRACKING (B8)

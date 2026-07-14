@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from libs.safety_manager import Decision, ExecutionSafetyManager, SandboxContext
+from libs.safety_manager import Decision, ExecutionSafetyManager, SafetyLevel, SandboxContext
 
 
 class TestDangerousCodeBlocking(unittest.TestCase):
@@ -100,6 +100,40 @@ class TestDecisionDataclass(unittest.TestCase):
 		d = Decision(allowed=True)
 		self.assertTrue(d.allowed)
 		self.assertEqual(d.reasons, [])
+
+
+class TestSetSafetyLevel(unittest.TestCase):
+	"""Regression coverage: `/settings` changes safety post-startup by calling
+	safety_manager.set_safety_level() on the existing shared instance. Before
+	this method existed, session.py's hasattr() guard silently no-op'd every
+	such change (#25)."""
+
+	def test_set_safety_level_updates_in_place(self):
+		safety = ExecutionSafetyManager(safety_level=SafetyLevel.STANDARD)
+		safety.set_safety_level("off")
+		self.assertEqual(safety.safety_level, SafetyLevel.OFF)
+		self.assertTrue(safety.unsafe_mode)
+
+	def test_set_safety_level_accepts_enum_value(self):
+		safety = ExecutionSafetyManager(safety_level=SafetyLevel.OFF)
+		safety.set_safety_level(SafetyLevel.STRICT)
+		self.assertEqual(safety.safety_level, SafetyLevel.STRICT)
+		self.assertFalse(safety.unsafe_mode)
+
+	def test_set_safety_level_off_disables_blocking(self):
+		safety = ExecutionSafetyManager(safety_level=SafetyLevel.STANDARD)
+		decision = safety.assess_execution('import os; os.system("echo hi")', mode="code")
+		self.assertFalse(decision.allowed)
+		safety.set_safety_level("off")
+		decision = safety.assess_execution('import os; os.system("echo hi")', mode="code")
+		self.assertTrue(decision.allowed)
+
+	def test_settings_handler_hasattr_guard_now_passes(self):
+		# Mirrors libs/core/session.py's runtime settings-apply logic.
+		safety = ExecutionSafetyManager(safety_level=SafetyLevel.STANDARD)
+		self.assertTrue(hasattr(safety, "set_safety_level"))
+		safety.set_safety_level("relaxed")
+		self.assertEqual(safety.safety_level, SafetyLevel.RELAXED)
 
 
 if __name__ == "__main__":
