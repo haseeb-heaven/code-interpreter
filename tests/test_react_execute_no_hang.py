@@ -27,6 +27,24 @@ from libs.agent.actions.executor import ExecutorAction
 
 HANG_TIMEOUT_SECONDS = 5
 
+# Substrings identifying a transient OS-level resource failure in the
+# *spawned* subprocess (thread/entropy-source starvation on a busy CI
+# runner), as opposed to a real bug in the code under test. Observed in CI:
+# Linux/macOS OpenBLAS thread creation failing under process-count pressure,
+# and Windows Python startup failing to seed hash randomization when the
+# runner's entropy source is briefly exhausted. Retrying once is the
+# standard mitigation for this known class of runner flakiness.
+_TRANSIENT_OS_RESOURCE_ERROR_MARKERS = (
+    "pthread_create failed",
+    "Resource temporarily unavailable",
+    "_Py_HashRandomization_Init",
+)
+
+
+def _is_transient_os_resource_error(text: str) -> bool:
+    text = text or ""
+    return any(marker in text for marker in _TRANSIENT_OS_RESOURCE_ERROR_MARKERS)
+
 
 def _blocking_input(prompt: str = "") -> str:
     """Simulate a real terminal stuck waiting for a keypress that never comes."""
@@ -67,13 +85,20 @@ class TestExecuteNeverBlocksOnStdin(unittest.TestCase):
 
         thread, elapsed, result_holder = self._run_with_blocked_stdin(executor, "print(42)")
 
+        if thread.is_alive() is False and result_holder.get("result") is not None:
+            result = result_holder["result"]
+            if result.has_error and _is_transient_os_resource_error(result.error):
+                # Runner-level flake (thread/entropy starvation), not a hang
+                # or a code regression — retry once.
+                thread, elapsed, result_holder = self._run_with_blocked_stdin(executor, "print(42)")
+
         self.assertFalse(
             thread.is_alive(),
             "execute action is still blocked on stdin — the --yes hang regressed",
         )
         self.assertLess(elapsed, HANG_TIMEOUT_SECONDS)
         self.assertIn("result", result_holder)
-        self.assertFalse(result_holder["result"].has_error)
+        self.assertFalse(result_holder["result"].has_error, f"Unexpected error: {result_holder['result'].error}")
         self.assertIn("42", result_holder["result"].output)
 
 
@@ -100,6 +125,13 @@ class TestChartExecutionNeverHangs(unittest.TestCase):
         start = time.time()
         result = executor.run(code=code, language="python")
         elapsed = time.time() - start
+
+        if result.has_error and _is_transient_os_resource_error(result.error):
+            # Runner-level flake (thread/entropy starvation), not a hang or
+            # a code regression — retry once.
+            start = time.time()
+            result = executor.run(code=code, language="python")
+            elapsed = time.time() - start
 
         self.assertLess(
             elapsed,

@@ -39,9 +39,16 @@ def _limit_resources():
 		resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
 		# Address space (virtual memory) ~256MB
 		resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
-		# Limit number of processes
+		# Limit number of processes. NOTE: RLIMIT_NPROC is scoped to the real
+		# UID, not to this child's process tree -- it counts every process/
+		# thread owned by the current user on the whole machine. 50 was too
+		# tight: numpy/matplotlib alone spawn several OpenBLAS worker threads
+		# on import, and on a busy CI runner (many concurrent jobs under the
+		# same account) that easily exhausted the budget, failing with
+		# "pthread_create failed ... Resource temporarily unavailable" on
+		# ordinary, safe imports. Still bounds real fork-bomb abuse.
 		try:
-			resource.setrlimit(resource.RLIMIT_NPROC, (50, 50))
+			resource.setrlimit(resource.RLIMIT_NPROC, (512, 512))
 		except Exception:
 			pass
 	except Exception:
