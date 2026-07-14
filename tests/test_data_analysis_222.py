@@ -17,7 +17,7 @@ from libs.data.sql_runner import run_sql_on_df
 from libs.data.templates import format_templates
 from libs.output.chart_manager import inject_auto_save, list_charts, needs_chart_hook
 from libs.output.exporter import export_dataframe
-from libs.output.plotly_manager import inject_plotly_helper, plotly_system_hint
+from libs.output.plotly_manager import inject_plotly_helper, plotly_safety_hint, plotly_system_hint
 
 
 class TestFileIngestor(unittest.TestCase):
@@ -100,6 +100,12 @@ class TestEdaSqlExportCharts(unittest.TestCase):
 		plotly = inject_plotly_helper("import plotly.express as px\nfig = px.scatter(x=[1], y=[2])\n")
 		self.assertIn("_ci_write_html", plotly)
 		self.assertIn("plotly", plotly_system_hint().lower())
+
+	def test_plotly_safety_hint_warns_against_write_image(self):
+		hint = plotly_safety_hint().lower()
+		self.assertIn("write_html", hint)
+		self.assertIn("write_image", hint)
+		self.assertIn("kaleido", hint)
 
 	def test_templates(self):
 		text = format_templates("data")

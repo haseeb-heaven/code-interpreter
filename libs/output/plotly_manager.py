@@ -57,3 +57,18 @@ def plotly_system_hint() -> str:
 		"Always use plotly for visualizations, not matplotlib. "
 		"Save charts with fig.write_html() via _ci_write_html(fig) to the charts directory."
 	)
+
+
+def plotly_safety_hint() -> str:
+	"""Guidance included unconditionally, independent of the plotly-preference
+	toggle above: the model can reach for Plotly on its own even when the user
+	declined the interactive-charts preference, and fig.write_image() depends
+	on kaleido's headless-Chromium backend, which is unreliable and frequently
+	fails on Windows (e.g. "[WinError 10106] The requested service provider
+	could not be loaded or initialized").
+	"""
+	return (
+		"If any Plotly figures are created, save them with fig.write_html() "
+		"(or the injected _ci_write_html(fig) helper) instead of fig.write_image() "
+		"or kaleido, which are unreliable and can fail on Windows."
+	)
