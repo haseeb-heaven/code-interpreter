@@ -778,7 +778,20 @@ def run_interpreter_main(interp, version):
 
 					task = inject_file_context(task, getattr(interp, "_attached_files", None))
 					display_markdown_message("**Agent pipeline** running: IntentRouter → Planner → SafetyGuard → Executor → Repairer → Verifier → Reviewer")
-					agent_ctx = interp.run_agent_pipeline(task, os_name)
+					if structured:
+						agent_ctx = interp.run_agent_pipeline(task, os_name)
+					else:
+						# The multi-stage pipeline (IntentRouter -> ... -> Reviewer) is
+						# synchronous with no per-stage callback, so a spinner is the
+						# only feedback available short of threading progress hooks
+						# through AgentPipeline._run_sync — without it the CLI looked
+						# hung for the pipeline's full duration.
+						from rich.console import Console as _RichConsole
+
+						with _RichConsole(legacy_windows=False).status(
+							"[bold cyan]Thinking...[/bold cyan]", spinner="dots"
+						):
+							agent_ctx = interp.run_agent_pipeline(task, os_name)
 					code_snippet = agent_ctx.code or None
 					code_output = agent_ctx.output or None
 					code_error = agent_ctx.error or None
@@ -842,6 +855,14 @@ def run_interpreter_main(interp, version):
 						from libs.output.plotly_manager import plotly_system_hint
 
 						prompt = f"{plotly_system_hint()}\n\n{prompt}"
+				# Plotly save-format safety hint (unconditional): the model can
+				# reach for Plotly on its own even when interactive_charts was
+				# declined, and fig.write_image() depends on kaleido's headless
+				# Chromium backend, which is unreliable and frequently broken on
+				# Windows (WinError 10106).
+				from libs.output.plotly_manager import plotly_safety_hint
+
+				prompt = f"{plotly_safety_hint()}\n\n{prompt}"
 				# Science prompt layer (#223)
 				from libs.prompts.science_prompt import science_prompt_block
 

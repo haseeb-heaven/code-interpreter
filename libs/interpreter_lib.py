@@ -750,6 +750,13 @@ class Interpreter:
 					self._safe_input(prompt, default="n").strip().lower() in ("y", "yes")
 				),
 				enable_missing_binary_search=True,
+				# Reuse the session's real code_interpreter/safety_manager instead of
+				# letting ReActController build disconnected fresh ones (which always
+				# defaulted to SafetyLevel.STANDARD, ignoring --safety/--unsafe and any
+				# later /settings change). getattr fallback keeps test doubles that
+				# skip __init__ working unchanged.
+				code_interpreter=getattr(self, "code_interpreter", None),
+				safety_manager=getattr(self, "safety_manager", None),
 			)
 
 		def _on_model_switched(name: str):
