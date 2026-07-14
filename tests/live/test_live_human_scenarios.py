@@ -38,6 +38,17 @@ _TIMEOUT = 60
 
 
 def _run_cli(args: list[str], *, stdin: str = "", extra_env: dict | None = None) -> subprocess.CompletedProcess:
+    """
+    Run the interpreter CLI as a subprocess with controlled input and environment.
+    
+    Parameters:
+    	args (list[str]): Command-line arguments passed to the interpreter.
+    	stdin (str): Text provided to the subprocess through standard input.
+    	extra_env (dict | None): Environment variables to add or override.
+    
+    Returns:
+    	subprocess.CompletedProcess: The completed CLI subprocess result.
+    """
     env = os.environ.copy()
     env["INTERPRETER_YES"] = "1"
     env.update(extra_env or {})
@@ -57,11 +68,15 @@ class LiveStubServerTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Start the shared stub LLM server for the test class."""
         cls._stub = StubLLMServer(port=11434)
         cls._stub.__enter__()
 
     @classmethod
     def tearDownClass(cls):
+        """
+        Stop the shared stub LLM server after all tests in the class have completed.
+        """
         cls._stub.__exit__(None, None, None)
 
 

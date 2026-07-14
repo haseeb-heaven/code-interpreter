@@ -38,12 +38,30 @@ from typing import Any
 
 
 def _port_free(port: int, host: str = "127.0.0.1") -> bool:
+    """Check whether a TCP port is available on the specified host.
+    
+    Parameters:
+    	port (int): The TCP port to check.
+    	host (str): The host address to check.
+    
+    Returns:
+    	bool: `True` if the port is available, `False` if a connection succeeds.
+    """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(0.2)
         return sock.connect_ex((host, port)) != 0
 
 
 def _system_content(messages: list[dict]) -> str:
+    """
+    Extract the content of the first system message.
+    
+    Parameters:
+    	messages (list[dict]): Chat messages to inspect.
+    
+    Returns:
+    	str: The system message content, or an empty string when no string-valued system message exists.
+    """
     for msg in messages:
         if msg.get("role") == "system":
             content = msg.get("content")
@@ -52,6 +70,14 @@ def _system_content(messages: list[dict]) -> str:
 
 
 def _last_user_content(messages: list[dict]) -> str:
+    """Return the content of the last user message.
+    
+    Parameters:
+    	messages (list[dict]): Chat messages to search in reverse order.
+    
+    Returns:
+    	str: The message content if it is a string; otherwise, an empty string.
+    """
     for msg in reversed(messages):
         if msg.get("role") == "user":
             content = msg.get("content")
@@ -60,6 +86,16 @@ def _last_user_content(messages: list[dict]) -> str:
 
 
 def _chat_response(content: str, *, tool_calls: list[dict] | None = None) -> dict:
+    """
+    Builds an OpenAI-compatible chat completion response payload.
+    
+    Parameters:
+        content (str): Assistant message content.
+        tool_calls (list[dict] | None): Optional tool calls to include in the response.
+    
+    Returns:
+        dict: A chat completion payload containing the assistant message, completion status, and usage data.
+    """
     message: dict[str, Any] = {"role": "assistant", "content": content}
     if tool_calls:
         message["tool_calls"] = tool_calls
@@ -78,7 +114,15 @@ def _chat_response(content: str, *, tool_calls: list[dict] | None = None) -> dic
 
 
 def _react_step_response(user_content: str) -> str:
-    """Cycle a ReAct agent through code -> execute -> review -> finish."""
+    """
+    Generate the next protocol-formatted ReAct action for the task.
+    
+    Parameters:
+        user_content (str): Conversation content used to determine which action should be generated next.
+    
+    Returns:
+        str: A ReAct response containing a thought, action, and action input for the next step.
+    """
     if "Action: code" not in user_content:
         return (
             "Thought: I will write code to satisfy the task.\n"
@@ -105,7 +149,15 @@ def _react_step_response(user_content: str) -> str:
 
 
 def _autoloop_response(messages: list[dict]) -> tuple[str | None, list[dict] | None]:
-    """AutoLoop (--yolo/native tool_calls): call one tool, then finish."""
+    """
+    Generate the next AutoLoop response by completing a tool call or reporting completion.
+    
+    Parameters:
+    	messages (list[dict]): Chat messages used to detect prior tool execution and determine the requested task.
+    
+    Returns:
+    	tuple[str | None, list[dict] | None]: A completion message and no tool calls after a tool has run, or no message and one tool call for the requested web search or file-writing task.
+    """
     already_ran_tool = any(msg.get("role") == "tool" for msg in messages)
     if already_ran_tool:
         return "Done — tool call completed.", None
@@ -142,6 +194,15 @@ def _autoloop_response(messages: list[dict]) -> tuple[str | None, list[dict] | N
 
 
 def _route(body: dict) -> dict:
+    """
+    Routes a chat completion request to a protocol-specific stub response.
+    
+    Parameters:
+        body (dict): Request payload containing chat messages and optional tool definitions.
+    
+    Returns:
+        dict: An OpenAI-compatible chat completion response selected from the request contents.
+    """
     messages = body.get("messages") or []
     tools = body.get("tools")
     system = _system_content(messages)
@@ -184,6 +245,9 @@ class _Handler(BaseHTTPRequestHandler):
         return
 
     def do_POST(self):  # noqa: N802
+        """Handle a POST request by routing its JSON body and returning an OpenAI-compatible response.
+        
+        Malformed or empty request bodies are treated as empty objects."""
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length)
         try:
@@ -208,6 +272,13 @@ class StubLLMServer:
     """
 
     def __init__(self, host: str = "127.0.0.1", port: int = 11434):
+        """
+        Initialize the stub server configuration and runtime state.
+        
+        Parameters:
+            host (str): Host address on which to start the server.
+            port (int): TCP port on which to start the server.
+        """
         self.host = host
         self.port = port
         self.server: HTTPServer | None = None
@@ -215,6 +286,12 @@ class StubLLMServer:
         self.owned = False
 
     def __enter__(self) -> "StubLLMServer":
+        """
+        Start the stub server when the configured port is available.
+        
+        Returns:
+        	StubLLMServer: This server context manager.
+        """
         if _port_free(self.port, self.host):
             self.server = HTTPServer((self.host, self.port), _Handler)
             self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -223,6 +300,14 @@ class StubLLMServer:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
+        """
+        Stop the stub server when this context manager started it.
+        
+        Parameters:
+            exc_type: The exception type, if an exception occurred in the context.
+            exc: The exception instance, if an exception occurred in the context.
+            tb: The traceback, if an exception occurred in the context.
+        """
         if self.owned and self.server is not None:
             self.server.shutdown()
             self.server.server_close()
