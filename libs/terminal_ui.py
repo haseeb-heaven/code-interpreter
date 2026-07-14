@@ -25,6 +25,8 @@ class TerminalUI:
                 return mapping.get(extended, extended)
             if key == '\r':
                 return 'enter'
+            if key == '\x03':
+                raise KeyboardInterrupt('Selection cancelled by user.')
             if key == '\x1b':
                 return 'escape'
             return key
@@ -37,6 +39,8 @@ class TerminalUI:
         try:
             tty.setraw(fd)
             key = sys.stdin.read(1)
+            if key == '\x03':
+                raise KeyboardInterrupt('Selection cancelled by user.')
             if key == '\x1b':
                 next_chars = sys.stdin.read(2)
                 mapping = {'[A': 'up', '[B': 'down', '[D': 'left', '[C': 'right'}
@@ -67,7 +71,7 @@ class TerminalUI:
             style = 'bold green' if index == selected_index else ''
             table.add_row(marker, label, style=style)
 
-        footer = help_text or 'Use Up/Down arrows and Enter to select.'
+        footer = help_text or 'Use Up/Down arrows and Enter to select. Ctrl-C to cancel.'
         self.console.print(Panel.fit(footer, title='Interpreter TUI', border_style='green'))
         self.console.print(f"[bold cyan]{title}[/bold cyan]")
         self.console.print(table)
@@ -110,7 +114,7 @@ class TerminalUI:
 
     def _select_boolean(self, title, default=False):
         default_choice = 'yes' if default else 'no'
-        choice = self._select_option(title, ['yes', 'no'], default_choice, 'Use Up/Down arrows and Enter to choose.')
+        choice = self._select_option(title, ['yes', 'no'], default_choice, 'Use Up/Down arrows and Enter to choose. Ctrl-C to cancel.')
         return choice == 'yes'
 
     def select_mode(self, default_mode='code'):
@@ -121,7 +125,7 @@ class TerminalUI:
         default_model = default_model or self.utility_manager.get_default_model_name()
         if default_model not in models:
             default_model = models[0]
-        return self._select_option('Model', models, default_model, 'Use Up/Down arrows, Enter, or type the first letter to jump.')
+        return self._select_option('Model', models, default_model, 'Use Up/Down arrows, Enter, or type the first letter to jump. Ctrl-C to cancel.')
 
     def select_language(self, default_lang='python'):
         return self._select_option('Language', ['python', 'javascript'], default_lang)
