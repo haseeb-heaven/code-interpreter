@@ -37,8 +37,17 @@ def _limit_resources():
 	try:
 		# CPU seconds (soft, hard)
 		resource.setrlimit(resource.RLIMIT_CPU, (2, 2))
-		# Address space (virtual memory) ~256MB
-		resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
+		# Address space (virtual memory). NOTE: RLIMIT_AS counts mapped virtual
+		# address space, not resident memory -- importing numpy/matplotlib/PIL
+		# alone mmaps many shared libraries (OpenBLAS, libXau, fontconfig,
+		# freetype, ...) that can add up to well over 256MB of VSZ before any
+		# user code runs, even though actual RSS stays small. 256MB was too
+		# tight and surfaced as an unrelated-looking dynamic loader failure:
+		# "ImportError: libXau-....so: failed to map segment from shared
+		# object" on ordinary, safe imports. 1GB still bounds real memory-bomb
+		# abuse (a growing-list attack still gets killed within a second or
+		# two) while giving legitimate library loading enough headroom.
+		resource.setrlimit(resource.RLIMIT_AS, (1024 * 1024 * 1024, 1024 * 1024 * 1024))
 		# Limit number of processes. NOTE: RLIMIT_NPROC is scoped to the real
 		# UID, not to this child's process tree -- it counts every process/
 		# thread owned by the current user on the whole machine. 50 was too
