@@ -28,7 +28,7 @@ def print_dataframe(df, title: str = "", max_rows: int = 20, console=None) -> No
 		from rich.console import Console
 		from rich.table import Table
 
-		con = console or Console()
+		con = console or Console(legacy_windows=False)
 		table = Table(
 			title=title or None,
 			box=box.ROUNDED,
@@ -56,7 +56,7 @@ def print_stats(stats: Mapping[str, Any], console=None) -> None:
 		from rich.table import Table
 		from rich import box
 
-		con = console or Console()
+		con = console or Console(legacy_windows=False)
 		table = Table(box=box.SIMPLE, show_header=False, padding=(0, 1))
 		table.add_column("Metric", style="bold")
 		table.add_column("Value", style="cyan")
@@ -73,7 +73,7 @@ def print_code(code: str, language: str = "python", console=None) -> None:
 		from rich.console import Console
 		from rich.syntax import Syntax
 
-		(console or Console()).print(
+		(console or Console(legacy_windows=False)).print(
 			Syntax(code or "", language, theme="monokai", line_numbers=True)
 		)
 	except Exception:
@@ -85,7 +85,7 @@ def print_error(error: str, console=None) -> None:
 		from rich.console import Console
 		from rich.panel import Panel
 
-		(console or Console()).print(
+		(console or Console(legacy_windows=False)).print(
 			Panel(error or "", title="Error", border_style="red", style="red")
 		)
 	except Exception:

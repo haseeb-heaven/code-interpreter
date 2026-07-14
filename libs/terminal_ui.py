@@ -119,7 +119,9 @@ def _output_format_value(label: str):
 
 class TerminalUI:
 	def __init__(self):
-		self.console = Console()
+		# legacy_windows=False: rich's auto-detected legacy console path crashes with
+		# "OSError: Bad file descriptor" when stdout is redirected to a file/pipe on Windows.
+		self.console = Console(legacy_windows=False)
 		self.utility_manager = UtilityManager()
 
 	def _read_key(self):

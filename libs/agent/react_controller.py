@@ -22,7 +22,9 @@ from libs.deps.install_flow import MissingBinaryHandler
 from libs.deps.missing_binary import is_missing_binary_error
 from libs.free_llms import FreeModelsExhaustedError, is_free_routing_failure, is_rate_limit_failure
 
-console = Console()
+# legacy_windows=False: rich's auto-detected legacy console path crashes with
+# "OSError: Bad file descriptor" when stdout is redirected to a file/pipe on Windows.
+console = Console(legacy_windows=False)
 logger = logging.getLogger(__name__)
 
 

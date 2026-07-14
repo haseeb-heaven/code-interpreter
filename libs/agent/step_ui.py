@@ -335,7 +335,9 @@ def _default_console():
 	try:
 		from rich.console import Console
 
-		return Console()
+		# legacy_windows=False: rich's auto-detected legacy console path crashes with
+		# "OSError: Bad file descriptor" when stdout is redirected to a file/pipe on Windows.
+		return Console(legacy_windows=False)
 	except Exception:
 		return _FallbackConsole()
 
