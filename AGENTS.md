@@ -31,6 +31,10 @@ external LLM providers over HTTP; there is nothing long-running to "start" besid
     `python scripts/smoke_all_models.py`
   - Live provider smoke (needs real keys): `SMOKE_LIVE=1 python scripts/smoke_all_models.py`
   - Local mock smoke: `python -m unittest tests.smoke.test_local_model_smoke`
+  - Real-user, real-subprocess coverage for every mode (`--cli`, `--agentic`, `--gemini-style`,
+    `--yolo`, `--agent`, `/settings` wizard, `--search`) against a protocol-aware local stub
+    (`scripts/live_stub_llm_server.py`) — no keys needed, no mocked internals, drives the actual
+    binary end to end: `python -m unittest discover -s tests/live -p 'test_live_human_scenarios.py' -v`
 - TestSprite backend suite (CLI only, no frontend):
   `python -m unittest discover -s testsprite_tests -p 'TC*.py' -v`
 - Some passing tests intentionally print argparse `usage:`/error text and `SyntaxWarning` lines to the
