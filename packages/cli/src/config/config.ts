@@ -79,7 +79,7 @@ export interface CliArgs {
   model: string | undefined;
   provider?: string | undefined;
   free?: boolean | undefined;
-  pick?: boolean | undefined;
+  models?: boolean | undefined;
   byok?: boolean | undefined;
   sandbox: boolean | string | undefined;
   debug: boolean | undefined;
@@ -306,10 +306,10 @@ export async function parseArguments(
             'Prefer free / cheap models from configs/models.toml, falling back to local models.',
           default: false,
         })
-        .option('pick', {
+        .option('models', {
           type: 'boolean',
           description:
-            'Show the interactive model picker (all models grouped by provider) and exit.',
+            'Show all configured models grouped by provider and exit.',
           default: false,
         })
         .option('byok', {

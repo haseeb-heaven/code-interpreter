@@ -33,9 +33,9 @@ The `--free` flag is the fastest way to use OpenAgent without paid APIs:
 npm start -- --free "analyze this CSV"
 
 # See every model grouped by provider (availability clearly marked)
-npm start -- --pick
+npm start -- --models
 
-# In-session: /model lists and switches models (/pick remains an alias)
+# In-session: /models lists and switches models (/model remains an alias)
 ```
 
 When a free model hits a rate limit or a routing failure, OpenAgent
@@ -68,7 +68,7 @@ npm start -- --provider lmstudio
 | **Free tier (`--free`)**   | ✅ Built-in catalog + fallback |    ⚠️ rate-limited    |
 | **Zero-cost usage**        |      ✅ `--free` + Ollama      |          ❌           |
 | **BYOK frontier models**   |  ✅ one env key per provider   |       ⚠️ varies       |
-| **Model picker**           |     ✅ `--pick` / `/model`     |          ❌           |
+| **Model picker**           |   ✅ `--models` / `/models`    |          ❌           |
 | **Account / sign-in**      |         ✅ none needed         |   ❌ often required   |
 | **MCP support**            |               ✅               |       ⚠️ varies       |
 
@@ -154,28 +154,31 @@ npm start -- -m ollama/llama3.1:8b
 npm start -- --free "summarize this repository"
 
 # Terminal picker and interactive BYOK setup
-npm start -- --pick
+npm start -- --models
 npm start -- --byok
 
 # Non-interactive (headless) mode
 npm start -- --free -p "list the 5 largest files in this project"
 ```
 
-| Flag                 | What it does                                                                                                                                                                 |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--provider <id>`    | Route through one provider: `ollama`, `lmstudio`, `openai`, `anthropic`, `gemini`, `groq`, `deepseek`, `nvidia`, `together`, `huggingface`, `openrouter`, `cerebras`, `z-ai` |
-| `--model, -m <name>` | Registry key, free-catalog id, or `provider/model` id                                                                                                                        |
-| `--free`             | Prefer the free/cheap catalog rotation from `configs/models.toml`                                                                                                            |
-| `--pick`             | Print the grouped model picker and exit                                                                                                                                      |
-| `--byok`             | Interactive API-key setup writing to `.env`, then exit                                                                                                                       |
+| Flag                  | What it does                                                                                                                                                                 |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--provider <id>`     | Route through one provider: `ollama`, `lmstudio`, `openai`, `anthropic`, `gemini`, `groq`, `deepseek`, `nvidia`, `together`, `huggingface`, `openrouter`, `cerebras`, `z-ai` |
+| `--model, -m <name>`  | Registry key, free-catalog id, or `provider/model` id                                                                                                                        |
+| `--free`              | Prefer the free/cheap catalog rotation from `configs/models.toml`                                                                                                            |
+| `--models`            | Print all configured models grouped by provider and exit                                                                                                                     |
+| `--resume [id]`, `-r` | Resume the latest session, a numbered session, or a session ID                                                                                                               |
+| `--yolo`, `-y`        | Auto-approve all tool actions; use only in trusted workspaces                                                                                                                |
+| `--approval-mode`     | Set `default`, `auto_edit`, `yolo`, or `plan` approval behavior                                                                                                              |
+| `--byok`              | Interactive API-key setup writing to `.env`, then exit                                                                                                                       |
 
 Inside a session:
 
-- `/model` — open the grouped model picker. It marks vision, streaming, and key
+- `/models` — open the grouped model picker. It marks vision, streaming, and key
   availability; selecting a provider with no key offers to save that provider's
-  key to `.env`. `/pick` remains a compatibility alias.
+  key to `.env`. `/model` remains a compatibility alias.
 - `/byok` — list providers and key status; `/byok <provider> <key>` to save.
-- `/model set <name>` — switch models directly.
+- `/models set <name>` — switch models directly.
 
 ## **Features**
 

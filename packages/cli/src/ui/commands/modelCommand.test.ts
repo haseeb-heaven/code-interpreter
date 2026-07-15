@@ -164,16 +164,16 @@ describe('modelCommand', () => {
       expect(mockContext.ui.addItem).toHaveBeenCalledWith(
         expect.objectContaining({
           type: MessageType.ERROR,
-          text: expect.stringContaining('Usage: /model set <model-name>'),
+          text: expect.stringContaining('Usage: /models set <model-name>'),
         }),
       );
     });
   });
 
   it('should have the correct name and description', () => {
-    expect(modelCommand.name).toBe('model');
+    expect(modelCommand.name).toBe('models');
     expect(modelCommand.description).toBe(
-      'Pick a model from any provider (free, local, or paid with your API key)',
+      'Browse and select models from every configured provider',
     );
   });
 });

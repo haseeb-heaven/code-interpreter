@@ -7,7 +7,7 @@
 /**
  * Startup handling for the multi-provider flags:
  *
- *   --pick       print every model grouped by provider, then exit
+ *   --models     print every model grouped by provider, then exit
  *   --byok       interactive walkthrough that saves API keys to .env
  *   --provider   pin a provider (ollama, lmstudio, openai, groq, ...)
  *   --free       prefer free presets from configs/models.toml
@@ -51,7 +51,7 @@ async function detectLocalModels(): Promise<{
   return detected;
 }
 
-/** Renders the picker to stdout (used by --pick). */
+/** Renders the picker to stdout (used by --models). */
 export async function printModelPicker(): Promise<void> {
   const registry = ModelRegistry.load();
   const detected = await detectLocalModels();
@@ -105,7 +105,7 @@ export async function runByokWalkthrough(): Promise<void> {
           : '  Key saved.\n',
       );
     }
-    writeToStdout('\nDone. Run with --pick to see all models.\n');
+    writeToStdout('\nDone. Run with --models to see all models.\n');
   } finally {
     rl.close();
   }
@@ -144,7 +144,7 @@ export async function applyProviderRouting(argv: CliArgs): Promise<boolean> {
     if (argv.provider || argv.free) {
       writeToStderr(
         'No usable provider route found. Is the local server running / the API key set? ' +
-          'Try --pick to list models or --byok to add keys.\n',
+          'Try --models to list models or --byok to add keys.\n',
       );
     }
     return false;
@@ -163,10 +163,10 @@ export async function applyProviderRouting(argv: CliArgs): Promise<boolean> {
 
 /**
  * Entry point called from gemini.tsx right after argument parsing.
- * Handles --pick / --byok (both exit) and installs provider routing.
+ * Handles --models / --byok (both exit) and installs provider routing.
  */
 export async function handleProviderStartupFlags(argv: CliArgs): Promise<void> {
-  if (argv.pick) {
+  if (argv.models) {
     await printModelPicker();
     process.exit(0);
   }

@@ -18,7 +18,7 @@ import { MessageType } from '../types.js';
 const setModelCommand: SlashCommand = {
   name: 'set',
   description:
-    'Set the model to use. Usage: /model set <model-name> [--persist]',
+    'Set the model to use. Usage: /models set <model-name> [--persist]',
   kind: CommandKind.BUILT_IN,
   autoExecute: false,
   action: async (context: CommandContext, args: string) => {
@@ -26,7 +26,7 @@ const setModelCommand: SlashCommand = {
     if (parts.length === 0) {
       context.ui.addItem({
         type: MessageType.ERROR,
-        text: 'Usage: /model set <model-name> [--persist]',
+        text: 'Usage: /models set <model-name> [--persist]',
       });
       return;
     }
@@ -64,10 +64,9 @@ const manageModelCommand: SlashCommand = {
 };
 
 export const modelCommand: SlashCommand = {
-  name: 'model',
-  altNames: ['pick'],
-  description:
-    'Pick a model from any provider (free, local, or paid with your API key)',
+  name: 'models',
+  altNames: ['model'],
+  description: 'Browse and select models from every configured provider',
   kind: CommandKind.BUILT_IN,
   autoExecute: false,
   subCommands: [manageModelCommand, setModelCommand],

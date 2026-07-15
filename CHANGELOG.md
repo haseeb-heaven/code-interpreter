@@ -1,14 +1,15 @@
 ## Unreleased
 
-- fix(tui): rename the interactive model picker command to `/model` (with
-  `/pick` retained as a compatibility alias); unavailable paid-provider models
+- fix(tui): rename the interactive model picker command to `/models` (with
+  `/model` retained as a compatibility alias); unavailable paid-provider models
   now offer their provider-specific `.env` key setup directly in the dialog
 - fix(providers): preserve unique registry-key routing and endpoint overrides
   when aliases share a LiteLLM model id; free sessions now rotate through the
   fallback catalog after rate-limit or free-router failures
 - test(providers): add fallback-chain coverage and validate OpenRouter's
   `openai/gpt-oss-20b:free` with both complete and streaming live requests
-- docs: update the branch-specific clone command and document `/model`
+- docs: update the branch-specific clone command; document `/models`,
+  `--resume`, and `--yolo`
 
 ## v4.0.0 (2026-07-15) — OpenAgent
 
