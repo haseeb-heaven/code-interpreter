@@ -20,11 +20,9 @@ npm run build
 npm start -- --free "analyze sales.csv and plot top 10 customers"
 ```
 
-✅ Works with free models (OpenRouter `:free`, Groq, Cerebras, HuggingFace — no
-paid API required) ✅ Runs on your machine — local models via Ollama and LM
-Studio, your files never leave your computer ✅ Bring your own key for frontier
-models (OpenAI, Anthropic, DeepSeek, and more) ✅ Windows, Mac, Linux ✅ No
-account, no sign-in, no vendor lock-in
+✅ Works with OpenRouter `:free` models — no paid API required ✅ Runs on your
+machine — local models via Ollama and LM Studio, your files never leave your
+computer ✅ Windows, Mac, Linux ✅ No account, no sign-in, no vendor lock-in
 
 ## Quick start with `--free` (zero-cost models)
 
@@ -37,7 +35,7 @@ npm start -- --free "analyze this CSV"
 # See every model grouped by provider (availability clearly marked)
 npm start -- --pick
 
-# In-session: /pick to list or switch models
+# In-session: /model lists and switches models (/pick remains an alias)
 ```
 
 When a free model hits a rate limit or a routing failure, OpenAgent
@@ -70,7 +68,7 @@ npm start -- --provider lmstudio
 | **Free tier (`--free`)**   | ✅ Built-in catalog + fallback |    ⚠️ rate-limited    |
 | **Zero-cost usage**        |      ✅ `--free` + Ollama      |          ❌           |
 | **BYOK frontier models**   |  ✅ one env key per provider   |       ⚠️ varies       |
-| **Model picker**           |     ✅ `--pick` / `/pick`      |          ❌           |
+| **Model picker**           |     ✅ `--pick` / `/model`     |          ❌           |
 | **Account / sign-in**      |         ✅ none needed         |   ❌ often required   |
 | **MCP support**            |               ✅               |       ⚠️ varies       |
 
@@ -89,8 +87,8 @@ npm start -- --provider lmstudio
 Requires Node.js 20+.
 
 ```bash
-git clone https://github.com/haseeb-heaven/code-interpreter.git
-cd code-interpreter
+git clone --branch claude/gemini-cli-multi-provider-ru0q2f https://github.com/haseeb-heaven/open-agent.git
+cd open-agent
 npm install
 npm run build
 npm start            # launches OpenAgent (also available as the `openagent` bin)
@@ -155,7 +153,7 @@ npm start -- -m ollama/llama3.1:8b
 # Prefer free models with automatic fallback (local models close the chain)
 npm start -- --free "summarize this repository"
 
-# Interactive model picker and BYOK setup
+# Terminal picker and interactive BYOK setup
 npm start -- --pick
 npm start -- --byok
 
@@ -173,9 +171,9 @@ npm start -- --free -p "list the 5 largest files in this project"
 
 Inside a session:
 
-- `/pick` — list all models grouped by provider (vision, streaming, and key
-  availability marked; detected local models always show as available), or
-  `/pick <name>` to switch.
+- `/model` — open the grouped model picker. It marks vision, streaming, and key
+  availability; selecting a provider with no key offers to save that provider's
+  key to `.env`. `/pick` remains a compatibility alias.
 - `/byok` — list providers and key status; `/byok <provider> <key>` to save.
 - `/model set <name>` — switch models directly.
 
@@ -210,7 +208,7 @@ Provider-specific test suites (in `packages/core`):
 ```bash
 npx vitest run src/providers                        # all provider unit tests
 RUN_LOCAL_PROVIDER_TESTS=1 npx vitest run src/providers/local.integration.test.ts   # live Ollama / LM Studio
-RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts    # live cloud endpoints (needs keys)
+RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts -t openrouter  # live OpenRouter :free probe
 ```
 
 Live integration tests are skipped in CI and for any provider whose API key is

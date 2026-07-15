@@ -1,5 +1,15 @@
 ## Unreleased
 
+- fix(tui): rename the interactive model picker command to `/model` (with
+  `/pick` retained as a compatibility alias); unavailable paid-provider models
+  now offer their provider-specific `.env` key setup directly in the dialog
+- fix(providers): preserve unique registry-key routing and endpoint overrides
+  when aliases share a LiteLLM model id; free sessions now rotate through the
+  fallback catalog after rate-limit or free-router failures
+- test(providers): add fallback-chain coverage and validate OpenRouter's
+  `openai/gpt-oss-20b:free` with both complete and streaming live requests
+- docs: update the branch-specific clone command and document `/model`
+
 ## v4.0.0 (2026-07-15) — OpenAgent
 
 **Project renamed to OpenAgent** — an open-source agent that performs your tasks
@@ -24,9 +34,9 @@ and rebuilt around multi-provider routing).
   every chain
 - feat(cli): `--provider`, `--free`, `--pick`, `--byok` flags; `-m/--model`
   accepts registry keys, free-catalog ids, and `provider/model` ids
-- feat(repl): `/pick` model picker grouped by provider with
-  vision/streaming/key-availability markers; `/byok` writes keys to `.env` and
-  reports newly unlocked models
+- feat(repl): `/model` model picker grouped by provider with (`/pick` kept as a
+  compatibility alias) vision/streaming/key-availability markers; `/byok` writes
+  keys to `.env` and reports newly unlocked models
 - feat(auth): no account, no sign-in flow, no vendor credentials shipped — a new
   multi-provider auth type bypasses vendor authentication entirely
 - test: unit tests for provider detection (Ollama/LM Studio), registry, picker

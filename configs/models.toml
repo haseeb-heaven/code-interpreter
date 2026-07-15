@@ -204,13 +204,13 @@ max_tokens = 4096
 tier = "paid"
 
 [models."code-llama"]
-model = "huggingface/meta-llama/Meta-Llama-3-8B-Instruct"
+model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."code-llama-phind"]
-model = "huggingface/meta-llama/Meta-Llama-3-8B-Instruct"
+model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
@@ -456,7 +456,7 @@ max_tokens = 4096
 tier = "paid"
 
 [models."hf-meta-llama-3"]
-model = "huggingface/meta-llama/Meta-Llama-3-8B-Instruct"
+model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
 temperature = 0.1
 max_tokens = 4096
 tier = "free_tier"
@@ -472,13 +472,13 @@ tier = "local"
 notes = "First-class Ollama via --ollama / --local (auto-detect installed models)"
 
 [models."mistral-7b"]
-model = "huggingface/meta-llama/Meta-Llama-3-8B-Instruct"
+model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."nvidia-nemotron"]
-model = "nvidia/nemotron-3-super-120b-a12b"
+model = "nvidia/nvidia/nemotron-3-super-120b-a12b"
 provider = "nvidia"
 api_base = "https://integrate.api.nvidia.com/v1"
 temperature = 0.1
@@ -639,7 +639,7 @@ max_tokens = 4096
 tier = "paid"
 
 [models."star-chat"]
-model = "huggingface/meta-llama/Meta-Llama-3-8B-Instruct"
+model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
@@ -663,12 +663,20 @@ tier = "paid"
 # -----------------------------------------------------------------------------
 
 [[free_catalog]]
+id = "openrouter-gpt-oss-20b-free"
+model_key = "openrouter-gpt-oss-20b-free"
+provider = "openrouter"
+env_key = "OPENROUTER_API_KEY"
+tier = "free"
+notes = "GPT-OSS 20B via OpenRouter :free (tool-capable first pick)"
+
+[[free_catalog]]
 id = "openrouter-free"
 model_key = "openrouter-free"
 provider = "openrouter"
 env_key = "OPENROUTER_API_KEY"
 tier = "free"
-notes = "OpenRouter free router (many free upstream models)"
+notes = "OpenRouter free router (no tool use; agent falls through the chain)"
 
 [[free_catalog]]
 id = "openrouter-qwen3-coder"
@@ -685,14 +693,6 @@ provider = "openrouter"
 env_key = "OPENROUTER_API_KEY"
 tier = "free"
 notes = "Llama 3.3 70B Instruct via OpenRouter :free"
-
-[[free_catalog]]
-id = "openrouter-gpt-oss-20b-free"
-model_key = "openrouter-gpt-oss-20b-free"
-provider = "openrouter"
-env_key = "OPENROUTER_API_KEY"
-tier = "free"
-notes = "GPT-OSS 20B via OpenRouter :free"
 
 [[free_catalog]]
 id = "openrouter-gemma-4-31b-free"

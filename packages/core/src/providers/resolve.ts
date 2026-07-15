@@ -32,6 +32,12 @@ import { FreeLLMCatalog } from './freeCatalog.js';
 export interface ResolvedRoute {
   /** LiteLLM-style model id, e.g. "ollama/llama3.1:8b". */
   modelId: string;
+  /**
+   * Registry key the route came from (e.g. "openrouter-gpt-oss-20b-free").
+   * Prefer it over modelId when re-resolving: LiteLLM ids may be shared
+   * by several alias keys, while keys are unique.
+   */
+  configKey?: string;
   provider: ProviderDefinition;
   /** Registry api_base override, when the model came from models.toml. */
   apiBase?: string;
@@ -80,6 +86,7 @@ function routeFromRegistry(
   if (!resolved) return undefined;
   return {
     modelId,
+    configKey: key,
     provider: resolved,
     apiBase: cfg.api_base ? String(cfg.api_base) : undefined,
     temperature:

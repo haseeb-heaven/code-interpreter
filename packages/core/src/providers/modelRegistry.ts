@@ -158,10 +158,13 @@ export class ModelRegistry {
       }
     }
 
+    // Legacy aliases can point several keys at one LiteLLM id; the first
+    // key in sorted order wins so the lookup stays deterministic instead
+    // of dropping the registry overrides (api_base, provider) entirely.
     const matches = this.listModelNames().filter(
       (key) => (this.models[key]?.model ?? '').toLowerCase() === lower,
     );
-    return matches.length === 1 ? matches[0] : undefined;
+    return matches[0];
   }
 }
 

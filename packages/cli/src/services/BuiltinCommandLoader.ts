@@ -44,7 +44,6 @@ import { initCommand } from '../ui/commands/initCommand.js';
 import { mcpCommand } from '../ui/commands/mcpCommand.js';
 import { memoryCommand } from '../ui/commands/memoryCommand.js';
 import { modelCommand } from '../ui/commands/modelCommand.js';
-import { pickCommand } from '../ui/commands/pickCommand.js';
 import { byokCommand } from '../ui/commands/byokCommand.js';
 import { oncallCommand } from '../ui/commands/oncallCommand.js';
 import { permissionsCommand } from '../ui/commands/permissionsCommand.js';
@@ -191,7 +190,6 @@ export class BuiltinCommandLoader implements ICommandLoader {
         : [mcpCommand]),
       memoryCommand(this.config),
       modelCommand,
-      pickCommand,
       byokCommand,
       ...(this.config?.getFolderTrust() ? [permissionsCommand] : []),
       ...(this.config?.isPlanEnabled() ? [planCommand] : []),

@@ -9,6 +9,7 @@ export * from './ollama.js';
 export * from './lmstudio.js';
 export * from './modelRegistry.js';
 export * from './freeCatalog.js';
+export * from './freeFallback.js';
 export * from './byok.js';
 export * from './picker.js';
 export * from './openaiCompatGenerator.js';

@@ -26,14 +26,16 @@ const LIVE_MATRIX: Array<{ providerId: string; model: string }> = [
   { providerId: 'gemini', model: 'gemini/gemini-2.5-flash' },
   { providerId: 'groq', model: 'groq/llama-3.1-8b-instant' },
   { providerId: 'deepseek', model: 'deepseek/deepseek-chat' },
-  { providerId: 'nvidia', model: 'nvidia/nemotron-3-super-120b-a12b' },
+  // NVIDIA's upstream ids carry their own org prefix ("nvidia/", "meta/"),
+  // so registry ids double up: provider prefix + full upstream id.
+  { providerId: 'nvidia', model: 'nvidia/nvidia/nemotron-3-super-120b-a12b' },
   {
     providerId: 'together',
     model: 'together/meta-llama/Llama-3.3-70B-Instruct-Turbo',
   },
   {
     providerId: 'huggingface',
-    model: 'huggingface/meta-llama/Meta-Llama-3-8B-Instruct',
+    model: 'huggingface/meta-llama/Llama-3.1-8B-Instruct',
   },
   { providerId: 'openrouter', model: 'openrouter/openai/gpt-oss-20b:free' },
   { providerId: 'cerebras', model: 'cerebras/gpt-oss-120b' },
@@ -57,7 +59,9 @@ for (const { providerId, model } of LIVE_MATRIX) {
           contents: [
             { role: 'user', parts: [{ text: 'Reply with the word: ok' }] },
           ],
-          config: { maxOutputTokens: 16, temperature: 0 },
+          // Reasoning models (gpt-oss, gemini-2.5, nemotron-3) spend output
+          // tokens on thinking before any visible text, so leave headroom.
+          config: { maxOutputTokens: 1024, temperature: 0 },
         },
         'live-integration-test',
       );
@@ -78,7 +82,7 @@ for (const { providerId, model } of LIVE_MATRIX) {
         {
           model,
           contents: [{ role: 'user', parts: [{ text: 'Count from 1 to 3.' }] }],
-          config: { maxOutputTokens: 32, temperature: 0 },
+          config: { maxOutputTokens: 1024, temperature: 0 },
         },
         'live-integration-test',
       );

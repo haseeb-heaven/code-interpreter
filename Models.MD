@@ -40,7 +40,7 @@ This document lists all supported models in **OpenAgent**. The catalog lives in 
 - `deepseek-chat`, `deepseek-reasoner`, with `deepseek-coder` remapped to `deepseek-chat`.
 
 ## NVIDIA (OpenAI-compatible API)
-- `nvidia-nemotron` -> `nvidia/nemotron-3-super-120b-a12b`.
+- `nvidia-nemotron` -> `nvidia/nvidia/nemotron-3-super-120b-a12b` (NVIDIA ids carry their own org prefix).
 
 ## Z AI (OpenAI-compatible API)
 - `z-ai-glm-5` -> `glm-5`.

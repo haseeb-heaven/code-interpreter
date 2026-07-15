@@ -18,7 +18,10 @@
 
 import * as path from 'node:path';
 import * as readline from 'node:readline/promises';
+import { Writable } from 'node:stream';
 import {
+  writeToStdout,
+  writeToStderr,
   ModelRegistry,
   byokProviders,
   formatPickerGroups,
@@ -56,18 +59,33 @@ export async function printModelPicker(): Promise<void> {
     registry,
     detectedLocalModels: detected,
   });
-  process.stdout.write(formatPickerGroups(groups) + '\n');
+  // main() patches process.stdout before argv handling, so plain
+  // process.stdout.write is swallowed; write to the real stream and wait
+  // for the flush because process.exit(0) follows immediately.
+  await new Promise<void>((resolve) => {
+    writeToStdout(formatPickerGroups(groups) + '\n', undefined, () =>
+      resolve(),
+    );
+  });
 }
 
 /** Interactive BYOK walkthrough (used by --byok). */
 export async function runByokWalkthrough(): Promise<void> {
+  // Route readline's prompts around the patched process.stdout (see
+  // printModelPicker) so the walkthrough stays visible.
+  const realStdout = new Writable({
+    write(chunk, _encoding, callback) {
+      writeToStdout(chunk);
+      callback();
+    },
+  });
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout,
+    output: realStdout,
   });
   const envPath = path.join(process.cwd(), '.env');
   try {
-    process.stdout.write(
+    writeToStdout(
       'Bring your own key: press Enter to skip a provider, Ctrl+C to stop.\n' +
         `Keys are written to ${envPath}\n\n`,
     );
@@ -81,13 +99,13 @@ export async function runByokWalkthrough(): Promise<void> {
       writeEnvKey(envPath, envKey, answer);
       process.env[envKey] = answer;
       const unlocked = newlyAvailableModels(envKey);
-      process.stdout.write(
+      writeToStdout(
         unlocked.length > 0
           ? `  Newly available models: ${unlocked.join(', ')}\n`
           : '  Key saved.\n',
       );
     }
-    process.stdout.write('\nDone. Run with --pick to see all models.\n');
+    writeToStdout('\nDone. Run with --pick to see all models.\n');
   } finally {
     rl.close();
   }
@@ -124,7 +142,7 @@ export async function applyProviderRouting(argv: CliArgs): Promise<boolean> {
   });
   if (!route) {
     if (argv.provider || argv.free) {
-      process.stderr.write(
+      writeToStderr(
         'No usable provider route found. Is the local server running / the API key set? ' +
           'Try --pick to list models or --byok to add keys.\n',
       );
@@ -132,8 +150,14 @@ export async function applyProviderRouting(argv: CliArgs): Promise<boolean> {
     return false;
   }
 
-  argv.model = route.modelId;
+  // Registry keys are unique; LiteLLM ids can be shared by alias entries
+  // and would lose the api_base/provider overrides on re-resolution.
+  argv.model = route.configKey ?? route.modelId;
   process.env['GEMINI_CLI_PROVIDER'] = route.provider.id;
+  if (argv.free) {
+    // Arms the runtime free-model fallback chain in the generator factory.
+    process.env['GEMINI_CLI_FREE'] = '1';
+  }
   return true;
 }
 

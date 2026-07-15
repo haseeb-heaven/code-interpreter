@@ -65,7 +65,9 @@ const manageModelCommand: SlashCommand = {
 
 export const modelCommand: SlashCommand = {
   name: 'model',
-  description: 'Manage model configuration',
+  altNames: ['pick'],
+  description:
+    'Pick a model from any provider (free, local, or paid with your API key)',
   kind: CommandKind.BUILT_IN,
   autoExecute: false,
   subCommands: [manageModelCommand, setModelCommand],

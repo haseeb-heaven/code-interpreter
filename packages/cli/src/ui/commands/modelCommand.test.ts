@@ -172,6 +172,8 @@ describe('modelCommand', () => {
 
   it('should have the correct name and description', () => {
     expect(modelCommand.name).toBe('model');
-    expect(modelCommand.description).toBe('Manage model configuration');
+    expect(modelCommand.description).toBe(
+      'Pick a model from any provider (free, local, or paid with your API key)',
+    );
   });
 });

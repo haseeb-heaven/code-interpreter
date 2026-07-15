@@ -24,7 +24,7 @@ import { EmptyWalletDialog } from './EmptyWalletDialog.js';
 import { relaunchApp } from '../../utils/processUtils.js';
 import { SessionBrowser } from './SessionBrowser.js';
 import { PermissionsModifyTrustDialog } from './PermissionsModifyTrustDialog.js';
-import { ModelDialog } from './ModelDialog.js';
+import { ProviderModelDialog } from './ProviderModelDialog.js';
 import { VoiceModelDialog } from './VoiceModelDialog.js';
 import { theme } from '../semantic-colors.js';
 import { useUIState } from '../contexts/UIStateContext.js';
@@ -238,7 +238,7 @@ export const DialogManager = ({
     );
   }
   if (uiState.isModelDialogOpen) {
-    return <ModelDialog onClose={uiActions.closeModelDialog} />;
+    return <ProviderModelDialog onClose={uiActions.closeModelDialog} />;
   }
   if (uiState.isVoiceModelDialogOpen) {
     return <VoiceModelDialog onClose={uiActions.closeVoiceModelDialog} />;
