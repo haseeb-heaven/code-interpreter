@@ -1,3 +1,0 @@
-﻿Open Code Interpreter live scenario notes.
-This document discusses JSON conversion, charts, and sandbox safety.
-Key themes: automation, artifacts, and soft-skip for quota.

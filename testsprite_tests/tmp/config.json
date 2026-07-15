@@ -1,9 +1,0 @@
-{
-  "status": "commited",
-  "type": "backend",
-  "scope": "codebase",
-  "backendAuthType": "public",
-  "localEndpoint": "http://localhost:0",
-  "projectName": "open-code-interpreter",
-  "notes": "CLI-only project. Backend/integration tests cover the Python library, agent pipeline, safety sandbox, and interpreter CLI — no frontend. localEndpoint is a placeholder; this product has no HTTP server."
-}

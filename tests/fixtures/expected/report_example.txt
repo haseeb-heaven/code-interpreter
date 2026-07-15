@@ -1,3 +1,0 @@
-﻿LIVE SCENARIO REPORT
-status=ok
-
