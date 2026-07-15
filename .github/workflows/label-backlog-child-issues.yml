@@ -14,7 +14,7 @@ permissions:
 jobs:
   # Event-based: Quick reaction to new/edited issues in THIS repo
   labeler:
-    if: "github.repository == 'google-gemini/gemini-cli' && github.event_name == 'issues'"
+    if: "github.repository == 'haseeb-heaven/open-agent' && github.event_name == 'issues'"
     runs-on: 'ubuntu-latest'
     steps:
       - name: 'Checkout'
@@ -38,7 +38,7 @@ jobs:
 
   # Scheduled/Manual: Recursive sync across multiple repos
   sync-maintainer-labels:
-    if: "github.repository == 'google-gemini/gemini-cli' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')"
+    if: "github.repository == 'haseeb-heaven/open-agent' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')"
     runs-on: 'ubuntu-latest'
     steps:
       - name: 'Checkout'

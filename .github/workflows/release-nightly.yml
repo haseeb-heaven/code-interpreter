@@ -31,13 +31,13 @@ on:
 
 jobs:
   build-mac:
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "github.repository == 'haseeb-heaven/open-agent'"
     uses: './.github/workflows/build-unsigned-mac-binaries.yml'
     with:
       ref: '${{ github.event.inputs.ref }}'
 
   release:
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "github.repository == 'haseeb-heaven/open-agent'"
     needs: ['build-mac']
     environment: "${{ github.event_name == 'schedule' && 'internal' || github.event.inputs.environment || 'prod' }}"
     runs-on: 'ubuntu-latest'
@@ -148,9 +148,9 @@ jobs:
           npm-registry-publish-url: "${{ vars.NPM_REGISTRY_PUBLISH_URL || 'https://wombat-dressing-room.appspot.com' }}"
           npm-registry-url: "${{ vars.NPM_REGISTRY_URL || 'https://wombat-dressing-room.appspot.com' }}"
           npm-registry-scope: "${{ vars.NPM_REGISTRY_SCOPE || '@google' }}"
-          cli-package-name: "${{ vars.CLI_PACKAGE_NAME || '@google/gemini-cli' }}"
-          core-package-name: "${{ vars.CORE_PACKAGE_NAME || '@google/gemini-cli-core' }}"
-          a2a-package-name: "${{ vars.A2A_PACKAGE_NAME || '@google/gemini-cli-a2a-server' }}"
+          cli-package-name: "${{ vars.CLI_PACKAGE_NAME || 'open-agent' }}"
+          core-package-name: "${{ vars.CORE_PACKAGE_NAME || '@open-agent/core' }}"
+          a2a-package-name: "${{ vars.A2A_PACKAGE_NAME || '@open-agent/a2a-server' }}"
 
       - name: 'Create and Merge Pull Request'
         if: "github.event.inputs.environment != 'dev'"

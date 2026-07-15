@@ -30,7 +30,7 @@ locations for these files:
 > JSON-aware editors can use autocomplete and validation by pointing to
 > the generated schema at `schemas/settings.schema.json` in this repository.
 > When working outside the repo, reference the hosted schema at
-> `https://raw.githubusercontent.com/google-gemini/gemini-cli/main/schemas/settings.schema.json`.
+> `https://raw.githubusercontent.com/haseeb-heaven/open-agent/main/schemas/settings.schema.json`.
 
 - **System defaults file:**
   - **Location:** `/etc/gemini-cli/system-defaults.json` (Linux),

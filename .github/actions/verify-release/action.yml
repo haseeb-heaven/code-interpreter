@@ -5,7 +5,7 @@ inputs:
   npm-package:
     description: 'NPM Package'
     required: true
-    default: '@google/gemini-cli@latest'
+    default: 'open-agent@latest'
   npm-registry-url:
     description: 'NPM Registry URL'
     required: true
@@ -95,7 +95,7 @@ runs:
         GEMINI_CLI_TRUST_WORKSPACE: true
         INTEGRATION_TEST_USE_INSTALLED_GEMINI: 'true'
         # We must diable CI mode here because it interferes with interactive tests.
-        # See https://github.com/google-gemini/gemini-cli/issues/10517
+        # See https://github.com/haseeb-heaven/open-agent/issues/10517
         CI: 'false'
       shell: 'bash'
       run: |

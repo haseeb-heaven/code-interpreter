@@ -14,7 +14,7 @@ Learn more about [session management](./session-management.md).
 > feedback is invaluable as we refine this feature. If you have ideas,
 > suggestions, or encounter issues:
 >
-> - [Open an issue](https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml) on GitHub.
+> - [Open an issue](https://github.com/haseeb-heaven/open-agent/issues/new?template=bug_report.yml) on GitHub.
 > - Use the **/bug** command within Gemini CLI to file an issue.
 
 Learn more in the official Git worktree
@@ -104,4 +104,4 @@ a preserved worktree, you can use Git directly:
   cd ../project-feature-search && gemini
   ```
 
-[Open an issue]: https://github.com/google-gemini/gemini-cli/issues
+[Open an issue]: https://github.com/haseeb-heaven/open-agent/issues

@@ -9,7 +9,7 @@ jobs:
   audit-prs:
     timeout-minutes: 15
     if: |-
-      ${{ github.repository == 'google-gemini/gemini-cli' }}
+      ${{ github.repository == 'haseeb-heaven/open-agent' }}
     permissions:
       contents: 'read'
       id-token: 'write'

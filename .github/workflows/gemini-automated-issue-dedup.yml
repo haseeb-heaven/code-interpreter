@@ -26,7 +26,7 @@ defaults:
 jobs:
   find-duplicates:
     if: |-
-      github.repository == 'google-gemini/gemini-cli' &&
+      github.repository == 'haseeb-heaven/open-agent' &&
       vars.TRIAGE_DEDUPLICATE_ISSUES != '' &&
       (github.event_name == 'issues' ||
        github.event_name == 'workflow_dispatch' ||
@@ -95,7 +95,7 @@ jobs:
                     "-e", "GCP_PROJECT",
                     "-e", "GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json",
                     "-v", "${GOOGLE_APPLICATION_CREDENTIALS}:/app/gcp-credentials.json",
-                    "ghcr.io/google-gemini/gemini-cli-issue-triage@sha256:e3de1523f6c83aabb3c54b76d08940a2bf42febcb789dd2da6f95169641f94d3"
+                    "ghcr.io/haseeb-heaven/open-agent-issue-triage@sha256:e3de1523f6c83aabb3c54b76d08940a2bf42febcb789dd2da6f95169641f94d3"
                   ],
                   "env": {
                     "GITHUB_TOKEN": "${GITHUB_TOKEN}",
@@ -155,7 +155,7 @@ jobs:
   add-comment-and-label:
     needs: 'find-duplicates'
     if: |-
-      github.repository == 'google-gemini/gemini-cli' &&
+      github.repository == 'haseeb-heaven/open-agent' &&
       vars.TRIAGE_DEDUPLICATE_ISSUES != '' &&
       needs.find-duplicates.outputs.duplicate_issues_csv != '' &&
       (

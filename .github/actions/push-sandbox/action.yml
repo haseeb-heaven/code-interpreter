@@ -86,7 +86,7 @@ runs:
       run: |-
         docker run --rm --entrypoint sh "${{ steps.docker_build.outputs.uri }}" -lc '
           set -e
-          node -e "const fs=require(\"node:fs\"); JSON.parse(fs.readFileSync(\"/usr/local/share/npm-global/lib/node_modules/@google/gemini-cli/package.json\",\"utf8\")); JSON.parse(fs.readFileSync(\"/usr/local/share/npm-global/lib/node_modules/@google/gemini-cli-core/package.json\",\"utf8\"));"
+          node -e "const fs=require(\"node:fs\"); JSON.parse(fs.readFileSync(\"/usr/local/share/npm-global/lib/node_modules/open-agent/package.json\",\"utf8\")); JSON.parse(fs.readFileSync(\"/usr/local/share/npm-global/lib/node_modules/@open-agent/core/package.json\",\"utf8\"));"
           /usr/local/share/npm-global/bin/gemini --version >/dev/null
         '
     - name: 'publish'

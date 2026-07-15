@@ -15,13 +15,13 @@ inputs:
     description: 'The GitHub token for creating the release.'
     required: true
   wombat-token-core:
-    description: 'The npm token for the wombat @google/gemini-cli-core'
+    description: 'The npm token for the wombat @open-agent/core'
     required: true
   wombat-token-cli:
-    description: 'The npm token for wombat @google/gemini-cli'
+    description: 'The npm token for wombat open-agent'
     required: true
   wombat-token-a2a-server:
-    description: 'The npm token for the @google/gemini-cli-a2a-server package.'
+    description: 'The npm token for the @open-agent/a2a-server package.'
     required: true
   cli-package-name:
     description: 'The name of the cli package.'

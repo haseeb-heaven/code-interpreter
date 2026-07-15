@@ -21,7 +21,7 @@ jobs:
   triage-issues:
     timeout-minutes: 60
     if: |-
-      ${{ github.repository == 'google-gemini/gemini-cli' }}
+      ${{ github.repository == 'haseeb-heaven/open-agent' }}
     runs-on: 'ubuntu-latest'
     steps:
       - name: 'Checkout'

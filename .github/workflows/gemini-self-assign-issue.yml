@@ -23,7 +23,7 @@ permissions:
 jobs:
   self-assign-issue:
     if: |-
-      github.repository == 'google-gemini/gemini-cli' &&
+      github.repository == 'haseeb-heaven/open-agent' &&
       github.event_name == 'issue_comment' &&
       (contains(github.event.comment.body, '/assign') || contains(github.event.comment.body, '/unassign'))
     runs-on: 'ubuntu-latest'
@@ -62,7 +62,7 @@ jobs:
                 owner: owner,
                 repo: repo,
                 issue_number: issueNumber,
-                body: `👋 @${commenter}, thanks for your interest in this issue! We're reserving self-assignment for issues that have been marked with the \`help wanted\` label. Feel free to check out our list of [issues that need attention](https://github.com/google-gemini/gemini-cli/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).`
+                body: `👋 @${commenter}, thanks for your interest in this issue! We're reserving self-assignment for issues that have been marked with the \`help wanted\` label. Feel free to check out our list of [issues that need attention](https://github.com/haseeb-heaven/open-agent/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22).`
               });
               return;
             }
@@ -89,7 +89,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issueNumber,
-                body: `@${commenter} Thanks for taking interest but this issue is already assigned. We'd still love to have you contribute. Check out our [Help Wanted](https://github.com/google-gemini/gemini-cli/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22help%20wanted%22) list for issues where we need some extra attention.`
+                body: `@${commenter} Thanks for taking interest but this issue is already assigned. We'd still love to have you contribute. Check out our [Help Wanted](https://github.com/haseeb-heaven/open-agent/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22help%20wanted%22) list for issues where we need some extra attention.`
               });
               return;
             }
@@ -107,7 +107,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issueNumber,
-              body: `👋 @${commenter}, you've been assigned to this issue! Thank you for taking the time to contribute. Make sure to check out our [contributing guidelines](https://github.com/google-gemini/gemini-cli/blob/main/CONTRIBUTING.md).`
+              body: `👋 @${commenter}, you've been assigned to this issue! Thank you for taking the time to contribute. Make sure to check out our [contributing guidelines](https://github.com/haseeb-heaven/open-agent/blob/main/CONTRIBUTING.md).`
             });
 
       - name: 'Unassign issue from user'

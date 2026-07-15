@@ -53,7 +53,7 @@ powerful tool for developers.
     regression tests against baselines. Excluded from `preflight`, run nightly.)
   - **Workspace-Specific:** `npm test -w <pkg> -- <path>` (Note: `<path>` must
     be relative to the workspace root, e.g.,
-    `-w @google/gemini-cli-core -- src/routing/modelRouterService.test.ts`)
+    `-w @open-agent/core -- src/routing/modelRouterService.test.ts`)
 - **Full Validation:** `npm run preflight` (Heaviest check; runs clean, install,
   build, lint, type check, and tests. Recommended before submitting PRs. Due to
   its long runtime, only run this at the very end of a code implementation task.

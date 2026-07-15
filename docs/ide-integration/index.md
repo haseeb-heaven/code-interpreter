@@ -74,10 +74,10 @@ This will find the correct extension for your IDE and install it.
 You can also install the extension directly from a marketplace.
 
 - **For Visual Studio Code:** Install from the
-  [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=google.gemini-cli-vscode-ide-companion).
+  [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=google.open-agent-vscode-ide-companion).
 - **For VS Code forks:** To support forks of VS Code, the extension is also
   published on the
-  [Open VSX Registry](https://open-vsx.org/extension/google/gemini-cli-vscode-ide-companion).
+  [Open VSX Registry](https://open-vsx.org/extension/google/open-agent-vscode-ide-companion).
   Follow your editor's instructions for installing extensions from this
   registry.
 

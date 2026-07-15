@@ -8,7 +8,7 @@ release may not be as stable as our [latest weekly release](latest.md).
 To install the preview release:
 
 ```
-npm install -g @google/gemini-cli@preview
+npm install -g open-agent@preview
 ```
 
 ## Highlights

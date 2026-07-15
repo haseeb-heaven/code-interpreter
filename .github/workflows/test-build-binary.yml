@@ -116,7 +116,7 @@ jobs:
         run: 'npm run build:binary'
 
       - name: 'Build Core Package'
-        run: 'npm run build -w @google/gemini-cli-core'
+        run: 'npm run build -w @open-agent/core'
 
       - name: 'Verify Output Exists'
         run: |

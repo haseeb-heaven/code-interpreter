@@ -11,7 +11,7 @@ body:
         > [!IMPORTANT]
         > Thanks for taking the time to report an issue with the Gemini CLI Website
         >
-        > Please search **[existing issues](https://github.com/google-gemini/gemini-cli/issues?q=is%3Aissue+is%3Aopen+label%3Aarea%2Fwebsite)**  to see if a similar feature has already been requested.
+        > Please search **[existing issues](https://github.com/haseeb-heaven/open-agent/issues?q=is%3Aissue+is%3Aopen+label%3Aarea%2Fwebsite)**  to see if a similar feature has already been requested.
   - type: 'input'
     id: 'url'
     attributes:

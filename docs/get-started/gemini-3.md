@@ -24,7 +24,7 @@ Learn about how you can use Gemini 3 Pro and Gemini 3 Flash on Gemini CLI.
 Get started by upgrading Gemini CLI to the latest version:
 
 ```bash
-npm install -g @google/gemini-cli@latest
+npm install -g open-agent@latest
 ```
 
 If your version is 0.21.1 or later:
@@ -118,8 +118,8 @@ Restart Gemini CLI and you should have access to Gemini 3.
 ## Next steps
 
 If you need help, we recommend searching for an existing
-[GitHub issue](https://github.com/google-gemini/gemini-cli/issues). If you
+[GitHub issue](https://github.com/haseeb-heaven/open-agent/issues). If you
 cannot find a GitHub issue that matches your concern, you can
-[create a new issue](https://github.com/google-gemini/gemini-cli/issues/new/choose).
+[create a new issue](https://github.com/haseeb-heaven/open-agent/issues/new/choose).
 For comments and feedback, consider opening a
-[GitHub discussion](https://github.com/google-gemini/gemini-cli/discussions).
+[GitHub discussion](https://github.com/haseeb-heaven/open-agent/discussions).

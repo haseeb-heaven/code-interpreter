@@ -132,9 +132,9 @@ instructions for the other section.
         it to be `...{version}`.
 
         Example: assume the patch version is `v0.29.1`. Change
-        `Full Changelog: https://github.com/google-gemini/gemini-cli/compare/v0.28.2…v0.29.0`
+        `Full Changelog: https://github.com/haseeb-heaven/open-agent/compare/v0.28.2…v0.29.0`
         to
-        `Full Changelog: https://github.com/google-gemini/gemini-cli/compare/v0.28.2…v0.29.1`
+        `Full Changelog: https://github.com/haseeb-heaven/open-agent/compare/v0.28.2…v0.29.1`
 
 ### B.2: Preview Patch (e.g., `v0.29.0-preview.3`)
 
@@ -154,9 +154,9 @@ instructions for the other section.
         it to be `...{version}`.
 
         Example: assume the patch version is `v0.29.0-preview.1`. Change
-        `Full Changelog: https://github.com/google-gemini/gemini-cli/compare/v0.28.2…v0.29.0-preview.0`
+        `Full Changelog: https://github.com/haseeb-heaven/open-agent/compare/v0.28.2…v0.29.0-preview.0`
         to
-        `Full Changelog: https://github.com/google-gemini/gemini-cli/compare/v0.28.2…v0.29.0-preview.1`
+        `Full Changelog: https://github.com/haseeb-heaven/open-agent/compare/v0.28.2…v0.29.0-preview.1`
 
 ---
 

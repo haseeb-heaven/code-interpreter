@@ -111,7 +111,7 @@ assign or unassign the issue as requested, provided the conditions are met
 
 Please note that you can have a maximum of 3 issues assigned to you at any given
 time and that only
-[issues labeled "help wanted"](https://github.com/google-gemini/gemini-cli/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22help%20wanted%22)
+[issues labeled "help wanted"](https://github.com/haseeb-heaven/open-agent/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22help%20wanted%22)
 may be self-assigned.
 
 ### Pull request guidelines
@@ -216,7 +216,7 @@ development setup of this project.
 To clone the repository:
 
 ```bash
-git clone https://github.com/google-gemini/gemini-cli.git # Or your fork's URL
+git clone https://github.com/haseeb-heaven/open-agent.git # Or your fork's URL
 cd gemini-cli
 ```
 
@@ -349,7 +349,7 @@ npm run lint
 - Please adhere to the coding style, patterns, and conventions used throughout
   the existing codebase.
 - Consult
-  [GEMINI.md](https://github.com/google-gemini/gemini-cli/blob/main/GEMINI.md)
+  [GEMINI.md](https://github.com/haseeb-heaven/open-agent/blob/main/GEMINI.md)
   (typically found in the project root) for specific instructions related to
   AI-assisted development, including conventions for React, comments, and Git
   usage.
@@ -510,7 +510,7 @@ code.
 ### Documentation structure
 
 Our documentation is organized using
-[sidebar.json](https://github.com/google-gemini/gemini-cli/blob/main/docs/sidebar.json)
+[sidebar.json](https://github.com/haseeb-heaven/open-agent/blob/main/docs/sidebar.json)
 as the table of contents. When adding new documentation:
 
 1. Create your markdown file **in the appropriate directory** under `/docs`.
@@ -564,7 +564,7 @@ If you have questions about contributing documentation:
 
 - Check our [FAQ](https://geminicli.com/docs/resources/faq).
 - Review existing documentation for examples.
-- Open [an issue](https://github.com/google-gemini/gemini-cli/issues) to discuss
+- Open [an issue](https://github.com/haseeb-heaven/open-agent/issues) to discuss
   your proposed changes.
 - Reach out to the maintainers.
 

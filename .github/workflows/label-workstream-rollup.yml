@@ -9,7 +9,7 @@ on:
 
 jobs:
   labeler:
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "github.repository == 'haseeb-heaven/open-agent'"
     runs-on: 'ubuntu-latest'
     permissions:
       issues: 'write'
@@ -22,11 +22,11 @@ jobs:
 
             // Allow-list of parent issue URLs
             const allowedParentUrls = [
-              'https://github.com/google-gemini/gemini-cli/issues/15374',
-              'https://github.com/google-gemini/gemini-cli/issues/15456',
-              'https://github.com/google-gemini/gemini-cli/issues/15324',
-              'https://github.com/google-gemini/gemini-cli/issues/17202',
-              'https://github.com/google-gemini/gemini-cli/issues/17203'
+              'https://github.com/haseeb-heaven/open-agent/issues/15374',
+              'https://github.com/haseeb-heaven/open-agent/issues/15456',
+              'https://github.com/haseeb-heaven/open-agent/issues/15324',
+              'https://github.com/haseeb-heaven/open-agent/issues/17202',
+              'https://github.com/haseeb-heaven/open-agent/issues/17203'
             ];
 
             // Single issue processing (for event triggers)

@@ -14,7 +14,7 @@ jobs:
   generate-report:
     name: 'Generate Report 📝'
     if: |-
-      ${{ github.repository == 'google-gemini/gemini-cli' }}
+      ${{ github.repository == 'haseeb-heaven/open-agent' }}
     runs-on: 'ubuntu-latest'
     permissions:
       issues: 'write'

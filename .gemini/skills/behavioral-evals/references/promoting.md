@@ -9,7 +9,7 @@ to stable suites.
 
 1.  **Audit Nightly Logs**: Use the `gh` CLI to fetch results from
     `evals-nightly.yml` (Direct URL:
-    `https://github.com/google-gemini/gemini-cli/actions/workflows/evals-nightly.yml`).
+    `https://github.com/haseeb-heaven/open-agent/actions/workflows/evals-nightly.yml`).
     - **Tip**: The aggregate summary from the most recent run integrates the
       last 7 runs of history automatically.
     - **Safety**: DO NOT push changes or start remote runs. All verification is

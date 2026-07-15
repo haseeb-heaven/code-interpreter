@@ -53,7 +53,7 @@ debug:
 
 
 run-npx:
-	npx https://github.com/google-gemini/gemini-cli
+	npx https://github.com/haseeb-heaven/open-agent
 
 create-alias:
 	scripts/create_alias.sh

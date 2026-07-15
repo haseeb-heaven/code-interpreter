@@ -504,6 +504,6 @@ gemini --approval-mode plan -p "Analyze telemetry and suggest improvements"
 ```
 
 [`plan.toml`]:
-  https://github.com/google-gemini/gemini-cli/blob/main/packages/core/src/policy/policies/plan.toml
+  https://github.com/haseeb-heaven/open-agent/blob/main/packages/core/src/policy/policies/plan.toml
 [Conductor]: https://github.com/gemini-cli-extensions/conductor
-[open an issue]: https://github.com/google-gemini/gemini-cli/issues
+[open an issue]: https://github.com/haseeb-heaven/open-agent/issues

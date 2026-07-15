@@ -9,7 +9,7 @@ jobs:
   label-issue:
     runs-on: 'ubuntu-latest'
     if: |-
-      ${{ github.repository == 'google-gemini/gemini-cli' || github.repository == 'google-gemini/maintainers-gemini-cli' }}
+      ${{ github.repository == 'haseeb-heaven/open-agent' || github.repository == 'google-gemini/maintainers-gemini-cli' }}
     steps:
       - name: 'Generate GitHub App Token'
         id: 'generate_token'

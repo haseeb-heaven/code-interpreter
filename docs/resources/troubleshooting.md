@@ -84,7 +84,7 @@ topics on:
   - **Solution:** The update depends on how you installed Gemini CLI:
     - If you installed `gemini` globally, check that your `npm` global binary
       directory is in your `PATH`. You can update Gemini CLI using the command
-      `npm install -g @google/gemini-cli@latest`.
+      `npm install -g open-agent@latest`.
     - If you are running `gemini` from source, ensure you are using the correct
       command to invoke it (for example, `node packages/cli/dist/index.js ...`).
       To update Gemini CLI, pull the latest changes from the repository, and
@@ -137,7 +137,7 @@ topics on:
 - **Warning: `npm WARN deprecated node-domexception@1.0.0` or
   `npm WARN deprecated glob` during install/update**
   - **Issue:** When installing or updating Gemini CLI globally via
-    `npm install -g @google/gemini-cli` or `npm update -g @google/gemini-cli`,
+    `npm install -g open-agent` or `npm update -g open-agent`,
     you might see deprecation warnings regarding `node-domexception` or old
     versions of `glob`.
   - **Cause:** These warnings occur because some dependencies (or their
@@ -196,7 +196,7 @@ is especially useful for scripting and automation.
 
 If you encounter an issue that was not covered here in this _Troubleshooting
 guide_, consider searching Gemini CLI
-[Issue tracker on GitHub](https://github.com/google-gemini/gemini-cli/issues).
+[Issue tracker on GitHub](https://github.com/haseeb-heaven/open-agent/issues).
 If you can't find an issue similar to yours, consider creating a new GitHub
 Issue with a detailed description. Pull requests are also welcome!
 

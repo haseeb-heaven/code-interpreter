@@ -3,7 +3,7 @@
 Gemini CLI is an open-source tool that lets you interact with Google's powerful
 AI services directly from your command-line interface. Gemini CLI software is
 licensed under the
-[Apache 2.0 license](https://github.com/google-gemini/gemini-cli/blob/main/LICENSE).
+[Apache 2.0 license](https://github.com/haseeb-heaven/open-agent/blob/main/LICENSE).
 When you use Gemini CLI to access or use Google’s services, the Terms of Service
 and Privacy Notices applicable to those services apply to such access and use.
 
@@ -101,4 +101,4 @@ backend, these Terms of Service and Privacy Notice documents apply:
 
 You may opt-out from sending Gemini CLI Usage Statistics to Google by following
 the instructions available here:
-[Usage Statistics Configuration](https://github.com/google-gemini/gemini-cli/blob/main/docs/reference/configuration.md#usage-statistics).
+[Usage Statistics Configuration](https://github.com/haseeb-heaven/open-agent/blob/main/docs/reference/configuration.md#usage-statistics).

@@ -37,7 +37,7 @@ jobs:
     permissions: 'read-all'
     name: 'Merge Queue Skipper'
     runs-on: 'gemini-cli-ubuntu-16-core'
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "github.repository == 'haseeb-heaven/open-agent'"
     outputs:
       skip: '${{ steps.merge-queue-ci-skipper.outputs.skip-check }}'
     steps:
@@ -50,7 +50,7 @@ jobs:
     name: 'Lint'
     runs-on: 'gemini-cli-ubuntu-16-core'
     needs: 'merge_queue_skipper'
-    if: "github.repository == 'google-gemini/gemini-cli' && needs.merge_queue_skipper.outputs.skip == 'false'"
+    if: "github.repository == 'haseeb-heaven/open-agent' && needs.merge_queue_skipper.outputs.skip == 'false'"
     env:
       GEMINI_LINT_TEMP_DIR: '${{ github.workspace }}/.gemini-linters'
     steps:
@@ -127,7 +127,7 @@ jobs:
   link_checker:
     name: 'Link Checker'
     runs-on: 'ubuntu-latest'
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "github.repository == 'haseeb-heaven/open-agent'"
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8' # ratchet:actions/checkout@v5
@@ -143,7 +143,7 @@ jobs:
     runs-on: 'gemini-cli-ubuntu-16-core'
     needs:
       - 'merge_queue_skipper'
-    if: "github.repository == 'google-gemini/gemini-cli' && needs.merge_queue_skipper.outputs.skip == 'false'"
+    if: "github.repository == 'haseeb-heaven/open-agent' && needs.merge_queue_skipper.outputs.skip == 'false'"
     permissions:
       contents: 'read'
       checks: 'write'
@@ -187,10 +187,10 @@ jobs:
           GEMINI_CLI_TRUST_WORKSPACE: true
         run: |
           if [[ "${{ matrix.shard }}" == "cli" ]]; then
-            npm run test:ci --workspace "@google/gemini-cli"
+            npm run test:ci --workspace "open-agent"
           else
             # Explicitly list non-cli packages to ensure they are sharded correctly
-            npm run test:ci --workspace "@google/gemini-cli-core" --workspace "@google/gemini-cli-a2a-server" --workspace "gemini-cli-vscode-ide-companion" --workspace "@google/gemini-cli-test-utils" --if-present -- --coverage.enabled=false
+            npm run test:ci --workspace "@open-agent/core" --workspace "@open-agent/a2a-server" --workspace "open-agent-vscode-ide-companion" --workspace "@open-agent/test-utils" --if-present -- --coverage.enabled=false
             npm run test:scripts
           fi
 
@@ -239,7 +239,7 @@ jobs:
     runs-on: 'macos-latest-large'
     needs:
       - 'merge_queue_skipper'
-    if: "github.repository == 'google-gemini/gemini-cli' && needs.merge_queue_skipper.outputs.skip == 'false'"
+    if: "github.repository == 'haseeb-heaven/open-agent' && needs.merge_queue_skipper.outputs.skip == 'false'"
     permissions:
       contents: 'read'
       checks: 'write'
@@ -278,10 +278,10 @@ jobs:
           GEMINI_CLI_TRUST_WORKSPACE: true
         run: |
           if [[ "${{ matrix.shard }}" == "cli" ]]; then
-            npm run test:ci --workspace "@google/gemini-cli" -- --coverage.enabled=false
+            npm run test:ci --workspace "open-agent" -- --coverage.enabled=false
           else
             # Explicitly list non-cli packages to ensure they are sharded correctly
-            npm run test:ci --workspace "@google/gemini-cli-core" --workspace "@google/gemini-cli-a2a-server" --workspace "gemini-cli-vscode-ide-companion" --workspace "@google/gemini-cli-test-utils" --if-present -- --coverage.enabled=false
+            npm run test:ci --workspace "@open-agent/core" --workspace "@open-agent/a2a-server" --workspace "open-agent-vscode-ide-companion" --workspace "@open-agent/test-utils" --if-present -- --coverage.enabled=false
             npm run test:scripts
           fi
 
@@ -337,7 +337,7 @@ jobs:
     name: 'CodeQL'
     runs-on: 'gemini-cli-ubuntu-16-core'
     needs: 'merge_queue_skipper'
-    if: "github.repository == 'google-gemini/gemini-cli' && needs.merge_queue_skipper.outputs.skip == 'false'"
+    if: "github.repository == 'haseeb-heaven/open-agent' && needs.merge_queue_skipper.outputs.skip == 'false'"
     permissions:
       actions: 'read'
       contents: 'read'
@@ -361,7 +361,7 @@ jobs:
   bundle_size:
     name: 'Check Bundle Size'
     needs: 'merge_queue_skipper'
-    if: "github.repository == 'google-gemini/gemini-cli' && github.event_name == 'pull_request' && needs.merge_queue_skipper.outputs.skip == 'false'"
+    if: "github.repository == 'haseeb-heaven/open-agent' && github.event_name == 'pull_request' && needs.merge_queue_skipper.outputs.skip == 'false'"
     runs-on: 'gemini-cli-ubuntu-16-core'
     permissions:
       contents: 'read' # For checkout
@@ -387,7 +387,7 @@ jobs:
     name: 'Slow Test - Win - ${{ matrix.shard }}'
     runs-on: 'gemini-cli-windows-16-core'
     needs: 'merge_queue_skipper'
-    if: "github.repository == 'google-gemini/gemini-cli' && needs.merge_queue_skipper.outputs.skip == 'false'"
+    if: "github.repository == 'haseeb-heaven/open-agent' && needs.merge_queue_skipper.outputs.skip == 'false'"
     timeout-minutes: 60
     strategy:
       matrix:
@@ -448,11 +448,11 @@ jobs:
           NODE_ENV: 'test'
         run: |
           if ("${{ matrix.shard }}" -eq "cli") {
-            npm run test:ci --workspace "@google/gemini-cli" -- --coverage.enabled=false
+            npm run test:ci --workspace "open-agent" -- --coverage.enabled=false
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           } else {
             # Explicitly list non-cli packages to ensure they are sharded correctly
-            npm run test:ci --workspace "@google/gemini-cli-core" --workspace "@google/gemini-cli-a2a-server" --workspace "gemini-cli-vscode-ide-companion" --workspace "@google/gemini-cli-test-utils" --if-present -- --coverage.enabled=false
+            npm run test:ci --workspace "@open-agent/core" --workspace "@open-agent/a2a-server" --workspace "open-agent-vscode-ide-companion" --workspace "@open-agent/test-utils" --if-present -- --coverage.enabled=false
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             npm run test:scripts
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -484,7 +484,7 @@ jobs:
 
   ci:
     name: 'CI'
-    if: "github.repository == 'google-gemini/gemini-cli' && always()"
+    if: "github.repository == 'haseeb-heaven/open-agent' && always()"
     needs:
       - 'lint'
       - 'link_checker'

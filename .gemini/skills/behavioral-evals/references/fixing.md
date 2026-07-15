@@ -10,7 +10,7 @@ evaluation.
 1.  **Fetch Nightly Results**: Use the `gh` CLI to inspect the latest run from
     `evals-nightly.yml` if applicable.
     - _Example view URL_:
-      `https://github.com/google-gemini/gemini-cli/actions/workflows/evals-nightly.yml`
+      `https://github.com/haseeb-heaven/open-agent/actions/workflows/evals-nightly.yml`
 2.  **Isolate**: DO NOT push changes or start remote runs. Confine investigation
     to the local workspace.
 3.  **Read Logs**:

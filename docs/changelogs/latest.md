@@ -6,7 +6,7 @@ For most users, our latest stable release is the recommended release. Install
 the latest stable version with:
 
 ```
-npm install -g @google/gemini-cli
+npm install -g open-agent
 ```
 
 ## Highlights
@@ -22,13 +22,13 @@ npm install -g @google/gemini-cli
 ## What's Changed
 
 - fix/verify release npm ci ignore scripts by @rmedranollamas in
-  [#28116](https://github.com/google-gemini/gemini-cli/pull/28116)
+  [#28116](https://github.com/haseeb-heaven/open-agent/pull/28116)
 - fix(ci): prevent workspace binary shadowing in release verification by
-  @galdawave in [#28132](https://github.com/google-gemini/gemini-cli/pull/28132)
+  @galdawave in [#28132](https://github.com/haseeb-heaven/open-agent/pull/28132)
 - Feat/tool registry discovery by @ved015 in
-  [#28113](https://github.com/google-gemini/gemini-cli/pull/28113)
+  [#28113](https://github.com/haseeb-heaven/open-agent/pull/28113)
 - fix(ci): prevent bad NPM releases and promote job crashes by @galdawave in
-  [#28147](https://github.com/google-gemini/gemini-cli/pull/28147)
+  [#28147](https://github.com/haseeb-heaven/open-agent/pull/28147)
 
 **Full Changelog**:
-https://github.com/google-gemini/gemini-cli/compare/v0.49.0...v0.50.0
+https://github.com/haseeb-heaven/open-agent/compare/v0.49.0...v0.50.0

@@ -6,7 +6,7 @@ For most users, our latest stable release is the recommended release. Install
 the latest stable version with:
 
 ```
-npm install -g @google/gemini-cli
+npm install -g open-agent
 ```
 
 ## Highlights

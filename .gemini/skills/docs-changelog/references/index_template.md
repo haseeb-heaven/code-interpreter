@@ -5,6 +5,6 @@
 <!-- Example entry, multiple entries per highlights
   - **Highlighted Feature:** We've added a new highlighted feature to help
   you generate prompt suggestions
-  ([#nnnnn](https://github.com/google-gemini/gemini-cli/pull/nnnnn) by
+  ([#nnnnn](https://github.com/haseeb-heaven/open-agent/pull/nnnnn) by
   @author).
 -->

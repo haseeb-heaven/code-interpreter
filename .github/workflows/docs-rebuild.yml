@@ -7,7 +7,7 @@ on:
       - 'docs/**'
 jobs:
   trigger-rebuild:
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "github.repository == 'haseeb-heaven/open-agent'"
     runs-on: 'ubuntu-latest'
     steps:
       - name: 'Trigger rebuild'

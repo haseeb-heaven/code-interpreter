@@ -139,8 +139,8 @@ Adding traces helps you debug and understand the flow of execution. Use the
 Here is a basic example:
 
 ```typescript
-import { runInDevTraceSpan } from '@google/gemini-cli-core';
-import { GeminiCliOperation } from '@google/gemini-cli-core/lib/telemetry/constants.js';
+import { runInDevTraceSpan } from '@open-agent/core';
+import { GeminiCliOperation } from '@open-agent/core/lib/telemetry/constants.js';
 
 await runInDevTraceSpan(
   {

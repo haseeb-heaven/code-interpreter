@@ -127,7 +127,7 @@ There are three possible decisions a rule can enforce:
 > [!WARNING] The **Workspace** tier (project-level policies) is currently
 > non-functional. Defining policies in a workspace's `.gemini/policies`
 > directory will not have any effect. See
-> [issue #18186](https://github.com/google-gemini/gemini-cli/issues/18186). Use
+> [issue #18186](https://github.com/haseeb-heaven/open-agent/issues/18186). Use
 > User or Admin policies instead.
 
 The policy engine uses a sophisticated priority system to resolve conflicts when

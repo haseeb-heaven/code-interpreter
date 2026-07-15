@@ -8,7 +8,7 @@ prerequisites, quickstart, and configuration.
 Before using sandboxing, you need to install and set up Gemini CLI:
 
 ```bash
-npm install -g @google/gemini-cli
+npm install -g open-agent
 ```
 
 To verify the installation:

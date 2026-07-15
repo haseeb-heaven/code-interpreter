@@ -31,12 +31,12 @@ runs:
     - name: 'build'
       shell: 'bash'
       run: 'npm run build'
-    - name: 'pack @google/gemini-cli'
+    - name: 'pack open-agent'
       shell: 'bash'
-      run: 'npm pack -w @google/gemini-cli --pack-destination ./packages/cli/dist'
-    - name: 'pack @google/gemini-cli-core'
+      run: 'npm pack -w open-agent --pack-destination ./packages/cli/dist'
+    - name: 'pack @open-agent/core'
       shell: 'bash'
-      run: 'npm pack -w @google/gemini-cli-core --pack-destination ./packages/core/dist'
+      run: 'npm pack -w @open-agent/core --pack-destination ./packages/core/dist'
     - name: 'Log in to GitHub Container Registry'
       uses: 'docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1' # ratchet:docker/login-action@v3
       with:

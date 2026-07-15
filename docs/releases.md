@@ -22,9 +22,9 @@ More information can be found about these systems in the
 
 | Package    | `prod` (Wombat Dressing Room) | `dev` (GitHub Private NPM Repo)           |
 | ---------- | ----------------------------- | ----------------------------------------- |
-| CLI        | @google/gemini-cli            | @google-gemini/gemini-cli                 |
-| Core       | @google/gemini-cli-core       | @google-gemini/gemini-cli-core A2A Server |
-| A2A Server | @google/gemini-cli-a2a-server | @google-gemini/gemini-cli-a2a-server      |
+| CLI        | open-agent            | @haseeb-heaven/open-agent                 |
+| Core       | @open-agent/core       | @haseeb-heaven/open-agent-core A2A Server |
+| A2A Server | @open-agent/a2a-server | @haseeb-heaven/open-agent-a2a-server      |
 
 ## Release cadence and tags
 
@@ -48,7 +48,7 @@ These releases will not have been fully vetted and may contain regressions or
 other outstanding issues. Help us test and install with `preview` tag.
 
 ```bash
-npm install -g @google/gemini-cli@preview
+npm install -g open-agent@preview
 ```
 
 ### Stable
@@ -57,7 +57,7 @@ This will be the full promotion of last week's release + any bug fixes and
 validations. Use `latest` tag.
 
 ```bash
-npm install -g @google/gemini-cli@latest
+npm install -g open-agent@latest
 ```
 
 ### Nightly
@@ -67,7 +67,7 @@ npm install -g @google/gemini-cli@latest
   there are pending validations and issues. Use `nightly` tag.
 
 ```bash
-npm install -g @google/gemini-cli@nightly
+npm install -g open-agent@nightly
 ```
 
 ## Weekly release promotion
@@ -380,12 +380,12 @@ packages are working as expected. This can be done by installing the packages
 locally and running a set of tests to ensure that they are functioning
 correctly.
 
-- `npx -y @google/gemini-cli@latest --version` to validate the push worked as
+- `npx -y open-agent@latest --version` to validate the push worked as
   expected if you were not doing a rc or dev tag
-- `npx -y @google/gemini-cli@<release tag> --version` to validate the tag pushed
+- `npx -y open-agent@<release tag> --version` to validate the tag pushed
   appropriately
 - _This is destructive locally_
-  `npm uninstall @google/gemini-cli && npm uninstall -g @google/gemini-cli && npm cache clean --force &&  npm install @google/gemini-cli@<version>`
+  `npm uninstall open-agent && npm uninstall -g open-agent && npm cache clean --force &&  npm install open-agent@<version>`
 - Smoke testing a basic run through of exercising a few llm commands and tools
   is recommended to ensure that the packages are working as expected. We'll
   codify this more in the future.
@@ -397,7 +397,7 @@ creating a public GitHub release, you can trigger the workflow manually from the
 GitHub UI.
 
 1.  Go to the
-    [Actions tab](https://github.com/google-gemini/gemini-cli/actions/workflows/release-manual.yml)
+    [Actions tab](https://github.com/haseeb-heaven/open-agent/actions/workflows/release-manual.yml)
     of the repository.
 2.  Click on the "Run workflow" dropdown.
 3.  Leave the `dry_run` option checked (`true`).
@@ -463,10 +463,10 @@ Here are the key stages:
 **Stage 3: Publishing standard packages to NPM**
 
 - **What happens:** The `npm publish` command is run for the
-  `@google/gemini-cli-core` and `@google/gemini-cli` packages.
+  `@open-agent/core` and `open-agent` packages.
 - **Why:** This publishes them as standard Node.js packages. Users installing
-  via `npm install -g @google/gemini-cli` will download these packages, and
-  `npm` will handle installing the `@google/gemini-cli-core` dependency
+  via `npm install -g open-agent` will download these packages, and
+  `npm` will handle installing the `@open-agent/core` dependency
   automatically. The code in these packages is not bundled into a single file.
 
 **Stage 4: Assembling and creating the GitHub release asset**
@@ -504,14 +504,14 @@ executable that enables `npx` usage directly from the GitHub repository.
       `gemini.js` executable, are attached as assets to a new GitHub Release.
     - **Why:** This makes the single-file version of the CLI available for
       direct download and enables the
-      `npx https://github.com/google-gemini/gemini-cli` command, which downloads
+      `npx https://github.com/haseeb-heaven/open-agent` command, which downloads
       and runs this specific bundled asset.
 
 **Summary of artifacts**
 
 - **NPM:** Publishes standard, un-bundled Node.js packages. The primary artifact
   is the code in `packages/cli/dist`, which depends on
-  `@google/gemini-cli-core`.
+  `@open-agent/core`.
 - **GitHub release:** Publishes a single, bundled `gemini.js` file that contains
   all dependencies, for easy execution via `npx`.
 

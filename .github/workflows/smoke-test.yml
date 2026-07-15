@@ -20,7 +20,7 @@ on:
 
 jobs:
   smoke-test:
-    if: "github.repository == 'google-gemini/gemini-cli'"
+    if: "github.repository == 'haseeb-heaven/open-agent'"
     runs-on: 'ubuntu-latest'
     permissions:
       contents: 'write'

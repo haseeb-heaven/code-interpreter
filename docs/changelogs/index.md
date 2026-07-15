@@ -7,7 +7,7 @@ On this page, you can find information regarding the current releases and
 announcements from each release.
 
 For the full changelog, refer to
-[Releases - google-gemini/gemini-cli](https://github.com/google-gemini/gemini-cli/releases)
+[Releases - haseeb-heaven/open-agent](https://github.com/haseeb-heaven/open-agent/releases)
 on GitHub.
 
 ## Current releases
@@ -22,168 +22,168 @@ on GitHub.
 
 - **Tool Registry Discovery:** Introduced tool registry discovery capabilities
   to automatically detect and register available tools
-  ([#28113](https://github.com/google-gemini/gemini-cli/pull/28113) by @ved015).
+  ([#28113](https://github.com/haseeb-heaven/open-agent/pull/28113) by @ved015).
 - **Release Verification & CI Stability:** Enhanced release verification by
   ignoring scripts during verification, preventing workspace binary shadowing,
   and safeguarding against bad NPM releases
-  ([#28116](https://github.com/google-gemini/gemini-cli/pull/28116) by
+  ([#28116](https://github.com/haseeb-heaven/open-agent/pull/28116) by
   @rmedranollamas,
-  [#28132](https://github.com/google-gemini/gemini-cli/pull/28132) by
+  [#28132](https://github.com/haseeb-heaven/open-agent/pull/28132) by
   @galdawave).
 
 ## Announcements: v0.45.0 - 2026-06-03
 
 - **Context Simplification:** Completed major architectural work to simplify the
   `ContextManager`, improving system robustness and performance
-  ([#27345](https://github.com/google-gemini/gemini-cli/pull/27345) by
+  ([#27345](https://github.com/haseeb-heaven/open-agent/pull/27345) by
   @joshualitt).
 - **A2A Usage Metadata:** Exposed critical usage metadata in the Agent-to-Agent
   (A2A) protocol for better resource tracking
-  ([#27288](https://github.com/google-gemini/gemini-cli/pull/27288) by
+  ([#27288](https://github.com/haseeb-heaven/open-agent/pull/27288) by
   @jvargassanchez-dot).
 - **Reliability Fixes:** Addressed Termux relaunch loops, PTY resize errors, and
   forced sequential execution for topic updates
-  ([#27110](https://github.com/google-gemini/gemini-cli/pull/27110) by @saymanq,
-  [#27357](https://github.com/google-gemini/gemini-cli/pull/27357) by
+  ([#27110](https://github.com/haseeb-heaven/open-agent/pull/27110) by @saymanq,
+  [#27357](https://github.com/haseeb-heaven/open-agent/pull/27357) by
   @jvargassanchez-dot,
-  [#27461](https://github.com/google-gemini/gemini-cli/pull/27461) by
+  [#27461](https://github.com/haseeb-heaven/open-agent/pull/27461) by
   @scidomino).
 
 ## Announcements: v0.44.0 - 2026-05-27
 
 - **Unified Auto Mode:** Streamlined the automation experience by merging
   specialized Auto modes into a single, unified mode
-  ([#26714](https://github.com/google-gemini/gemini-cli/pull/26714) by
+  ([#26714](https://github.com/haseeb-heaven/open-agent/pull/26714) by
   @DavidAPierce).
 - **New Editor Integrations:** Added native support for Sublime Text and Emacs
-  Client ([#21090](https://github.com/google-gemini/gemini-cli/pull/21090) by
+  Client ([#21090](https://github.com/haseeb-heaven/open-agent/pull/21090) by
   @alberti42).
 - **Enhanced TUI Testing:** Introduced `agent-tui` and `tui-tester` skills for
   programmatic testing and automation of terminal UI applications
-  ([#27121](https://github.com/google-gemini/gemini-cli/pull/27121) by
+  ([#27121](https://github.com/haseeb-heaven/open-agent/pull/27121) by
   @adamfweidman).
 
 ## Announcements: v0.43.0 - 2026-05-22
 
 - **Surgical Code Edits:** Steered Gemini models to prefer the `edit` tool for
   surgical modifications, improving speed and precision
-  ([#26480](https://github.com/google-gemini/gemini-cli/pull/26480) by
+  ([#26480](https://github.com/haseeb-heaven/open-agent/pull/26480) by
   @aishaneeshah).
 - **Session Export and Import:** Added the ability to export sessions to files
   and import them via a new flag, facilitating session portability
-  ([#26514](https://github.com/google-gemini/gemini-cli/pull/26514) by
+  ([#26514](https://github.com/haseeb-heaven/open-agent/pull/26514) by
   @cocosheng-g).
 - **Adaptive Token Estimation:** Introduced an adaptive token calculator for
   more accurate content size estimation, enhancing context management efficiency
-  ([#26888](https://github.com/google-gemini/gemini-cli/pull/26888) by
+  ([#26888](https://github.com/haseeb-heaven/open-agent/pull/26888) by
   @joshualitt).
 
 ## Announcements: v0.42.0 - 2026-05-12
 
 - **Auto Memory Inbox:** Introduced a new inbox flow for Auto Memory with a
   canonical-patch contract for seamless skill management
-  ([#26338](https://github.com/google-gemini/gemini-cli/pull/26338) by
+  ([#26338](https://github.com/haseeb-heaven/open-agent/pull/26338) by
   @SandyTao520).
 - **Gemma 4 by Default:** Enabled Gemma 4 models by default via the Gemini API
   for all users
-  ([#26307](https://github.com/google-gemini/gemini-cli/pull/26307) by
+  ([#26307](https://github.com/haseeb-heaven/open-agent/pull/26307) by
   @Abhijit-2592).
 - **Voice Mode Enhancements:** Added wave animations and privacy/compliance UX
   warnings for the Gemini Live backend
-  ([#26284](https://github.com/google-gemini/gemini-cli/pull/26284) by
-  @devr0306, [#26454](https://github.com/google-gemini/gemini-cli/pull/26454) by
+  ([#26284](https://github.com/haseeb-heaven/open-agent/pull/26284) by
+  @devr0306, [#26454](https://github.com/haseeb-heaven/open-agent/pull/26454) by
   @cocosheng-g).
 
 ## Announcements: v0.41.0 - 2026-05-05
 
 - **Real-time Voice Mode:** Implemented real-time voice mode with cloud and
   local backends
-  ([#24174](https://github.com/google-gemini/gemini-cli/pull/24174) by
+  ([#24174](https://github.com/haseeb-heaven/open-agent/pull/24174) by
   @Abhijit-2592).
 - **Secure Environment Loading:** Enforced workspace trust and secured .env
   loading in headless mode
-  ([#25814](https://github.com/google-gemini/gemini-cli/pull/25814) by
+  ([#25814](https://github.com/haseeb-heaven/open-agent/pull/25814) by
   @ehedlund).
 - **Advanced Shell Validation:** Enhanced shell command validation and added
   core tools allowlist for improved security
-  ([#25720](https://github.com/google-gemini/gemini-cli/pull/25720) by @galz10).
+  ([#25720](https://github.com/haseeb-heaven/open-agent/pull/25720) by @galz10).
 
 ## Announcements: v0.40.0 - 2026-04-28
 
 - **Offline Search and Themes:** Bundled ripgrep for offline search support and
   added GitHub-style colorblind themes
-  ([#25342](https://github.com/google-gemini/gemini-cli/pull/25342) by
-  @scidomino, [#15504](https://github.com/google-gemini/gemini-cli/pull/15504)
+  ([#25342](https://github.com/haseeb-heaven/open-agent/pull/25342) by
+  @scidomino, [#15504](https://github.com/haseeb-heaven/open-agent/pull/15504)
   by @Z1xus).
 - **Advanced Resource and Memory Management:** Introduced MCP resource tools and
   transitioned to a prompt-driven, four-tier memory management system
-  ([#25395](https://github.com/google-gemini/gemini-cli/pull/25395) by
-  @ruomengz, [#25716](https://github.com/google-gemini/gemini-cli/pull/25716) by
+  ([#25395](https://github.com/haseeb-heaven/open-agent/pull/25395) by
+  @ruomengz, [#25716](https://github.com/haseeb-heaven/open-agent/pull/25716) by
   @SandyTao520).
 - **UX and Local Models:** Enabled topic update narrations by default and
   streamlined Gemma local model setup with `gemini gemma`
-  ([#25586](https://github.com/google-gemini/gemini-cli/pull/25586) by
-  @gundermanc, [#25498](https://github.com/google-gemini/gemini-cli/pull/25498)
+  ([#25586](https://github.com/haseeb-heaven/open-agent/pull/25586) by
+  @gundermanc, [#25498](https://github.com/haseeb-heaven/open-agent/pull/25498)
   by @Samee24).
 
 ## Announcements: v0.39.0 - 2026-04-23
 
 - **Skill Management:** Added a new `/memory` inbox command for reviewing and
   patching skills extracted during sessions
-  ([#24544](https://github.com/google-gemini/gemini-cli/pull/24544) by
-  @SandyTao520, [#25148](https://github.com/google-gemini/gemini-cli/pull/25148)
+  ([#24544](https://github.com/haseeb-heaven/open-agent/pull/24544) by
+  @SandyTao520, [#25148](https://github.com/haseeb-heaven/open-agent/pull/25148)
   by @SandyTao520).
 - **Improved Transparency:** Plan Mode now requires confirmation for skill
   activation and allows plan inspection
-  ([#24946](https://github.com/google-gemini/gemini-cli/pull/24946),
-  [#25058](https://github.com/google-gemini/gemini-cli/pull/25058) by
+  ([#24946](https://github.com/haseeb-heaven/open-agent/pull/24946),
+  [#25058](https://github.com/haseeb-heaven/open-agent/pull/25058) by
   @ruomengz).
 - **Architecture & Reliability:** Introduced a decoupled `ContextManager`
   architecture and resolved several critical memory leaks and PTY exhaustion
-  issues ([#24752](https://github.com/google-gemini/gemini-cli/pull/24752) by
-  @joshualitt, [#25079](https://github.com/google-gemini/gemini-cli/pull/25079)
+  issues ([#24752](https://github.com/haseeb-heaven/open-agent/pull/24752) by
+  @joshualitt, [#25079](https://github.com/haseeb-heaven/open-agent/pull/25079)
   by @spencer426).
 
 ## Announcements: v0.38.0 - 2026-04-14
 
 - **Chapters Narrative Flow:** Group agent interactions into "Chapters" based on
   intent and tool usage for better session structure
-  ([#23150](https://github.com/google-gemini/gemini-cli/pull/23150) by
+  ([#23150](https://github.com/haseeb-heaven/open-agent/pull/23150) by
   @Abhijit-2592,
-  [#24079](https://github.com/google-gemini/gemini-cli/pull/24079) by
+  [#24079](https://github.com/haseeb-heaven/open-agent/pull/24079) by
   @gundermanc).
 - **Context Compression Service:** Advanced context management to efficiently
   distill conversation history
-  ([#24483](https://github.com/google-gemini/gemini-cli/pull/24483) by
+  ([#24483](https://github.com/haseeb-heaven/open-agent/pull/24483) by
   @joshualitt).
 - **UI Flicker & UX Enhancements:** Solved rendering flicker with "Terminal
   Buffer" mode and introduced selective topic expansion
-  ([#24512](https://github.com/google-gemini/gemini-cli/pull/24512) by
-  @jacob314, [#24793](https://github.com/google-gemini/gemini-cli/pull/24793) by
+  ([#24512](https://github.com/haseeb-heaven/open-agent/pull/24512) by
+  @jacob314, [#24793](https://github.com/haseeb-heaven/open-agent/pull/24793) by
   @Abhijit-2592).
 - **Persistent Policy Approvals:** Implemented context-aware persistent
   approvals for tool execution
-  ([#23257](https://github.com/google-gemini/gemini-cli/pull/23257) by @jerop).
+  ([#23257](https://github.com/haseeb-heaven/open-agent/pull/23257) by @jerop).
 
 ## Announcements: v0.37.0 - 2026-04-08
 
 - **Dynamic Sandbox Expansion:** Implemented dynamic sandbox expansion and
   worktree support for Linux and Windows, improving developer workflows in
   isolated environments
-  ([#23692](https://github.com/google-gemini/gemini-cli/pull/23692) by @galz10,
-  [#23691](https://github.com/google-gemini/gemini-cli/pull/23691) by
+  ([#23692](https://github.com/haseeb-heaven/open-agent/pull/23692) by @galz10,
+  [#23691](https://github.com/haseeb-heaven/open-agent/pull/23691) by
   @scidomino).
 - **Chapters Narrative Flow:** Introduced tool-based topic grouping ("Chapters")
   to provide better session structure and narrative continuity
-  ([#23150](https://github.com/google-gemini/gemini-cli/pull/23150) by
+  ([#23150](https://github.com/haseeb-heaven/open-agent/pull/23150) by
   @Abhijit-2592,
-  [#24079](https://github.com/google-gemini/gemini-cli/pull/24079) by
+  [#24079](https://github.com/haseeb-heaven/open-agent/pull/24079) by
   @gundermanc).
 - **Advanced Browser Capabilities:** Enhanced the browser agent with persistent
   sessions and dynamic tool discovery
-  ([#21306](https://github.com/google-gemini/gemini-cli/pull/21306) by
+  ([#21306](https://github.com/haseeb-heaven/open-agent/pull/21306) by
   @kunal-10-cloud,
-  [#23805](https://github.com/google-gemini/gemini-cli/pull/23805) by
+  [#23805](https://github.com/haseeb-heaven/open-agent/pull/23805) by
   @cynthialong0-0).
 
 ## Announcements: v0.36.0 - 2026-04-01
@@ -191,24 +191,24 @@ on GitHub.
 - **Multi-Registry Architecture and Sandboxing:** Introduced a multi-registry
   architecture and implemented native macOS Seatbelt and Windows sandboxing for
   enhanced subagent security
-  ([#22712](https://github.com/google-gemini/gemini-cli/pull/22712),
-  [#22718](https://github.com/google-gemini/gemini-cli/pull/22718) by @akh64bit,
-  [#22832](https://github.com/google-gemini/gemini-cli/pull/22832) by @ehedlund,
-  [#21807](https://github.com/google-gemini/gemini-cli/pull/21807) by
+  ([#22712](https://github.com/haseeb-heaven/open-agent/pull/22712),
+  [#22718](https://github.com/haseeb-heaven/open-agent/pull/22718) by @akh64bit,
+  [#22832](https://github.com/haseeb-heaven/open-agent/pull/22832) by @ehedlund,
+  [#21807](https://github.com/haseeb-heaven/open-agent/pull/21807) by
   @mattKorwel).
 - **Refreshed Composer UX:** Implemented a refreshed user experience for the
   Composer layout and improved terminal interaction robustness
-  ([#21212](https://github.com/google-gemini/gemini-cli/pull/21212),
-  [#23286](https://github.com/google-gemini/gemini-cli/pull/23286) by
+  ([#21212](https://github.com/haseeb-heaven/open-agent/pull/21212),
+  [#23286](https://github.com/haseeb-heaven/open-agent/pull/23286) by
   @jwhelangoog).
 - **Git Worktree Support:** Added native support for Git worktrees, allowing for
   isolated parallel sessions
-  ([#22973](https://github.com/google-gemini/gemini-cli/pull/22973),
-  [#23265](https://github.com/google-gemini/gemini-cli/pull/23265) by @jerop).
+  ([#22973](https://github.com/haseeb-heaven/open-agent/pull/22973),
+  [#23265](https://github.com/haseeb-heaven/open-agent/pull/23265) by @jerop).
 - **Subagent Context and Feedback:** Enhanced subagents with JIT context
   injection and resilient tool rejection with contextual feedback
-  ([#23032](https://github.com/google-gemini/gemini-cli/pull/23032),
-  [#22951](https://github.com/google-gemini/gemini-cli/pull/22951) by
+  ([#23032](https://github.com/haseeb-heaven/open-agent/pull/23032),
+  [#22951](https://github.com/haseeb-heaven/open-agent/pull/22951) by
   @abhipatel12).
 
 ## Announcements: v0.35.0 - 2026-03-24
@@ -216,98 +216,98 @@ on GitHub.
 - **Customizable Keyboard Shortcuts:** Users can now customize their keyboard
   shortcuts, including support for literal character keybindings and the
   extended Kitty protocol
-  ([#21945](https://github.com/google-gemini/gemini-cli/pull/21945),
-  [#21972](https://github.com/google-gemini/gemini-cli/pull/21972) by
+  ([#21945](https://github.com/haseeb-heaven/open-agent/pull/21945),
+  [#21972](https://github.com/haseeb-heaven/open-agent/pull/21972) by
   @scidomino).
 - **Vim Mode Improvements:** Added missing motions (X, ~, r, f/F/t/T) and
   yank/paste support with the unnamed register
-  ([#21932](https://github.com/google-gemini/gemini-cli/pull/21932),
-  [#22026](https://github.com/google-gemini/gemini-cli/pull/22026) by @aanari).
+  ([#21932](https://github.com/haseeb-heaven/open-agent/pull/21932),
+  [#22026](https://github.com/haseeb-heaven/open-agent/pull/22026) by @aanari).
 - **Tool Isolation and Sandboxing:** Introduced `SandboxManager` to isolate
   process-spawning tools and added Linux bubblewrap/seccomp sandboxing support
-  ([#21774](https://github.com/google-gemini/gemini-cli/pull/21774),
-  [#22231](https://github.com/google-gemini/gemini-cli/pull/22231) by @galz10,
-  [#22680](https://github.com/google-gemini/gemini-cli/pull/22680) by
+  ([#21774](https://github.com/haseeb-heaven/open-agent/pull/21774),
+  [#22231](https://github.com/haseeb-heaven/open-agent/pull/22231) by @galz10,
+  [#22680](https://github.com/haseeb-heaven/open-agent/pull/22680) by
   @DavidAPierce).
 - **JIT Context Discovery:** Implemented Just-In-Time context discovery for file
   system tools to improve model performance and accuracy
-  ([#22082](https://github.com/google-gemini/gemini-cli/pull/22082),
-  [#22736](https://github.com/google-gemini/gemini-cli/pull/22736) by
+  ([#22082](https://github.com/haseeb-heaven/open-agent/pull/22082),
+  [#22736](https://github.com/haseeb-heaven/open-agent/pull/22736) by
   @SandyTao520).
 
 ## Announcements: v0.34.0 - 2026-03-17
 
 - **Plan Mode Enabled by Default:** Plan Mode is now enabled by default to help
   you break down complex tasks and execute them systematically
-  ([#21713](https://github.com/google-gemini/gemini-cli/pull/21713) by @jerop).
+  ([#21713](https://github.com/haseeb-heaven/open-agent/pull/21713) by @jerop).
 - **Sandboxing Enhancements:** We've added native gVisor (runsc) and
   experimental LXC container sandboxing support for safer execution environments
-  ([#21062](https://github.com/google-gemini/gemini-cli/pull/21062) by
-  @Zheyuan-Lin, [#20735](https://github.com/google-gemini/gemini-cli/pull/20735)
+  ([#21062](https://github.com/haseeb-heaven/open-agent/pull/21062) by
+  @Zheyuan-Lin, [#20735](https://github.com/haseeb-heaven/open-agent/pull/20735)
   by @h30s).
 
 ## Announcements: v0.33.0 - 2026-03-11
 
 - **Agent Architecture Enhancements:** Introduced HTTP authentication for A2A
   remote agents and authenticated A2A agent card discovery
-  ([#20510](https://github.com/google-gemini/gemini-cli/pull/20510) by
-  @SandyTao520, [#20622](https://github.com/google-gemini/gemini-cli/pull/20622)
+  ([#20510](https://github.com/haseeb-heaven/open-agent/pull/20510) by
+  @SandyTao520, [#20622](https://github.com/haseeb-heaven/open-agent/pull/20622)
   by @SandyTao520).
 - **Plan Mode Updates:** Expanded Plan Mode with built-in research subagents,
   annotation support for feedback, and a new `copy` subcommand
-  ([#20972](https://github.com/google-gemini/gemini-cli/pull/20972) by @Adib234,
-  [#20988](https://github.com/google-gemini/gemini-cli/pull/20988) by
+  ([#20972](https://github.com/haseeb-heaven/open-agent/pull/20972) by @Adib234,
+  [#20988](https://github.com/haseeb-heaven/open-agent/pull/20988) by
   @ruomengz).
 - **CLI UX & Admin Controls:** Redesigned the header to be compact with an ASCII
   icon, inverted context window display to show usage, and enabled a 30-day
   default retention for chat history
-  ([#18713](https://github.com/google-gemini/gemini-cli/pull/18713) by
-  @keithguerin, [#20853](https://github.com/google-gemini/gemini-cli/pull/20853)
+  ([#18713](https://github.com/haseeb-heaven/open-agent/pull/18713) by
+  @keithguerin, [#20853](https://github.com/haseeb-heaven/open-agent/pull/20853)
   by @skeshive).
 
 ## Announcements: v0.32.0 - 2026-03-03
 
 - **Generalist Agent:** The generalist agent is now enabled to improve task
   delegation and routing
-  ([#19665](https://github.com/google-gemini/gemini-cli/pull/19665) by
+  ([#19665](https://github.com/haseeb-heaven/open-agent/pull/19665) by
   @joshualitt).
 - **Model Steering in Workspace:** Added support for model steering directly in
   the workspace
-  ([#20343](https://github.com/google-gemini/gemini-cli/pull/20343) by
+  ([#20343](https://github.com/haseeb-heaven/open-agent/pull/20343) by
   @joshualitt).
 - **Plan Mode Enhancements:** Users can now open and modify plans in an external
   editor, and the planning workflow has been adapted to handle complex tasks
   more effectively with multi-select options
-  ([#20348](https://github.com/google-gemini/gemini-cli/pull/20348) by @Adib234,
-  [#20465](https://github.com/google-gemini/gemini-cli/pull/20465) by @jerop).
+  ([#20348](https://github.com/haseeb-heaven/open-agent/pull/20348) by @Adib234,
+  [#20465](https://github.com/haseeb-heaven/open-agent/pull/20465) by @jerop).
 - **Interactive Shell Autocompletion:** Introduced interactive shell
   autocompletion for a more seamless experience
-  ([#20082](https://github.com/google-gemini/gemini-cli/pull/20082) by
+  ([#20082](https://github.com/haseeb-heaven/open-agent/pull/20082) by
   @mrpmohiburrahman).
 - **Parallel Extension Loading:** Extensions are now loaded in parallel to
   improve startup times
-  ([#20229](https://github.com/google-gemini/gemini-cli/pull/20229) by
+  ([#20229](https://github.com/haseeb-heaven/open-agent/pull/20229) by
   @scidomino).
 
 ## Announcements: v0.31.0 - 2026-02-27
 
 - **Gemini 3.1 Pro Preview:** Gemini CLI now supports the new Gemini 3.1 Pro
   Preview model
-  ([#19676](https://github.com/google-gemini/gemini-cli/pull/19676) by
+  ([#19676](https://github.com/haseeb-heaven/open-agent/pull/19676) by
   @sehoon38).
 - **Experimental Browser Agent:** We've introduced a new experimental browser
   agent to interact with web pages
-  ([#19284](https://github.com/google-gemini/gemini-cli/pull/19284) by
+  ([#19284](https://github.com/haseeb-heaven/open-agent/pull/19284) by
   @gsquared94).
 - **Policy Engine Updates:** The policy engine now supports project-level
   policies, MCP server wildcards, and tool annotation matching
-  ([#18682](https://github.com/google-gemini/gemini-cli/pull/18682) by
+  ([#18682](https://github.com/haseeb-heaven/open-agent/pull/18682) by
   @Abhijit-2592,
-  [#20024](https://github.com/google-gemini/gemini-cli/pull/20024) by @jerop).
+  [#20024](https://github.com/haseeb-heaven/open-agent/pull/20024) by @jerop).
 - **Web Fetch Improvements:** We've implemented an experimental direct web fetch
   feature and added rate limiting to mitigate DDoS risks
-  ([#19557](https://github.com/google-gemini/gemini-cli/pull/19557) by @mbleigh,
-  [#19567](https://github.com/google-gemini/gemini-cli/pull/19567) by
+  ([#19557](https://github.com/haseeb-heaven/open-agent/pull/19557) by @mbleigh,
+  [#19567](https://github.com/haseeb-heaven/open-agent/pull/19567) by
   @mattKorwel).
 
 ## Announcements: v0.30.0 - 2026-02-25
@@ -315,88 +315,88 @@ on GitHub.
 - **SDK & Custom Skills:** Introduced the initial SDK package, enabling dynamic
   system instructions, `SessionContext` for SDK tool calls, and support for
   custom skills
-  ([#18861](https://github.com/google-gemini/gemini-cli/pull/18861) by
+  ([#18861](https://github.com/haseeb-heaven/open-agent/pull/18861) by
   @mbleigh).
 - **Policy Engine Enhancements:** Added a new `--policy` flag for user-defined
   policies, introduced strict seatbelt profiles, and deprecated
   `--allowed-tools` in favor of the policy engine
-  ([#18500](https://github.com/google-gemini/gemini-cli/pull/18500) by
+  ([#18500](https://github.com/haseeb-heaven/open-agent/pull/18500) by
   @allenhutchison).
 - **UI & Themes:** Added a generic searchable list for settings and extensions,
   new Solarized themes, text wrapping for markdown tables, and a clean UI toggle
-  prototype ([#19064](https://github.com/google-gemini/gemini-cli/pull/19064) by
+  prototype ([#19064](https://github.com/haseeb-heaven/open-agent/pull/19064) by
   @rmedranollamas).
 - **Vim & Terminal Interaction:** Improved Vim support to feel more complete and
   added support for Ctrl-Z terminal suspension
-  ([#18755](https://github.com/google-gemini/gemini-cli/pull/18755) by
-  @ppgranger, [#18931](https://github.com/google-gemini/gemini-cli/pull/18931)
+  ([#18755](https://github.com/haseeb-heaven/open-agent/pull/18755) by
+  @ppgranger, [#18931](https://github.com/haseeb-heaven/open-agent/pull/18931)
   by @scidomino).
 
 ## Announcements: v0.29.0 - 2026-02-17
 
 - **Plan Mode:** A new comprehensive planning capability with `/plan`,
   `enter_plan_mode` tool, and dedicated documentation
-  ([#17698](https://github.com/google-gemini/gemini-cli/pull/17698) by @Adib234,
-  [#18324](https://github.com/google-gemini/gemini-cli/pull/18324) by @jerop).
+  ([#17698](https://github.com/haseeb-heaven/open-agent/pull/17698) by @Adib234,
+  [#18324](https://github.com/haseeb-heaven/open-agent/pull/18324) by @jerop).
 - **Gemini 3 Default:** We've removed the preview flag and enabled Gemini 3 by
   default for all users
-  ([#18414](https://github.com/google-gemini/gemini-cli/pull/18414) by
+  ([#18414](https://github.com/haseeb-heaven/open-agent/pull/18414) by
   @sehoon38).
 - **Extension Exploration:** New UI and settings to explore and manage
   extensions more easily
-  ([#18686](https://github.com/google-gemini/gemini-cli/pull/18686) by
+  ([#18686](https://github.com/haseeb-heaven/open-agent/pull/18686) by
   @sripasg).
 - **Admin Control:** Administrators can now allowlist specific MCP server
   configurations
-  ([#18311](https://github.com/google-gemini/gemini-cli/pull/18311) by
+  ([#18311](https://github.com/haseeb-heaven/open-agent/pull/18311) by
   @skeshive).
 
 ## Announcements: v0.28.0 - 2026-02-10
 
 - **IDE Support:** Gemini CLI now supports the Positron IDE
-  ([#15047](https://github.com/google-gemini/gemini-cli/pull/15047) by
+  ([#15047](https://github.com/haseeb-heaven/open-agent/pull/15047) by
   @kapsner).
 - **Customization:** You can now use custom themes in extensions, and we've
   implemented automatic theme switching based on your terminal's background
-  ([#17327](https://github.com/google-gemini/gemini-cli/pull/17327) by
-  @spencer426, [#17976](https://github.com/google-gemini/gemini-cli/pull/17976)
+  ([#17327](https://github.com/haseeb-heaven/open-agent/pull/17327) by
+  @spencer426, [#17976](https://github.com/haseeb-heaven/open-agent/pull/17976)
   by @Abhijit-2592).
 - **Authentication:** We've added interactive and non-interactive consent for
   OAuth, and you can now include your auth method in bug reports
-  ([#17699](https://github.com/google-gemini/gemini-cli/pull/17699) by
-  @ehedlund, [#17569](https://github.com/google-gemini/gemini-cli/pull/17569) by
+  ([#17699](https://github.com/haseeb-heaven/open-agent/pull/17699) by
+  @ehedlund, [#17569](https://github.com/haseeb-heaven/open-agent/pull/17569) by
   @erikus).
 
 ## Announcements: v0.27.0 - 2026-02-03
 
 - **Event-Driven Architecture:** The CLI now uses a new event-driven scheduler
   for tool execution, resulting in a more responsive and performant experience
-  ([#17078](https://github.com/google-gemini/gemini-cli/pull/17078) by
+  ([#17078](https://github.com/haseeb-heaven/open-agent/pull/17078) by
   @abhipatel12).
 - **Enhanced User Experience:** This release includes queued tool confirmations,
   and expandable large text pastes for a smoother workflow.
 - **New `/rewind` Command:** Easily navigate your session history with the new
   `/rewind` command
-  ([#15720](https://github.com/google-gemini/gemini-cli/pull/15720) by
+  ([#15720](https://github.com/haseeb-heaven/open-agent/pull/15720) by
   @Adib234).
 - **Linux Clipboard Support:** You can now paste images on Linux with Wayland
-  and X11 ([#17144](https://github.com/google-gemini/gemini-cli/pull/17144) by
+  and X11 ([#17144](https://github.com/haseeb-heaven/open-agent/pull/17144) by
   @devr0306).
 
 ## Announcements: v0.26.0 - 2026-01-27
 
 - **Agents and Skills:** We've introduced a new `skill-creator` skill
-  ([#16394](https://github.com/google-gemini/gemini-cli/pull/16394) by
+  ([#16394](https://github.com/haseeb-heaven/open-agent/pull/16394) by
   @NTaylorMullen), enabled agent skills by default, and added a generalist agent
   to improve task routing
-  ([#16638](https://github.com/google-gemini/gemini-cli/pull/16638) by
+  ([#16638](https://github.com/haseeb-heaven/open-agent/pull/16638) by
   @joshualitt).
 - **UI/UX Improvements:** You can now "Rewind" through your conversation history
-  ([#15717](https://github.com/google-gemini/gemini-cli/pull/15717) by
+  ([#15717](https://github.com/haseeb-heaven/open-agent/pull/15717) by
   @Adib234).
 - **Core and Scheduler Refactoring:** The core scheduler has been significantly
   refactored to improve performance and reliability
-  ([#16895](https://github.com/google-gemini/gemini-cli/pull/16895) by
+  ([#16895](https://github.com/haseeb-heaven/open-agent/pull/16895) by
   @abhipatel12), and numerous performance and stability fixes have been
   included.
 
@@ -404,31 +404,31 @@ on GitHub.
 
 - **Skills and Agents Improvements:** We've enhanced the `activate_skill` tool,
   added a new `pr-creator` skill
-  ([#16232](https://github.com/google-gemini/gemini-cli/pull/16232) by
+  ([#16232](https://github.com/haseeb-heaven/open-agent/pull/16232) by
   [@NTaylorMullen](https://github.com/NTaylorMullen)), enabled skills by
   default, improved the `cli_help` agent
-  ([#16100](https://github.com/google-gemini/gemini-cli/pull/16100) by
+  ([#16100](https://github.com/haseeb-heaven/open-agent/pull/16100) by
   [@scidomino](https://github.com/scidomino)), and added a new `/agents refresh`
-  command ([#16204](https://github.com/google-gemini/gemini-cli/pull/16204) by
+  command ([#16204](https://github.com/haseeb-heaven/open-agent/pull/16204) by
   [@joshualitt](https://github.com/joshualitt)).
 - **UI/UX Refinements:** You'll notice more transparent feedback for skills
-  ([#15954](https://github.com/google-gemini/gemini-cli/pull/15954) by
+  ([#15954](https://github.com/haseeb-heaven/open-agent/pull/15954) by
   [@NTaylorMullen](https://github.com/NTaylorMullen)), the ability to switch
   focus between the shell and input with Tab
-  ([#14332](https://github.com/google-gemini/gemini-cli/pull/14332) by
+  ([#14332](https://github.com/haseeb-heaven/open-agent/pull/14332) by
   [@jacob314](https://github.com/jacob314)), and dynamic terminal tab titles
-  ([#16378](https://github.com/google-gemini/gemini-cli/pull/16378) by
+  ([#16378](https://github.com/haseeb-heaven/open-agent/pull/16378) by
   [@NTaylorMullen](https://github.com/NTaylorMullen)).
 - **Core Functionality & Performance:** This release includes support for
   built-in agent skills
-  ([#16045](https://github.com/google-gemini/gemini-cli/pull/16045) by
+  ([#16045](https://github.com/haseeb-heaven/open-agent/pull/16045) by
   [@NTaylorMullen](https://github.com/NTaylorMullen)), refined Gemini 3 system
-  instructions ([#16139](https://github.com/google-gemini/gemini-cli/pull/16139)
+  instructions ([#16139](https://github.com/haseeb-heaven/open-agent/pull/16139)
   by [@NTaylorMullen](https://github.com/NTaylorMullen)), caching for ignore
   instances to improve performance
-  ([#16185](https://github.com/google-gemini/gemini-cli/pull/16185) by
+  ([#16185](https://github.com/haseeb-heaven/open-agent/pull/16185) by
   [@EricRahm](https://github.com/EricRahm)), and enhanced retry mechanisms
-  ([#16489](https://github.com/google-gemini/gemini-cli/pull/16489) by
+  ([#16489](https://github.com/haseeb-heaven/open-agent/pull/16489) by
   [@sehoon38](https://github.com/sehoon38)).
 - **Bug Fixes and Stability:** We've squashed numerous bugs across the CLI,
   core, and workflows, addressing issues with subagent delegation, unicode
@@ -440,51 +440,51 @@ on GitHub.
   This includes initial documentation and tutorials to help you get started,
   alongside enhanced support for remote agents, allowing for more distributed
   and powerful automation within Gemini CLI.
-  ([#15869](https://github.com/google-gemini/gemini-cli/pull/15869) by
+  ([#15869](https://github.com/haseeb-heaven/open-agent/pull/15869) by
   [@NTaylorMullen](https://github.com/NTaylorMullen)),
-  ([#16013](https://github.com/google-gemini/gemini-cli/pull/16013) by
+  ([#16013](https://github.com/haseeb-heaven/open-agent/pull/16013) by
   [@adamweidman](https://github.com/adamweidman))
 - **Improved UI/UX:** The user interface has received several updates, featuring
   visual indicators for hook execution, a more refined display for settings, and
   the ability to use the Tab key to effortlessly switch focus between the shell
   and input areas.
-  ([#15408](https://github.com/google-gemini/gemini-cli/pull/15408) by
+  ([#15408](https://github.com/haseeb-heaven/open-agent/pull/15408) by
   [@abhipatel12](https://github.com/abhipatel12)),
-  ([#14332](https://github.com/google-gemini/gemini-cli/pull/14332) by
+  ([#14332](https://github.com/haseeb-heaven/open-agent/pull/14332) by
   [@galz10](https://github.com/galz10))
 - **Enhanced Security:** Security has been a major focus, with default folder
   trust now set to untrusted for increased safety. The Policy Engine has been
   improved to allow specific modes in user and administrator policies, and
   granular allowlisting for shell commands has been implemented, providing finer
   control over tool execution.
-  ([#15943](https://github.com/google-gemini/gemini-cli/pull/15943) by
+  ([#15943](https://github.com/haseeb-heaven/open-agent/pull/15943) by
   [@galz10](https://github.com/galz10)),
-  ([#15977](https://github.com/google-gemini/gemini-cli/pull/15977) by
+  ([#15977](https://github.com/haseeb-heaven/open-agent/pull/15977) by
   [@NTaylorMullen](https://github.com/NTaylorMullen))
 - **Core Functionality:** This release includes a mandatory MessageBus
   injection, marking Phase 3 of a hard migration to a more robust internal
   communication system. We've also added support for built-in skills with the
   CLI itself, and enhanced model routing to effectively utilize subagents.
-  ([#15776](https://github.com/google-gemini/gemini-cli/pull/15776) by
+  ([#15776](https://github.com/haseeb-heaven/open-agent/pull/15776) by
   [@abhipatel12](https://github.com/abhipatel12)),
-  ([#16300](https://github.com/google-gemini/gemini-cli/pull/16300) by
+  ([#16300](https://github.com/haseeb-heaven/open-agent/pull/16300) by
   [@NTaylorMullen](https://github.com/NTaylorMullen))
 - **Terminal Features:** Terminal interactions are more seamless with new
   features like OSC 52 paste support, along with fixes for Windows clipboard
   paste issues and general improvements to pasting in Windows terminals.
-  ([#15336](https://github.com/google-gemini/gemini-cli/pull/15336) by
+  ([#15336](https://github.com/haseeb-heaven/open-agent/pull/15336) by
   [@scidomino](https://github.com/scidomino)),
-  ([#15932](https://github.com/google-gemini/gemini-cli/pull/15932) by
+  ([#15932](https://github.com/haseeb-heaven/open-agent/pull/15932) by
   [@scidomino](https://github.com/scidomino))
 - **New Commands:** To manage the new features, we've added several new
   commands: `/agents refresh` to update agent configurations, `/skills reload`
   to refresh skill definitions, and `/skills install/uninstall` for easier
   management of your Agent Skills.
-  ([#16204](https://github.com/google-gemini/gemini-cli/pull/16204) by
+  ([#16204](https://github.com/haseeb-heaven/open-agent/pull/16204) by
   [@NTaylorMullen](https://github.com/NTaylorMullen)),
-  ([#15865](https://github.com/google-gemini/gemini-cli/pull/15865) by
+  ([#15865](https://github.com/haseeb-heaven/open-agent/pull/15865) by
   [@NTaylorMullen](https://github.com/NTaylorMullen)),
-  ([#16377](https://github.com/google-gemini/gemini-cli/pull/16377) by
+  ([#16377](https://github.com/haseeb-heaven/open-agent/pull/16377) by
   [@NTaylorMullen](https://github.com/NTaylorMullen))
 
 ## Announcements: v0.23.0 - 2026-01-07
@@ -492,7 +492,7 @@ on GitHub.
 - 🎉 **Experimental Agent Skills Support in Preview:** Gemini CLI now supports
   [Agent Skills](https://agentskills.io/home) in our preview builds. This is an
   early preview where we’re looking for feedback!
-  - Install Preview: `npm install -g @google/gemini-cli@preview`
+  - Install Preview: `npm install -g open-agent@preview`
   - Enable in `/settings`
   - Docs:
     [https://geminicli.com/docs/cli/skills/](https://geminicli.com/docs/cli/skills/)
@@ -500,16 +500,16 @@ on GitHub.
   stats, top models, languages, and more!
 - **Windows clipboard image support:** Windows users can now paste images
   directly from their clipboard into the CLI using `Alt`+`V`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/13997) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/13997) by
   [@sgeraldes](https://github.com/sgeraldes))
 - **Terminal background color detection:** Automatically optimizes your
   terminal's background color to select compatible themes and provide
   accessibility warnings.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/15132) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/15132) by
   [@jacob314](https://github.com/jacob314))
 - **Session logout:** Use the new `/logout` command to instantly clear
   credentials and reset your authentication state for seamless account
-  switching. ([pr](https://github.com/google-gemini/gemini-cli/pull/13383) by
+  switching. ([pr](https://github.com/haseeb-heaven/open-agent/pull/13383) by
   [@CN-Scars](https://github.com/CN-Scars))
 
 ## Announcements: v0.22.0 - 2025-12-22
@@ -562,12 +562,12 @@ on GitHub.
 
 - **Multi-file Drag & Drop:** Users can now drag and drop multiple files into
   the terminal, and the CLI will automatically prefix each valid path with `@`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/14832) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/14832) by
   [@jackwotherspoon](https://github.com/jackwotherspoon))
 - **Persistent "Always Allow" Policies:** Users can now save "Always Allow"
   decisions for tool executions, with granular control over specific shell
   commands and multi-cloud platform tools.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/14737) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/14737) by
   [@allenhutchison](https://github.com/allenhutchison))
 
 ## Announcements: v0.19.0 - 2025-11-24
@@ -578,16 +578,16 @@ on GitHub.
     `gemini extensions install https://github.com/elevenlabs/elevenlabs-mcp`
 - **Zed integration:** Users can now leverage Gemini 3 within the Zed
   integration after enabling "Preview Features" in their CLI’s `/settings`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/13398) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/13398) by
   [@benbrandt](https://github.com/benbrandt))
 - **Interactive shell:**
   - **Click-to-Focus:** When "Use Alternate Buffer" setting is enabled, users
     can click within the embedded shell output to focus it for input.
-    ([pr](https://github.com/google-gemini/gemini-cli/pull/13341) by
+    ([pr](https://github.com/haseeb-heaven/open-agent/pull/13341) by
     [@galz10](https://github.com/galz10))
   - **Loading phrase:** Clearly indicates when the interactive shell is awaiting
     user input. ([vid](https://imgur.com/a/kjK8bUK),
-    [pr](https://github.com/google-gemini/gemini-cli/pull/12535) by
+    [pr](https://github.com/haseeb-heaven/open-agent/pull/12535) by
     [@jackwotherspoon](https://github.com/jackwotherspoon))
 
 ## Announcements: v0.18.0 - 2025-11-17
@@ -620,11 +620,11 @@ on GitHub.
   Buffer** -> `true`.
 - **Model in history:** Users can now toggle in `/settings` to display model in
   their chat history. ([gif](https://imgur.com/a/uEmNKnQ),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/13034) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/13034) by
   [@scidomino](https://github.com/scidomino))
 - **Multi-uninstall:** Users can now uninstall multiple extensions with a single
   command. ([pic](https://imgur.com/a/9Dtq8u2),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/13016) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/13016) by
   [@JayadityaGit](https://github.com/JayadityaGit))
 
 ## Announcements: v0.16.0 - 2025-11-10
@@ -667,21 +667,21 @@ on GitHub.
 
 - **Todo planning:** Complex questions now get broken down into todo lists that
   the model can manage and check off. ([gif](https://imgur.com/a/EGDfNlZ),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/12905) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/12905) by
   [@anj-s](https://github.com/anj-s))
 - **Disable GitHub extensions:** Users can now prevent the installation and
   loading of extensions from GitHub.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/12838) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/12838) by
   [@kevinjwang1](https://github.com/kevinjwang1)).
 - **Extensions restart:** Users can now explicitly restart extensions using the
   `/extensions restart` command.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/12739) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/12739) by
   [@jakemac53](https://github.com/jakemac53)).
 - **Better Angular support:** Angular workflows should now be more seamless
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/10252) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/10252) by
   [@MarkTechson](https://github.com/MarkTechson)).
 - **Validate command:** Users can now check that local extensions are formatted
-  correctly. ([pr](https://github.com/google-gemini/gemini-cli/pull/12186) by
+  correctly. ([pr](https://github.com/haseeb-heaven/open-agent/pull/12186) by
   [@kevinjwang1](https://github.com/kevinjwang1)).
 
 ## Announcements: v0.12.0 - 2025-10-27
@@ -709,44 +709,44 @@ on GitHub.
 
 - **Model selection:** Choose the Gemini model for your session with `/model`.
   ([pic](https://imgur.com/a/ABFcWWw),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/8940) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/8940) by
   [@abhipatel12](https://github.com/abhipatel12)).
 - **Model routing:** Gemini CLI will now intelligently pick the best model for
   the task. Simple queries will be sent to Flash while complex analytical or
   creative tasks will still use the power of Pro. This ensures your quota will
   last for a longer period of time. You can always opt-out of this via `/model`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/9262) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/9262) by
   [@abhipatel12](https://github.com/abhipatel12)).
   - Discussion:
-    [https://github.com/google-gemini/gemini-cli/discussions/12375](https://github.com/google-gemini/gemini-cli/discussions/12375)
+    [https://github.com/haseeb-heaven/open-agent/discussions/12375](https://github.com/haseeb-heaven/open-agent/discussions/12375)
 - **Codebase investigator subagent:** We now have a new built-in subagent that
   will explore your workspace and resolve relevant information to improve
   overall performance.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/9988) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/9988) by
   [@abhipatel12](https://github.com/abhipatel12),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/10282) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/10282) by
   [@silviojr](https://github.com/silviojr)).
   - Enable, disable, or limit turns in `/settings`, plus advanced configs in
     `settings.json` ([pic](https://imgur.com/a/yJiggNO),
-    [pr](https://github.com/google-gemini/gemini-cli/pull/10844) by
+    [pr](https://github.com/haseeb-heaven/open-agent/pull/10844) by
     [@silviojr](https://github.com/silviojr)).
 - **Explore extensions with `/extension`:** Users can now open the extensions
   page in their default browser directly from the CLI using the `/extension`
-  explore command. ([pr](https://github.com/google-gemini/gemini-cli/pull/11846)
+  explore command. ([pr](https://github.com/haseeb-heaven/open-agent/pull/11846)
   by [@JayadityaGit](https://github.com/JayadityaGit)).
 - **Configurable compression:** Users can modify the context compression
   threshold in `/settings` (decimal with percentage display). The default has
   been made more proactive
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/12317) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/12317) by
   [@scidomino](https://github.com/scidomino)).
 - **API key authentication:** Users can now securely enter and store their
   Gemini API key via a new dialog, eliminating the need for environment
   variables and repeated entry.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/11760) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/11760) by
   [@galz10](https://github.com/galz10)).
 - **Sequential approval:** Users can now approve multiple tool calls
   sequentially during execution.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/11593) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/11593) by
   [@joshualitt](https://github.com/joshualitt)).
 
 ## Announcements: v0.11.0 - 2025-10-20
@@ -762,34 +762,34 @@ on GitHub.
 - **Stream JSON output:** Stream real-time JSONL events with
   `--output-format stream-json` to monitor AI agent progress when run
   headlessly. ([gif](https://imgur.com/a/0UCE81X),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/10883) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/10883) by
   [@anj-s](https://github.com/anj-s))
 - **Markdown toggle:** Users can now switch between rendered and raw markdown
   display using `alt+m `or` ctrl+m`. ([gif](https://imgur.com/a/lDNdLqr),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/10383) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/10383) by
   [@srivatsj](https://github.com/srivatsj))
 - **Queued message editing:** Users can now quickly edit queued messages by
   pressing the up arrow key when the input is empty.
   ([gif](https://imgur.com/a/ioRslLd),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/10392) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/10392) by
   [@akhil29](https://github.com/akhil29))
 - **JSON web fetch**: Non-HTML content like JSON APIs or raw source code are now
   properly shown to the model (previously only supported HTML)
   ([gif](https://imgur.com/a/Q58U4qJ),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/11284) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/11284) by
   [@abhipatel12](https://github.com/abhipatel12))
 - **Non-interactive MCP commands:** Users can now run MCP slash commands in
   non-interactive mode `gemini "/some-mcp-prompt"`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/10194) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/10194) by
   [@capachino](https://github.com/capachino))
 - **Removal of deprecated flags:** We’ve finally removed a number of deprecated
   flags to cleanup Gemini CLI’s invocation profile:
   - `--all-files` / `-a` in favor of `@` from within Gemini CLI.
-    ([pr](https://github.com/google-gemini/gemini-cli/pull/11228) by
+    ([pr](https://github.com/haseeb-heaven/open-agent/pull/11228) by
     [@allenhutchison](https://github.com/allenhutchison))
   - `--telemetry-*` flags in favor of
-    [environment variables](https://github.com/google-gemini/gemini-cli/pull/11318)
-    ([pr](https://github.com/google-gemini/gemini-cli/pull/11318) by
+    [environment variables](https://github.com/haseeb-heaven/open-agent/pull/11318)
+    ([pr](https://github.com/haseeb-heaven/open-agent/pull/11318) by
     [@allenhutchison](https://github.com/allenhutchison))
 
 ## Announcements: v0.10.0 - 2025-10-13
@@ -798,15 +798,15 @@ on GitHub.
   polishing existing flows, tools, and interactions.
 - **Interactive Shell Tool calling:** Gemini CLI can now also execute
   interactive tools if needed
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/11225) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/11225) by
   [@galz10](https://github.com/galz10)).
 - **Alt+Key support:** Enables broader support for Alt+Key keyboard shortcuts
   across different terminals.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/10767) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/10767) by
   [@srivatsj](https://github.com/srivatsj)).
 - **Telemetry Diff stats:** Track line changes made by the model and user during
   file operations via OTEL.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/10819) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/10819) by
   [@jerop](https://github.com/jerop)).
 
 ## Announcements: v0.9.0 - 2025-10-06
@@ -818,20 +818,20 @@ on GitHub.
 - **Install pre-release extensions:** Install the latest `--pre-release`
   versions of extensions. Used for when an extension’s release hasn’t been
   marked as "latest".
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/10752) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/10752) by
   [@jakemac53](https://github.com/jakemac53))
 - **Simplified extension creation:** Create a new, empty extension. Templates
   are no longer required.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/10629) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/10629) by
   [@chrstnb](https://github.com/chrstnb))
 - **OpenTelemetry GenAI metrics:** Aligns telemetry with industry-standard
   semantic conventions for improved interoperability.
   ([spec](https://opentelemetry.io/docs/concepts/semantic-conventions/),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/10343) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/10343) by
   [@jerop](https://github.com/jerop))
 - **List memory files:** Quickly find the location of your long-term memory
   files with `/memory list`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/10108) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/10108) by
   [@sgnagnarella](https://github.com/sgnagnarella))
 
 ## Announcements: v0.8.0 - 2025-09-29
@@ -842,7 +842,7 @@ on GitHub.
   - Launching with a growing catalog of community, partner, and Google-built
     extensions.
     - Check extensions from
-      [key launch partners](https://github.com/google-gemini/gemini-cli/discussions/10718).
+      [key launch partners](https://github.com/haseeb-heaven/open-agent/discussions/10718).
   - Easy install:
     - `gemini extensions install <github url|folder path>`
   - Easy management:
@@ -858,16 +858,16 @@ on GitHub.
   - _Homepage:_ [https://geminicli.com](https://geminicli.com)
   - ‼️*NEW documentation:*
     [https://geminicli.com/docs](https://geminicli.com/docs) (Have any
-    [suggestions](https://github.com/google-gemini/gemini-cli/discussions/8722)?)
+    [suggestions](https://github.com/haseeb-heaven/open-agent/discussions/8722)?)
   - _Extensions:_
     [https://geminicli.com/extensions](https://geminicli.com/extensions)
 - **Non-Interactive Allowed Tools:** `--allowed-tools` will now also work in
   non-interactive mode.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/9114) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/9114) by
   [@mistergarrison](https://github.com/mistergarrison))
 - **Terminal Title Status:** See the CLI's real-time status and thoughts
   directly in the terminal window's title by setting `showStatusInTitle: true`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/4386) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/4386) by
   [@Fridayxiao](https://github.com/Fridayxiao))
 - **Small features, polish, reliability & bug fixes:** A large amount of
   changes, smaller features, UI updates, reliability and bug fixes + general
@@ -878,7 +878,7 @@ on GitHub.
 - 🎉**Build your own Gemini CLI IDE plugin:** We've published a spec for
   creating IDE plugins to enable rich context-aware experiences and native
   in-editor diffing in your IDE of choice.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8479) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8479) by
   [@skeshive](https://github.com/skeshive))
 - 🎉 **Gemini CLI extensions**
   - **Flutter:** An early version to help you create, build, test, and run
@@ -888,24 +888,24 @@ on GitHub.
     ([extension](https://github.com/gemini-cli-extensions/nanobanana))
 - **Telemetry config via environment:** Manage telemetry settings using
   environment variables for a more flexible setup.
-  ([docs](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/telemetry.md#configuration),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/9113) by
+  ([docs](https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/telemetry.md#configuration),
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/9113) by
   [@jerop](https://github.com/jerop))
 - **​​Experimental todos:** Track and display progress on complex tasks with a
   managed checklist. Off by default but can be enabled via
   `"useWriteTodos": true`
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8761) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8761) by
   [@anj-s](https://github.com/anj-s))
 - **Share chat support for tools:** Using `/chat share` will now also render
   function calls and responses in the final markdown file.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8693) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8693) by
   [@rramkumar1](https://github.com/rramkumar1))
 - **Citations:** Now enabled for all users
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8570) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8570) by
   [@scidomino](https://github.com/scidomino))
 - **Custom commands in Headless Mode:** Run custom slash commands directly from
   the command line in non-interactive mode: `gemini "/joke Chuck Norris"`
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8305) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8305) by
   [@capachino](https://github.com/capachino))
 - **Small features, polish, reliability & bug fixes:** A large amount of
   changes, smaller features, UI updates, reliability and bug fixes + general
@@ -956,37 +956,37 @@ on GitHub.
 - **JSON output mode:** Have Gemini CLI output JSON with `--output-format json`
   when invoked headlessly for easy parsing and post-processing. Includes
   response, stats and errors.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8119) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8119) by
   [@jerop](https://github.com/jerop))
 - **Keybinding triggered approvals:** When you use shortcuts (`shift+y` or
   `shift+tab`) to activate YOLO/auto-edit modes any pending confirmation dialogs
-  will now approve. ([pr](https://github.com/google-gemini/gemini-cli/pull/6665)
+  will now approve. ([pr](https://github.com/haseeb-heaven/open-agent/pull/6665)
   by [@bulkypanda](https://github.com/bulkypanda))
 - **Chat sharing:** Convert the current conversation to a Markdown or JSON file
   with _/chat share &lt;file.md|file.json>_
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8139) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8139) by
   [@rramkumar1](https://github.com/rramkumar1))
 - **Prompt search:** Search your prompt history using `ctrl+r`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/5539) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/5539) by
   [@Aisha630](https://github.com/Aisha630))
 - **Input undo/redo:** Recover accidentally deleted text in the input prompt
   using `ctrl+z` (undo) and `ctrl+shift+z` (redo).
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/4625) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/4625) by
   [@masiafrest](https://github.com/masiafrest))
 - **Loop detection confirmation:** When loops are detected you are now presented
   with a dialog to disable detection for the current session.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8231) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8231) by
   [@SandyTao520](https://github.com/SandyTao520))
 - **Direct to Google Cloud Telemetry:** Directly send telemetry to Google Cloud
   for a simpler and more streamlined setup.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/8541) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/8541) by
   [@jerop](https://github.com/jerop))
 - **Visual Mode Indicator Revamp:** ‘shell’, 'accept edits' and 'yolo' modes now
   have colors to match their impact / usage. Input box now also updates.
   ([shell](https://imgur.com/a/DovpVF1),
   [accept-edits](https://imgur.com/a/33KDz3J),
   [yolo](https://imgur.com/a/tbFwIWp),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/8200) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/8200) by
   [@miguelsolorio](https://github.com/miguelsolorio))
 - **Small features, polish, reliability & bug fixes:** A large amount of
   changes, smaller features, UI updates, reliability and bug fixes + general
@@ -1003,33 +1003,33 @@ on GitHub.
 - **Positional Prompt for Non-Interactive:** Seamlessly invoke Gemini CLI
   headlessly via `gemini "Hello"`. Synonymous with passing `-p`.
   ([gif](https://imgur.com/a/hcBznpB),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/7668) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/7668) by
   [@allenhutchison](https://github.com/allenhutchison))
 - **Experimental Tool output truncation:** Enable truncating shell tool outputs
   and saving full output to a file by setting
-  `"enableToolOutputTruncation": true `([pr](https://github.com/google-gemini/gemini-cli/pull/8039)
+  `"enableToolOutputTruncation": true `([pr](https://github.com/haseeb-heaven/open-agent/pull/8039)
   by [@SandyTao520](https://github.com/SandyTao520))
 - **Edit Tool improvements:** Gemini CLI’s ability to edit files should now be
-  far more capable. ([pr](https://github.com/google-gemini/gemini-cli/pull/7679)
+  far more capable. ([pr](https://github.com/haseeb-heaven/open-agent/pull/7679)
   by [@silviojr](https://github.com/silviojr))
 - **Custom witty messages:** The feature you’ve all been waiting for…
   Personalized witty loading messages via
   `"ui": { "customWittyPhrases": ["YOLO"]}` in `settings.json`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/7641) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/7641) by
   [@JayadityaGit](https://github.com/JayadityaGit))
 - **Nested .gitignore File Handling:** Nested `.gitignore` files are now
-  respected. ([pr](https://github.com/google-gemini/gemini-cli/pull/7645) by
+  respected. ([pr](https://github.com/haseeb-heaven/open-agent/pull/7645) by
   [@gsquared94](https://github.com/gsquared94))
 - **Enforced authentication:** System administrators can now mandate a specific
   authentication method via
   `"enforcedAuthType": "oauth-personal|gemini-api-key|…"`in `settings.json`.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/6564) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/6564) by
   [@chrstnb](https://github.com/chrstnb))
 - **A2A development-tool extension:** An RFC for an Agent2Agent
   ([A2A](https://a2a-protocol.org/latest/)) powered extension for developer tool
   use cases.
-  ([feedback](https://github.com/google-gemini/gemini-cli/discussions/7822),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/7817) by
+  ([feedback](https://github.com/haseeb-heaven/open-agent/discussions/7822),
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/7817) by
   [@skeshive](https://github.com/skeshive))
 - **Hands on Codelab:
   **[https://codelabs.developers.google.com/gemini-cli-hands-on](https://codelabs.developers.google.com/gemini-cli-hands-on)
@@ -1048,25 +1048,25 @@ on GitHub.
 - **Experimental**
   - **Edit Tool:** Give our new edit tool a try by setting
     `"useSmartEdit": true` in `settings.json`!
-    ([feedback](https://github.com/google-gemini/gemini-cli/discussions/7758),
-    [pr](https://github.com/google-gemini/gemini-cli/pull/6823) by
+    ([feedback](https://github.com/haseeb-heaven/open-agent/discussions/7758),
+    [pr](https://github.com/haseeb-heaven/open-agent/pull/6823) by
     [@silviojr](https://github.com/silviojr))
   - **Model talking to itself fix:** We’ve removed a model workaround that would
     encourage Gemini CLI to continue conversations on your behalf. This may be
     disruptive and can be disabled via `"skipNextSpeakerCheck": false` in your
     `settings.json`
-    ([feedback](https://github.com/google-gemini/gemini-cli/discussions/6666),
-    [pr](https://github.com/google-gemini/gemini-cli/pull/7614) by
+    ([feedback](https://github.com/haseeb-heaven/open-agent/discussions/6666),
+    [pr](https://github.com/haseeb-heaven/open-agent/pull/7614) by
     [@SandyTao520](https://github.com/SandyTao520))
   - **Prompt completion:** Get real-time AI suggestions to complete your prompts
     as you type. Enable it with `"general": { "enablePromptCompletion": true }`
     and share your feedback!
     ([gif](https://miro.medium.com/v2/resize:fit:2000/format:webp/1*hvegW7YXOg6N_beUWhTdxA.gif),
-    [pr](https://github.com/google-gemini/gemini-cli/pull/4691) by
+    [pr](https://github.com/haseeb-heaven/open-agent/pull/4691) by
     [@3ks](https://github.com/3ks))
 - **Footer visibility configuration:** Customize the CLI's footer look and feel
   in `settings.json`
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/7419) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/7419) by
   [@miguelsolorio](https://github.com/miguelsolorio))
   - `hideCWD`: hide current working directory.
   - `hideSandboxStatus`: hide sandbox status.
@@ -1075,38 +1075,38 @@ on GitHub.
 - **Citations:** For enterprise Code Assist licenses users will now see
   citations in their responses by default. Enable this yourself with
   `"showCitations": true`
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/7350) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/7350) by
   [@scidomino](https://github.com/scidomino))
 - **Pro Quota Dialog:** Handle daily Pro model usage limits with an interactive
   dialog that lets you immediately switch auth or fallback.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/7094) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/7094) by
   [@JayadityaGit](https://github.com/JayadityaGit))
 - **Custom commands @:** Embed local file or directory content directly into
   your custom command prompts using `@{path}` syntax
   ([gif](https://miro.medium.com/v2/resize:fit:2000/format:webp/1*GosBAo2SjMfFffAnzT7ZMg.gif),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/6716) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/6716) by
   [@abhipatel12](https://github.com/abhipatel12))
 - **2.5 Flash Lite support:** You can now use the `gemini-2.5-flash-lite` model
   for Gemini CLI via `gemini -m …`.
   ([gif](https://miro.medium.com/v2/resize:fit:2000/format:webp/1*P4SKwnrsyBuULoHrFqsFKQ.gif),
-  [pr](https://github.com/google-gemini/gemini-cli/pull/4652) by
+  [pr](https://github.com/haseeb-heaven/open-agent/pull/4652) by
   [@psinha40898](https://github.com/psinha40898))
 - **CLI streamlining:** We have deprecated a number of command line arguments in
   favor of `settings.json` alternatives. We will remove these arguments in a
   future release. See the PR for the full list of deprecations.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/7360) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/7360) by
   [@allenhutchison](https://github.com/allenhutchison))
 - **JSON session summary:** Track and save detailed CLI session statistics to a
   JSON file for performance analysis with `--session-summary <path>`
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/7347) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/7347) by
   [@leehagoodjames](https://github.com/leehagoodjames))
 - **Robust keyboard handling:** More reliable and consistent behavior for arrow
   keys, special keys (Home, End, etc.), and modifier combinations across various
-  terminals. ([pr](https://github.com/google-gemini/gemini-cli/pull/7118) by
+  terminals. ([pr](https://github.com/haseeb-heaven/open-agent/pull/7118) by
   [@deepankarsharma](https://github.com/deepankarsharma))
 - **MCP loading indicator:** Provides visual feedback during CLI initialization
   when connecting to multiple servers.
-  ([pr](https://github.com/google-gemini/gemini-cli/pull/6923) by
+  ([pr](https://github.com/haseeb-heaven/open-agent/pull/6923) by
   [@swissspidy](https://github.com/swissspidy))
 - **Small features, polish, reliability & bug fixes:** A large amount of
   changes, smaller features, UI updates, reliability and bug fixes + general

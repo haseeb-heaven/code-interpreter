@@ -35,11 +35,11 @@ runs:
         PRIVATE_REPO="@google-gemini/"
         if [[ "$PACKAGE_NAME" == "$PRIVATE_REPO"* ]]; then
           AUTH_TOKEN="${INPUTS_GITHUB_TOKEN}"
-        elif [[ "$PACKAGE_NAME" == "@google/gemini-cli" ]]; then
+        elif [[ "$PACKAGE_NAME" == "open-agent" ]]; then
           AUTH_TOKEN="${INPUTS_WOMBAT_TOKEN_CLI}"
-        elif [[ "$PACKAGE_NAME" == "@google/gemini-cli-core" ]]; then
+        elif [[ "$PACKAGE_NAME" == "@open-agent/core" ]]; then
           AUTH_TOKEN="${INPUTS_WOMBAT_TOKEN_CORE}"
-        elif [[ "$PACKAGE_NAME" == "@google/gemini-cli-a2a-server" ]]; then
+        elif [[ "$PACKAGE_NAME" == "@open-agent/a2a-server" ]]; then
           AUTH_TOKEN="${INPUTS_WOMBAT_TOKEN_A2A_SERVER}"
         fi
         echo "auth-token=$AUTH_TOKEN" >> $GITHUB_OUTPUT
