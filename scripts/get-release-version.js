@@ -38,10 +38,9 @@ function getArgs() {
       string: true,
     })
     .option('cli-package-name', {
-      description:
-        'fully qualified package name with scope (e.g @google/gemini-cli)',
+      description: 'fully qualified package name with scope (e.g open-agent)',
       string: true,
-      default: '@google/gemini-cli',
+      default: 'open-agent',
     })
     .option('preview_version_override', {
       description: 'Override the calculated preview version.',

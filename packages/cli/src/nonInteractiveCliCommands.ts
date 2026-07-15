@@ -11,7 +11,7 @@ import {
   Logger,
   uiTelemetryService,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { CommandService } from './services/CommandService.js';
 import { BuiltinCommandLoader } from './services/BuiltinCommandLoader.js';
 import { FileCommandLoader } from './services/FileCommandLoader.js';

@@ -6,11 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { handleAtCommand } from './atCommandProcessor.js';
-import type {
-  Config,
-  AgentDefinition,
-  MessageBus,
-} from '@google/gemini-cli-core';
+import type { Config, AgentDefinition, MessageBus } from '@open-agent/core';
 import {
   FileDiscoveryService,
   GlobTool,
@@ -19,7 +15,7 @@ import {
   ToolRegistry,
   COMMON_IGNORE_PATTERNS,
   ApprovalMode,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import * as os from 'node:os';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
 import * as fsPromises from 'node:fs/promises';

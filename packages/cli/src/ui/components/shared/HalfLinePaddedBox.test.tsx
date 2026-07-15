@@ -7,7 +7,7 @@ import { renderWithProviders } from '../../../test-utils/render.js';
 import { HalfLinePaddedBox } from './HalfLinePaddedBox.js';
 import { Text, useIsScreenReaderEnabled } from 'ink';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { supportsTrueColor } from '@google/gemini-cli-core';
+import { supportsTrueColor } from '@open-agent/core';
 
 vi.mock('ink', async () => {
   const actual = await vi.importActual('ink');
@@ -17,8 +17,8 @@ vi.mock('ink', async () => {
   };
 });
 
-vi.mock('@google/gemini-cli-core', async () => {
-  const actual = await vi.importActual('@google/gemini-cli-core');
+vi.mock('@open-agent/core', async () => {
+  const actual = await vi.importActual('@open-agent/core');
   return {
     ...actual,
     supportsTrueColor: vi.fn(() => true),

@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { SubagentHistoryMessage } from './SubagentHistoryMessage.js';
 import type { HistoryItemSubagent } from '../../types.js';
-import { SubagentState } from '@google/gemini-cli-core';
+import { SubagentState } from '@open-agent/core';
 
 describe('SubagentHistoryMessage', () => {
   const mockItem: HistoryItemSubagent = {

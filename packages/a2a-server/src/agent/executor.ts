@@ -17,7 +17,7 @@ import {
   SimpleExtensionLoader,
   type ToolCallRequestInfo,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { v4 as uuidv4 } from 'uuid';
 
 import { logger } from '../utils/logger.js';

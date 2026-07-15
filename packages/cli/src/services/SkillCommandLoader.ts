@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { type Config, ACTIVATE_SKILL_TOOL_NAME } from '@google/gemini-cli-core';
+import { type Config, ACTIVATE_SKILL_TOOL_NAME } from '@open-agent/core';
 import { CommandKind, type SlashCommand } from '../ui/commands/types.js';
 import { type ICommandLoader } from './types.js';
 

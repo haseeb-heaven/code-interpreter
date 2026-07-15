@@ -13,7 +13,7 @@ import {
 import { themeManager, DEFAULT_THEME } from '../themes/theme-manager.js';
 import { DefaultLight } from '../themes/builtin/light/default-light.js';
 import { useSettings } from '../contexts/SettingsContext.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@open-agent/core';
 import { useTerminalContext } from '../contexts/TerminalContext.js';
 import { SettingScope } from '../../config/settings.js';
 import type { UIActions } from '../contexts/UIActionsContext.js';

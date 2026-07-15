@@ -9,11 +9,10 @@ import { getInstallationInfo, PackageManager } from './installationInfo.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as childProcess from 'node:child_process';
-import { isGitRepository, debugLogger } from '@google/gemini-cli-core';
+import { isGitRepository, debugLogger } from '@open-agent/core';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     isGitRepository: vi.fn(),
@@ -204,7 +203,7 @@ describe('getInstallationInfo', () => {
   });
 
   it('should detect global pnpm installation', () => {
-    const pnpmPath = `/Users/test/.pnpm/global/5/node_modules/.pnpm/some-hash/node_modules/@google/gemini-cli/dist/index.js`;
+    const pnpmPath = `/Users/test/.pnpm/global/5/node_modules/.pnpm/some-hash/node_modules/open-agent/dist/index.js`;
     process.argv[1] = pnpmPath;
     mockedRealPathSync.mockReturnValue(pnpmPath);
     mockedExecSync.mockImplementation(() => {
@@ -215,7 +214,7 @@ describe('getInstallationInfo', () => {
     const info = getInstallationInfo(projectRoot, true);
     expect(info.packageManager).toBe(PackageManager.PNPM);
     expect(info.isGlobal).toBe(true);
-    expect(info.updateCommand).toBe('pnpm add -g @google/gemini-cli@latest');
+    expect(info.updateCommand).toBe('pnpm add -g open-agent@latest');
     expect(info.updateMessage).toContain('Attempting to automatically update');
 
     // isAutoUpdateEnabled = false -> "Please run..."
@@ -224,7 +223,7 @@ describe('getInstallationInfo', () => {
   });
 
   it('should detect global yarn installation', () => {
-    const yarnPath = `/Users/test/.yarn/global/node_modules/@google/gemini-cli/dist/index.js`;
+    const yarnPath = `/Users/test/.yarn/global/node_modules/open-agent/dist/index.js`;
     process.argv[1] = yarnPath;
     mockedRealPathSync.mockReturnValue(yarnPath);
     mockedExecSync.mockImplementation(() => {
@@ -235,9 +234,7 @@ describe('getInstallationInfo', () => {
     const info = getInstallationInfo(projectRoot, true);
     expect(info.packageManager).toBe(PackageManager.YARN);
     expect(info.isGlobal).toBe(true);
-    expect(info.updateCommand).toBe(
-      'yarn global add @google/gemini-cli@latest',
-    );
+    expect(info.updateCommand).toBe('yarn global add open-agent@latest');
     expect(info.updateMessage).toContain('Attempting to automatically update');
 
     // isAutoUpdateEnabled = false -> "Please run..."
@@ -246,7 +243,7 @@ describe('getInstallationInfo', () => {
   });
 
   it('should detect global bun installation', () => {
-    const bunPath = `/Users/test/.bun/install/global/node_modules/@google/gemini-cli/dist/index.js`;
+    const bunPath = `/Users/test/.bun/install/global/node_modules/open-agent/dist/index.js`;
     process.argv[1] = bunPath;
     mockedRealPathSync.mockReturnValue(bunPath);
     mockedExecSync.mockImplementation(() => {
@@ -257,7 +254,7 @@ describe('getInstallationInfo', () => {
     const info = getInstallationInfo(projectRoot, true);
     expect(info.packageManager).toBe(PackageManager.BUN);
     expect(info.isGlobal).toBe(true);
-    expect(info.updateCommand).toBe('bun add -g @google/gemini-cli@latest');
+    expect(info.updateCommand).toBe('bun add -g open-agent@latest');
     expect(info.updateMessage).toContain('Attempting to automatically update');
 
     // isAutoUpdateEnabled = false -> "Please run..."
@@ -344,7 +341,7 @@ describe('getInstallationInfo', () => {
     const info = getInstallationInfo(projectRoot, true);
     expect(info.packageManager).toBe(PackageManager.NPM);
     expect(info.isGlobal).toBe(true);
-    expect(info.updateCommand).toBe('npm install -g @google/gemini-cli@latest');
+    expect(info.updateCommand).toBe('npm install -g open-agent@latest');
     expect(info.updateMessage).toContain('Attempting to automatically update');
 
     // isAutoUpdateEnabled = false -> "Please run..."
@@ -354,26 +351,26 @@ describe('getInstallationInfo', () => {
 
   it('should detect Volta installation (Unix-style)', () => {
     const voltaPath =
-      '/Users/test/.volta/tools/image/node/20.0.0/lib/node_modules/@google/gemini-cli/dist/index.js';
+      '/Users/test/.volta/tools/image/node/20.0.0/lib/node_modules/open-agent/dist/index.js';
     process.argv[1] = voltaPath;
     mockedRealPathSync.mockReturnValue(voltaPath);
 
     const info = getInstallationInfo(projectRoot, true);
 
     expect(info.packageManager).toBe(PackageManager.VOLTA);
-    expect(info.updateCommand).toBe('volta install @google/gemini-cli@latest');
+    expect(info.updateCommand).toBe('volta install open-agent@latest');
   });
 
   it('should detect Volta installation (Windows-style)', () => {
     const voltaPath =
-      'C:\\Users\\test\\AppData\\Local\\Volta\\tools\\image\\node\\20.0.0\\node_modules\\@google/gemini-cli\\dist\\index.js';
+      'C:\\Users\\test\\AppData\\Local\\Volta\\tools\\image\\node\\20.0.0\\node_modules\\open-agent\\dist\\index.js';
     process.argv[1] = voltaPath;
     mockedRealPathSync.mockReturnValue(voltaPath);
 
     const info = getInstallationInfo(projectRoot, true);
 
     expect(info.packageManager).toBe(PackageManager.VOLTA);
-    expect(info.updateCommand).toBe('volta install @google/gemini-cli@latest');
+    expect(info.updateCommand).toBe('volta install open-agent@latest');
   });
 
   it('should NOT detect Homebrew if gemini-cli is installed in brew but running from npm location', () => {
@@ -381,8 +378,7 @@ describe('getInstallationInfo', () => {
       value: 'darwin',
     });
     // Path looks like standard global NPM
-    const cliPath =
-      '/usr/local/lib/node_modules/@google/gemini-cli/dist/index.js';
+    const cliPath = '/usr/local/lib/node_modules/open-agent/dist/index.js';
     process.argv[1] = cliPath;
 
     // Setup mocks

@@ -6,7 +6,7 @@
 
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
-import { ShellExecutionService, debugLogger } from '@google/gemini-cli-core';
+import { ShellExecutionService, debugLogger } from '@open-agent/core';
 
 const RETENTION_PERIOD_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 

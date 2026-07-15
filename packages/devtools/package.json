@@ -1,5 +1,5 @@
 {
-  "name": "@google/gemini-cli-devtools",
+  "name": "@open-agent/devtools",
   "version": "4.0.0",
   "license": "Apache-2.0",
   "type": "module",

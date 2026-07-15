@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SandboxConfig } from '@google/gemini-cli-core';
+import type { SandboxConfig } from '@open-agent/core';
 
 export function createMockSandboxConfig(
   overrides?: Partial<SandboxConfig>,

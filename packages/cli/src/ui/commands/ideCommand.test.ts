@@ -15,10 +15,10 @@ import {
 } from 'vitest';
 import { ideCommand } from './ideCommand.js';
 import { type CommandContext } from './types.js';
-import { IDE_DEFINITIONS } from '@google/gemini-cli-core';
-import * as core from '@google/gemini-cli-core';
+import { IDE_DEFINITIONS } from '@open-agent/core';
+import * as core from '@open-agent/core';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@open-agent/core', async (importOriginal) => {
   const original = await importOriginal<typeof core>();
   return {
     ...original,

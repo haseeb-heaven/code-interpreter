@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Storage, type Config } from '@google/gemini-cli-core';
+import { Storage, type Config } from '@open-agent/core';
 import { commandsCommand } from './commandsCommand.js';
 import { MessageType } from '../types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
@@ -14,10 +14,11 @@ import { FileCommandLoader } from '../../services/FileCommandLoader.js';
 
 vi.mock('../../services/FileCommandLoader.js');
 
-vi.mock('@google/gemini-cli-core', async () => {
-  const actual = await vi.importActual<
-    typeof import('@google/gemini-cli-core')
-  >('@google/gemini-cli-core');
+vi.mock('@open-agent/core', async () => {
+  const actual =
+    await vi.importActual<typeof import('@open-agent/core')>(
+      '@open-agent/core',
+    );
   return {
     ...actual,
     Storage: class extends actual.Storage {

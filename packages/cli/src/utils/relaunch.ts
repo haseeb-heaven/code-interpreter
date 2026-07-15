@@ -10,10 +10,7 @@ import {
   getSpawnConfig,
   getScriptArgs,
 } from './processUtils.js';
-import {
-  writeToStderr,
-  type AdminControlsSettings,
-} from '@google/gemini-cli-core';
+import { writeToStderr, type AdminControlsSettings } from '@open-agent/core';
 
 export async function relaunchOnExitCode(runner: () => Promise<number>) {
   while (true) {

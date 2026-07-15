@@ -13,7 +13,7 @@ import {
   exitAlternateScreen,
   enableLineWrapping,
   disableLineWrapping,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import process from 'node:process';
 import {
   cleanupTerminalOnExit,

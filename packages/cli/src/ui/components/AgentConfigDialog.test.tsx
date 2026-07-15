@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act } from 'react';
 import { AgentConfigDialog } from './AgentConfigDialog.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import type { AgentDefinition } from '@google/gemini-cli-core';
+import type { AgentDefinition } from '@open-agent/core';
 
 enum TerminalKeys {
   ENTER = '\u000D',

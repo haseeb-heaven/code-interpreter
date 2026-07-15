@@ -40,7 +40,7 @@ const rootPkg = readJson('package.json');
 const optionalDependencies = { ...(rootPkg.optionalDependencies || {}) };
 delete optionalDependencies['gemini-cli-devtools'];
 
-// Update @google/gemini-cli package.json for bundled npm release
+// Update open-agent package.json for bundled npm release
 const cliPkgPath = 'packages/cli/package.json';
 const cliPkg = readJson(cliPkgPath);
 

@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Logger, type Config } from '@google/gemini-cli-core';
+import { Logger, type Config } from '@open-agent/core';
 
 /**
  * Hook to manage the logger instance.

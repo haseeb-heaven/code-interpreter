@@ -10,17 +10,13 @@ import { waitFor } from '../../test-utils/async.js';
 import { BannedAccountDialog } from './BannedAccountDialog.js';
 import { RadioButtonSelect } from '../components/shared/RadioButtonSelect.js';
 import { useKeypress } from '../hooks/useKeypress.js';
-import {
-  openBrowserSecurely,
-  shouldLaunchBrowser,
-} from '@google/gemini-cli-core';
+import { openBrowserSecurely, shouldLaunchBrowser } from '@open-agent/core';
 import { Text } from 'ink';
 import { runExitCleanup } from '../../utils/cleanup.js';
 import type { AccountSuspensionInfo } from '../contexts/UIStateContext.js';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     openBrowserSecurely: vi.fn(),

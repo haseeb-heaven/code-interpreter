@@ -173,7 +173,7 @@ describe('HookTranslator', () => {
     });
   });
 
-  // Regression tests for https://github.com/google-gemini/gemini-cli/issues/25558
+  // Regression tests for https://github.com/haseeb-heaven/open-agent/issues/25558
   // BeforeModel hooks that modify text in conversations containing tool calls
   // were destroying functionCall/functionResponse parts because
   // fromHookLLMRequest rebuilt contents text-only. The fix merges hook text

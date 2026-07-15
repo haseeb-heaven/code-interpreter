@@ -25,8 +25,8 @@ import type { ContentGenerator } from '../core/contentGenerator.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
 import { getProvider } from './providers.js';
 import { OpenAICompatContentGenerator } from './openaiCompatGenerator.js';
-import type {
-  FreeLLMCatalog,
+import {
+  type FreeLLMCatalog,
   FreeModelsExhaustedError,
   formatFreeModelsExhaustedMessage,
   freeFallbackCandidates,

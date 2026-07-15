@@ -7,7 +7,7 @@
 import { expect, describe, it, beforeEach, afterEach } from 'vitest';
 import { TestRig } from './test-helper.js';
 import { join } from 'node:path';
-import { ExitCodes } from '@google/gemini-cli-core/src/index.js';
+import { ExitCodes } from '@open-agent/core/src/index.js';
 
 describe('JSON output', () => {
   let rig: TestRig;

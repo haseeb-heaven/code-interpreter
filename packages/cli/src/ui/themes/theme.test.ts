@@ -13,7 +13,7 @@ import {
   type Theme,
 } from './theme.js';
 import { themeManager } from './theme-manager.js';
-import type { CustomTheme } from '@google/gemini-cli-core';
+import type { CustomTheme } from '@open-agent/core';
 
 describe('createCustomTheme', () => {
   const baseTheme: CustomTheme = {

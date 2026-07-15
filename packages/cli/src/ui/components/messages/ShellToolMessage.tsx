@@ -29,7 +29,7 @@ import {
   type Config,
   ShellExecutionService,
   CoreToolCallStatus,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import {
   calculateShellMaxLines,
   calculateToolContentMaxLines,

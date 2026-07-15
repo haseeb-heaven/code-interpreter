@@ -13,7 +13,7 @@ import {
   getExtensionManager,
 } from './utils.js';
 import { loadSettings } from '../../config/settings.js';
-import { coreEvents, debugLogger } from '@google/gemini-cli-core';
+import { coreEvents, debugLogger } from '@open-agent/core';
 import { exitCli } from '../utils.js';
 
 interface ConfigureArgs {

@@ -8,11 +8,7 @@ import type React from 'react';
 import { StatsDisplay } from './StatsDisplay.js';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { useConfig } from '../contexts/ConfigContext.js';
-import {
-  escapeShellArg,
-  isWindows,
-  type ShellType,
-} from '@google/gemini-cli-core';
+import { escapeShellArg, isWindows, type ShellType } from '@open-agent/core';
 
 interface SessionSummaryDisplayProps {
   duration: string;

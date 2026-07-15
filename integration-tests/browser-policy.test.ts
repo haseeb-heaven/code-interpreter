@@ -14,7 +14,7 @@ import { env } from 'node:process';
 import stripAnsi from 'strip-ansi';
 
 // Browser agent Chrome DevTools MCP connection is flaky in Docker sandbox.
-// See: https://github.com/google-gemini/gemini-cli/issues/24382
+// See: https://github.com/haseeb-heaven/open-agent/issues/24382
 const isDockerSandbox = env['GEMINI_SANDBOX'] === 'docker';
 
 const __filename = fileURLToPath(import.meta.url);

@@ -1,11 +1,11 @@
 {
-  "name": "@google/gemini-cli-core",
+  "name": "@open-agent/core",
   "version": "4.0.0",
   "description": "Gemini CLI Core",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/google-gemini/gemini-cli.git"
+    "url": "git+https://github.com/haseeb-heaven/open-agent.git"
   },
   "type": "module",
   "main": "dist/index.js",
@@ -104,7 +104,7 @@
     "node-pty": "1.0.0"
   },
   "devDependencies": {
-    "@google/gemini-cli-test-utils": "file:../test-utils",
+    "@open-agent/test-utils": "file:../test-utils",
     "@types/fast-levenshtein": "0.0.4",
     "@types/js-yaml": "4.0.9",
     "@types/json-stable-stringify": "1.1.0",

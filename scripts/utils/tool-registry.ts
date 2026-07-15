@@ -4,10 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  ALL_BUILTIN_TOOL_NAMES,
-  TOOL_LEGACY_ALIASES,
-} from '@google/gemini-cli-core';
+import { ALL_BUILTIN_TOOL_NAMES, TOOL_LEGACY_ALIASES } from '@open-agent/core';
 
 export type ToolCategory =
   | 'file-system'

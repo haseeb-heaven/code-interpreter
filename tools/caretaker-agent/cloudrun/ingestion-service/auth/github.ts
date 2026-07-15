@@ -18,7 +18,7 @@ export interface GitHubWebhookPayload {
     title?: string;
   };
   repository: {
-    /** Expected format: "owner/repo" (e.g. "google-gemini/gemini-cli") */
+    /** Expected format: "owner/repo" (e.g. "haseeb-heaven/open-agent") */
     full_name: string;
   };
   sender?: {

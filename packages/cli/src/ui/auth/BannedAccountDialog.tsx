@@ -10,10 +10,7 @@ import { Box, Text } from 'ink';
 import { theme } from '../semantic-colors.js';
 import { RadioButtonSelect } from '../components/shared/RadioButtonSelect.js';
 import { useKeypress } from '../hooks/useKeypress.js';
-import {
-  openBrowserSecurely,
-  shouldLaunchBrowser,
-} from '@google/gemini-cli-core';
+import { openBrowserSecurely, shouldLaunchBrowser } from '@open-agent/core';
 import { runExitCleanup } from '../../utils/cleanup.js';
 import type { AccountSuspensionInfo } from '../contexts/UIStateContext.js';
 

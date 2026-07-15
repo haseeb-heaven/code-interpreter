@@ -12,11 +12,11 @@ import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSel
 import { useSettingsStore } from '../contexts/SettingsContext.js';
 import { SettingScope } from '../../config/settings.js';
 import { useKeypress, type Key } from '../hooks/useKeypress.js';
-import { isBinaryAvailable } from '@google/gemini-cli-core';
+import { isBinaryAvailable } from '@open-agent/core';
 import {
   WhisperModelManager,
   type WhisperModelProgress,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { CliSpinner } from './CliSpinner.js';
 import { WarningMessage } from './messages/WarningMessage.js';
 

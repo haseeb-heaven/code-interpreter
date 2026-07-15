@@ -19,11 +19,7 @@ import {
 } from '../contexts/SessionContext.js';
 import { Table, type Column } from './Table.js';
 import { useSettings } from '../contexts/SettingsContext.js';
-import {
-  getDisplayString,
-  isAutoModel,
-  LlmRole,
-} from '@google/gemini-cli-core';
+import { getDisplayString, isAutoModel, LlmRole } from '@open-agent/core';
 import type { QuotaStats } from '../types.js';
 import { QuotaStatsInfo } from './QuotaStatsInfo.js';
 

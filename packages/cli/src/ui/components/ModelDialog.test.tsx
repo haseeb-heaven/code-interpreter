@@ -21,17 +21,16 @@ import {
   PREVIEW_GEMINI_FLASH_MODEL,
   PREVIEW_GEMINI_FLASH_LITE_MODEL,
   AuthType,
-} from '@google/gemini-cli-core';
-import type { Config, ModelSlashCommandEvent } from '@google/gemini-cli-core';
+} from '@open-agent/core';
+import type { Config, ModelSlashCommandEvent } from '@open-agent/core';
 
 // Mock dependencies
 const mockGetDisplayString = vi.fn();
 const mockLogModelSlashCommand = vi.fn();
 const mockModelSlashCommandEvent = vi.fn();
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     getAutoModelDescription: (

@@ -337,7 +337,7 @@ describe('eval-analysis', () => {
 
     it('extracts tool from imported constant', () => {
       const analysis = analyzeEvalSource(`
-        import { TRACKER_CREATE_TASK_TOOL_NAME } from '@google/gemini-cli-core';
+        import { TRACKER_CREATE_TASK_TOOL_NAME } from '@open-agent/core';
         import { evalTest } from './test-helper.js';
         evalTest('USUALLY_PASSES', {
           name: 'tracker test',
@@ -452,7 +452,7 @@ describe('eval-analysis', () => {
 
     it('handles aliased constant imports', () => {
       const analysis = analyzeEvalSource(`
-        import { TRACKER_CREATE_TASK_TOOL_NAME as CREATE_TOOL } from '@google/gemini-cli-core';
+        import { TRACKER_CREATE_TASK_TOOL_NAME as CREATE_TOOL } from '@open-agent/core';
         import { evalTest } from './test-helper.js';
         evalTest('USUALLY_PASSES', {
           name: 'alias test',

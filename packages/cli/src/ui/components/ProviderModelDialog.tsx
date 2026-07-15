@@ -29,7 +29,7 @@ import {
   type PickerGroup,
   type PickerModel,
   type ProviderDefinition,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';

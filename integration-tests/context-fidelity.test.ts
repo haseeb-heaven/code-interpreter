@@ -9,7 +9,7 @@ import { TestRig } from './test-helper.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { FinishReason, GenerateContentResponse } from '@google/genai';
-import type { FakeResponse, HistoryTurn } from '@google/gemini-cli-core';
+import type { FakeResponse, HistoryTurn } from '@open-agent/core';
 
 describe('Context Management Fidelity E2E', () => {
   let rig: TestRig;

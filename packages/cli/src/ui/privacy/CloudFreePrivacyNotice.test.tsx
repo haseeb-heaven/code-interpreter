@@ -10,7 +10,7 @@ import { act } from 'react';
 import { CloudFreePrivacyNotice } from './CloudFreePrivacyNotice.js';
 import { usePrivacySettings } from '../hooks/usePrivacySettings.js';
 import { useKeypress } from '../hooks/useKeypress.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@open-agent/core';
 import { RadioButtonSelect } from '../components/shared/RadioButtonSelect.js';
 
 // Mocks

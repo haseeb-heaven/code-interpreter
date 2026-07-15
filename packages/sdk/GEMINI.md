@@ -1,4 +1,4 @@
-# Gemini CLI SDK (`@google/gemini-cli-sdk`)
+# Gemini CLI SDK (`@open-agent/sdk`)
 
 Programmatic SDK for embedding Gemini CLI agent capabilities into other
 applications.
@@ -14,5 +14,5 @@ applications.
 
 ## Testing
 
-- Run tests: `npm test -w @google/gemini-cli-sdk`
+- Run tests: `npm test -w @open-agent/sdk`
 - Integration tests use `*.integration.test.ts` naming convention.

@@ -9,7 +9,7 @@ import {
   TestRig,
   PerfTestHarness,
   type PerfSnapshot,
-} from '@google/gemini-cli-test-utils';
+} from '@open-agent/test-utils';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {

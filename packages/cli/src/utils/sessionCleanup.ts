@@ -15,7 +15,7 @@ import {
   type Config,
   deleteSessionArtifactsAsync,
   deleteSubagentSessionDirAndArtifactsAsync,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type { Settings, SessionRetentionSettings } from '../config/settings.js';
 import { getAllSessionFiles, type SessionFileEntry } from './sessionUtils.js';
 

@@ -11,10 +11,7 @@ import type {
 } from '../types.js';
 import { MessageType } from '../types.js';
 import { formatDuration } from '../utils/formatters.js';
-import {
-  UserAccountManager,
-  getG1CreditBalance,
-} from '@google/gemini-cli-core';
+import { UserAccountManager, getG1CreditBalance } from '@open-agent/core';
 import {
   type CommandContext,
   type SlashCommand,

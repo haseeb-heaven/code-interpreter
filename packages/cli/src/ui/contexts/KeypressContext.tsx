@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { debugLogger, type Config } from '@google/gemini-cli-core';
+import { debugLogger, type Config } from '@open-agent/core';
 import { useStdin } from 'ink';
 import { MultiMap } from 'mnemonist';
 import type React from 'react';

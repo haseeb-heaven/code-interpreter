@@ -11,7 +11,7 @@ import * as SessionContext from '../contexts/SessionContext.js';
 import * as SettingsContext from '../contexts/SettingsContext.js';
 import { type LoadedSettings } from '../../config/settings.js';
 import { type SessionMetrics } from '../contexts/SessionContext.js';
-import { ToolCallDecision, LlmRole } from '@google/gemini-cli-core';
+import { ToolCallDecision, LlmRole } from '@open-agent/core';
 
 // Mock the context to provide controlled data for testing
 vi.mock('../contexts/SessionContext.js', async (importOriginal) => {

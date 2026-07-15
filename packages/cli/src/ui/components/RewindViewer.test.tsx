@@ -9,10 +9,7 @@ import { act } from 'react';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { RewindViewer } from './RewindViewer.js';
 import { waitFor } from '../../test-utils/async.js';
-import type {
-  ConversationRecord,
-  MessageRecord,
-} from '@google/gemini-cli-core';
+import type { ConversationRecord, MessageRecord } from '@open-agent/core';
 
 vi.mock('ink', async () => {
   const actual = await vi.importActual<typeof import('ink')>('ink');
@@ -32,9 +29,8 @@ vi.mock('../utils/formatters.js', async (importOriginal) => {
   };
 });
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@open-agent/core')>();
 
   const partToStringRecursive = (part: unknown): string => {
     if (!part) {

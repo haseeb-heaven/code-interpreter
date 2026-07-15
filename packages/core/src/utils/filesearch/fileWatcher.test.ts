@@ -7,7 +7,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanupTmpDir, createTmpDir } from '@google/gemini-cli-test-utils';
+import { cleanupTmpDir, createTmpDir } from '@open-agent/test-utils';
 import { FileWatcher, type FileWatcherEvent } from './fileWatcher.js';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

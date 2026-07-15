@@ -7,7 +7,7 @@
 import type React from 'react';
 import { Text } from 'ink';
 import { type ActiveHook } from '../types.js';
-import { isUserVisibleHook } from '@google/gemini-cli-core';
+import { isUserVisibleHook } from '@open-agent/core';
 import { GENERIC_WORKING_LABEL } from '../textConstants.js';
 import { theme } from '../semantic-colors.js';
 

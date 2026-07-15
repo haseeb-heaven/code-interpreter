@@ -19,7 +19,7 @@ import {
   createTransport,
   debugLogger,
   type AdminControlsSettings,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { ExtensionStorage } from '../../config/extensions/storage.js';
 import { ExtensionManager } from '../../config/extension-manager.js';
@@ -40,9 +40,8 @@ vi.mock('../../config/extensions/storage.js', () => ({
   },
 }));
 vi.mock('../../config/extension-manager.js');
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...original,
     createTransport: vi.fn(),

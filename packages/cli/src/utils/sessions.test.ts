@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { deleteStoredSession, type Config } from '@google/gemini-cli-core';
+import { deleteStoredSession, type Config } from '@open-agent/core';
 import { listSessions, deleteSession } from './sessions.js';
 import { SessionSelector, type SessionInfo } from './sessionUtils.js';
 
@@ -20,8 +20,8 @@ vi.mock('./sessionUtils.js', () => ({
   formatRelativeTime: vi.fn(() => 'some time ago'),
 }));
 
-vi.mock('@google/gemini-cli-core', async () => {
-  const actual = await vi.importActual('@google/gemini-cli-core');
+vi.mock('@open-agent/core', async () => {
+  const actual = await vi.importActual('@open-agent/core');
   return {
     ...actual,
     deleteStoredSession: vi.fn(),

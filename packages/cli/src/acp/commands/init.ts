@@ -6,7 +6,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { performInit } from '@google/gemini-cli-core';
+import { performInit } from '@open-agent/core';
 import type {
   Command,
   CommandContext,

@@ -14,7 +14,7 @@ import {
   CoreToolCallStatus,
   Kind,
   makeFakeConfig,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { createMockSettings } from '../../../test-utils/settings.js';
 import { tryParseJSON } from '../../../utils/jsonoutput.js';

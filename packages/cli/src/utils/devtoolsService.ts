@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { debugLogger, type Config } from '@google/gemini-cli-core';
+import { debugLogger, type Config } from '@open-agent/core';
 import WebSocket from 'ws';
 import {
   initActivityLogger,
@@ -60,7 +60,7 @@ async function startOrJoinDevTools(
   defaultHost: string,
   defaultPort: number,
 ): Promise<{ host: string; port: number }> {
-  const mod = await import('@google/gemini-cli-devtools');
+  const mod = await import('@open-agent/devtools');
   const devtools: IDevTools = mod.DevTools.getInstance();
   const url = await devtools.start();
   const actualPort = devtools.getPort();
@@ -208,7 +208,7 @@ export async function toggleDevToolsPanel(
 
   try {
     const { openBrowserSecurely, shouldLaunchBrowser } = await import(
-      '@google/gemini-cli-core'
+      '@open-agent/core'
     );
     const url = await startDevToolsServer(config);
     if (shouldLaunchBrowser()) {

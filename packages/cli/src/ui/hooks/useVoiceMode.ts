@@ -11,7 +11,7 @@ import {
   debugLogger,
   type Config,
   type TranscriptionProvider,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type { TextBuffer } from '../components/shared/text-buffer.js';
 import type { MergedSettings } from '../../config/settingsSchema.js';
 import type { Key } from './useKeypress.js';

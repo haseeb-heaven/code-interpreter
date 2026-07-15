@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { render, Box, Text } from 'ink';
 import { AskUserDialog } from '../src/ui/components/AskUserDialog.js';
 import { KeypressProvider } from '../src/ui/contexts/KeypressContext.js';
-import { QuestionType, type Question } from '@google/gemini-cli-core';
+import { QuestionType, type Question } from '@open-agent/core';
 
 const DEMO_QUESTIONS: Question[] = [
   {

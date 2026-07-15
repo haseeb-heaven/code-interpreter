@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { debugLogger, isGitRepository } from '@google/gemini-cli-core';
+import { debugLogger, isGitRepository } from '@open-agent/core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as childProcess from 'node:child_process';
@@ -119,7 +119,7 @@ export function getInstallationInfo(
 
     // Check for Volta
     if (realPath.includes('/.volta/') || realPath.includes('/Volta/')) {
-      const updateCommand = 'volta install @google/gemini-cli@latest';
+      const updateCommand = 'volta install open-agent@latest';
       return {
         packageManager: PackageManager.VOLTA,
         isGlobal: true,
@@ -137,7 +137,7 @@ export function getInstallationInfo(
       realPath.includes('/Library/pnpm/global/') ||
       realPath.includes('/AppData/Local/pnpm/global/')
     ) {
-      const updateCommand = 'pnpm add -g @google/gemini-cli@latest';
+      const updateCommand = 'pnpm add -g open-agent@latest';
       return {
         packageManager: PackageManager.PNPM,
         isGlobal: true,
@@ -150,7 +150,7 @@ export function getInstallationInfo(
 
     // Check for yarn
     if (realPath.includes('/.yarn/global')) {
-      const updateCommand = 'yarn global add @google/gemini-cli@latest';
+      const updateCommand = 'yarn global add open-agent@latest';
       return {
         packageManager: PackageManager.YARN,
         isGlobal: true,
@@ -170,7 +170,7 @@ export function getInstallationInfo(
       };
     }
     if (realPath.includes('/.bun/install/global')) {
-      const updateCommand = 'bun add -g @google/gemini-cli@latest';
+      const updateCommand = 'bun add -g open-agent@latest';
       return {
         packageManager: PackageManager.BUN,
         isGlobal: true,
@@ -203,7 +203,7 @@ export function getInstallationInfo(
     }
 
     // Assume global npm
-    const updateCommand = 'npm install -g @google/gemini-cli@latest';
+    const updateCommand = 'npm install -g open-agent@latest';
     return {
       packageManager: PackageManager.NPM,
       isGlobal: true,

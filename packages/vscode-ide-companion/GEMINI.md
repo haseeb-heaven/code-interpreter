@@ -1,4 +1,4 @@
-# Gemini CLI VS Code Companion (`gemini-cli-vscode-ide-companion`)
+# Gemini CLI VS Code Companion (`open-agent-vscode-ide-companion`)
 
 VS Code extension that pairs with Gemini CLI, providing direct IDE workspace
 access to the CLI agent.
@@ -19,5 +19,5 @@ access to the CLI agent.
 
 ## Testing
 
-- Run tests: `npm test -w gemini-cli-vscode-ide-companion`
+- Run tests: `npm test -w open-agent-vscode-ide-companion`
 - Tests use standard Vitest patterns alongside VS Code test APIs.

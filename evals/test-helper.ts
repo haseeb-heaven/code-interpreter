@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execSync } from 'node:child_process';
-import { TestRig } from '@google/gemini-cli-test-utils';
+import { TestRig } from '@open-agent/test-utils';
 import {
   createUnauthorizedToolError,
   parseAgentMarkdown,
@@ -18,9 +18,9 @@ import {
   SESSION_FILE_PREFIX,
   PREVIEW_GEMINI_FLASH_MODEL,
   getErrorMessage,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 
-export * from '@google/gemini-cli-test-utils';
+export * from '@open-agent/test-utils';
 
 /**
  * The default model used for all evaluations.

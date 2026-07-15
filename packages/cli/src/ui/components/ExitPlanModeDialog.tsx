@@ -16,7 +16,7 @@ import {
   type EditorType,
   processSingleFileContent,
   debugLogger,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { theme } from '../semantic-colors.js';
 import { useConfig } from '../contexts/ConfigContext.js';
 import { AskUserDialog } from './AskUserDialog.js';

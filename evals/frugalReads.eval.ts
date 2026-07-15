@@ -6,7 +6,7 @@
 
 import { describe, expect } from 'vitest';
 import { evalTest } from './test-helper.js';
-import { READ_FILE_TOOL_NAME, EDIT_TOOL_NAME } from '@google/gemini-cli-core';
+import { READ_FILE_TOOL_NAME, EDIT_TOOL_NAME } from '@open-agent/core';
 
 describe('Frugal reads eval', () => {
   /**

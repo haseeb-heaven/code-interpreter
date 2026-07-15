@@ -6,7 +6,7 @@
 
 import { renderWithProviders } from '../../test-utils/render.js';
 import { createMockSettings } from '../../test-utils/settings.js';
-import { makeFakeConfig, ExitCodes } from '@google/gemini-cli-core';
+import { makeFakeConfig, ExitCodes } from '@open-agent/core';
 import { waitFor } from '../../test-utils/async.js';
 import { act } from 'react';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';

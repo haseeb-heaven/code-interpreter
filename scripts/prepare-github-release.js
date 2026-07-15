@@ -39,9 +39,9 @@ fs.writeFileSync(
 );
 console.log('Wrote .npmrc for @google-gemini scope to packages/core/');
 
-// Update @google/gemini-cli
+// Update open-agent
 updatePackageJson('packages/cli/package.json', (pkg) => {
-  pkg.name = '@google-gemini/gemini-cli';
+  pkg.name = '@haseeb-heaven/open-agent';
   pkg.files = ['bundle/'];
   pkg.bin = {
     gemini: 'bundle/gemini.js',
@@ -55,14 +55,14 @@ updatePackageJson('packages/cli/package.json', (pkg) => {
   delete pkg.config; // Deletes the sandboxImageUri
 });
 
-// Update @google/gemini-cli-a2a-server
+// Update @open-agent/a2a-server
 updatePackageJson('packages/a2a-server/package.json', (pkg) => {
-  pkg.name = '@google-gemini/gemini-cli-a2a-server';
+  pkg.name = '@haseeb-heaven/open-agent-a2a-server';
 });
 
-// Update @google/gemini-cli-core
+// Update @open-agent/core
 updatePackageJson('packages/core/package.json', (pkg) => {
-  pkg.name = '@google-gemini/gemini-cli-core';
+  pkg.name = '@haseeb-heaven/open-agent-core';
 });
 
 console.log('Successfully prepared packages for GitHub release.');

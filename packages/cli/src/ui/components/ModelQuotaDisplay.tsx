@@ -9,7 +9,7 @@ import { Box, Text } from 'ink';
 import { ProgressBar } from './ProgressBar.js';
 import { theme } from '../semantic-colors.js';
 import { formatResetTime } from '../utils/formatters.js';
-import { getDisplayString } from '@google/gemini-cli-core';
+import { getDisplayString } from '@open-agent/core';
 import { useConfig } from '../contexts/ConfigContext.js';
 import { useUIState } from '../contexts/UIStateContext.js';
 

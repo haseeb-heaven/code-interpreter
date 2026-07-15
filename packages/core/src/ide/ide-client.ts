@@ -508,7 +508,7 @@ export class IdeClient {
     }
 
     this.client.setNotificationHandler(
-      IdeContextNotificationSchema,
+      IdeContextNotificationSchema as any,
       (notification) => {
         ideContextStore.set(notification.params);
         const isTrusted = notification.params.workspaceState?.isTrusted;
@@ -535,7 +535,7 @@ export class IdeClient {
       );
     };
     this.client.setNotificationHandler(
-      IdeDiffAcceptedNotificationSchema,
+      IdeDiffAcceptedNotificationSchema as any,
       (notification) => {
         const { filePath, content } = notification.params;
         const resolver = this.diffResponses.get(filePath);
@@ -549,7 +549,7 @@ export class IdeClient {
     );
 
     this.client.setNotificationHandler(
-      IdeDiffRejectedNotificationSchema,
+      IdeDiffRejectedNotificationSchema as any,
       (notification) => {
         const { filePath } = notification.params;
         const resolver = this.diffResponses.get(filePath);
@@ -565,7 +565,7 @@ export class IdeClient {
     // For backwards compatibility. Newer extension versions will only send
     // IdeDiffRejectedNotificationSchema.
     this.client.setNotificationHandler(
-      IdeDiffClosedNotificationSchema,
+      IdeDiffClosedNotificationSchema as any,
       (notification) => {
         const { filePath } = notification.params;
         const resolver = this.diffResponses.get(filePath);

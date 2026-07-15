@@ -4,11 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  IdeClient,
-  UserAccountManager,
-  getVersion,
-} from '@google/gemini-cli-core';
+import { IdeClient, UserAccountManager, getVersion } from '@open-agent/core';
 import type {
   Command,
   CommandContext,

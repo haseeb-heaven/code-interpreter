@@ -21,7 +21,7 @@ import {
   type AgentProtocol,
   type Logger,
   type Part,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type {
   HistoryItemWithoutId,
   LoopDetectionConfirmationRequest,

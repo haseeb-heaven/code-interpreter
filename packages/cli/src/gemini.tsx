@@ -38,7 +38,7 @@ import {
   getProjectHash,
   loadConversationRecord,
   type MessageRecord,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 
 import { loadCliConfig, parseArguments } from './config/config.js';
 import { handleProviderStartupFlags } from './config/providerStartup.js';

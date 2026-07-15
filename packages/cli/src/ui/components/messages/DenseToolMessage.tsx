@@ -17,7 +17,7 @@ import {
   isGrepResult,
   isListResult,
   isReadManyFilesResult,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import {
   type IndividualToolCallDisplay,
   type ToolResultDisplay,

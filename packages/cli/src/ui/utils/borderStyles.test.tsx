@@ -6,7 +6,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { getToolGroupBorderAppearance } from './borderStyles.js';
-import { CoreToolCallStatus, makeFakeConfig } from '@google/gemini-cli-core';
+import { CoreToolCallStatus, makeFakeConfig } from '@open-agent/core';
 import { theme } from '../semantic-colors.js';
 import type { IndividualToolCallDisplay } from '../types.js';
 import { renderWithProviders } from '../../test-utils/render.js';

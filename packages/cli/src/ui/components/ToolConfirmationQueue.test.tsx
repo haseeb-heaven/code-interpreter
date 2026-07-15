@@ -15,7 +15,7 @@ import {
   type Config,
   CoreToolCallStatus,
   type SerializableConfirmationDetails,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type { ConfirmingToolState } from '../hooks/useConfirmingTool.js';
 import { theme } from '../semantic-colors.js';
 
@@ -27,9 +27,8 @@ vi.mock('./StickyHeader.js', async (importOriginal) => {
   };
 });
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     validatePlanPath: vi.fn().mockResolvedValue(undefined),

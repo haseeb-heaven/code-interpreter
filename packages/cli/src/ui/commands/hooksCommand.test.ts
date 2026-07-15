@@ -12,7 +12,7 @@ import {
   HookEventName,
   ConfigSource,
   type HookRegistryEntry,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type { CommandContext } from './types.js';
 import { SettingScope } from '../../config/settings.js';
 

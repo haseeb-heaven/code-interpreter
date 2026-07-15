@@ -9,7 +9,7 @@ import {
   ApprovalMode,
   type Config,
   getAdminErrorMessage,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { useKeypress } from './useKeypress.js';
 import { Command } from '../key/keyMatchers.js';
 import { useKeyMatchers } from './useKeyMatchers.js';

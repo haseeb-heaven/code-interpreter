@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { spawnAsync, getAbsoluteGitDir } from '@google/gemini-cli-core';
+import { spawnAsync, getAbsoluteGitDir } from '@open-agent/core';
 import fs from 'node:fs';
 import fsPromises from 'node:fs/promises';
 

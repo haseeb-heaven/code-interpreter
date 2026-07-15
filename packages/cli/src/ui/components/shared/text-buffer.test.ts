@@ -42,7 +42,7 @@ import {
 } from './text-buffer.js';
 import { cpLen } from '../../utils/textUtils.js';
 import { type Key } from '../../hooks/useKeypress.js';
-import { escapePath } from '@google/gemini-cli-core';
+import { escapePath } from '@open-agent/core';
 
 vi.mock('../../contexts/SettingsContext.js', async (importOriginal) => {
   const actual =

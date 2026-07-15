@@ -8,7 +8,7 @@ import type React from 'react';
 import { Box, Text } from 'ink';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { theme } from '../semantic-colors.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType } from '@open-agent/core';
 import { isUltraTier } from '../../utils/tierUtils.js';
 
 interface ProQuotaDialogProps {

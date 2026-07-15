@@ -9,7 +9,7 @@ import {
   isLoadableSettingScope,
   type LoadedSettings,
 } from '../config/settings.js';
-import { getErrorMessage } from '@google/gemini-cli-core';
+import { getErrorMessage } from '@open-agent/core';
 import type { ModifiedScope } from './skillSettings.js';
 
 export type HookActionStatus = 'success' | 'no-op' | 'error';

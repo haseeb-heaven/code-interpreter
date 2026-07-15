@@ -141,11 +141,23 @@ async function main() {
     const packageJson = JSON.parse(packageJsonContent);
 
     const packageLockJsonPath = path.join(projectRoot, 'package-lock.json');
-    const packageLockJsonContent = await fs.readFile(
-      packageLockJsonPath,
-      'utf-8',
-    );
-    const packageLockJson = JSON.parse(packageLockJsonContent);
+    let packageLockJson;
+    try {
+      const packageLockJsonContent = await fs.readFile(
+        packageLockJsonPath,
+        'utf-8',
+      );
+      packageLockJson = JSON.parse(packageLockJsonContent);
+    } catch (e) {
+      console.warn(
+        'Warning: package-lock.json not found, writing placeholder NOTICES.txt',
+      );
+      await fs.writeFile(
+        noticeFilePath,
+        'Third-party notices will be generated after package-lock.json is created.\n',
+      );
+      return;
+    }
 
     const workspaceRelativePath = path.relative(projectRoot, packagePath);
     const allDependencies = new Map();

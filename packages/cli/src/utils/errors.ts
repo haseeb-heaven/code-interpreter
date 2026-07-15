@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@open-agent/core';
 import {
   OutputFormat,
   JsonFormatter,
@@ -20,7 +20,7 @@ import {
   coreEvents,
   getErrorType,
   getErrorMessage,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { runSyncCleanup } from './cleanup.js';
 
 interface ErrorWithCode extends Error {

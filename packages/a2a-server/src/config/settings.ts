@@ -16,7 +16,7 @@ import {
   homedir,
   checkPathTrust,
   isHeadlessMode,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import stripJsonComments from 'strip-json-comments';
 
 export const USER_SETTINGS_DIR = path.join(homedir(), GEMINI_DIR);

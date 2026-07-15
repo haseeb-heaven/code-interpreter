@@ -5,7 +5,7 @@
  */
 
 import path from 'node:path';
-import { Storage } from '@google/gemini-cli-core';
+import { Storage } from '@open-agent/core';
 
 export const LITERT_RELEASE_VERSION = 'v0.9.0-alpha03';
 export const LITERT_RELEASE_BASE_URL =

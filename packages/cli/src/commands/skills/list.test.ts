@@ -13,18 +13,18 @@ import {
   afterEach,
   type MockInstance,
 } from 'vitest';
-import { type Config } from '@google/gemini-cli-core';
+import { type Config } from '@open-agent/core';
 import { handleList, listCommand } from './list.js';
 import { loadSettings, type LoadedSettings } from '../../config/settings.js';
 import { loadCliConfig } from '../../config/config.js';
 import chalk from 'chalk';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@open-agent/core', async (importOriginal) => {
   const { mockCoreDebugLogger } = await import(
     '../../test-utils/mockDebugLogger.js'
   );
   return mockCoreDebugLogger(
-    await importOriginal<typeof import('@google/gemini-cli-core')>(),
+    await importOriginal<typeof import('@open-agent/core')>(),
     {
       stripAnsi: false,
     },

@@ -130,7 +130,7 @@ describe('ide-installer', () => {
           'code',
           [
             '--install-extension',
-            'google.gemini-cli-vscode-ide-companion',
+            'google.open-agent-vscode-ide-companion',
             '--force',
           ],
           { stdio: 'pipe', shell: false },
@@ -147,7 +147,7 @@ describe('ide-installer', () => {
           'C:\\Program Files\\Microsoft VS Code\\bin\\code.cmd',
           [
             '--install-extension',
-            'google.gemini-cli-vscode-ide-companion',
+            'google.open-agent-vscode-ide-companion',
             '--force',
           ],
           { stdio: 'pipe', shell: true },
@@ -229,7 +229,7 @@ describe('ide-installer', () => {
         'positron',
         [
           '--install-extension',
-          'google.gemini-cli-vscode-ide-companion',
+          'google.open-agent-vscode-ide-companion',
           '--force',
         ],
         { stdio: 'pipe', shell: false },
@@ -274,7 +274,7 @@ describe('AntigravityInstaller', () => {
       'agy',
       [
         '--install-extension',
-        'google.gemini-cli-vscode-ide-companion',
+        'google.open-agent-vscode-ide-companion',
         '--force',
       ],
       { stdio: 'pipe', shell: false },
@@ -297,7 +297,7 @@ describe('AntigravityInstaller', () => {
       'agy',
       [
         '--install-extension',
-        'google.gemini-cli-vscode-ide-companion',
+        'google.open-agent-vscode-ide-companion',
         '--force',
       ],
       { stdio: 'pipe', shell: false },
@@ -332,7 +332,7 @@ describe('AntigravityInstaller', () => {
       'antigravity',
       [
         '--install-extension',
-        'google.gemini-cli-vscode-ide-companion',
+        'google.open-agent-vscode-ide-companion',
         '--force',
       ],
       { stdio: 'pipe', shell: false },
@@ -367,7 +367,7 @@ describe('AntigravityInstaller', () => {
       'C:\\Program Files\\Antigravity\\bin\\antigravity.cmd',
       [
         '--install-extension',
-        'google.gemini-cli-vscode-ide-companion',
+        'google.open-agent-vscode-ide-companion',
         '--force',
       ],
       { stdio: 'pipe', shell: true },

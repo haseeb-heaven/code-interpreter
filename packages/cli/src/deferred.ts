@@ -4,11 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type { ArgumentsCamelCase, CommandModule } from 'yargs';
-import {
-  coreEvents,
-  ExitCodes,
-  getAdminErrorMessage,
-} from '@google/gemini-cli-core';
+import { coreEvents, ExitCodes, getAdminErrorMessage } from '@open-agent/core';
 import { runExitCleanup } from './utils/cleanup.js';
 import type { MergedSettings } from './config/settings.js';
 import process from 'node:process';

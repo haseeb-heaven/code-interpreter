@@ -5,7 +5,7 @@
  */
 
 import { describe, expect } from 'vitest';
-import { TRACKER_CREATE_TASK_TOOL_NAME } from '@google/gemini-cli-core';
+import { TRACKER_CREATE_TASK_TOOL_NAME } from '@open-agent/core';
 import { evalTest, TEST_AGENTS } from './test-helper.js';
 
 describe('subtask delegation eval test cases', () => {

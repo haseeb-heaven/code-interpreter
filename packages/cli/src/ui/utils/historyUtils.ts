@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { type ToolVisibilityContext } from '@google/gemini-cli-core';
+import { type ToolVisibilityContext } from '@open-agent/core';
 import { CoreToolCallStatus } from '../types.js';
 import type {
   HistoryItem,

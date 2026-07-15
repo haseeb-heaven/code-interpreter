@@ -11,7 +11,7 @@ import {
   CoreToolCallStatus,
   LS_DISPLAY_NAME,
   READ_FILE_DISPLAY_NAME,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { expect, it, describe } from 'vitest';
 import type { IndividualToolCallDisplay } from '../../types.js';
 

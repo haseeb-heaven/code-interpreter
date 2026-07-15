@@ -9,7 +9,7 @@ import { act } from 'react';
 import * as processUtils from '../../utils/processUtils.js';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { IdeTrustChangeDialog } from './IdeTrustChangeDialog.js';
-import { debugLogger } from '@google/gemini-cli-core';
+import { debugLogger } from '@open-agent/core';
 
 describe('IdeTrustChangeDialog', () => {
   beforeEach(() => {

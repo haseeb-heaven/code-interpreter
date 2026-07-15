@@ -9,7 +9,7 @@ import { TestRig } from './test-helper.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { FinishReason, GenerateContentResponse } from '@google/genai';
-import type { FakeResponse } from '@google/gemini-cli-core';
+import type { FakeResponse } from '@open-agent/core';
 
 describe('Context Management Resume E2E', () => {
   let rig: TestRig;

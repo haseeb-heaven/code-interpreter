@@ -51,7 +51,7 @@ export class CompleteTaskTool<
     outputConfig?: OutputConfig<z.ZodTypeAny>,
   ): unknown {
     if (outputConfig) {
-      const jsonSchema = zodToJsonSchema(outputConfig.schema);
+      const jsonSchema = zodToJsonSchema(outputConfig.schema as any);
       const {
         $schema: _$schema,
         definitions: _definitions,

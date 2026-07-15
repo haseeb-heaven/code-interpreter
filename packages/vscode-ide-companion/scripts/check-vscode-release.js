@@ -16,7 +16,7 @@ function checkRelease() {
     );
     const files = gcloudOutput.trim().split('\n');
     const vsixFiles = files.filter((file) =>
-      /signed-gemini-cli-vscode-ide-companion-\d+\.\d+\.\d+-[a-f0-9]{7}\.vsix$/.test(
+      /signed-open-agent-vscode-ide-companion-\d+\.\d+\.\d+-[a-f0-9]{7}\.vsix$/.test(
         file,
       ),
     );
@@ -30,7 +30,7 @@ function checkRelease() {
     const latestFile = vsixFiles[vsixFiles.length - 1];
     const fileName = latestFile.split('/').pop();
     const match =
-      /signed-gemini-cli-vscode-ide-companion-(\d+\.\d+\.\d+)-([a-f0-9]{7})\.vsix$/.exec(
+      /signed-open-agent-vscode-ide-companion-(\d+\.\d+\.\d+)-([a-f0-9]{7})\.vsix$/.exec(
         fileName,
       );
 

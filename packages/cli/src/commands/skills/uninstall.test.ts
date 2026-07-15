@@ -19,7 +19,7 @@ const { debugLogger, emitConsoleLog } = await vi.hoisted(async () => {
   return createMockDebugLogger({ stripAnsi: true });
 });
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@open-agent/core', () => ({
   debugLogger,
   getErrorMessage: vi.fn((e: unknown) =>
     e instanceof Error ? e.message : String(e),

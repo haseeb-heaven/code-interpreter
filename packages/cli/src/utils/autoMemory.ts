@@ -4,11 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  debugLogger,
-  startMemoryService,
-  type Config,
-} from '@google/gemini-cli-core';
+import { debugLogger, startMemoryService, type Config } from '@open-agent/core';
 
 export function startAutoMemoryIfEnabled(config: Config): void {
   if (!config.isAutoMemoryEnabled()) {

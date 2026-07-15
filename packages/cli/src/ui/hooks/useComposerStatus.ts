@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { useUIState } from '../contexts/UIStateContext.js';
 import { useQuotaState } from '../contexts/QuotaContext.js';
 import { useSettings } from '../contexts/SettingsContext.js';
-import { CoreToolCallStatus, ApprovalMode } from '@google/gemini-cli-core';
+import { CoreToolCallStatus, ApprovalMode } from '@open-agent/core';
 import { type HistoryItemToolGroup, StreamingState } from '../types.js';
 import { INTERACTIVE_SHELL_WAITING_PHRASE } from './usePhraseCycler.js';
 import { isContextUsageHigh } from '../utils/contextUsage.js';

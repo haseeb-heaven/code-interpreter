@@ -7,10 +7,7 @@
 import { describe, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  loadConversationRecord,
-  SESSION_FILE_PREFIX,
-} from '@google/gemini-cli-core';
+import { loadConversationRecord, SESSION_FILE_PREFIX } from '@open-agent/core';
 import { evalTest, assertModelHasOutput } from './test-helper.js';
 
 function findDir(base: string, name: string): string | null {

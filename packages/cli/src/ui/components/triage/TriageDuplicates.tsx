@@ -12,7 +12,7 @@ import {
   spawnAsync,
   LlmRole,
   type Config,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { useKeypress } from '../../hooks/useKeypress.js';
 import { Command } from '../../key/keyMatchers.js';
 import { useKeyMatchers } from '../../hooks/useKeyMatchers.js';
@@ -536,7 +536,7 @@ Return a JSON object with:
           'api',
           '-X',
           'PATCH',
-          `repos/google-gemini/gemini-cli/issues/${String(state.currentIssue.number).replace(/[^a-zA-Z0-9-]/g, '')}`, // Sanitize issue number
+          `repos/haseeb-heaven/open-agent/issues/${String(state.currentIssue.number).replace(/[^a-zA-Z0-9-]/g, '')}`, // Sanitize issue number
           '-f',
           'state=closed',
           '-f',

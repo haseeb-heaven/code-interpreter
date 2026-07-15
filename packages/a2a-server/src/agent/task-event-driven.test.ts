@@ -13,7 +13,7 @@ import {
   Scheduler,
   type MessageBus,
   type ToolLiveOutput,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { createMockConfig } from '../utils/testing_utils.js';
 import type { ExecutionEventBus } from '@a2a-js/sdk/server';
 

@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act } from 'react';
-import type { LegacyAgentProtocol } from '@google/gemini-cli-core';
+import type { LegacyAgentProtocol } from '@open-agent/core';
 import { renderHookWithProviders } from '../../test-utils/render.js';
 
 // --- MOCKS ---

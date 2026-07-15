@@ -105,7 +105,7 @@ function main() {
 
     markdown += '#### 3. Manual Fix\n';
     markdown +=
-      'See the [Fixing Guide](https://github.com/google-gemini/gemini-cli/blob/main/evals/README.md#fixing-evaluations) for detailed troubleshooting steps.\n';
+      'See the [Fixing Guide](https://github.com/haseeb-heaven/open-agent/blob/main/evals/README.md#fixing-evaluations) for detailed troubleshooting steps.\n';
     markdown += '</details>\n';
 
     process.stdout.write(markdown);

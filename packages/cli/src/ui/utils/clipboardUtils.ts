@@ -8,12 +8,7 @@ import * as fs from 'node:fs/promises';
 import { createWriteStream, existsSync, statSync } from 'node:fs';
 import { execSync, spawn } from 'node:child_process';
 import * as path from 'node:path';
-import {
-  debugLogger,
-  spawnAsync,
-  escapePath,
-  Storage,
-} from '@google/gemini-cli-core';
+import { debugLogger, spawnAsync, escapePath, Storage } from '@open-agent/core';
 
 /**
  * Supported image file extensions based on Gemini API.

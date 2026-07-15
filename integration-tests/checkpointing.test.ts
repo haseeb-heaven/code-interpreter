@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { GitService, Storage } from '@google/gemini-cli-core';
+import { GitService, Storage } from '@open-agent/core';
 
 describe('Checkpointing Integration', () => {
   let tmpDir: string;

@@ -31,7 +31,7 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { terminalCapabilityManager } from './terminalCapabilityManager.js';
 
-import { debugLogger, homedir } from '@google/gemini-cli-core';
+import { debugLogger, homedir } from '@open-agent/core';
 import { useEffect } from 'react';
 import { persistentState } from '../../utils/persistentState.js';
 import { requestConsentInteractive } from '../../config/extensions/consent.js';

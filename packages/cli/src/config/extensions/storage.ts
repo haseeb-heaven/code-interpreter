@@ -11,7 +11,7 @@ import {
   EXTENSION_SETTINGS_FILENAME,
   EXTENSIONS_CONFIG_FILENAME,
 } from './variables.js';
-import { Storage, homedir } from '@google/gemini-cli-core';
+import { Storage, homedir } from '@open-agent/core';
 
 export class ExtensionStorage {
   private readonly extensionName: string;

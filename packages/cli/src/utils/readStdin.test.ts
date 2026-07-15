@@ -6,9 +6,9 @@
 
 import { vi, describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { readStdin } from './readStdin.js';
-import { debugLogger } from '@google/gemini-cli-core';
+import { debugLogger } from '@open-agent/core';
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@open-agent/core', () => ({
   debugLogger: {
     warn: vi.fn(),
   },

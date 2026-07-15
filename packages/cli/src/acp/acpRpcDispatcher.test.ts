@@ -20,7 +20,7 @@ import {
   type Config,
   type MessageBus,
   type Storage,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type { LoadedSettings } from '../config/settings.js';
 import { loadCliConfig, type CliArgs } from '../config/config.js';
 import { loadSettings, SettingScope } from '../config/settings.js';

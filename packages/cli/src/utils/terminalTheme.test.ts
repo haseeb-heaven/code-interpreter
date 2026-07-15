@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupTerminalAndTheme } from './terminalTheme.js';
 import { terminalCapabilityManager } from '../ui/utils/terminalCapabilityManager.js';
 import { themeManager } from '../ui/themes/theme-manager.js';
-import { coreEvents, type Config } from '@google/gemini-cli-core';
+import { coreEvents, type Config } from '@open-agent/core';
 import type { LoadedSettings } from '../config/settings.js';
 import type { Theme } from '../ui/themes/theme.js';
 
@@ -31,7 +31,7 @@ vi.mock('../ui/themes/theme-manager.js', () => ({
   DEFAULT_THEME: { name: 'Default Dark' },
 }));
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@open-agent/core', () => ({
   coreEvents: {
     emitFeedback: vi.fn(),
   },

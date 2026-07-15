@@ -6,12 +6,7 @@
 
 import * as glob from 'glob';
 import * as path from 'node:path';
-import {
-  GEMINI_DIR,
-  Storage,
-  type Config,
-  homedir,
-} from '@google/gemini-cli-core';
+import { GEMINI_DIR, Storage, type Config, homedir } from '@open-agent/core';
 import mock from 'mock-fs';
 import { FileCommandLoader } from './FileCommandLoader.js';
 import { assert, vi } from 'vitest';
@@ -62,9 +57,8 @@ vi.mock('./prompt-processors/argumentProcessor.js', async (importOriginal) => {
       .mockImplementation(() => new original.DefaultArgumentProcessor()),
   };
 });
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...original,
     Storage: original.Storage,

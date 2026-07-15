@@ -3,8 +3,8 @@
   "compilerOptions": {
     "noEmit": true,
     "paths": {
-      "@google/gemini-cli-core": ["../packages/core/index.ts"],
-      "@google/gemini-cli": ["../packages/cli/index.ts"]
+      "@open-agent/core": ["../packages/core/index.ts"],
+      "open-agent": ["../packages/cli/index.ts"]
     }
   },
   "include": ["**/*.ts"],

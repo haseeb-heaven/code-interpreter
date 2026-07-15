@@ -7,7 +7,7 @@
 import type React from 'react';
 import { useMemo } from 'react';
 import { Box, Text } from 'ink';
-import type { ThoughtSummary } from '@google/gemini-cli-core';
+import type { ThoughtSummary } from '@open-agent/core';
 import { theme } from '../../semantic-colors.js';
 import { normalizeEscapedNewlines } from '../../utils/textUtils.js';
 

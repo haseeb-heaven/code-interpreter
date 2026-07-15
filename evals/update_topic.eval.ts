@@ -229,7 +229,7 @@ export default app;
   /**
    * Regression test for a bug where update_topic was called multiple times in a
    * row. We have seen cases of this occurring in earlier versions of the update_topic
-   * system instruction, prior to https://github.com/google-gemini/gemini-cli/pull/24640.
+   * system instruction, prior to https://github.com/haseeb-heaven/open-agent/pull/24640.
    * This test demonstrated that there are cases where it can still occur and validates
    * the prompt change that improves the behavior.
    */

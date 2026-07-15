@@ -9,7 +9,7 @@ import {
   AuthType,
   clearCachedCredentialFile,
   getVersion,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import * as acp from '@agentclientprotocol/sdk';
 import { z } from 'zod';
 import { SettingScope, type LoadedSettings } from '../config/settings.js';

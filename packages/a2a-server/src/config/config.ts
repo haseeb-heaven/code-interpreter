@@ -28,7 +28,7 @@ import {
   type TelemetryTarget,
   type ConfigParameters,
   type ExtensionLoader,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 
 import { logger } from '../utils/logger.js';
 import type { Settings } from './settings.js';

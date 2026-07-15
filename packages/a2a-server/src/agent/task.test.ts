@@ -15,16 +15,15 @@ import {
   type ToolCall,
   type ToolCallsUpdateMessage,
   MessageBusType,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { createMockConfig } from '../utils/testing_utils.js';
 import type { ExecutionEventBus, RequestContext } from '@a2a-js/sdk/server';
 import { CoderAgentEvent } from '../types.js';
 
 const mockProcessRestorableToolCalls = vi.hoisted(() => vi.fn());
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...original,
     processRestorableToolCalls: mockProcessRestorableToolCalls,

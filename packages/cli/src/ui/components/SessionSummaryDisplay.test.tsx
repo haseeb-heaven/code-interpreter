@@ -14,11 +14,10 @@ import {
   ToolCallDecision,
   isWindows,
   type WorktreeSettings,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     isWindows: vi.fn(),

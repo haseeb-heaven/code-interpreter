@@ -7,7 +7,7 @@
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { UserShellMessage } from './UserShellMessage.js';
 import { describe, it, expect, vi } from 'vitest';
-import { makeFakeConfig } from '@google/gemini-cli-core';
+import { makeFakeConfig } from '@open-agent/core';
 
 describe('UserShellMessage', () => {
   afterEach(() => {

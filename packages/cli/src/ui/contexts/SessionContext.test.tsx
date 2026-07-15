@@ -12,7 +12,7 @@ import {
   type SessionMetrics,
 } from './SessionContext.js';
 import { describe, it, expect, vi } from 'vitest';
-import { uiTelemetryService } from '@google/gemini-cli-core';
+import { uiTelemetryService } from '@open-agent/core';
 
 class ErrorBoundary extends Component<
   { children: ReactNode; onError: (error: Error) => void },

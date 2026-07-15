@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AuthType, loadApiKey } from '@google/gemini-cli-core';
+import { AuthType, loadApiKey } from '@open-agent/core';
 import { loadEnvironment, loadSettings } from './settings.js';
 
 export async function validateAuthMethod(

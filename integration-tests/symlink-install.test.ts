@@ -16,7 +16,7 @@ import {
   unlinkSync,
 } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { GEMINI_DIR } from '@google/gemini-cli-core';
+import { GEMINI_DIR } from '@open-agent/core';
 import * as pty from '@lydell/node-pty';
 import { fileURLToPath } from 'node:url';
 

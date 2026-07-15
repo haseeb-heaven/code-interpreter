@@ -1,5 +1,5 @@
 {
-  "name": "gemini-cli-vscode-ide-companion",
+  "name": "open-agent-vscode-ide-companion",
   "displayName": "Gemini CLI Companion",
   "description": "Enable Gemini CLI with direct access to your IDE workspace.",
   "version": "4.0.0",
@@ -7,7 +7,7 @@
   "icon": "assets/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/google-gemini/gemini-cli.git",
+    "url": "https://github.com/haseeb-heaven/open-agent.git",
     "directory": "packages/vscode-ide-companion"
   },
   "engines": {

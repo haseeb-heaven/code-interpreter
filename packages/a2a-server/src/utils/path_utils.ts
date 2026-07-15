@@ -6,7 +6,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { resolveToRealPath, isSubpath } from '@google/gemini-cli-core';
+import { resolveToRealPath, isSubpath } from '@open-agent/core';
 
 /**
  * Validates a workspace path to prevent path traversal attacks.

@@ -6,7 +6,7 @@
 
 import type React from 'react';
 import { useMemo } from 'react';
-import { type TodoList } from '@google/gemini-cli-core';
+import { type TodoList } from '@open-agent/core';
 import { useUIState } from '../../contexts/UIStateContext.js';
 import type { HistoryItemToolGroup } from '../../types.js';
 import { Checklist } from '../Checklist.js';

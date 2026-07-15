@@ -6,10 +6,7 @@
 import { ExtensionManager } from '../../config/extension-manager.js';
 import { loadSettings } from '../../config/settings.js';
 import { requestConsentNonInteractive } from '../../config/extensions/consent.js';
-import {
-  debugLogger,
-  type ResolvedExtensionSetting,
-} from '@google/gemini-cli-core';
+import { debugLogger, type ResolvedExtensionSetting } from '@open-agent/core';
 import type { ExtensionConfig } from '../../config/extension.js';
 import prompts from 'prompts';
 import {

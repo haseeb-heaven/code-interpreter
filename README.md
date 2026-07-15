@@ -14,6 +14,8 @@
 > bring-your-own-key frontier models. Describe a task in plain English. Get the
 > result.
 
+![OpenAgent CLI Screenshot](assets/openagent_cli_screenshot.jpg)
+
 ```bash
 npm install
 npm run build

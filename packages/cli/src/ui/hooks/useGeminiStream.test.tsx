@@ -36,7 +36,7 @@ import type {
   SpanMetadata,
   CompletedToolCall,
   ToolCallRequestInfo,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import {
   CoreToolCallStatus,
   ApprovalMode,
@@ -54,7 +54,7 @@ import {
   GeminiCliOperation,
   getPlanModeExitMessage,
   UPDATE_TOPIC_TOOL_NAME,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type { Part, PartListUnion } from '@google/genai';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
 import type {
@@ -151,7 +151,7 @@ const mockRunInDevTraceSpan = vi.hoisted(() =>
   }),
 );
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@open-agent/core', async (importOriginal) => {
   const actualCoreModule = (await importOriginal()) as any;
   return {
     ...actualCoreModule,

@@ -5,7 +5,7 @@
  */
 
 import type { CommandModule } from 'yargs';
-import { debugLogger, getErrorMessage } from '@google/gemini-cli-core';
+import { debugLogger, getErrorMessage } from '@open-agent/core';
 import chalk from 'chalk';
 
 import { exitCli } from '../utils.js';

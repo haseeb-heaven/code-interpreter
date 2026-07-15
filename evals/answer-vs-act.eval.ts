@@ -6,7 +6,7 @@
 
 import { describe, expect } from 'vitest';
 import { evalTest } from './test-helper.js';
-import { EDIT_TOOL_NAMES } from '@google/gemini-cli-core';
+import { EDIT_TOOL_NAMES } from '@open-agent/core';
 
 const FILES = {
   'app.ts': 'const add = (a: number, b: number) => a - b;',

@@ -8,7 +8,7 @@ import { render } from '../../test-utils/render.js';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BackgroundTaskDisplay } from './BackgroundTaskDisplay.js';
 import { type BackgroundTask } from '../hooks/useExecutionLifecycle.js';
-import { ShellExecutionService } from '@google/gemini-cli-core';
+import { ShellExecutionService } from '@open-agent/core';
 import { act } from 'react';
 import { type Key, type KeypressHandler } from '../contexts/KeypressContext.js';
 import { ScrollProvider } from '../contexts/ScrollProvider.js';
@@ -27,9 +27,8 @@ vi.mock('../contexts/UIActionsContext.js', () => ({
   }),
 }));
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     ShellExecutionService: {

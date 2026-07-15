@@ -27,7 +27,7 @@ import {
   IntegrityDataStatus,
   makeFakeConfig,
   type GeminiCLIExtension,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { createMockSettings } from '../packages/cli/src/test-utils/settings.js';
 
 // A minimal mock ExtensionManager to bypass integrity checks

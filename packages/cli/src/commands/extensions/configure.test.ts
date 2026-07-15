@@ -14,13 +14,13 @@ import {
 } from 'vitest';
 import { configureCommand } from './configure.js';
 import yargs from 'yargs';
-import { debugLogger } from '@google/gemini-cli-core';
+import { debugLogger } from '@open-agent/core';
 import {
   updateSetting,
   getScopedEnvContents,
   type ExtensionSetting,
 } from '../../config/extensions/extensionSettings.js';
-import { cleanupTmpDir } from '@google/gemini-cli-test-utils';
+import { cleanupTmpDir } from '@open-agent/test-utils';
 import prompts from 'prompts';
 import * as fs from 'node:fs';
 import * as os from 'node:os';

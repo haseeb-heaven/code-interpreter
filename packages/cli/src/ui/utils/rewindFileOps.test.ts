@@ -16,7 +16,7 @@ import {
   type ConversationRecord,
   type MessageRecord,
   type ToolCallRecord,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 
 // Mock fs/promises
 vi.mock('node:fs/promises', () => ({
@@ -28,10 +28,9 @@ vi.mock('node:fs/promises', () => ({
   },
 }));
 
-// Mock @google/gemini-cli-core
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+// Mock @open-agent/core
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     debugLogger: {
@@ -69,7 +68,7 @@ describe('rewindFileOps', () => {
 
     it('calculates stats for single turn correctly', async () => {
       const { getFileDiffFromResultDisplay, computeModelAddedAndRemovedLines } =
-        await import('@google/gemini-cli-core');
+        await import('@open-agent/core');
       vi.mocked(getFileDiffFromResultDisplay).mockReturnValue({
         filePath: 'test.ts',
         fileName: 'test.ts',
@@ -125,7 +124,7 @@ describe('rewindFileOps', () => {
   describe('calculateRewindImpact', () => {
     it('calculates cumulative stats across multiple turns', async () => {
       const { getFileDiffFromResultDisplay, computeModelAddedAndRemovedLines } =
-        await import('@google/gemini-cli-core');
+        await import('@open-agent/core');
       vi.mocked(getFileDiffFromResultDisplay)
         .mockReturnValueOnce({
           filePath: 'file1.ts',
@@ -220,9 +219,7 @@ describe('rewindFileOps', () => {
     });
 
     it('reverts exact match', async () => {
-      const { getFileDiffFromResultDisplay } = await import(
-        '@google/gemini-cli-core'
-      );
+      const { getFileDiffFromResultDisplay } = await import('@open-agent/core');
       vi.mocked(getFileDiffFromResultDisplay).mockReturnValue({
         filePath: '/abs/path/test.ts',
         fileName: 'test.ts',
@@ -270,9 +267,7 @@ describe('rewindFileOps', () => {
     });
 
     it('deletes new file on revert', async () => {
-      const { getFileDiffFromResultDisplay } = await import(
-        '@google/gemini-cli-core'
-      );
+      const { getFileDiffFromResultDisplay } = await import('@open-agent/core');
       vi.mocked(getFileDiffFromResultDisplay).mockReturnValue({
         filePath: '/abs/path/new.ts',
         fileName: 'new.ts',
@@ -317,9 +312,7 @@ describe('rewindFileOps', () => {
     });
 
     it('handles smart revert (patching) successfully', async () => {
-      const { getFileDiffFromResultDisplay } = await import(
-        '@google/gemini-cli-core'
-      );
+      const { getFileDiffFromResultDisplay } = await import('@open-agent/core');
       vi.mocked(getFileDiffFromResultDisplay).mockReturnValue({
         filePath: '/abs/path/test.ts',
         fileName: 'test.ts',
@@ -369,9 +362,7 @@ describe('rewindFileOps', () => {
     });
 
     it('emits warning on smart revert failure', async () => {
-      const { getFileDiffFromResultDisplay } = await import(
-        '@google/gemini-cli-core'
-      );
+      const { getFileDiffFromResultDisplay } = await import('@open-agent/core');
       vi.mocked(getFileDiffFromResultDisplay).mockReturnValue({
         filePath: '/abs/path/test.ts',
         fileName: 'test.ts',
@@ -421,9 +412,7 @@ describe('rewindFileOps', () => {
     });
 
     it('emits error if fs.readFile fails with a generic error', async () => {
-      const { getFileDiffFromResultDisplay } = await import(
-        '@google/gemini-cli-core'
-      );
+      const { getFileDiffFromResultDisplay } = await import('@open-agent/core');
       vi.mocked(getFileDiffFromResultDisplay).mockReturnValue({
         filePath: '/abs/path/test.ts',
         fileName: 'test.ts',

@@ -12,14 +12,13 @@ import {
   getCodeAssistServer,
   type Config,
   type CodeAssistServer,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { usePrivacySettings } from './usePrivacySettings.js';
 import { waitFor } from '../../test-utils/async.js';
 
 // Mock the dependencies
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     getCodeAssistServer: vi.fn(),

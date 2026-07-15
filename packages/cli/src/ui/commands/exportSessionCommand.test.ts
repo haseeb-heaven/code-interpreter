@@ -10,7 +10,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { SessionSelector } from '../../utils/sessionUtils.js';
 import type { CommandContext } from './types.js';
-import { Storage, type ConversationRecord } from '@google/gemini-cli-core';
+import { Storage, type ConversationRecord } from '@open-agent/core';
 
 vi.mock('node:fs/promises');
 vi.mock('../../utils/sessionUtils.js');

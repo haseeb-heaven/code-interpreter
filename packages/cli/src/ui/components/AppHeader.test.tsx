@@ -11,7 +11,7 @@ import {
 import type { LoadedSettings } from '../../config/settings.js';
 import { AppHeader } from './AppHeader.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { makeFakeConfig } from '@google/gemini-cli-core';
+import { makeFakeConfig } from '@open-agent/core';
 import crypto from 'node:crypto';
 import { _clearSessionBannersForTest } from '../hooks/useBanner.js';
 

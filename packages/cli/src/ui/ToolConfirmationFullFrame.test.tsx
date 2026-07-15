@@ -12,7 +12,7 @@ import {
   ApprovalMode,
   makeFakeConfig,
   type SerializableConfirmationDetails,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { type UIState } from './contexts/UIStateContext.js';
 import { act } from 'react';
 import { StreamingState } from './types.js';

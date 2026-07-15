@@ -9,7 +9,7 @@ import {
   CompressionMessage,
   type CompressionDisplayProps,
 } from './CompressionMessage.js';
-import { CompressionStatus } from '@google/gemini-cli-core';
+import { CompressionStatus } from '@open-agent/core';
 import { type CompressionProps } from '../../types.js';
 import { describe, it, expect } from 'vitest';
 

@@ -15,7 +15,7 @@ import {
 } from 'vitest';
 import { AcpFileSystemService } from './acpFileSystemService.js';
 import type { AgentSideConnection } from '@agentclientprotocol/sdk';
-import type { FileSystemService } from '@google/gemini-cli-core';
+import type { FileSystemService } from '@open-agent/core';
 import os from 'node:os';
 
 vi.mock('node:os', () => ({

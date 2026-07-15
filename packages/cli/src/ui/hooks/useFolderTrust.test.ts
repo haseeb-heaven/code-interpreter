@@ -25,16 +25,17 @@ import {
   type LoadedTrustedFolders,
 } from '../../config/trustedFolders.js';
 import * as trustedFolders from '../../config/trustedFolders.js';
-import { coreEvents, ExitCodes, isHeadlessMode } from '@google/gemini-cli-core';
+import { coreEvents, ExitCodes, isHeadlessMode } from '@open-agent/core';
 import { MessageType } from '../types.js';
 
 const mockedCwd = vi.hoisted(() => vi.fn().mockReturnValue('/mock/cwd'));
 const mockedExit = vi.hoisted(() => vi.fn());
 
-vi.mock('@google/gemini-cli-core', async () => {
-  const actual = await vi.importActual<
-    typeof import('@google/gemini-cli-core')
-  >('@google/gemini-cli-core');
+vi.mock('@open-agent/core', async () => {
+  const actual =
+    await vi.importActual<typeof import('@open-agent/core')>(
+      '@open-agent/core',
+    );
   return {
     ...actual,
     isHeadlessMode: vi.fn().mockReturnValue(false),

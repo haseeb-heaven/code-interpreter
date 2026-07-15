@@ -5,7 +5,7 @@
  */
 
 import * as path from 'node:path';
-import { homedir } from '@google/gemini-cli-core';
+import { homedir } from '@open-agent/core';
 
 export function resolvePath(p: string): string {
   if (!p) {

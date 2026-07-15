@@ -462,7 +462,7 @@ export class SchedulerStateManager {
     const startTime = 'startTime' in call ? call.startTime : undefined;
 
     // TODO: Refactor this tool-specific logic into the confirmation details payload.
-    // See: https://github.com/google-gemini/gemini-cli/issues/16716
+    // See: https://github.com/haseeb-heaven/open-agent/issues/16716
     let resultDisplay: ToolResultDisplay | undefined = undefined;
     if (this.isWaitingToolCall(call)) {
       const details = call.confirmationDetails;

@@ -4,10 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  ModelSlashCommandEvent,
-  logModelSlashCommand,
-} from '@google/gemini-cli-core';
+import { ModelSlashCommandEvent, logModelSlashCommand } from '@open-agent/core';
 import {
   type CommandContext,
   CommandKind,

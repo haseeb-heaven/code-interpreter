@@ -5,7 +5,7 @@
  */
 
 import { describe, expect } from 'vitest';
-import { ApprovalMode, isRecord } from '@google/gemini-cli-core';
+import { ApprovalMode, isRecord } from '@open-agent/core';
 import { appEvalTest, type AppEvalCase } from './app-test-helper.js';
 import { type EvalPolicy } from './test-helper.js';
 
@@ -76,7 +76,7 @@ describe('ask_user', () => {
       'packages/core/src/index.ts': '// index\nexport const version = "1.0.0";',
       'packages/core/src/util.ts': '// util\nexport function help() {}',
       'packages/core/package.json': JSON.stringify({
-        name: '@google/gemini-cli-core',
+        name: '@open-agent/core',
       }),
       'README.md': '# Gemini CLI',
     },
@@ -109,7 +109,7 @@ describe('ask_user', () => {
   // Regression test for issue #20177: Ensure the agent does not use \`ask_user\` to
   // confirm shell commands. Fixed via prompt refinements and tool definition
   // updates to clarify that shell command confirmation is handled by the UI.
-  // See fix: https://github.com/google-gemini/gemini-cli/pull/20504
+  // See fix: https://github.com/haseeb-heaven/open-agent/pull/20504
   askUserEvalTest('USUALLY_PASSES', {
     suiteName: 'default',
     suiteType: 'behavioral',

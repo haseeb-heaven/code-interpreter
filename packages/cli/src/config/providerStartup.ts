@@ -34,7 +34,7 @@ import {
   newlyAvailableModels,
   resolveProviderRoute,
   writeEnvKey,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type { CliArgs } from './config.js';
 
 async function detectLocalModels(): Promise<{

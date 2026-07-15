@@ -22,7 +22,7 @@ import {
   GEMINI_MODEL_ALIAS_AUTO,
   type MessageBus,
   type Storage,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type { LoadedSettings } from '../config/settings.js';
 import { loadCliConfig, type CliArgs } from '../config/config.js';
 import { loadSettings } from '../config/settings.js';

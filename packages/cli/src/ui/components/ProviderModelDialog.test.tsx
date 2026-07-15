@@ -9,7 +9,7 @@ import { act } from 'react';
 import { ProviderModelDialog } from './ProviderModelDialog.js';
 import { renderWithProviders } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
-import type { PickerGroup } from '@google/gemini-cli-core';
+import type { PickerGroup } from '@open-agent/core';
 
 const GROUPS: PickerGroup[] = [
   {
@@ -56,9 +56,8 @@ const GROUPS: PickerGroup[] = [
   },
 ];
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     isOllamaRunning: async () => false,

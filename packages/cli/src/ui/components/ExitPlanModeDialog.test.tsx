@@ -17,7 +17,7 @@ import {
   validatePlanContent,
   processSingleFileContent,
   type FileSystemService,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import * as fs from 'node:fs';
 import { useKeyMatchers } from '../hooks/useKeyMatchers.js';
 
@@ -25,9 +25,8 @@ vi.mock('../utils/editorUtils.js', () => ({
   openFileInEditor: vi.fn(),
 }));
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   return {
     ...actual,
     validatePlanPath: vi.fn(async () => null),
@@ -169,7 +168,7 @@ Implement a comprehensive authentication system with multiple providers.
           }),
           getUseAlternateBuffer: () => useAlternateBuffer,
           getUseTerminalBuffer: () => false,
-        } as unknown as import('@google/gemini-cli-core').Config,
+        } as unknown as import('@open-agent/core').Config,
         settings: createMockSettings({ ui: { useAlternateBuffer } }),
         inputState: {
           buffer: { text: '' } as never,
@@ -477,7 +476,7 @@ Implement a comprehensive authentication system with multiple providers.
                 }),
                 getUseAlternateBuffer: () => useAlternateBuffer ?? true,
                 getUseTerminalBuffer: () => false,
-              } as unknown as import('@google/gemini-cli-core').Config,
+              } as unknown as import('@open-agent/core').Config,
               settings: createMockSettings({
                 ui: { useAlternateBuffer: useAlternateBuffer ?? true },
               }),

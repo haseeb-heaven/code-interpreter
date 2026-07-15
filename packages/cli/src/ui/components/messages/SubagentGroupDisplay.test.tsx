@@ -6,11 +6,7 @@
 import { waitFor } from '../../../test-utils/async.js';
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { SubagentGroupDisplay } from './SubagentGroupDisplay.js';
-import {
-  Kind,
-  CoreToolCallStatus,
-  SubagentState,
-} from '@google/gemini-cli-core';
+import { Kind, CoreToolCallStatus, SubagentState } from '@open-agent/core';
 import type { IndividualToolCallDisplay } from '../../types.js';
 import { describe, it, expect, vi } from 'vitest';
 import { Text } from 'ink';

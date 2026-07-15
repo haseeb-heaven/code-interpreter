@@ -17,7 +17,7 @@ import { useSettings } from '../contexts/SettingsContext.js';
 import { MessageType } from '../types.js';
 import { type UseHistoryManagerReturn } from './useHistoryManager.js';
 import type { LoadedSettings } from '../../config/settings.js';
-import { coreEvents } from '@google/gemini-cli-core';
+import { coreEvents } from '@open-agent/core';
 
 interface TrustState {
   currentTrustLevel: TrustLevel | undefined;

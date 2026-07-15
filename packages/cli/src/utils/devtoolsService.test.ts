@@ -5,7 +5,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@open-agent/core';
 
 // --- Mocks (hoisted) ---
 
@@ -75,7 +75,7 @@ const mockOpenBrowserSecurely = vi.hoisted(() =>
   vi.fn(() => Promise.resolve()),
 );
 
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@open-agent/core', () => ({
   debugLogger: {
     log: vi.fn(),
     debug: vi.fn(),
@@ -90,7 +90,7 @@ vi.mock('ws', () => ({
   default: MockWebSocket,
 }));
 
-vi.mock('@google/gemini-cli-devtools', () => ({
+vi.mock('@open-agent/devtools', () => ({
   DevTools: {
     getInstance: () => mockDevToolsInstance,
   },

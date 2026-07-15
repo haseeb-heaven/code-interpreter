@@ -9,7 +9,7 @@
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
-import { GEMINI_DIR } from '@google/gemini-cli-core';
+import { GEMINI_DIR } from '@open-agent/core';
 
 const projectRoot = join(import.meta.dirname, '..');
 

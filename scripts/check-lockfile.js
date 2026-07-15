@@ -75,7 +75,7 @@ if (invalidPackages.length > 0) {
 // Check that gaxios v7+ with stream corruption bug is NOT resolved in any workspace node_modules.
 // gaxios v7.x (versions < 7.1.6) has a bug where Array.toString() joins stream chunks with
 // commas, corrupting error response JSON at TCP chunk boundaries.
-// See: https://github.com/google-gemini/gemini-cli/pull/21884
+// See: https://github.com/haseeb-heaven/open-agent/pull/21884
 function isCorruptedGaxios(version) {
   if (!version) return false;
   const match = version.match(/^7\.(\d+)\.(\d+)/);
@@ -104,7 +104,7 @@ if (gaxiosViolations.length > 0) {
   console.error(
     '\nError: gaxios versions with stream corruption bug (v7.x < 7.1.6) detected in workspace node_modules.',
   );
-  console.error('See: https://github.com/google-gemini/gemini-cli/pull/21884');
+  console.error('See: https://github.com/haseeb-heaven/open-agent/pull/21884');
   gaxiosViolations.forEach((v) => console.error(`- ${v}`));
   console.error(
     '\nPlease ensure gaxios resolves to a version containing the fix (>= 7.1.6).',

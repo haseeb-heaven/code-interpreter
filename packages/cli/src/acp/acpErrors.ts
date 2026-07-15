@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getErrorMessage as getCoreErrorMessage } from '@google/gemini-cli-core';
+import { getErrorMessage as getCoreErrorMessage } from '@open-agent/core';
 
 /**
  * Extracts a human-readable error message specifically for ACP (IDE) clients.

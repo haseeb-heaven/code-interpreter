@@ -8,10 +8,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { internalEvalTest } from './test-helper.js';
-import { TestRig } from '@google/gemini-cli-test-utils';
+import { TestRig } from '@open-agent/test-utils';
 
 // Mock TestRig to control API success/failure
-vi.mock('@google/gemini-cli-test-utils', () => {
+vi.mock('@open-agent/test-utils', () => {
   return {
     TestRig: vi.fn().mockImplementation(() => ({
       setup: vi.fn(),

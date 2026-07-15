@@ -23,7 +23,7 @@ import {
   type ChatRecordingService,
   type GeminiClient,
   convertSessionToClientHistory,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 
 /**
  * Helper function to handle the core logic of rewinding a conversation.

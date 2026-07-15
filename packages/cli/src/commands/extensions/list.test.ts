@@ -5,17 +5,16 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { coreEvents, getErrorMessage } from '@google/gemini-cli-core';
+import { coreEvents, getErrorMessage } from '@open-agent/core';
 import { handleList, listCommand } from './list.js';
 import { ExtensionManager } from '../../config/extension-manager.js';
 import { loadSettings, type LoadedSettings } from '../../config/settings.js';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@open-agent/core', async (importOriginal) => {
   const { mockCoreDebugLogger } = await import(
     '../../test-utils/mockDebugLogger.js'
   );
-  const actual =
-    await importOriginal<typeof import('@google/gemini-cli-core')>();
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
   const mocked = mockCoreDebugLogger(actual, { stripAnsi: false });
   return { ...mocked, getErrorMessage: vi.fn() };
 });

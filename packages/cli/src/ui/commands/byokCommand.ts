@@ -10,7 +10,7 @@ import {
   byokProviders,
   newlyAvailableModels,
   writeEnvKey,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import {
   type CommandContext,
   CommandKind,

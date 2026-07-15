@@ -170,7 +170,7 @@ class VsCodeInstaller implements IdeInstaller {
         commandPath,
         [
           '--install-extension',
-          'google.gemini-cli-vscode-ide-companion',
+          'google.open-agent-vscode-ide-companion',
           '--force',
         ],
         { stdio: 'pipe', shell: this.platform === 'win32' },
@@ -220,7 +220,7 @@ class PositronInstaller implements IdeInstaller {
         commandPath,
         [
           '--install-extension',
-          'google.gemini-cli-vscode-ide-companion',
+          'google.open-agent-vscode-ide-companion',
           '--force',
         ],
         { stdio: 'pipe', shell: this.platform === 'win32' },
@@ -290,7 +290,7 @@ class AntigravityInstaller implements IdeInstaller {
         commandPath,
         [
           '--install-extension',
-          'google.gemini-cli-vscode-ide-companion',
+          'google.open-agent-vscode-ide-companion',
           '--force',
         ],
         { stdio: 'pipe', shell: this.platform === 'win32' },

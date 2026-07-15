@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { LlmRole, type BaseLlmClient } from '@google/gemini-cli-core';
+import { LlmRole, type BaseLlmClient } from '@open-agent/core';
 
 export interface JudgeOptions {
   /**

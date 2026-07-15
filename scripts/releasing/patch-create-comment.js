@@ -57,11 +57,11 @@ async function main() {
       default: false,
     })
     .example(
-      '$0 --original-pr 8655 --exit-code 0 --commit abc1234 --channel preview --repository google-gemini/gemini-cli --test',
+      '$0 --original-pr 8655 --exit-code 0 --commit abc1234 --channel preview --repository haseeb-heaven/open-agent --test',
       'Test success comment',
     )
     .example(
-      '$0 --original-pr 8655 --exit-code 1 --commit abc1234 --channel stable --repository google-gemini/gemini-cli --test',
+      '$0 --original-pr 8655 --exit-code 1 --commit abc1234 --channel stable --repository haseeb-heaven/open-agent --test',
       'Test failure comment',
     )
     .help()
@@ -82,7 +82,7 @@ async function main() {
   const channel = argv.channel || process.env.CHANNEL;
   const environment = argv.environment;
   const repository =
-    argv.repository || process.env.REPOSITORY || 'google-gemini/gemini-cli';
+    argv.repository || process.env.REPOSITORY || 'haseeb-heaven/open-agent';
   const runId = argv.runId || process.env.GITHUB_RUN_ID || '0';
 
   // Validate required parameters

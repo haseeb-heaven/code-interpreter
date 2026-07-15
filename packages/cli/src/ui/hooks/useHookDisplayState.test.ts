@@ -12,7 +12,7 @@ import {
   CoreEvent,
   type HookStartPayload,
   type HookEndPayload,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { act } from 'react';
 import { WARNING_PROMPT_DURATION_MS } from '../constants.js';
 

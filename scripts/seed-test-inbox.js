@@ -104,7 +104,7 @@ await seed(
     `+# Verify Workflow`,
     `+`,
     `+- Run \`npm run typecheck\` after editing any *.ts file.`,
-    `+- Run \`npm run build --workspace @google/gemini-cli-core\` before testing CLI changes.`,
+    `+- Run \`npm run build --workspace @open-agent/core\` before testing CLI changes.`,
     `+- Inbox patches are guarded by /memory inbox.`,
     ``,
   ].join('\n'),

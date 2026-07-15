@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { type Config, createWorkingStdio } from '@google/gemini-cli-core';
+import { type Config, createWorkingStdio } from '@open-agent/core';
 import { runExitCleanup } from '../utils/cleanup.js';
 import * as acp from '@agentclientprotocol/sdk';
 import { Readable, Writable } from 'node:stream';

@@ -8,10 +8,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '../../test-utils/render.js';
 import { useTurnActivityMonitor } from './useTurnActivityMonitor.js';
 import { StreamingState } from '../types.js';
-import { hasRedirection, CoreToolCallStatus } from '@google/gemini-cli-core';
+import { hasRedirection, CoreToolCallStatus } from '@open-agent/core';
 import { type TrackedToolCall } from './useToolScheduler.js';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@open-agent/core', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,

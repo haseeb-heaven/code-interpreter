@@ -17,7 +17,7 @@ import { renderHook } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
 import { useIncludeDirsTrust } from './useIncludeDirsTrust.js';
 import * as trustedFolders from '../../config/trustedFolders.js';
-import type { Config, WorkspaceContext } from '@google/gemini-cli-core';
+import type { Config, WorkspaceContext } from '@open-agent/core';
 import type { UseHistoryManagerReturn } from './useHistoryManager.js';
 import type { LoadedTrustedFolders } from '../../config/trustedFolders.js';
 

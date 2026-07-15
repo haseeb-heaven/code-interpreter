@@ -10,7 +10,7 @@ import type {
   ShellExecutionResult,
   ShellOutputEvent,
   ShellExecutionConfig,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 
 export interface MockShellCommand {
   command: string | RegExp;

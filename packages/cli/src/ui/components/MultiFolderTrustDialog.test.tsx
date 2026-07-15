@@ -18,7 +18,7 @@ import {
 } from '../../config/trustedFolders.js';
 import * as trustedFolders from '../../config/trustedFolders.js';
 import * as directoryUtils from '../utils/directoryUtils.js';
-import type { Config } from '@google/gemini-cli-core';
+import type { Config } from '@open-agent/core';
 import { MessageType } from '../types.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';

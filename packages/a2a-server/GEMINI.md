@@ -1,4 +1,4 @@
-# Gemini CLI A2A Server (`@google/gemini-cli-a2a-server`)
+# Gemini CLI A2A Server (`@open-agent/a2a-server`)
 
 Experimental Agent-to-Agent (A2A) server that exposes Gemini CLI capabilities
 over HTTP for inter-agent communication.
@@ -19,4 +19,4 @@ over HTTP for inter-agent communication.
 
 ## Testing
 
-- Run tests: `npm test -w @google/gemini-cli-a2a-server`
+- Run tests: `npm test -w @open-agent/a2a-server`

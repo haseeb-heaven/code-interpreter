@@ -38,8 +38,8 @@ if (process.env.CI) {
   execSync('npm run build --workspaces', { stdio: 'inherit', cwd: root });
 } else {
   // Build core first because everyone depends on it
-  console.log('Building @google/gemini-cli-core...');
-  execSync('npm run build -w @google/gemini-cli-core', {
+  console.log('Building @open-agent/core...');
+  execSync('npm run build -w @open-agent/core', {
     stdio: 'inherit',
     cwd: root,
   });
@@ -51,7 +51,7 @@ if (process.env.CI) {
   );
   const parallelWorkspaces = workspaceInfo
     .map((w) => w.name)
-    .filter((name) => name !== '@google/gemini-cli-core');
+    .filter((name) => name !== '@open-agent/core');
 
   execSync(
     `npx --no-install npm-run-all --parallel ${parallelWorkspaces.map((w) => `"build -w ${w}"`).join(' ')}`,

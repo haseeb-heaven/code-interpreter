@@ -9,7 +9,7 @@ import { TestRig } from './test-helper.js';
 import {
   WhisperModelManager,
   WhisperTranscriptionProvider,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import * as fs from 'node:fs';
 import commandExists from 'command-exists';
 

@@ -12,7 +12,7 @@ import {
   type ConversationRecord,
   type MessageRecord,
   partToString,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { BaseSelectionList } from './shared/BaseSelectionList.js';
 import { theme } from '../semantic-colors.js';
 import { useKeypress } from '../hooks/useKeypress.js';

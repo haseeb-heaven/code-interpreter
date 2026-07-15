@@ -17,7 +17,7 @@ import {
   type ListDirectoryResult,
   type ReadManyFilesResult,
   makeFakeConfig,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import type {
   SerializableConfirmationDetails,
   ToolResultDisplay,

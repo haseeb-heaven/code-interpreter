@@ -19,7 +19,7 @@ import yargs from 'yargs';
 import { createExtension } from '../../test-utils/createExtension.js';
 import path from 'node:path';
 import * as os from 'node:os';
-import { debugLogger } from '@google/gemini-cli-core';
+import { debugLogger } from '@open-agent/core';
 
 vi.mock('../utils.js', () => ({
   exitCli: vi.fn(),

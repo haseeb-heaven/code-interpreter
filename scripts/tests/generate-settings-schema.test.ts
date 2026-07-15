@@ -40,7 +40,7 @@ describe('generate-settings-schema', () => {
       description:
         'The URL of the JSON schema for this settings file. Used by editors for validation and autocompletion.',
       default:
-        'https://raw.githubusercontent.com/google-gemini/gemini-cli/main/schemas/settings.schema.json',
+        'https://raw.githubusercontent.com/haseeb-heaven/open-agent/main/schemas/settings.schema.json',
     });
   });
 });

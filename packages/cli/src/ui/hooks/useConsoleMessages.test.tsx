@@ -12,9 +12,9 @@ import {
   useErrorCount,
   initializeConsoleStore,
 } from './useConsoleMessages.js';
-import { coreEvents } from '@google/gemini-cli-core';
+import { coreEvents } from '@open-agent/core';
 
-vi.mock('@google/gemini-cli-core', async (importOriginal) => {
+vi.mock('@open-agent/core', async (importOriginal) => {
   const actual = await importOriginal();
   const handlers = new Map<string, (payload: unknown) => void>();
 

@@ -14,10 +14,10 @@ import {
   type Config,
   SHELL_TOOL_NAME,
   CoreToolCallStatus,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import { renderWithProviders } from '../../../test-utils/render.js';
 import { createMockSettings } from '../../../test-utils/settings.js';
-import { makeFakeConfig } from '@google/gemini-cli-core';
+import { makeFakeConfig } from '@open-agent/core';
 import { waitFor } from '../../../test-utils/async.js';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SHELL_COMMAND_NAME, ACTIVE_SHELL_MAX_LINES } from '../../constants.js';

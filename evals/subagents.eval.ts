@@ -9,7 +9,7 @@ import path from 'node:path';
 
 import { describe, expect } from 'vitest';
 
-import { AGENT_TOOL_NAME } from '@google/gemini-cli-core';
+import { AGENT_TOOL_NAME } from '@open-agent/core';
 import { evalTest, TEST_AGENTS, TestRig } from './test-helper.js';
 
 const INDEX_TS = 'export const add = (a: number, b: number) => a + b;\n';

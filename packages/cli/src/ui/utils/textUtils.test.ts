@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import type {
   SerializableConfirmationDetails,
   ToolEditConfirmationDetails,
-} from '@google/gemini-cli-core';
+} from '@open-agent/core';
 import {
   escapeAnsiCtrlCodes,
   stripUnsafeCharacters,

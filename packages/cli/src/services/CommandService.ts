@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { debugLogger, coreEvents } from '@google/gemini-cli-core';
+import { debugLogger, coreEvents } from '@open-agent/core';
 import type { SlashCommand } from '../ui/commands/types.js';
 import type { ICommandLoader, CommandConflict } from './types.js';
 import { SlashCommandResolver } from './SlashCommandResolver.js';

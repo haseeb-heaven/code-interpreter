@@ -19,7 +19,7 @@ import {
 vi.mock('node:os');
 vi.mock('node:fs');
 vi.mock('node:fs/promises');
-vi.mock('@google/gemini-cli-core', () => ({
+vi.mock('@open-agent/core', () => ({
   debugLogger: {
     log: vi.fn(),
     warn: vi.fn(),
@@ -183,7 +183,7 @@ describe('sandboxUtils', () => {
         homedir: '/home/test',
       });
 
-      const { debugLogger } = await import('@google/gemini-cli-core');
+      const { debugLogger } = await import('@open-agent/core');
       expect(await shouldUseCurrentUserInSandbox()).toBe(false);
       expect(debugLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -213,7 +213,7 @@ describe('sandboxUtils', () => {
         homedir: '/root',
       });
 
-      const { debugLogger } = await import('@google/gemini-cli-core');
+      const { debugLogger } = await import('@open-agent/core');
       expect(await shouldUseCurrentUserInSandbox()).toBe(false);
       expect(debugLogger.warn).not.toHaveBeenCalledWith(
         expect.stringContaining('Host UID mismatch detected'),
@@ -225,7 +225,7 @@ describe('sandboxUtils', () => {
       vi.mocked(os.platform).mockReturnValue('linux');
       vi.mocked(readFile).mockRejectedValue(new Error('EACCES'));
 
-      const { debugLogger } = await import('@google/gemini-cli-core');
+      const { debugLogger } = await import('@open-agent/core');
       expect(await shouldUseCurrentUserInSandbox()).toBe(false);
       expect(debugLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Could not read /etc/os-release'),

@@ -8,7 +8,7 @@ import { execSync } from 'node:child_process';
 
 const PROJECT_ID = 36;
 const ORG = 'google-gemini';
-const REPO = 'google-gemini/gemini-cli';
+const REPO = 'haseeb-heaven/open-agent';
 const MAINTAINERS_REPO = 'google-gemini/maintainers-gemini-cli';
 
 // Parent issues to recursively traverse

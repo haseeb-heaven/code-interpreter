@@ -6,7 +6,7 @@
 
 import type React from 'react';
 import { createContext, useContext, useMemo } from 'react';
-import type { Question } from '@google/gemini-cli-core';
+import type { Question } from '@open-agent/core';
 
 export interface AskUserState {
   questions: Question[];
