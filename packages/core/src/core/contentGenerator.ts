@@ -32,6 +32,10 @@ import { getVersion, resolveModel } from '../../index.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
 import { ModelMappingContentGenerator } from './modelMappingContentGenerator.js';
 import { CCPA_AI_MODEL_MAPPINGS } from '../config/models.js';
+import {
+  createMultiProviderGenerator,
+  isMultiProviderModel,
+} from '../providers/factory.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -67,6 +71,8 @@ export enum AuthType {
   LEGACY_CLOUD_SHELL = 'cloud-shell',
   COMPUTE_ADC = 'compute-default-credentials',
   GATEWAY = 'gateway',
+  /** LiteLLM-style routing to Ollama / LM Studio / OpenAI-compatible clouds. */
+  MULTI_PROVIDER = 'multi-provider',
 }
 
 /**
@@ -78,6 +84,9 @@ export enum AuthType {
  * 3. GEMINI_API_KEY -> USE_GEMINI
  */
 export function getAuthTypeFromEnv(): AuthType | undefined {
+  if (process.env['GEMINI_CLI_PROVIDER']) {
+    return AuthType.MULTI_PROVIDER;
+  }
   if (process.env['GOOGLE_GENAI_USE_GCA'] === 'true') {
     return AuthType.LOGIN_WITH_GOOGLE;
   }
@@ -159,7 +168,8 @@ export async function createContentGeneratorConfig(
   // (WSL/SSH/Docker/CI) keytar can block indefinitely on its functional probe.
   if (
     authType === AuthType.LOGIN_WITH_GOOGLE ||
-    authType === AuthType.COMPUTE_ADC
+    authType === AuthType.COMPUTE_ADC ||
+    authType === AuthType.MULTI_PROVIDER
   ) {
     return contentGeneratorConfig;
   }
@@ -222,6 +232,24 @@ export async function createContentGenerator(
         gcConfig.fakeResponses,
       );
       return new LoggingContentGenerator(fakeGenerator, gcConfig);
+    }
+    // Multi-provider routing: model ids with a known provider prefix
+    // (ollama/, lmstudio/, groq/, openrouter/, ...) or registry keys from
+    // configs/models.toml bypass the Google-specific paths entirely.
+    if (
+      config.authType === AuthType.MULTI_PROVIDER ||
+      isMultiProviderModel(gcConfig.getModel())
+    ) {
+      const multiProvider = createMultiProviderGenerator(gcConfig.getModel());
+      if (multiProvider) {
+        return new LoggingContentGenerator(multiProvider, gcConfig);
+      }
+      if (config.authType === AuthType.MULTI_PROVIDER) {
+        throw new Error(
+          `No provider route found for model "${gcConfig.getModel()}". ` +
+            'Use --pick to list models or --provider to pin a provider.',
+        );
+      }
     }
     const version = await getVersion();
     const model = resolveModel(

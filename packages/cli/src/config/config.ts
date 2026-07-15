@@ -77,6 +77,10 @@ import { runExitCleanup } from '../utils/cleanup.js';
 export interface CliArgs {
   query: string | undefined;
   model: string | undefined;
+  provider?: string | undefined;
+  free?: boolean | undefined;
+  pick?: boolean | undefined;
+  byok?: boolean | undefined;
   sandbox: boolean | string | undefined;
   debug: boolean | undefined;
   prompt: string | undefined;
@@ -289,6 +293,30 @@ export async function parseArguments(
           type: 'string',
           nargs: 1,
           description: `Model`,
+        })
+        .option('provider', {
+          type: 'string',
+          nargs: 1,
+          description:
+            'Provider to route through (ollama, lmstudio, openai, anthropic, gemini, groq, deepseek, nvidia, together, huggingface, openrouter, cerebras, z-ai). Defaults to Ollama when running locally.',
+        })
+        .option('free', {
+          type: 'boolean',
+          description:
+            'Prefer free / cheap models from configs/models.toml, falling back to local models.',
+          default: false,
+        })
+        .option('pick', {
+          type: 'boolean',
+          description:
+            'Show the interactive model picker (all models grouped by provider) and exit.',
+          default: false,
+        })
+        .option('byok', {
+          type: 'boolean',
+          description:
+            'Walk through adding provider API keys to .env (bring your own key) and exit.',
+          default: false,
         })
         .option('prompt', {
           alias: 'p',

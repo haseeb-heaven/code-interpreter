@@ -1,31 +1,79 @@
-# Gemini CLI
+# Code Interpreter CLI (multi-provider fork)
 
-[![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
-[![Gemini CLI E2E (Chained)](https://github.com/google-gemini/gemini-cli/actions/workflows/chained_e2e.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/chained_e2e.yml)
-[![Version](https://img.shields.io/npm/v/@google/gemini-cli)](https://www.npmjs.com/package/@google/gemini-cli)
-[![License](https://img.shields.io/github/license/google-gemini/gemini-cli)](https://github.com/google-gemini/gemini-cli/blob/main/LICENSE)
-[![View Code Wiki](https://assets.codewiki.google/readme-badge/static.svg)](https://codewiki.google/github.com/google-gemini/gemini-cli?utm_source=badge&utm_medium=github&utm_campaign=github.com/google-gemini/gemini-cli)
+An open-source AI agent for your terminal, forked from
+[gemini-cli](https://github.com/google-gemini/gemini-cli) (Apache 2.0) and
+rebuilt around **local-first, multi-provider routing**: no account and no API
+key required — if Ollama is running on your machine, it just works. Cloud
+providers (OpenAI, Anthropic, Gemini, Groq, DeepSeek, NVIDIA, Together AI,
+HuggingFace, OpenRouter, Cerebras, Z.ai) plug in with a single API key each.
 
-![Gemini CLI Screenshot](/docs/assets/gemini-screenshot.png)
+The model catalog lives in a single human-editable file,
+[`configs/models.toml`](configs/models.toml) — see [Models.MD](Models.MD) for
+the full list with the vision/streaming support matrix.
 
-Gemini CLI is an open-source AI agent that brings the power of Gemini directly
-into your terminal. It provides lightweight access to Gemini, giving you the
-most direct path from your prompt to our model.
+## 🚀 Why this fork?
 
-Learn all about Gemini CLI in our [documentation](https://geminicli.com/docs/).
-
-## 🚀 Why Gemini CLI?
-
-- **🎯 Free tier**: 60 requests/min and 1,000 requests/day with personal Google
-  account.
-- **🧠 Powerful Gemini 3 models**: Access to improved reasoning and 1M token
-  context window.
-- **🔧 Built-in tools**: Google Search grounding, file operations, shell
-  commands, web fetching.
+- **🏠 Local-first**: Ollama at `localhost:11434` is the default provider —
+  installed models are auto-detected, zero configuration, zero keys.
+- **🎛️ LM Studio support**: point-and-shoot against `localhost:1234` via its
+  OpenAI-compatible API.
+- **☁️ Every major cloud provider**: LiteLLM-style `provider/model` routing
+  through each provider's OpenAI-compatible endpoint.
+- **🆓 Free-model rotation**: `--free` walks a curated catalog of free/cheap
+  presets (OpenRouter `:free`, Groq/Gemini free tiers, Cerebras, HF) with
+  automatic fallback on rate limits — local models are the final fallback.
+- **🎯 Model picker**: `--pick` / `/pick` shows every model grouped by provider
+  with vision, streaming, and key availability marked.
+- **🔑 BYOK**: `--byok` / `/byok` walks you through adding API keys to `.env`
+  and immediately shows which models just became available.
+- **🔧 Built-in tools**: file operations, shell commands, web fetching.
 - **🔌 Extensible**: MCP (Model Context Protocol) support for custom
   integrations.
 - **💻 Terminal-first**: Designed for developers who live in the command line.
 - **🛡️ Open source**: Apache 2.0 licensed.
+
+## ⚡ Multi-provider quickstart
+
+```bash
+# Local, keyless: uses your running Ollama automatically (default provider)
+npm start
+
+# Pin a provider explicitly
+npm start -- --provider ollama            # best installed Ollama model
+npm start -- --provider lmstudio          # first model loaded in LM Studio
+npm start -- --provider groq -m llama-3.1-8b-instant
+
+# Pick any model by registry key or LiteLLM-style id
+npm start -- -m groq-llama-3.1-8b         # key from configs/models.toml
+npm start -- -m ollama/llama3.1:8b        # explicit provider/model id
+npm start -- -m openrouter-free           # OpenRouter free router
+
+# Prefer free models (rotates through the free catalog, local final fallback)
+npm start -- --free "explain this repo"
+
+# Interactive model picker: all models grouped by provider,
+# with vision / streaming / API-key availability marked
+npm start -- --pick
+
+# Bring your own key: interactive walkthrough that writes .env
+npm start -- --byok
+```
+
+Inside a session, `/pick` lists or switches models and `/byok <provider> <key>`
+saves a key and reports the newly unlocked models.
+
+| Flag                 | What it does                                                                                                                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--provider <id>`    | Route through one provider: `ollama`, `lmstudio`, `openai`, `anthropic`, `gemini`, `groq`, `deepseek`, `nvidia`, `together`, `huggingface`, `openrouter`, `cerebras`, `z-ai` |
+| `--model, -m <name>` | Registry key, free-catalog id, or `provider/model` id                                                                                                                        |
+| `--free`             | Prefer the free/cheap catalog rotation from `configs/models.toml`                                                                                                            |
+| `--pick`             | Print the grouped model picker and exit                                                                                                                                      |
+| `--byok`             | Interactive API-key setup writing to `.env`, then exit                                                                                                                       |
+
+API keys (only needed for cloud providers): `OPENAI_API_KEY`,
+`ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`,
+`NVIDIA_API_KEY`, `TOGETHER_API_KEY`, `HF_TOKEN`, `OPENROUTER_API_KEY`,
+`CEREBRAS_API_KEY`, `Z_AI_API_KEY`.
 
 ## 📦 Installation
 

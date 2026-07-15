@@ -41,6 +41,7 @@ import {
 } from '@google/gemini-cli-core';
 
 import { loadCliConfig, parseArguments } from './config/config.js';
+import { handleProviderStartupFlags } from './config/providerStartup.js';
 import * as cliConfig from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
 import { createHash } from 'node:crypto';
@@ -422,6 +423,8 @@ export async function main() {
   });
 
   const argv = await argvPromise;
+
+  await handleProviderStartupFlags(argv);
 
   const { sessionId, resumedSessionData } = await resolveSessionId(
     argv.resume,
