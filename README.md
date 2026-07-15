@@ -75,6 +75,25 @@ API keys (only needed for cloud providers): `OPENAI_API_KEY`,
 `NVIDIA_API_KEY`, `TOGETHER_API_KEY`, `HF_TOKEN`, `OPENROUTER_API_KEY`,
 `CEREBRAS_API_KEY`, `Z_AI_API_KEY`.
 
+## 🧪 Building and testing
+
+```bash
+npm install       # install all workspace dependencies
+npm run build     # build every package
+npm test          # full unit test suite (all workspaces)
+```
+
+Provider-specific test suites (in `packages/core`):
+
+```bash
+npx vitest run src/providers                        # all provider unit tests
+RUN_LOCAL_PROVIDER_TESTS=1 npx vitest run src/providers/local.integration.test.ts   # live Ollama / LM Studio
+RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts    # live cloud endpoints (needs keys)
+```
+
+Live integration tests are skipped in CI and for any provider whose API key is
+not set, so they are always safe to run.
+
 ## 📦 Installation
 
 See
