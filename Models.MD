@@ -1,6 +1,6 @@
 # Supported Models
 
-This document lists all supported models in this multi-provider fork (TypeScript). The catalog lives in `configs/models.toml` — add your own models/providers by editing that single file, no code changes required.
+This document lists all supported models in **OpenAgent**. The catalog lives in `configs/models.toml` — add your own models/providers by editing that single file, no code changes required.
 
 ## Local (default — no API key)
 - **Ollama** at `localhost:11434`: every installed model is auto-detected via `/api/tags` (`ollama/llama3.1:8b`, `ollama/codellama:7b`, ...). When no provider is specified, Ollama is tried first automatically.
