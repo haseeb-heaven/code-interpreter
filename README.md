@@ -193,71 +193,42 @@ Integrate Gemini CLI directly into your GitHub workflows with
 
 ## 🔐 Authentication Options
 
-Choose the authentication method that best fits your needs:
+No account or sign-in flow is required. Pick whichever fits:
 
-### Option 1: Sign in with Google (OAuth login using your Google Account)
+### Option 1: Local models — no key at all (default)
 
-**✨ Best for:** Individual developers as well as anyone who has a Gemini Code
-Assist License. (see
-[quota limits and terms of service](https://cloud.google.com/gemini/docs/quotas)
-for details)
+**✨ Best for:** Everyone. Fully free, fully private, works offline.
 
-**Benefits:**
-
-- **Free tier**: 60 requests/min and 1,000 requests/day
-- **Gemini 3 models** with 1M token context window
-- **No API key management** - just sign in with your Google account
-- **Automatic updates** to latest models
-
-#### Start Gemini CLI, then choose _Sign in with Google_ and follow the browser authentication flow when prompted
+Start Ollama (`ollama serve`) or LM Studio's local server, and the CLI
+auto-detects it — installed models are picked up automatically:
 
 ```bash
-gemini
+gemini                       # uses your best installed Ollama model
+gemini --provider lmstudio   # or LM Studio at localhost:1234
 ```
 
-#### If you are using a paid Code Assist License from your organization, remember to set the Google Cloud Project
+### Option 2: Bring your own key (any cloud provider)
+
+**✨ Best for:** Access to frontier cloud models with one key per provider.
 
 ```bash
-# Set your Google Cloud Project
-export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"
-gemini
+gemini --byok                # interactive walkthrough, writes .env
+# or set keys directly:
+export OPENAI_API_KEY="..."      # or ANTHROPIC_API_KEY, GROQ_API_KEY,
+export OPENROUTER_API_KEY="..."  # DEEPSEEK_API_KEY, NVIDIA_API_KEY,
+                                 # TOGETHER_API_KEY, HF_TOKEN,
+                                 # CEREBRAS_API_KEY, Z_AI_API_KEY, ...
+gemini --pick                # see what became available
 ```
 
-### Option 2: Gemini API Key
+### Option 3: Gemini API key (optional)
 
-**✨ Best for:** Developers who need specific model control or paid tier access
-
-**Benefits:**
-
-- **Free tier**: 1000 requests/day with Gemini 3 (mix of flash and pro)
-- **Model selection**: Choose specific Gemini models
-- **Usage-based billing**: Upgrade for higher limits when needed
+**✨ Best for:** Using Google's models like any other provider in the catalog.
 
 ```bash
-# Get your key from https://aistudio.google.com/apikey
 export GEMINI_API_KEY="YOUR_API_KEY"
-gemini
+gemini -m gemini-2.5-flash
 ```
-
-### Option 3: Vertex AI
-
-**✨ Best for:** Enterprise teams and production workloads
-
-**Benefits:**
-
-- **Enterprise features**: Advanced security and compliance
-- **Scalable**: Higher rate limits with billing account
-- **Integration**: Works with existing Google Cloud infrastructure
-
-```bash
-# Get your key from Google Cloud Console
-export GOOGLE_API_KEY="YOUR_API_KEY"
-export GOOGLE_GENAI_USE_VERTEXAI=true
-gemini
-```
-
-For Google Workspace accounts and other authentication methods, see the
-[authentication guide](https://www.geminicli.com/docs/get-started/authentication).
 
 ## 🚀 Getting Started
 
