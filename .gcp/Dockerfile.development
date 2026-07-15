@@ -71,9 +71,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && export ESLINT_VER=$(node -p "require('/tmp/package.json').devDependencies.eslint") \
   && export CROSS_ENV_VER=$(node -p "require('/tmp/package.json').devDependencies['cross-env']") \
   && npm install -g tsx@$TSX_VER vitest@$VITEST_VER prettier@$PRETTIER_VER eslint@$ESLINT_VER cross-env@$CROSS_ENV_VER typescript@5.3.3 \
-  && npm install -g @google/gemini-cli@nightly && mv /usr/local/share/npm-global/bin/gemini /usr/local/share/npm-global/bin/g-nightly \
-  && npm install -g @google/gemini-cli@preview && mv /usr/local/share/npm-global/bin/gemini /usr/local/share/npm-global/bin/g-preview \
-  && npm install -g @google/gemini-cli@latest  && mv /usr/local/share/npm-global/bin/gemini /usr/local/share/npm-global/bin/g-stable \
+  && npm install -g open-agent@nightly && mv /usr/local/share/npm-global/bin/gemini /usr/local/share/npm-global/bin/g-nightly \
+  && npm install -g open-agent@preview && mv /usr/local/share/npm-global/bin/gemini /usr/local/share/npm-global/bin/g-preview \
+  && npm install -g open-agent@latest  && mv /usr/local/share/npm-global/bin/gemini /usr/local/share/npm-global/bin/g-stable \
   && apt-get purge -y build-essential libsecret-1-dev libkrb5-dev \
   && apt-get autoremove -y \
   && apt-get clean \
