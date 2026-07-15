@@ -60,6 +60,7 @@ export interface ResolveOptions {
   provider?: string;
   /** --free: prefer the free catalog rotation. */
   free?: boolean;
+  allowUnavailable?: boolean;
   registry?: ModelRegistry;
   env?: NodeJS.ProcessEnv;
   /** Injection points for tests. */
@@ -151,7 +152,7 @@ export async function resolveProviderRoute(
     if (provider.id === 'lmstudio') {
       return detectLMStudioRoute(options, options.model);
     }
-    if (!isProviderAvailable(provider, env)) return undefined;
+    if (!options.allowUnavailable && !isProviderAvailable(provider, env)) return undefined;
     const model =
       options.model ??
       registry
@@ -181,7 +182,7 @@ export async function resolveProviderRoute(
     if (provider?.id === 'lmstudio') {
       return detectLMStudioRoute(options, options.model);
     }
-    if (provider && isProviderAvailable(provider, env)) {
+    if (provider && (options.allowUnavailable || isProviderAvailable(provider, env))) {
       return { modelId: options.model, provider, source: 'explicit' };
     }
     return undefined;
@@ -211,6 +212,6 @@ export async function resolveProviderRoute(
 
   const defaultKey = registry.defaultModelName(env);
   const route = routeFromRegistry(defaultKey, registry, 'default-priority');
-  if (route && isProviderAvailable(route.provider, env)) return route;
+  if (route && (options.allowUnavailable || isProviderAvailable(route.provider, env))) return route;
   return undefined;
 }

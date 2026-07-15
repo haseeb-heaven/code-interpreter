@@ -34,6 +34,7 @@ import {
   newlyAvailableModels,
   resolveProviderRoute,
   writeEnvKey,
+  ENV_KEY_ALIASES,
 } from '@open-agent/core';
 import type { CliArgs } from './config.js';
 
@@ -117,6 +118,39 @@ export async function runByokWalkthrough(): Promise<void> {
  * process for multi-provider auth via GEMINI_CLI_PROVIDER. Returns true
  * when a multi-provider route was installed.
  */
+async function promptForProviderKey(provider: any): Promise<boolean> {
+  const realStdout = new Writable({
+    write(chunk, _encoding, callback) {
+      writeToStdout(chunk);
+      callback();
+    },
+  });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: realStdout,
+  });
+  const envPath = path.join(process.cwd(), '.env');
+  const envKey = String(provider.envKey);
+  writeToStdout(
+    `\n[Setup] Configuration not found: ${provider.displayName} requires an API key (${envKey}).\n` +
+      `Enter ${provider.displayName} API key: `,
+  );
+  try {
+    const answer = (await rl.question('')).trim();
+    if (answer) {
+      writeEnvKey(envPath, envKey, answer);
+      process.env[envKey] = answer;
+      writeToStdout(`Key successfully saved to ${envPath}.\n\n`);
+      return true;
+    }
+  } catch (err) {
+    writeToStderr(`Error saving API key: ${err instanceof Error ? err.message : err}\n`);
+  } finally {
+    rl.close();
+  }
+  return false;
+}
+
 export async function applyProviderRouting(argv: CliArgs): Promise<boolean> {
   const wantsRouting =
     Boolean(argv.provider) ||
@@ -139,6 +173,7 @@ export async function applyProviderRouting(argv: CliArgs): Promise<boolean> {
     model: argv.model,
     provider: argv.provider,
     free: argv.free,
+    allowUnavailable: true,
   });
   if (!route) {
     if (argv.provider || argv.free) {
@@ -148,6 +183,33 @@ export async function applyProviderRouting(argv: CliArgs): Promise<boolean> {
       );
     }
     return false;
+  }
+
+  // Check if API key is missing for the resolved provider
+  if (!route.provider.local && route.provider.envKey) {
+    const envKey = route.provider.envKey;
+    const hasKey = process.env[envKey] && process.env[envKey]?.trim();
+    const hasAlias = (ENV_KEY_ALIASES[route.provider.id] ?? []).some(
+      (alias) => process.env[alias] && process.env[alias]?.trim(),
+    );
+    if (!hasKey && !hasAlias) {
+      if (process.stdin.isTTY) {
+        const keyEntered = await promptForProviderKey(route.provider);
+        if (!keyEntered) {
+          writeToStderr(
+            `Error: ${route.provider.displayName} API key is required but not set.\n` +
+            `Please run the command again and enter the key, or set the ${envKey} environment variable.\n`
+          );
+          process.exit(1);
+        }
+      } else {
+        writeToStderr(
+          `Error: ${route.provider.displayName} API key is required but not set.\n` +
+          `Please set the ${envKey} environment variable.\n`
+        );
+        process.exit(1);
+      }
+    }
   }
 
   // Registry keys are unique; LiteLLM ids can be shared by alias entries
