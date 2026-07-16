@@ -82,6 +82,7 @@ npm start -- --provider lmstudio
 - [Usage](#usage)
 - [Features](#features)
 - [Building and testing](#building-and-testing)
+- [Attribution](#attribution)
 - [License](#license)
 
 ## **Installation**
@@ -225,13 +226,20 @@ not set, so they are always safe to run. Every model entry in
 See [CHANGELOG.md](CHANGELOG.md). OpenAgent v4.0.0 continues the release line of
 the original Python project (last release v3.6.0).
 
-## 📜 **License**
+## 🙏 **Attribution**
 
-Apache-2.0 — see [LICENSE](LICENSE). OpenAgent contains code forked from an
-Apache-2.0 licensed terminal agent project.
+This project is based on [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+by Google LLC, licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+
+Modifications have been made by Haseeb Mir as part of the `open-agent` fork.
 
 ## 🙏 **Acknowledgments**
 
 - Everyone who contributed to the original open-code-interpreter project.
 - The open-source model community — free and local models make OpenAgent
   possible.
+
+## 📜 **License**
+
+Apache-2.0 — see [LICENSE](LICENSE). OpenAgent contains code forked from an
+Apache-2.0 licensed terminal agent project.
