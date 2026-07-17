@@ -32,11 +32,15 @@ import { RecordingContentGenerator } from './recordingContentGenerator.js';
 import { getVersion, resolveModel } from '../../index.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
 import { ModelMappingContentGenerator } from './modelMappingContentGenerator.js';
-import { CCPA_AI_MODEL_MAPPINGS } from '../config/models.js';
+import {
+  CCPA_AI_MODEL_MAPPINGS,
+  GEMINI_MODEL_ALIAS_AUTO,
+} from '../config/models.js';
 import {
   createMultiProviderGenerator,
   isMultiProviderModel,
 } from '../providers/factory.js';
+import { getModelRegistry } from '../providers/modelRegistry.js';
 import { ModelRoutingContentGenerator } from '../providers/routingGenerator.js';
 
 /**
@@ -264,13 +268,28 @@ export async function createContentGenerator(
       config.authType === AuthType.MULTI_PROVIDER ||
       isMultiProviderModel(gcConfig.getModel())
     ) {
-      const multiProvider = createMultiProviderGenerator(gcConfig.getModel());
+      let routedModel = gcConfig.getModel();
+      if (
+        config.authType === AuthType.MULTI_PROVIDER &&
+        (!routedModel || routedModel === GEMINI_MODEL_ALIAS_AUTO)
+      ) {
+        // 'auto' is a Gemini-native alias resolved by resolveModel() below; it
+        // has no meaning for multi-provider sessions (no configs/models.toml
+        // entry named "auto"), so fall back to the registry's configured
+        // default instead of asking the provider factory to route it.
+        const registryDefault = getModelRegistry().defaultModelName();
+        if (registryDefault) {
+          routedModel = registryDefault;
+          gcConfig.setModel(registryDefault);
+        }
+      }
+      const multiProvider = createMultiProviderGenerator(routedModel);
       if (multiProvider) {
         return new LoggingContentGenerator(multiProvider, gcConfig);
       }
       if (config.authType === AuthType.MULTI_PROVIDER) {
         throw new Error(
-          `No provider route found for model "${gcConfig.getModel()}". ` +
+          `No provider route found for model "${routedModel}". ` +
             'Use --pick to list models or --provider to pin a provider.',
         );
       }
