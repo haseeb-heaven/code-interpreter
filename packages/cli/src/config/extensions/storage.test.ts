@@ -51,11 +51,7 @@ describe('ExtensionStorage', () => {
   });
 
   it('should return the correct extension directory', () => {
-    const expectedDir = path.join(
-      openAgentHome,
-      'extensions',
-      extensionName,
-    );
+    const expectedDir = path.join(openAgentHome, 'extensions', extensionName);
     expect(storage.getExtensionDir()).toBe(expectedDir);
   });
 
@@ -86,14 +82,14 @@ describe('ExtensionStorage', () => {
   });
 
   it('should create a temporary directory', async () => {
-    const mockTmpDir = '/tmp/gemini-extension-123';
+    const mockTmpDir = '/tmp/openagent-extension-123';
     vi.mocked(fs.promises.mkdtemp).mockResolvedValue(mockTmpDir);
     vi.mocked(os.tmpdir).mockReturnValue('/tmp');
 
     const result = await ExtensionStorage.createTmpDir();
 
     expect(fs.promises.mkdtemp).toHaveBeenCalledWith(
-      path.join('/tmp', 'gemini-extension'),
+      path.join('/tmp', 'openagent-extension'),
     );
     expect(result).toBe(mockTmpDir);
   });

@@ -18,11 +18,35 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { logger } from '../utils/logger.js';
 
-export const EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
+export const EXTENSIONS_CONFIG_FILENAME = 'open-agent-extension.json';
+export const LEGACY_EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
+export const EXTENSIONS_CONFIG_FILENAMES = [
+  EXTENSIONS_CONFIG_FILENAME,
+  LEGACY_EXTENSIONS_CONFIG_FILENAME,
+];
 export const INSTALL_METADATA_FILENAME = '.open-agent-extension-install.json';
+export const LEGACY_INSTALL_METADATA_FILENAME =
+  '.gemini-extension-install.json';
+export const INSTALL_METADATA_FILENAMES = [
+  INSTALL_METADATA_FILENAME,
+  LEGACY_INSTALL_METADATA_FILENAME,
+];
+
+function resolveExistingOrDefaultPath(
+  dir: string,
+  candidates: readonly string[],
+): string {
+  for (const name of candidates) {
+    const candidatePath = path.join(dir, name);
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+  return path.join(dir, candidates[0]);
+}
 
 /**
- * Extension definition as written to disk in gemini-extension.json files.
+ * Extension definition as written to disk in extension manifest files.
  * This should *not* be referenced outside of the logic for reading files.
  * If information is required for manipulating extensions (load, unload, update)
  * outside of the loading process that data needs to be stored on the
@@ -83,7 +107,10 @@ function loadExtension(extensionDir: string): GeminiCLIExtension | null {
     return null;
   }
 
-  const configFilePath = path.join(extensionDir, EXTENSIONS_CONFIG_FILENAME);
+  const configFilePath = resolveExistingOrDefaultPath(
+    extensionDir,
+    EXTENSIONS_CONFIG_FILENAMES,
+  );
   if (!fs.existsSync(configFilePath)) {
     logger.error(
       `Warning: extension directory ${extensionDir} does not contain a config file ${configFilePath}.`,
@@ -139,7 +166,10 @@ function getContextFileNames(config: ExtensionConfig): string[] {
 export function loadInstallMetadata(
   extensionDir: string,
 ): ExtensionInstallMetadata | undefined {
-  const metadataFilePath = path.join(extensionDir, INSTALL_METADATA_FILENAME);
+  const metadataFilePath = resolveExistingOrDefaultPath(
+    extensionDir,
+    INSTALL_METADATA_FILENAMES,
+  );
   try {
     const configContent = fs.readFileSync(metadataFilePath, 'utf-8');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion

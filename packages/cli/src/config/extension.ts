@@ -10,12 +10,14 @@ import type {
   CustomTheme,
 } from '@open-agent/core';
 import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { INSTALL_METADATA_FILENAME } from './extensions/variables.js';
+import {
+  INSTALL_METADATA_FILENAMES,
+  resolveExistingOrDefaultPath,
+} from './extensions/variables.js';
 import type { ExtensionSetting } from './extensions/extensionSettings.js';
 
 /**
- * Extension definition as written to disk in gemini-extension.json files.
+ * Extension definition as written to disk in extension manifest files.
  * This should *not* be referenced outside of the logic for reading files.
  * If information is required for manipulating extensions (load, unload, update)
  * outside of the loading process that data needs to be stored on the
@@ -57,7 +59,10 @@ export interface ExtensionUpdateInfo {
 export function loadInstallMetadata(
   extensionDir: string,
 ): ExtensionInstallMetadata | undefined {
-  const metadataFilePath = path.join(extensionDir, INSTALL_METADATA_FILENAME);
+  const metadataFilePath = resolveExistingOrDefaultPath(
+    extensionDir,
+    INSTALL_METADATA_FILENAMES,
+  );
   try {
     const configContent = fs.readFileSync(metadataFilePath, 'utf-8');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion

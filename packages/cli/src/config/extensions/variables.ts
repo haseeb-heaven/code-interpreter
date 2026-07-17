@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { type VariableSchema, VARIABLE_SCHEMA } from './variableSchema.js';
 import { OPENAGENT_DIR } from '@open-agent/core';
@@ -20,9 +21,47 @@ const UNMARSHALL_KEY_IGNORE_LIST: Set<string> = new Set<string>([
 
 /** User extensions live under `~/.openagent/extensions` (not `.gemini`). */
 export const EXTENSIONS_DIRECTORY_NAME = path.join(OPENAGENT_DIR, 'extensions');
-export const EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
-export const INSTALL_METADATA_FILENAME = '.gemini-extension-install.json';
+
+/**
+ * Extension manifest filename. New extensions write `EXTENSIONS_CONFIG_FILENAME`;
+ * discovery also accepts the legacy gemini-cli name so extensions installed
+ * before the rebrand keep loading.
+ */
+export const EXTENSIONS_CONFIG_FILENAME = 'open-agent-extension.json';
+export const LEGACY_EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
+export const EXTENSIONS_CONFIG_FILENAMES = [
+  EXTENSIONS_CONFIG_FILENAME,
+  LEGACY_EXTENSIONS_CONFIG_FILENAME,
+];
+
+export const INSTALL_METADATA_FILENAME = '.open-agent-extension-install.json';
+export const LEGACY_INSTALL_METADATA_FILENAME =
+  '.gemini-extension-install.json';
+export const INSTALL_METADATA_FILENAMES = [
+  INSTALL_METADATA_FILENAME,
+  LEGACY_INSTALL_METADATA_FILENAME,
+];
+
 export const EXTENSION_SETTINGS_FILENAME = '.env';
+
+/**
+ * Resolves the path to a file within `dir` that may exist under either the
+ * current name or a legacy fallback name, preferring `candidates[0]`.
+ * If none of the candidates exist on disk yet, returns `candidates[0]`'s
+ * path (the name a fresh write should use).
+ */
+export function resolveExistingOrDefaultPath(
+  dir: string,
+  candidates: readonly string[],
+): string {
+  for (const name of candidates) {
+    const candidatePath = path.join(dir, name);
+    if (fs.existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+  return path.join(dir, candidates[0]);
+}
 
 export type JsonObject = { [key: string]: JsonValue };
 export type JsonArray = JsonValue[];

@@ -451,7 +451,7 @@ export class Storage {
   }
 
   getExtensionsConfigPath(): string {
-    return path.join(this.getExtensionsDir(), 'gemini-extension.json');
+    return path.join(this.getExtensionsDir(), 'open-agent-extension.json');
   }
 
   getHistoryFilePath(): string {

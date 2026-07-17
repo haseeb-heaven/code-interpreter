@@ -10,8 +10,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "openagent": "dist/index.js",
-    "gemini": "dist/index.js"
+    "openagent": "dist/index.js"
   },
   "scripts": {
     "build": "node ../../scripts/build_package.js",

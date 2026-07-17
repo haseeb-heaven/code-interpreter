@@ -9,7 +9,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import {
   EXTENSION_SETTINGS_FILENAME,
-  EXTENSIONS_CONFIG_FILENAME,
+  EXTENSIONS_CONFIG_FILENAMES,
+  resolveExistingOrDefaultPath,
 } from './variables.js';
 import { ensureOpenAgentHomeDir } from '@open-agent/core';
 
@@ -28,7 +29,10 @@ export class ExtensionStorage {
   }
 
   getConfigPath(): string {
-    return path.join(this.getExtensionDir(), EXTENSIONS_CONFIG_FILENAME);
+    return resolveExistingOrDefaultPath(
+      this.getExtensionDir(),
+      EXTENSIONS_CONFIG_FILENAMES,
+    );
   }
 
   getEnvFilePath(): string {
@@ -41,6 +45,6 @@ export class ExtensionStorage {
   }
 
   static async createTmpDir(): Promise<string> {
-    return fs.promises.mkdtemp(path.join(os.tmpdir(), 'gemini-extension'));
+    return fs.promises.mkdtemp(path.join(os.tmpdir(), 'openagent-extension'));
   }
 }

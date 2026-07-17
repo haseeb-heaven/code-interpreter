@@ -21,7 +21,7 @@ import extract from 'extract-zip';
 import { fetchJson, getGitHubToken } from './github_fetch.js';
 import type { ExtensionConfig } from '../extension.js';
 import type { ExtensionManager } from '../extension-manager.js';
-import { EXTENSIONS_CONFIG_FILENAME } from './variables.js';
+import { EXTENSIONS_CONFIG_FILENAMES } from './variables.js';
 
 /**
  * Clones a Git repository to a specified local path.
@@ -419,7 +419,7 @@ export async function downloadFromGitHubRelease(
     // For regular github releases, the repository is put inside of a top level
     // directory. In this case we should see exactly two file in the destination
     // dir, the archive and the directory. If we see that, validate that the
-    // dir has a gemini extension configuration file and then move all files
+    // dir has an extension configuration file and then move all files
     // from the directory up one level into the destination directory.
     const entries = await fs.promises.readdir(destination, {
       withFileTypes: true,
@@ -428,8 +428,8 @@ export async function downloadFromGitHubRelease(
       const lonelyDir = entries.find((entry) => entry.isDirectory());
       if (
         lonelyDir &&
-        fs.existsSync(
-          path.join(destination, lonelyDir.name, EXTENSIONS_CONFIG_FILENAME),
+        EXTENSIONS_CONFIG_FILENAMES.some((name) =>
+          fs.existsSync(path.join(destination, lonelyDir.name, name)),
         )
       ) {
         const dirPathToExtract = path.join(destination, lonelyDir.name);
