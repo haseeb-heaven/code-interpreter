@@ -349,7 +349,7 @@ npm run lint
 - Please adhere to the coding style, patterns, and conventions used throughout
   the existing codebase.
 - Consult
-  [GEMINI.md](https://github.com/haseeb-heaven/open-agent/blob/main/GEMINI.md)
+  [OPENAGENT.md](https://github.com/haseeb-heaven/open-agent/blob/main/OPENAGENT.md)
   (typically found in the project root) for specific instructions related to
   AI-assisted development, including conventions for React, comments, and Git
   usage.

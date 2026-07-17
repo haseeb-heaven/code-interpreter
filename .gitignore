@@ -2,19 +2,21 @@
 .env
 .env~
 
-# gemini-cli settings
-# We want to keep the .gemini in the root of the repo and ignore any .gemini
-# in subdirectories. In our root .gemini we want to allow for version control
-# for subcommands.
-**/.gemini/
-!/.gemini/
-.gemini/*
-!.gemini/config.yaml
-!.gemini/commands/
-!.gemini/skills/
-!.gemini/settings.json
+# OpenAgent settings
+# We want to keep the .openagent in the root of the repo and ignore any
+# .openagent in subdirectories. In our root .openagent we want to allow for
+# version control for subcommands.
+**/.openagent/
+!/.openagent/
+.openagent/*
+!.openagent/commands/
+!.openagent/skills/
+!.openagent/settings.json
 
-# Note: .gemini-clipboard/ is NOT in gitignore so Gemini can access pasted images
+# Legacy .gemini dirs elsewhere in the tree (e.g. clipboard scratch space)
+**/.gemini/
+
+# Note: .openagent-clipboard/ is NOT in gitignore so OpenAgent can access pasted images
 
 # Dependency directory
 node_modules

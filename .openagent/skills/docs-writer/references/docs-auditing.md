@@ -18,6 +18,7 @@ style guide violations and technical inaccuracies.
 ### Steps
 
 1.  **Identify Documentation Scope:**
+
     - Read `docs/sidebar.json` to get a list of all viewable documentation
       pages.
     - For each entry with a `slug`, convert it into a file path (e.g., `docs` ->
@@ -25,11 +26,13 @@ style guide violations and technical inaccuracies.
       entries with `link` properties.
 
 2.  **Prepare Audit Results File:**
+
     - Create a new Markdown file named `audit-results-[YYYY-MM-DD].md` (e.g.,
       `audit-results-2026-03-13.md`). This file will contain all identified
       violations and recommendations.
 
 3.  **Retrieve Style Guidelines:**
+
     - Familiarize yourself with the `docs-writer` skill instructions and the
       included style guidelines.
 
@@ -115,6 +118,7 @@ the technical writer.
 ### Steps
 
 1.  **Proactive Codebase Audit:**
+
     - Audit high-signal areas of the codebase to identify undocumented features.
       You MUST review:
       - `packages/cli/src/commands/`
@@ -122,6 +126,7 @@ the technical writer.
       - `packages/cli/src/config/settings.ts`
 
 2.  **Review Recent Updates:**
+
     - Check recent changelogs in stable and announcements within the
       documentation to see if newly introduced features are documented properly.
 
@@ -142,11 +147,13 @@ implements the approved changes.
 ### Steps
 
 1.  **Review Audit Results:**
+
     - Read `audit-results-[YYYY-MM-DD].md` to understand all identified issues,
       undocumented features, and recommendations from both the Editor and
       Software Engineer phases.
 
 2.  **Make Decisions and Log Reasoning:**
+
     - Create or update an implementation log (e.g.,
       `audit-implementation-log-[YYYY-MM-DD].md`).
     - Make sure the logs are updated for all steps, documenting your reasoning
@@ -154,6 +161,7 @@ implements the approved changes.
       is required for a final check by a human in the PR.
 
 3.  **Implement Changes:**
+
     - For each approved recommendation:
       - Read the target documentation file.
       - Apply the recommended change using the `replace` tool. Pay close
@@ -181,6 +189,7 @@ implements the approved changes.
         link, or a new feature article), use `write_file`.
 
 4.  **Execute Auto-Generation Scripts:**
+
     - Some documentation pages are auto-generated from the codebase and should
       be updated using npm scripts rather than manual edits. After implementing
       manual changes (especially if you edited settings or configurations based

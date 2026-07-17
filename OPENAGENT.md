@@ -1,14 +1,15 @@
-# Gemini CLI Project Context
+# OpenAgent Project Context
 
-Gemini CLI is an open-source AI agent that brings the power of Gemini directly
-into the terminal. It is designed to be a terminal-first, extensible, and
-powerful tool for developers.
+OpenAgent is an open-source AI agent that brings the power of large language
+models directly into the terminal, across multiple providers (Gemini, OpenAI,
+Anthropic, OpenRouter, Groq, local/Ollama, and more). It is designed to be a
+terminal-first, extensible, and powerful tool for developers.
 
 ## Project Overview
 
-- **Purpose:** Provide a seamless terminal interface for Gemini models,
-  supporting code understanding, generation, automation, and integration via MCP
-  (Model Context Protocol).
+- **Purpose:** Provide a seamless terminal interface for LLMs, supporting code
+  understanding, generation, automation, and integration via MCP (Model Context
+  Protocol), routed through a multi-provider model registry.
 - **Main Technologies:**
   - **Runtime:** Node.js (>=20.0.0, recommended ~20.19.0 for development)
   - **Language:** TypeScript
@@ -20,10 +21,10 @@ powerful tool for developers.
 - **Architecture:** Monorepo structure using npm workspaces.
   - `packages/cli`: User-facing terminal UI, input processing, and display
     rendering.
-  - `packages/core`: Backend logic, Gemini API orchestration, prompt
-    construction, and tool execution.
+  - `packages/core`: Backend logic, multi-provider model orchestration
+    (`configs/models.toml` registry), prompt construction, and tool execution.
   - `packages/a2a-server`: Experimental Agent-to-Agent server.
-  - `packages/sdk`: Programmatic SDK for embedding Gemini CLI capabilities.
+  - `packages/sdk`: Programmatic SDK for embedding OpenAgent capabilities.
   - `packages/devtools`: Integrated developer tools (Network/Console inspector).
   - `packages/test-utils`: Shared test utilities and test rig.
   - `packages/vscode-ide-companion`: VS Code extension pairing with the CLI.
@@ -66,8 +67,7 @@ powerful tool for developers.
 
 ## Development Conventions
 
-- **Contributions:** Follow the process outlined in `CONTRIBUTING.md`. Requires
-  signing the Google CLA.
+- **Contributions:** Follow the process outlined in `CONTRIBUTING.md`.
 - **Pull Requests:** Keep PRs small, focused, and linked to an existing issue.
   Always activate the `pr-creator` skill for PR generation, even when using the
   `gh` CLI.
@@ -76,8 +76,7 @@ powerful tool for developers.
 - **Imports:** Use specific imports and avoid restricted relative imports
   between packages (enforced by ESLint).
 - **License Headers:** For all new source code files (`.ts`, `.tsx`, `.js`),
-  include the Apache-2.0 license header with the current year. (e.g.,
-  `Copyright 2026 Google LLC`). This is enforced by ESLint.
+  include the Apache-2.0 license header with the current year.
 
 ## Testing Conventions
 
