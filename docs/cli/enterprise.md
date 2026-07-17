@@ -28,8 +28,8 @@ Settings are merged from four files. The precedence order for single-value
 settings (like `theme`) is:
 
 1. System Defaults (`system-defaults.json`)
-2. User Settings (`~/.gemini/settings.json`)
-3. Workspace Settings (`<project>/.gemini/settings.json`)
+2. User Settings (`~/.openagent/settings.json`)
+3. Workspace Settings (`<project>/.openagent/settings.json`)
 4. System Overrides (`settings.json`)
 
 This means the System Overrides file has the final say. For settings that are
@@ -47,12 +47,12 @@ Here is how settings from different levels are combined.
       "theme": "default-corporate-theme"
     },
     "context": {
-      "includeDirectories": ["/etc/gemini-cli/common-context"]
+      "includeDirectories": ["/etc/openagent/common-context"]
     }
   }
   ```
 
-- **User `settings.json` (`~/.gemini/settings.json`):**
+- **User `settings.json` (`~/.openagent/settings.json`):**
 
   ```json
   {
@@ -68,12 +68,12 @@ Here is how settings from different levels are combined.
       }
     },
     "context": {
-      "includeDirectories": ["~/gemini-context"]
+      "includeDirectories": ["~/openagent-context"]
     }
   }
   ```
 
-- **Workspace `settings.json` (`<project>/.gemini/settings.json`):**
+- **Workspace `settings.json` (`<project>/.openagent/settings.json`):**
 
   ```json
   {
@@ -103,7 +103,7 @@ Here is how settings from different levels are combined.
       }
     },
     "context": {
-      "includeDirectories": ["/etc/gemini-cli/global-context"]
+      "includeDirectories": ["/etc/openagent/global-context"]
     }
   }
   ```
@@ -129,10 +129,10 @@ This results in the following merged configuration:
     },
     "context": {
       "includeDirectories": [
-        "/etc/gemini-cli/common-context",
-        "~/gemini-context",
+        "/etc/openagent/common-context",
+        "~/openagent-context",
         "./project-context",
-        "/etc/gemini-cli/global-context"
+        "/etc/openagent/global-context"
       ]
     }
   }
@@ -188,15 +188,15 @@ export GEMINI_CLI_SYSTEM_SETTINGS_PATH="/etc/gemini-cli/settings.json"
 # Find the original openagent executable.
 # This is a simple example; a more robust solution might be needed
 # depending on the installation method.
-REAL_GEMINI_PATH=$(type -aP openagent | grep -v "^$(type -P openagent)$" | head -n 1)
+REAL_OPENAGENT_PATH=$(type -aP openagent | grep -v "^$(type -P openagent)$" | head -n 1)
 
-if [ -z "$REAL_GEMINI_PATH" ]; then
+if [ -z "$REAL_OPENAGENT_PATH" ]; then
   echo "Error: The original 'openagent' executable was not found." >&2
   exit 1
 fi
 
 # Pass all arguments to the real open-agent executable.
-exec "$REAL_GEMINI_PATH" "$@"
+exec "$REAL_OPENAGENT_PATH" "$@"
 ```
 
 By deploying this script, the `GEMINI_CLI_SYSTEM_SETTINGS_PATH` is set within
@@ -220,16 +220,17 @@ In shared compute environments (like ML experiment runners or shared build
 servers), you can isolate open-agent state by overriding the user's home
 directory.
 
-By default, open-agent stores configuration and history in `~/.gemini`. You can
-use the `GEMINI_CLI_HOME` environment variable to point to a unique directory
-for a specific user or job. The CLI will create a `.gemini` folder inside the
+By default, open-agent stores configuration and history in `~/.openagent`. You
+can use the `OPENAGENT_HOME` environment variable to point to a unique directory
+for a specific user or job (the legacy `GEMINI_CLI_HOME` alias is still
+recognized as a fallback). The CLI will create a `.openagent` folder inside the
 specified path.
 
 **macOS/Linux**
 
 ```bash
 # Isolate state for a specific job
-export GEMINI_CLI_HOME="/tmp/gemini-job-123"
+export OPENAGENT_HOME="/tmp/openagent-job-123"
 openagent
 ```
 
@@ -237,7 +238,7 @@ openagent
 
 ```powershell
 # Isolate state for a specific job
-$env:GEMINI_CLI_HOME="C:\temp\gemini-job-123"
+$env:OPENAGENT_HOME="C:\temp\openagent-job-123"
 openagent
 ```
 
@@ -581,7 +582,7 @@ open-agent.
   },
   "mcpServers": {
     "corp-tools": {
-      "command": "/opt/gemini-tools/start.sh",
+      "command": "/opt/openagent-tools/start.sh",
       "timeout": 5000
     }
   },

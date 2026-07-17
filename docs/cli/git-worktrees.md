@@ -44,7 +44,7 @@ Use the `--worktree` (`-w`) flag to create an isolated worktree and start
 open-agent in it.
 
 - **Start with a specific name:** The value you pass becomes both the directory
-  name (within `.gemini/worktrees/`) and the branch name.
+  name (within `.openagent/worktrees/`) and the branch name.
 
   ```bash
   openagent --worktree feature-search
@@ -84,7 +84,7 @@ To resume a session in a worktree, navigate to the worktree directory and start
 open-agent with the `--resume` flag and the session ID:
 
 ```bash
-cd .gemini/worktrees/feature-search
+cd .openagent/worktrees/feature-search
 openagent --resume <session_id>
 ```
 
@@ -95,7 +95,7 @@ a preserved worktree, you can use Git directly:
 
 - **Clean up a preserved Git worktree:**
   ```bash
-  git worktree remove .gemini/worktrees/feature-search --force
+  git worktree remove .openagent/worktrees/feature-search --force
   git branch -D worktree-feature-search
   ```
 - **Create a Git worktree manually:**

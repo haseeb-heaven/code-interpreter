@@ -32,7 +32,7 @@ The observability system provides:
 
 ## Configuration
 
-You control telemetry behavior through the `.gemini/settings.json` file.
+You control telemetry behavior through the `.openagent/settings.json` file.
 Environment variables can override these settings.
 
 | Setting        | Environment Variable              | Description                                         | Values            | Default                 |
@@ -118,7 +118,7 @@ You must complete several setup steps before enabling Google Cloud telemetry.
 
     * **Method B: CLI Auth** (Direct export only): Simplest method for local
       users. Open-agent uses the same OAuth credentials you used for login. To
-      enable this, set `useCliAuth: true` in your `.gemini/settings.json`:
+      enable this, set `useCliAuth: true` in your `.openagent/settings.json`:
 
       ```json
       {
@@ -156,7 +156,7 @@ You must complete several setup steps before enabling Google Cloud telemetry.
 We recommend using direct export to send telemetry directly to Google Cloud
 services.
 
-1.  Enable telemetry in `.gemini/settings.json`:
+1.  Enable telemetry in `.openagent/settings.json`:
     ```json
     {
       "telemetry": {
@@ -209,18 +209,18 @@ To learn more, see
 You can capture telemetry data locally for development and debugging. We
 recommend using file-based output for local development.
 
-1.  Enable telemetry in `.gemini/settings.json`:
+1.  Enable telemetry in `.openagent/settings.json`:
     ```json
     {
       "telemetry": {
         "enabled": true,
         "target": "local",
-        "outfile": ".gemini/telemetry.log"
+        "outfile": ".openagent/telemetry.log"
       }
     }
     ```
 2.  Run open-agent and send prompts.
-3.  View logs and metrics in `.gemini/telemetry.log`.
+3.  View logs and metrics in `.openagent/telemetry.log`.
 
 For advanced local telemetry setups (such as Jaeger or Genkit), see the
 [Local development guide](../local-development.md#viewing-traces).
@@ -239,14 +239,14 @@ a "surface" tag in the parenthetical metadata.
 
 | Environment                         | User-Agent Prefix            | Surface Tag |
 | :---------------------------------- | :--------------------------- | :---------- |
-| **Gemini Code Assist (Agent Mode)** | `GeminiCLI-a2a-server`       | `vscode`    |
-| **Zed (via ACP)**                   | `GeminiCLI-acp-zed`          | `zed`       |
-| **XCode (via ACP)**                 | `GeminiCLI-acp-xcode`        | `xcode`     |
-| **IntelliJ IDEA (via ACP)**         | `GeminiCLI-acp-intellijidea` | `jetbrains` |
-| **Standard Terminal**               | `GeminiCLI`                  | `terminal`  |
+| **Gemini Code Assist (Agent Mode)** | `OpenAgent-a2a-server`       | `vscode`    |
+| **Zed (via ACP)**                   | `OpenAgent-acp-zed`          | `zed`       |
+| **XCode (via ACP)**                 | `OpenAgent-acp-xcode`        | `xcode`     |
+| **IntelliJ IDEA (via ACP)**         | `OpenAgent-acp-intellijidea` | `jetbrains` |
+| **Standard Terminal**               | `OpenAgent`                  | `terminal`  |
 
 **Example User-Agent:**
-`GeminiCLI-a2a-server/0.34.0/gemini-pro (linux; x64; vscode)`
+`OpenAgent-a2a-server/0.34.0/gemini-pro (linux; x64; vscode)`
 
 ### Custom identification
 
@@ -267,7 +267,7 @@ $env:GEMINI_CLI_SURFACE="my-custom-tool"
 ```
 
 When set, the value appears at the end of the `User-Agent` parenthetical:
-`GeminiCLI/0.34.0/gemini-pro (linux; x64; my-custom-tool)`
+`OpenAgent/0.34.0/gemini-pro (linux; x64; my-custom-tool)`
 
 ## Logs, metrics, and traces
 

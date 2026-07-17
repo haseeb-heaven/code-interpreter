@@ -1,7 +1,7 @@
 # Manage context and memory
 
 Control what open-agent knows about you and your projects. In this guide, you'll
-learn how to define project-wide rules with `GEMINI.md`, teach the agent
+learn how to define project-wide rules with `OPENAGENT.md`, teach the agent
 persistent facts, and inspect the active context.
 
 ## Prerequisites
@@ -25,15 +25,16 @@ You'll use these features when you want to:
 - **Remember facts:** Save details like "My database port is 5432" so you don't
   have to repeat them.
 
-## How to define project-wide rules (GEMINI.md)
+## How to define project-wide rules (OPENAGENT.md)
 
-The most powerful way to control the agent's behavior is through `GEMINI.md`
+The most powerful way to control the agent's behavior is through `OPENAGENT.md`
 files. These are Markdown files containing instructions that are automatically
-loaded into every conversation.
+loaded into every conversation. For backward compatibility, `AGENTS.md` and
+`GEMINI.md` are also recognized as fallbacks if `OPENAGENT.md` is absent.
 
 ### Scenario: Create a project context file
 
-1.  In the root of your project, create a file named `GEMINI.md`.
+1.  In the root of your project, create a file named `OPENAGENT.md`.
 
 2.  Add your instructions:
 
@@ -53,9 +54,10 @@ loaded into every conversation.
 Context is loaded hierarchically. This lets you have general rules for
 everything and specific rules for sub-projects.
 
-1.  **Global:** `~/.gemini/GEMINI.md` (Rules for _every_ project you work on).
-2.  **Project Root:** `./GEMINI.md` (Rules for the current repository).
-3.  **Subdirectory:** `./src/GEMINI.md` (Rules specific to the `src` folder).
+1.  **Global:** `~/.openagent/OPENAGENT.md` (Rules for _every_ project you work
+    on).
+2.  **Project Root:** `./OPENAGENT.md` (Rules for the current repository).
+3.  **Subdirectory:** `./src/OPENAGENT.md` (Rules specific to the `src` folder).
 
 **Example:** You might set "Always use strict typing" in your global config, but
 "Use Python 3.11" only in your backend repository.
@@ -93,7 +95,7 @@ is following.
 ### Scenario: View active context
 
 To see the full, concatenated set of instructions currently loaded (from all
-`GEMINI.md` files and saved memories), use the `/memory show` command.
+`OPENAGENT.md` files and saved memories), use the `/memory show` command.
 
 **Command:** `/memory show`
 
@@ -102,20 +104,20 @@ excellent for debugging why the agent might be ignoring a rule.
 
 ### Scenario: Refresh context
 
-If you edit a `GEMINI.md` file while a session is running, the agent won't know
-immediately. Force a reload with:
+If you edit a `OPENAGENT.md` file while a session is running, the agent won't
+know immediately. Force a reload with:
 
 **Command:** `/memory reload`
 
 ## Best practices
 
-- **Keep it focused:** Avoid adding excessive content to `GEMINI.md`. Keep
+- **Keep it focused:** Avoid adding excessive content to `OPENAGENT.md`. Keep
   instructions actionable and relevant to code generation.
 - **Use negative constraints:** Explicitly telling the agent what _not_ to do
   (for example, "Do not use class components") is often more effective than
   vague positive instructions.
-- **Review often:** Periodically check your `GEMINI.md` files to remove outdated
-  rules.
+- **Review often:** Periodically check your `OPENAGENT.md` files to remove
+  outdated rules.
 
 ## Next steps
 
@@ -123,6 +125,6 @@ immediately. Force a reload with:
   history works.
 - Explore the [Command reference](../../reference/commands.md) for more
   `/memory` options.
-- Read the technical spec for [Project context](../../cli/gemini-md.md).
+- Read the technical spec for [Project context](../../cli/openagent-md.md).
 - Try the experimental [Auto Memory](../auto-memory.md) feature to extract
   memory updates and reusable skills from your past sessions automatically.

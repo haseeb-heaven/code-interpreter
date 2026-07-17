@@ -19,19 +19,19 @@ scripts.
 **macOS/Linux**
 
 ```bash
-mkdir -p .gemini/skills/api-auditor/scripts
+mkdir -p .openagent/skills/api-auditor/scripts
 ```
 
 **Windows (PowerShell)**
 
 ```powershell
-New-Item -ItemType Directory -Force -Path ".gemini\skills\api-auditor\scripts"
+New-Item -ItemType Directory -Force -Path ".openagent\skills\api-auditor\scripts"
 ```
 
 ### 2. Create the definition (`SKILL.md`)
 
 The `SKILL.md` file defines the skill's purpose and instructions for the agent.
-Create a file at `.gemini/skills/api-auditor/SKILL.md`. This tells the agent
+Create a file at `.openagent/skills/api-auditor/SKILL.md`. This tells the agent
 _when_ to use the skill and _how_ to behave.
 
 ```markdown
@@ -58,11 +58,11 @@ active, you MUST:
 ### 3. Add the tool logic
 
 Skills can bundle resources like scripts to perform deterministic tasks. Create
-a file at `.gemini/skills/api-auditor/scripts/audit.js`. This is the code the
+a file at `.openagent/skills/api-auditor/scripts/audit.js`. This is the code the
 agent will run.
 
 ```javascript
-// .gemini/skills/api-auditor/scripts/audit.js
+// .openagent/skills/api-auditor/scripts/audit.js
 const url = process.argv[2];
 
 if (!url) {
@@ -78,8 +78,8 @@ fetch(url, { method: 'HEAD' })
 
 ## Verify discovery
 
-open-agent automatically discovers skills in the `.gemini/skills` directory (as
-well as the `.agents/skills` alias).
+open-agent automatically discovers skills in the `.openagent/skills` directory
+(as well as the `.agents/skills` alias).
 
 To check if open-agent found your new skill, use the `/skills list` command
 within an interactive session:
@@ -97,12 +97,12 @@ the session.
 If `/skills list` doesn't show your skill, check the following:
 
 1.  **The folder must be trusted (workspace skills only).** Skills under
-    `<workspace>/.gemini/skills/` are only loaded when the workspace folder is
-    marked as trusted. Run `/trust` and restart the session if needed. Skills
-    under `~/.gemini/skills/` (user scope) are not affected by trust.
+    `<workspace>/.openagent/skills/` are only loaded when the workspace folder
+    is marked as trusted. Run `/trust` and restart the session if needed. Skills
+    under `~/.openagent/skills/` (user scope) are not affected by trust.
 2.  **Check the path layout.** `SKILL.md` is discovered either at the root of
-    the skills directory (`.gemini/skills/SKILL.md`) or one directory deep
-    (`.gemini/skills/<skill-name>/SKILL.md`). The recommended layout uses a
+    the skills directory (`.openagent/skills/SKILL.md`) or one directory deep
+    (`.openagent/skills/<skill-name>/SKILL.md`). The recommended layout uses a
     subdirectory per skill so you can bundle scripts and other resources
     alongside it. Files nested more than one directory deep are not discovered.
 3.  **The filename must be exactly `SKILL.md`.** Capitalization matters on
@@ -129,7 +129,7 @@ relevant question.
 3.  **Consent**: You will see a confirmation prompt. Type **y** to approve.
 4.  **Execution**: Once activated, open-agent uses the `run_shell_command` tool
     to execute your bundled script:
-    `node .gemini/skills/api-auditor/scripts/audit.js https://google.com`
+    `node .openagent/skills/api-auditor/scripts/audit.js https://google.com`
 
 ## Pro tip: Use the skill-creator
 

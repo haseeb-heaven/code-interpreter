@@ -36,8 +36,8 @@ $env:GITHUB_PERSONAL_ACCESS_TOKEN="github_pat_..."
 
 You tell open-agent about new servers by editing your `settings.json`.
 
-1.  Open `~/.gemini/settings.json` (or the project-specific
-    `.gemini/settings.json`).
+1.  Open `~/.openagent/settings.json` (or the project-specific
+    `.openagent/settings.json`).
 2.  Add the `mcpServers` block. This tells open-agent: "Run this docker
     container and talk to it."
 
@@ -86,7 +86,7 @@ don't need to learn special commands; just ask in natural language.
 
 ### Scenario: Listing pull requests
 
-**Prompt:** `List the open PRs in the google/gemini-cli repository.`
+**Prompt:** `List the open PRs in the haseeb-heaven/open-agent repository.`
 
 The agent will:
 

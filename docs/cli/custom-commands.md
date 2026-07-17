@@ -9,12 +9,12 @@ all your projects, streamlining your workflow and ensuring consistency.
 
 open-agent discovers commands from two locations, loaded in a specific order:
 
-1.  **User commands (global):** Located in `~/.gemini/commands/`. These commands
-    are available in any project you are working on.
+1.  **User commands (global):** Located in `~/.openagent/commands/`. These
+    commands are available in any project you are working on.
 2.  **Project commands (local):** Located in
-    `<your-project-root>/.gemini/commands/`. These commands are specific to the
-    current project and can be checked into version control to be shared with
-    your team.
+    `<your-project-root>/.openagent/commands/`. These commands are specific to
+    the current project and can be checked into version control to be shared
+    with your team.
 
 If a command in the project directory has the same name as a command in the user
 directory, the **project command will always be used.** This allows projects to
@@ -26,9 +26,9 @@ The name of a command is determined by its file path relative to its `commands`
 directory. Subdirectories are used to create namespaced commands, with the path
 separator (`/` or `\`) being converted to a colon (`:`).
 
-- A file at `~/.gemini/commands/test.toml` becomes the command `/test`.
-- A file at `<project>/.gemini/commands/git/commit.toml` becomes the namespaced
-  command `/git:commit`.
+- A file at `~/.openagent/commands/test.toml` becomes the command `/test`.
+- A file at `<project>/.openagent/commands/git/commit.toml` becomes the
+  namespaced command `/git:commit`.
 
 <!-- prettier-ignore -->
 > [!TIP]
@@ -132,7 +132,7 @@ model, explaining where to find the user's input, and specifying the expected
 format and behavior.
 
 ```toml
-# In: <project>/.gemini/commands/changelog.toml
+# In: <project>/.openagent/commands/changelog.toml
 # Invoked via: /changelog 1.2.0 added "Support for default argument parsing."
 
 description = "Adds a new entry to the project's CHANGELOG.md file."
@@ -199,7 +199,7 @@ This command gets the staged git diff and uses it to ask the model to write a
 commit message.
 
 ````toml
-# In: <project>/.gemini/commands/git/commit.toml
+# In: <project>/.openagent/commands/git/commit.toml
 # Invoked via: /git:commit
 
 description = "Generates a Git commit message based on staged changes."
@@ -252,7 +252,7 @@ This command injects the content of a _fixed_ best practices file
 the review.
 
 ```toml
-# In: <project>/.gemini/commands/review.toml
+# In: <project>/.openagent/commands/review.toml
 # Invoked via: /review FileCommandLoader.ts
 
 description = "Reviews the provided context using a best practice guide."
@@ -285,25 +285,25 @@ subdirectory for organization and the final TOML file.
 **macOS/Linux**
 
 ```bash
-mkdir -p ~/.gemini/commands/refactor
-touch ~/.gemini/commands/refactor/pure.toml
+mkdir -p ~/.openagent/commands/refactor
+touch ~/.openagent/commands/refactor/pure.toml
 ```
 
 **Windows (PowerShell)**
 
 ```powershell
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.gemini\commands\refactor"
-New-Item -ItemType File -Force -Path "$env:USERPROFILE\.gemini\commands\refactor\pure.toml"
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.openagent\commands\refactor"
+New-Item -ItemType File -Force -Path "$env:USERPROFILE\.openagent\commands\refactor\pure.toml"
 ```
 
 **2. Add the content to the file:**
 
-Open `~/.gemini/commands/refactor/pure.toml` in your editor and add the
+Open `~/.openagent/commands/refactor/pure.toml` in your editor and add the
 following content. We are including the optional `description` for best
 practice.
 
 ```toml
-# In: ~/.gemini/commands/refactor/pure.toml
+# In: ~/.openagent/commands/refactor/pure.toml
 # This command will be invoked via: /refactor:pure
 
 description = "Asks the model to refactor the current context into a pure function."

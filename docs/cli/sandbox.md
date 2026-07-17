@@ -47,14 +47,14 @@ openagent -s -p "analyze the code structure"
 **macOS/Linux**
 
 ```bash
-export GEMINI_SANDBOX=true
+export OPENAGENT_SANDBOX=true
 openagent -p "run the test suite"
 ```
 
 **Windows (PowerShell)**
 
 ```powershell
-$env:GEMINI_SANDBOX="true"
+$env:OPENAGENT_SANDBOX="true"
 openagent -p "run the test suite"
 ```
 
@@ -74,7 +74,8 @@ Enable sandboxing using one of the following methods (in order of precedence):
 
 1. **Command flag**: `-s` or `--sandbox`
 2. **Environment variable**:
-   `GEMINI_SANDBOX=true|docker|podman|sandbox-exec|runsc|lxc`
+   `OPENAGENT_SANDBOX=true|docker|podman|sandbox-exec|runsc|lxc` (the legacy
+   `GEMINI_SANDBOX` alias is also recognized)
 3. **Settings file**: `"sandbox": true` in the `tools` object of your
    `settings.json` file (for example, `{"tools": {"sandbox": true}}`).
 
@@ -102,7 +103,8 @@ Built-in profiles (set via `SEATBELT_PROFILE` env var):
 ### 2. Container-based (Docker/Podman)
 
 Cross-platform sandboxing with complete process isolation using container
-technology. By default, it uses the `ghcr.io/google/gemini-cli:latest` image.
+technology. By default, it uses the
+`ghcr.io/haseeb-heaven/open-agent-sandbox:4.0.0` image.
 
 **Prerequisites:**
 
@@ -124,7 +126,7 @@ Docker as the provider:
 
 ```bash
 # Using the environment variable (Recommended)
-export GEMINI_SANDBOX=docker
+export OPENAGENT_SANDBOX=docker
 openagent -p "build the project"
 
 # Or configure it permanently in your settings.json
@@ -142,7 +144,7 @@ or Podman image as your sandbox, provided it has standard shell utilities (like
 
 To configure a custom image that is hosted on a registry (or built locally),
 update your `settings.json` to use an object for the sandbox configuration, or
-set the `GEMINI_SANDBOX_IMAGE` environment variable.
+set the `OPENAGENT_SANDBOX_IMAGE` environment variable.
 
 _Example: Configuring via `settings.json`_
 
@@ -160,7 +162,7 @@ _Example: Configuring via `settings.json`_
 _Example: Configuring via environment variable_
 
 ```bash
-export GEMINI_SANDBOX_IMAGE="us-central1-docker.pkg.dev/my-project/my-repo/my-custom-sandbox:latest"
+export OPENAGENT_SANDBOX_IMAGE="us-central1-docker.pkg.dev/my-project/my-repo/my-custom-sandbox:latest"
 ```
 
 **Option B: Building a local custom image automatically**
@@ -168,13 +170,13 @@ export GEMINI_SANDBOX_IMAGE="us-central1-docker.pkg.dev/my-project/my-repo/my-cu
 If you prefer to define your environment as code, you can provide a Dockerfile
 and open-agent will build the image automatically.
 
-1.  Create a `.gemini/sandbox.Dockerfile` in your project root.
+1.  Create a `.openagent/sandbox.Dockerfile` in your project root.
 2.  Ensure you have the `gh` CLI installed and authenticated (if you are using
-    the default `ghcr.io/google/gemini-cli` image as a base).
+    the default `ghcr.io/haseeb-heaven/open-agent-sandbox` image as a base).
 3.  Run your command with the `BUILD_SANDBOX` environment variable set:
 
 ```bash
-BUILD_SANDBOX=1 GEMINI_SANDBOX=docker openagent -p "run my custom build"
+BUILD_SANDBOX=1 OPENAGENT_SANDBOX=docker openagent -p "run my custom build"
 ```
 
 ### 3. Windows Native Sandbox (Windows only)
@@ -211,7 +213,7 @@ strong security barrier between AI operations and the host OS.
 When you set `sandbox: "runsc"`, open-agent runs
 `docker run --runtime=runsc ...` to execute containers with gVisor isolation.
 runsc is not auto-detected; you must specify it explicitly (e.g.
-`GEMINI_SANDBOX=runsc` or `sandbox: "runsc"`).
+`OPENAGENT_SANDBOX=runsc` or `sandbox: "runsc"`).
 
 To set up runsc:
 
@@ -243,15 +245,15 @@ lxd init --auto
 lxc launch ubuntu:24.04 gemini-sandbox
 
 # Enable LXC sandboxing
-export GEMINI_SANDBOX=lxc
+export OPENAGENT_SANDBOX=lxc
 openagent -p "build the project"
 ```
 
 **Custom container name**:
 
 ```bash
-export GEMINI_SANDBOX=lxc
-export GEMINI_SANDBOX_IMAGE=my-snapcraft-container
+export OPENAGENT_SANDBOX=lxc
+export OPENAGENT_SANDBOX_IMAGE=my-snapcraft-container
 openagent -p "build the snap"
 ```
 
@@ -353,8 +355,8 @@ docker run -it \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /absolute/path/on/host/project:/absolute/path/on/host/project \
   -w /absolute/path/on/host/project \
-  -e GEMINI_SANDBOX=docker \
-  ghcr.io/google/gemini-cli:latest
+  -e OPENAGENT_SANDBOX=docker \
+  ghcr.io/haseeb-heaven/open-agent-sandbox:4.0.0
 ```
 
 ## Advanced settings
@@ -445,7 +447,7 @@ DEBUG=1 openagent -s -p "debug command"
 <!-- prettier-ignore -->
 > [!NOTE]
 > If you have `DEBUG=true` in a project's `.env` file, it won't affect
-> open-agent due to automatic exclusion. Use `.gemini/.env` files for
+> open-agent due to automatic exclusion. Use `.openagent/.env` files for
 > open-agent specific debug settings.
 
 ### Inspect sandbox

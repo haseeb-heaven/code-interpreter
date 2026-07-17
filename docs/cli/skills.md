@@ -6,7 +6,7 @@ workflows, and task-specific resources. Based on the
 self-contained directory that packages instructions and assets into a
 discoverable capability.
 
-Unlike general context files ([GEMINI.md](./gemini-md.md)), which provide
+Unlike general context files ([OPENAGENT.md](./openagent-md.md)), which provide
 persistent workspace-wide background, Skills represent **on-demand expertise**.
 This lets open-agent maintain a vast library of specialized capabilities—such as
 security auditing, cloud deployments, or codebase migrations—without cluttering
@@ -41,16 +41,18 @@ of precedence (lowest to highest):
     foundational capabilities.
 2.  **Extension skills**: Skills bundled within installed
     [extensions](../extensions/index.md).
-3.  **User skills**: Located in `~/.gemini/skills/` or the `~/.agents/skills/`
-    alias.
-4.  **Workspace skills**: Located in `.gemini/skills/` or the `.agents/skills/`
-    alias. Workspace skills are shared with your team via version control.
+3.  **User skills**: Located in `~/.openagent/skills/` or the
+    `~/.agents/skills/` alias.
+4.  **Workspace skills**: Located in `.openagent/skills/` or the
+    `.agents/skills/` alias. Workspace skills are shared with your team via
+    version control.
 
 ### Precedence and aliases
 
 If multiple skills share the same name, the version from the higher-precedence
 location is used. Within the same tier (user or workspace), the
-`.agents/skills/` alias takes precedence over the `.gemini/skills/` directory.
+`.agents/skills/` alias takes precedence over the `.openagent/skills/`
+directory.
 
 The `.agents/skills/` alias provides an interoperable path for managing
 agent-specific expertise that remains compatible across different AI tools.
