@@ -7,19 +7,18 @@
 // Copied exactly from packages/cli/src/config/extension.ts, last PR #1026
 
 import {
-  GEMINI_DIR,
   type MCPServerConfig,
   type ExtensionInstallMetadata,
   type GeminiCLIExtension,
   homedir,
+  Storage,
 } from '@open-agent/core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { logger } from '../utils/logger.js';
 
-export const EXTENSIONS_DIRECTORY_NAME = path.join(GEMINI_DIR, 'extensions');
 export const EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
-export const INSTALL_METADATA_FILENAME = '.gemini-extension-install.json';
+export const INSTALL_METADATA_FILENAME = '.open-agent-extension-install.json';
 
 /**
  * Extension definition as written to disk in gemini-extension.json files.
@@ -58,7 +57,7 @@ export function loadExtensions(workspaceDir: string): GeminiCLIExtension[] {
 }
 
 function loadExtensionsFromDir(dir: string): GeminiCLIExtension[] {
-  const extensionsDir = path.join(dir, EXTENSIONS_DIRECTORY_NAME);
+  const extensionsDir = new Storage(dir).getExtensionsDir();
   if (!fs.existsSync(extensionsDir)) {
     return [];
   }
