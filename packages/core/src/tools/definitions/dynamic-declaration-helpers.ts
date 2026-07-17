@@ -11,8 +11,6 @@
 
 import { type FunctionDeclaration } from '@google/genai';
 import * as os from 'node:os';
-import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
   SHELL_TOOL_NAME,
   EXIT_PLAN_MODE_TOOL_NAME,
@@ -191,28 +189,30 @@ export function getActivateSkillDeclaration(
       ? ` (Available: ${skillNames.map((n) => `'${n}'`).join(', ')})`
       : '';
 
-  let schema: z.ZodTypeAny;
-  if (skillNames.length === 0) {
-    schema = z.object({
-      [SKILL_PARAM_NAME]: z
-        .string()
-        .describe('No skills are currently available.'),
-    });
-  } else {
-    schema = z.object({
-      [SKILL_PARAM_NAME]: z
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        .enum(skillNames as [string, ...string[]])
-        .describe('The name of the skill to activate.'),
-    });
-  }
+  // Build JSON Schema by hand — dynamic zod enums + zodToJsonSchema can blow
+  // up TypeScript's instantiation depth (TS2589).
+  const nameProperty =
+    skillNames.length === 0
+      ? {
+          type: 'string',
+          description: 'No skills are currently available.',
+        }
+      : {
+          type: 'string',
+          enum: skillNames,
+          description: 'The name of the skill to activate.',
+        };
 
   return {
     name: ACTIVATE_SKILL_TOOL_NAME,
     description: `Activates a specialized agent skill by name${availableSkillsHint}. Returns the skill's instructions wrapped in \`<activated_skill>\` tags. These provide specialized guidance for the current task. Use this when you identify a task that matches a skill's description. ONLY use names exactly as they appear in the \`<available_skills>\` section.`,
-    // zodToJsonSchema returns a generic JSON Schema object compatible with tool params
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-    parametersJsonSchema: zodToJsonSchema(schema) as Record<string, unknown>,
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        [SKILL_PARAM_NAME]: nameProperty,
+      },
+      required: [SKILL_PARAM_NAME],
+    },
   };
 }
 

@@ -77,4 +77,51 @@ describe('applyProviderRouting', () => {
     expect(routed).toBe(true);
     expect(process.env['OPENAGENT_CLI_PROVIDER']).toBe('openai');
   });
+
+  it('routes from settings.model.name even when GEMINI_API_KEY is set', async () => {
+    process.env['GEMINI_API_KEY'] = 'fake-gemini';
+    process.env['NVIDIA_API_KEY'] = 'fake-nvidia';
+    mockResolveProviderRoute.mockResolvedValue(fakeRoute('nvidia'));
+
+    const argv = {} as unknown as CliArgs;
+    const settings = {
+      merged: { model: { name: 'nvidia-nemotron' }, general: {} },
+      setValue: vi.fn(),
+    };
+
+    const routed = await applyProviderRouting(
+      argv,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      settings as any,
+    );
+
+    expect(routed).toBe(true);
+    expect(argv.model).toBe('nvidia/some-model');
+    expect(process.env['OPENAGENT_CLI_PROVIDER']).toBe('nvidia');
+    expect(mockResolveProviderRoute).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'nvidia-nemotron' }),
+    );
+  });
+
+  it('does not early-exit on GEMINI_API_KEY when no model is set (allows local auto)', async () => {
+    // Without this regression, GEMINI_API_KEY alone skipped all routing and
+    // the first-run wizard never ran for users who also use other providers.
+    process.env['GEMINI_API_KEY'] = 'fake-gemini';
+    mockResolveProviderRoute.mockResolvedValue(undefined);
+
+    const argv = {} as unknown as CliArgs;
+    const settings = {
+      merged: { general: { setupWizardCompleted: true }, model: {} },
+      setValue: vi.fn(),
+    };
+
+    const routed = await applyProviderRouting(
+      argv,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      settings as any,
+    );
+
+    // Wizard already completed + Gemini key + no multi model → false (native)
+    expect(routed).toBe(false);
+  });
 });

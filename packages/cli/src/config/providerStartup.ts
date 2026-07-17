@@ -20,6 +20,7 @@ import * as path from 'node:path';
 import * as readline from 'node:readline/promises';
 import { Writable } from 'node:stream';
 import {
+  AuthType,
   writeToStdout,
   writeToStderr,
   ModelRegistry,
@@ -337,34 +338,52 @@ export async function applyProviderRouting(
   argv: CliArgs,
   settings?: LoadedSettings,
 ): Promise<boolean> {
+  // Honor the last model saved in settings when the CLI didn't pass -m/--model.
+  // Without this, a session on nvidia-nemotron still starts as Gemini auth
+  // because only GEMINI_API_KEY was present in the environment.
+  if (argv.model === undefined || argv.model === '') {
+    const saved = settings?.merged?.model?.name;
+    if (typeof saved === 'string' && saved.trim()) {
+      argv.model = saved.trim();
+    }
+  }
+
   const wantsRouting =
     Boolean(argv.provider) ||
     Boolean(argv.free) ||
-    (argv.model !== undefined && isMultiProviderModel(argv.model));
+    (argv.model !== undefined && isMultiProviderModel(String(argv.model)));
 
-  // Without explicit routing flags, only auto-route when nothing Google
-  // is configured (Ollama-first default for key-less local runs).
-  const googleConfigured = Boolean(
-    process.env['GEMINI_API_KEY'] ||
-      process.env['GOOGLE_API_KEY'] ||
-      process.env['GOOGLE_GENAI_USE_GCA'] ||
-      process.env['GOOGLE_GENAI_USE_VERTEXAI'],
-  );
-  if (!wantsRouting && (argv.model !== undefined || googleConfigured)) {
-    return false;
-  }
-
-  // First run only: no explicit --provider/--model/--free flag, no prior
-  // provider configuration to preserve (mirrors the --byok trigger), the
-  // wizard hasn't already run/been dismissed, and we're not inside a test
-  // runner (vitest reports stdin as TTY-like, which would otherwise hang
-  // on the interactive prompt).
+  // First-run setup: only when the user has not finished the wizard and did
+  // not already pick a model/provider. Having GEMINI_API_KEY must NOT skip
+  // the wizard — many users also hold NVIDIA/OpenRouter/etc. keys.
   const isFirstRunCandidate =
-    !wantsRouting &&
+    !Boolean(argv.provider) &&
+    !Boolean(argv.free) &&
+    (argv.model === undefined || argv.model === '') &&
     Boolean(process.stdin.isTTY) &&
     settings !== undefined &&
     !settings.merged.general?.setupWizardCompleted &&
     !isNonInteractiveTestEnv();
+
+  if (isFirstRunCandidate && settings) {
+    return runSetupWizard(argv, settings, undefined);
+  }
+
+  // Pure Gemini (or non-multi) model with no multi-provider flags: stay on
+  // the native Google path. Do not force Ollama auto-routing just because
+  // GEMINI_API_KEY exists alongside a multi-provider model selection.
+  if (!wantsRouting) {
+    const googleConfigured = Boolean(
+      process.env['GEMINI_API_KEY'] ||
+        process.env['GOOGLE_API_KEY'] ||
+        process.env['GOOGLE_GENAI_USE_GCA'] ||
+        process.env['GOOGLE_GENAI_USE_VERTEXAI'],
+    );
+    if (argv.model !== undefined || googleConfigured) {
+      return false;
+    }
+    // No model + no Google key → fall through for Ollama-first auto-detect.
+  }
 
   const route = await resolveProviderRoute({
     model: argv.model,
@@ -373,9 +392,6 @@ export async function applyProviderRouting(
     allowUnavailable: true,
   });
   if (!route) {
-    if (isFirstRunCandidate && settings) {
-      return runSetupWizard(argv, settings, undefined);
-    }
     if (argv.provider || argv.free) {
       writeToStderr(
         'No usable provider route found. Is the local server running / the API key set? ' +
@@ -393,22 +409,19 @@ export async function applyProviderRouting(
       (alias) => process.env[alias] && process.env[alias]?.trim(),
     );
     if (!hasKey && !hasAlias) {
-      if (isFirstRunCandidate && settings) {
-        return runSetupWizard(argv, settings, route);
-      }
       if (process.stdin.isTTY && !isNonInteractiveTestEnv()) {
         const keyEntered = await promptForProviderKey(route.provider);
         if (!keyEntered) {
           writeToStderr(
             `Error: ${route.provider.displayName} API key is required but not set.\n` +
-            `Please run the command again and enter the key, or set the ${envKey} environment variable.\n`
+              `Please run the command again and enter the key, or set the ${envKey} environment variable.\n`,
           );
           return false;
         }
       } else {
         writeToStderr(
           `Error: ${route.provider.displayName} API key is required but not set.\n` +
-          `Please set the ${envKey} environment variable.\n`
+            `Please set the ${envKey} environment variable.\n`,
         );
         return false;
       }
@@ -422,6 +435,14 @@ export async function applyProviderRouting(
   // and must not be pinned to the multi-provider (OpenAI-compat) route.
   if (route.provider.id !== 'gemini') {
     process.env['OPENAGENT_CLI_PROVIDER'] = route.provider.id;
+    // Persist multi-provider auth so the header /auth line and subsequent
+    // restarts match the active model (NVIDIA, OpenRouter, …) instead of
+    // stale security.auth.selectedType = gemini-api-key.
+    settings?.setValue(
+      SettingScope.User,
+      'security.auth.selectedType',
+      AuthType.MULTI_PROVIDER,
+    );
   }
   if (argv.free) {
     // Arms the runtime free-model fallback chain in the generator factory.

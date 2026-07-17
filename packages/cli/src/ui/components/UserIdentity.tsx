@@ -35,20 +35,12 @@ const AUTH_TYPE_DISPLAY_NAMES: Readonly<Partial<Record<AuthType, string>>> = {
 
 /**
  * Returns a user-facing provider/auth label for the header, e.g.
- * "OpenRouter", "Gemini", "OpenAI".
+ * "OpenRouter", "Gemini", "OpenAI", "NVIDIA".
+ *
+ * Always prefers the provider that backs the **active model** so a session on
+ * `nvidia-nemotron` never shows the stale `gemini-api-key` auth enum.
  */
 export function resolveProviderDisplayName(config: Config): string | undefined {
-  const authType = config.getContentGeneratorConfig()?.authType;
-  if (!authType) {
-    return undefined;
-  }
-
-  if (authType === AuthType.LOGIN_WITH_GOOGLE) {
-    return AUTH_TYPE_DISPLAY_NAMES[AuthType.LOGIN_WITH_GOOGLE];
-  }
-
-  // Prefer the provider that actually backs the active model (OpenRouter,
-  // OpenAI, Groq, Ollama, …) over the raw auth-type id.
   const currentModel = config.getModel();
   if (currentModel) {
     try {
@@ -61,11 +53,21 @@ export function resolveProviderDisplayName(config: Config): string | undefined {
     }
   }
 
+  const authType = config.getContentGeneratorConfig()?.authType;
+  if (!authType) {
+    return undefined;
+  }
+
+  if (authType === AuthType.LOGIN_WITH_GOOGLE) {
+    return AUTH_TYPE_DISPLAY_NAMES[AuthType.LOGIN_WITH_GOOGLE];
+  }
+
   if (authType === AuthType.MULTI_PROVIDER) {
     return 'Multi-provider';
   }
 
-  return AUTH_TYPE_DISPLAY_NAMES[authType] ?? authType;
+  // Never surface raw AuthType enum strings like "gemini-api-key".
+  return AUTH_TYPE_DISPLAY_NAMES[authType] ?? 'API';
 }
 
 /**
@@ -104,6 +106,8 @@ export function formatAuthStatusLine(
 
 export const UserIdentity: React.FC<UserIdentityProps> = ({ config }) => {
   const authType = config.getContentGeneratorConfig()?.authType;
+  // Re-resolve when the active model changes (e.g. /model → NVIDIA).
+  const activeModel = config.getModel();
   const [email, setEmail] = useState<string | undefined>();
 
   useEffect(() => {
@@ -124,7 +128,8 @@ export const UserIdentity: React.FC<UserIdentityProps> = ({ config }) => {
 
   const providerDisplayName = useMemo(
     () => resolveProviderDisplayName(config),
-    [config],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- model drives provider label
+    [config, activeModel, authType],
   );
 
   if (!authType || !providerDisplayName) {

@@ -26,13 +26,14 @@ export function isMultiProviderModel(
   const id = (modelId ?? '').trim();
   let { provider } = splitModelId(id);
   if (!provider) {
-    // Registry keys ("openrouter-gpt-oss-20b-free") carry no prefix but
-    // still resolve to a provider route through configs/models.toml.
+    // Registry keys ("nvidia-nemotron", "openrouter-free") carry no prefix
+    // but still resolve through configs/models.toml. Prefer the explicit
+    // provider tag over the model-id prefix (e.g. openrouter-hosted nvidia/*).
     const reg = registry ?? getModelRegistry();
     const key = reg.resolveModelKey(id);
     const cfg = key ? reg.getModel(key) : undefined;
-    if (cfg?.model) provider = splitModelId(cfg.model).provider;
-    if (!provider && cfg?.provider) provider = getProvider(cfg.provider);
+    if (cfg?.provider) provider = getProvider(cfg.provider);
+    if (!provider && cfg?.model) provider = splitModelId(cfg.model).provider;
   }
   // Bare gemini/... ids stay on the native Gemini path.
   return provider !== undefined && provider.id !== 'gemini';
