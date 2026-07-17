@@ -883,31 +883,43 @@ describe('ClearcutLogger', () => {
   });
 
   describe('flushToClearcut', () => {
-    it('allows for usage with a configured proxy agent', async () => {
+    // Clearcut reporting is hard-disabled for OpenAgent (see CLEARCUT_ENABLED
+    // in clearcut-logger.ts): flushToClearcut() never makes a network call,
+    // it just drops any buffered events and resolves an empty response.
+    it('never makes a network request, even with a configured proxy agent', async () => {
       const { logger } = setup({
         config: {
           proxy: 'http://mycoolproxy.whatever.com:3128',
         },
       });
 
+      let requestSeen = false;
+      server.resetHandlers(
+        http.post(CLEARCUT_URL, () => {
+          requestSeen = true;
+          return HttpResponse.json([String(NEXT_WAIT_MS)]);
+        }),
+      );
+
       logger!.enqueueLogEvent(logger!.createLogEvent(EventNames.API_ERROR));
 
       const response = await logger!.flushToClearcut();
 
-      expect(response.nextRequestWaitMs).toBe(NEXT_WAIT_MS);
+      expect(requestSeen).toBe(false);
+      expect(response.nextRequestWaitMs).toBeUndefined();
     });
 
-    it('should clear events on successful flush', async () => {
+    it('should clear events without sending them anywhere', async () => {
       const { logger } = setup();
 
       logger!.enqueueLogEvent(logger!.createLogEvent(EventNames.API_ERROR));
       const response = await logger!.flushToClearcut();
 
       expect(getEvents(logger!)).toEqual([]);
-      expect(response.nextRequestWaitMs).toBe(NEXT_WAIT_MS);
+      expect(response.nextRequestWaitMs).toBeUndefined();
     });
 
-    it('should handle a network error and requeue events', async () => {
+    it('does not requeue events on what would have been a network error', async () => {
       const { logger } = setup();
 
       server.resetHandlers(http.post(CLEARCUT_URL, () => HttpResponse.error()));
@@ -918,14 +930,10 @@ describe('ClearcutLogger', () => {
       const x = logger!.flushToClearcut();
       await x;
 
-      expect(getEventsSize(logger!)).toBe(2);
-      const events = getEvents(logger!);
-
-      expect(events.length).toBe(2);
-      expect(events[0]).toHaveEventName(EventNames.API_REQUEST);
+      expect(getEventsSize(logger!)).toBe(0);
     });
 
-    it('should handle an HTTP error and requeue events', async () => {
+    it('does not requeue events on what would have been an HTTP error', async () => {
       const { logger } = setup();
 
       server.resetHandlers(
@@ -945,9 +953,7 @@ describe('ClearcutLogger', () => {
       expect(getEvents(logger!).length).toBe(2);
       await logger!.flushToClearcut();
 
-      const events = getEvents(logger!);
-
-      expect(events[0]).toHaveEventName(EventNames.API_REQUEST);
+      expect(getEvents(logger!)).toEqual([]);
     });
   });
 

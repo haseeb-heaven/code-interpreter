@@ -237,7 +237,7 @@ describe('createContentGenerator', () => {
       httpOptions: expect.objectContaining({
         headers: expect.objectContaining({
           'User-Agent': expect.stringMatching(
-            /GeminiCLI\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
+            /OpenAgent\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
           ),
         }),
       }),
@@ -280,7 +280,7 @@ describe('createContentGenerator', () => {
         httpOptions: expect.objectContaining({
           headers: expect.objectContaining({
             'User-Agent': expect.stringMatching(
-              /GeminiCLI-a2a-server\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
+              /OpenAgent-a2a-server\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
             ),
           }),
         }),
@@ -356,7 +356,7 @@ describe('createContentGenerator', () => {
         httpOptions: expect.objectContaining({
           headers: expect.objectContaining({
             'User-Agent': expect.stringMatching(
-              /GeminiCLI-my-client\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
+              /OpenAgent-my-client\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
             ),
           }),
         }),
