@@ -68,3 +68,21 @@ temp_agents/
 
 # conductor extension and planning directories
 conductor/
+
+# Python "Open Code Interpreter" project artifacts (unrelated product,
+# lives on the develop branch — must never be committed to this branch)
+/.venv/
+/__pycache__/
+/.pytest_cache/
+/build/
+/scratch/
+/output/
+/history/
+/htmlcov_focus/
+/logs/
+/libs/
+/tests/
+/scripts/__pycache__/
+/packages/cli/packages/
+/CLAUDE.md
+/CLAUDE.local.md
