@@ -10,21 +10,88 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+/** Legacy Gemini CLI config directory (still read for migration). */
 export const GEMINI_DIR = '.gemini';
+/** OpenAgent home directory under the user profile (`~/.openagent`). */
+export const OPENAGENT_DIR = '.openagent';
 export const GOOGLE_ACCOUNTS_FILENAME = 'google_accounts.json';
 export const TRUSTED_FOLDERS_FILENAME = 'trustedFolders.json';
 
 /**
  * Returns the home directory.
- * If GEMINI_CLI_HOME environment variable is set, it returns its value.
+ * If GEMINI_CLI_HOME / OPENAGENT_HOME environment variable is set, it returns its value.
  * Otherwise, it returns the user's home directory.
  */
 export function homedir(): string {
-  const envHome = process.env['GEMINI_CLI_HOME'];
+  const envHome =
+    process.env['OPENAGENT_HOME'] || process.env['GEMINI_CLI_HOME'];
   if (envHome) {
     return envHome;
   }
   return os.homedir();
+}
+
+/**
+ * Absolute path to `~/.openagent` (or temp fallback). Does not create the dir.
+ */
+export function getOpenAgentHomeDir(): string {
+  const home = homedir();
+  if (!home) {
+    return path.join(os.tmpdir(), OPENAGENT_DIR);
+  }
+  return path.join(home, OPENAGENT_DIR);
+}
+
+/**
+ * Absolute path to legacy `~/.gemini` (read-only fallback / migration source).
+ */
+export function getLegacyGeminiHomeDir(): string {
+  const home = homedir();
+  if (!home) {
+    return path.join(os.tmpdir(), GEMINI_DIR);
+  }
+  return path.join(home, GEMINI_DIR);
+}
+
+/**
+ * Ensures `~/.openagent` exists. Soft-migrates settings/.env from `~/.gemini`
+ * on first create so existing users keep their keys and prefs.
+ */
+export function ensureOpenAgentHomeDir(): string {
+  const dir = getOpenAgentHomeDir();
+  const existed = fs.existsSync(dir);
+  if (!existed) {
+    fs.mkdirSync(dir, { recursive: true });
+    const legacy = getLegacyGeminiHomeDir();
+    if (fs.existsSync(legacy)) {
+      for (const name of [
+        'settings.json',
+        '.env',
+        'trustedFolders.json',
+        'keybindings.json',
+        'google_accounts.json',
+      ]) {
+        const src = path.join(legacy, name);
+        const dest = path.join(dir, name);
+        try {
+          if (fs.existsSync(src) && !fs.existsSync(dest)) {
+            fs.copyFileSync(src, dest);
+          }
+        } catch {
+          // Best-effort migration only.
+        }
+      }
+    }
+  }
+  return dir;
+}
+
+/**
+ * Canonical path for OpenAgent API keys: `~/.openagent/.env`.
+ * Never project-cwd or drive root (avoids EPERM mkdir 'D:\' on Windows).
+ */
+export function getDefaultEnvFilePath(): string {
+  return path.join(ensureOpenAgentHomeDir(), '.env');
 }
 
 /**

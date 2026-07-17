@@ -10,7 +10,9 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import {
   GEMINI_DIR,
-  homedir,
+  getOpenAgentHomeDir,
+  getLegacyGeminiHomeDir,
+  ensureOpenAgentHomeDir,
   GOOGLE_ACCOUNTS_FILENAME,
   isSubpath,
   resolveToRealPath,
@@ -51,12 +53,31 @@ export class Storage {
     return !!this.projectIdentifier;
   }
 
+  /**
+   * Global config root for OpenAgent.
+   * Prefers `~/.openagent`; falls back to legacy `~/.gemini` if that already
+   * exists and openagent has not been created yet (read path). New writes go
+   * through {@link ensureOpenAgentHomeDir} → always `~/.openagent`.
+   */
   static getGlobalGeminiDir(): string {
-    const homeDir = homedir();
-    if (!homeDir) {
-      return path.join(os.tmpdir(), GEMINI_DIR);
+    const openAgent = getOpenAgentHomeDir();
+    const legacy = getLegacyGeminiHomeDir();
+    try {
+      if (fs.existsSync(openAgent)) {
+        return openAgent;
+      }
+      if (fs.existsSync(legacy)) {
+        return legacy;
+      }
+    } catch {
+      // ignore fs errors and use openagent default
     }
-    return path.join(homeDir, GEMINI_DIR);
+    return openAgent;
+  }
+
+  /** Always `~/.openagent` (created). Prefer this for new writes. */
+  static getOpenAgentHomeDir(): string {
+    return ensureOpenAgentHomeDir();
   }
 
   static getGlobalAgentsDir(): string {

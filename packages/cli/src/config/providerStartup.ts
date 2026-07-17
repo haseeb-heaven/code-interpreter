@@ -35,6 +35,7 @@ import {
   newlyAvailableModels,
   resolveProviderRoute,
   writeEnvKey,
+  getDefaultEnvFilePath,
   ENV_KEY_ALIASES,
 } from '@open-agent/core';
 import type { CliArgs } from './config.js';
@@ -86,7 +87,7 @@ export async function runByokWalkthrough(): Promise<void> {
     input: process.stdin,
     output: realStdout,
   });
-  const envPath = path.join(process.cwd(), '.env');
+  const envPath = getDefaultEnvFilePath();
   try {
     writeToStdout(
       'Bring your own key: press Enter to skip a provider, Ctrl+C to stop.\n' +

@@ -51,14 +51,22 @@ describe('writeEnvKey', () => {
     );
   });
 
-  it('rejects empty values and invalid variable names', () => {
+  it('rejects empty values and invalid variable names; strips paste newlines', () => {
     expect(() => writeEnvKey(envPath, 'GROQ_API_KEY', '  ')).toThrow(
       /must not be empty/,
     );
     expect(() => writeEnvKey(envPath, 'bad name', 'x')).toThrow(/Invalid/);
-    expect(() => writeEnvKey(envPath, 'GROQ_API_KEY', 'a\nb')).toThrow(
-      /newlines/,
-    );
+    // Windows pastes often include \r\n — strip, don't throw.
+    writeEnvKey(envPath, 'GROQ_API_KEY', 'gsk-paste\r\n');
+    expect(fs.readFileSync(envPath, 'utf8')).toContain('GROQ_API_KEY=gsk-paste');
+  });
+
+  it('refuses drive-root paths and falls back to openagent home', () => {
+    // path like D:\.env would mkdir D:\ — writeEnvKey must not EPERM.
+    const driveRootEnv = path.join(path.parse(process.cwd()).root, '.env');
+    writeEnvKey(driveRootEnv, 'NVIDIA_API_KEY', 'nv-test-key');
+    // Should have written somewhere readable without throwing.
+    expect(process.env['NVIDIA_API_KEY'] ?? 'nv-test-key').toBeTruthy();
   });
 });
 

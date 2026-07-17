@@ -7,6 +7,8 @@
 /**
  * BYOK (bring your own key) support: writes provider API keys to a
  * `.env` file and reports which models become newly available.
+ *
+ * Default path is `~/.openagent/.env` (never project cwd / drive root).
  */
 
 import * as fs from 'node:fs';
@@ -18,6 +20,10 @@ import {
 } from './providers.js';
 import { FreeLLMCatalog } from './freeCatalog.js';
 import { ModelRegistry } from './modelRegistry.js';
+import {
+  ensureOpenAgentHomeDir,
+  getDefaultEnvFilePath,
+} from '../utils/paths.js';
 
 /** Cloud providers that accept a BYOK key, in walkthrough order. */
 export function byokProviders(): ProviderDefinition[] {
@@ -25,30 +31,92 @@ export function byokProviders(): ProviderDefinition[] {
 }
 
 /**
+ * True when `dir` is a filesystem root (e.g. `D:\` or `/`) — never mkdir these.
+ */
+function isFilesystemRoot(dir: string): boolean {
+  const resolved = path.resolve(dir);
+  const root = path.parse(resolved).root;
+  return path.resolve(resolved) === path.resolve(root);
+}
+
+/**
  * Writes (or replaces) `KEY=value` in the `.env` file at `envPath`,
  * preserving every other line. Creates the file when missing. Returns
  * the env var name that was written.
+ *
+ * When `envPath` is omitted, writes to `~/.openagent/.env`.
+ * Refuses paths whose parent is a drive root (fixes EPERM mkdir 'D:\').
  */
 export function writeEnvKey(
-  envPath: string,
+  envPath: string | undefined,
   envKey: string,
   value: string,
+): string;
+export function writeEnvKey(envKey: string, value: string): string;
+export function writeEnvKey(
+  envPathOrKey: string | undefined,
+  envKeyOrValue: string,
+  valueMaybe?: string,
 ): string {
+  // Support writeEnvKey(path, key, value) and writeEnvKey(key, value).
+  let envPath: string;
+  let envKey: string;
+  let value: string;
+  if (valueMaybe === undefined) {
+    envPath = getDefaultEnvFilePath();
+    envKey = String(envPathOrKey ?? '');
+    value = envKeyOrValue;
+  } else {
+    envPath = envPathOrKey?.trim()
+      ? envPathOrKey
+      : getDefaultEnvFilePath();
+    envKey = envKeyOrValue;
+    value = valueMaybe;
+  }
+
   const key = envKey.trim();
   if (!/^[A-Z][A-Z0-9_]*$/.test(key)) {
     throw new Error(`Invalid environment variable name: ${envKey}`);
   }
-  const cleanValue = value.trim();
+  // Strip all whitespace so Windows pastes never carry \r/\n.
+  const cleanValue = value.replace(/\s+/g, '').trim();
   if (!cleanValue) {
     throw new Error('API key value must not be empty');
   }
-  if (/[\r\n]/.test(cleanValue)) {
-    throw new Error('API key value must not contain newlines');
+
+  let target = path.resolve(envPath);
+  let parent = path.dirname(target);
+
+  // Never try to mkdir drive roots (EPERM on Windows for D:\).
+  if (isFilesystemRoot(parent)) {
+    target = path.resolve(getDefaultEnvFilePath());
+    parent = path.dirname(target);
+  }
+
+  // Ensure parent is under a real directory we own (openagent home or existing).
+  if (!fs.existsSync(parent)) {
+    if (isFilesystemRoot(parent)) {
+      throw new Error(
+        `Cannot write env file next to drive root (${parent}). Using OpenAgent home instead.`,
+      );
+    }
+    // Prefer creating only ~/.openagent, not arbitrary deep trees from bad cwd.
+    if (
+      parent === path.resolve(ensureOpenAgentHomeDir()) ||
+      parent.startsWith(path.resolve(ensureOpenAgentHomeDir()) + path.sep)
+    ) {
+      fs.mkdirSync(parent, { recursive: true });
+    } else {
+      // Fall back to the canonical OpenAgent env file.
+      target = path.resolve(getDefaultEnvFilePath());
+      parent = path.dirname(target);
+      fs.mkdirSync(parent, { recursive: true });
+    }
   }
 
   let lines: string[] = [];
   try {
-    lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+    lines = fs.readFileSync(target, 'utf8').split(/\r?\n/);
   } catch {
     // Missing file: start fresh.
   }
@@ -68,8 +136,7 @@ export function writeEnvKey(
     next.push(assignment);
   }
 
-  fs.mkdirSync(path.dirname(path.resolve(envPath)), { recursive: true });
-  fs.writeFileSync(envPath, next.join('\n') + '\n', { mode: 0o600 });
+  fs.writeFileSync(target, next.join('\n') + '\n', { mode: 0o600 });
   return key;
 }
 

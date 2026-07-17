@@ -14,7 +14,6 @@
  */
 
 import type React from 'react';
-import * as path from 'node:path';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Box, Text } from 'ink';
 import {
@@ -25,6 +24,7 @@ import {
   listOllamaModels,
   logModelSlashCommand,
   writeEnvKey,
+  getDefaultEnvFilePath,
   getModelRegistry,
   groupModelsByProvider,
   providerApiKey,
@@ -238,14 +238,15 @@ export function ProviderModelDialog({
 
       try {
         if (typed) {
-          // .env is gitignored; same store the --byok walkthrough uses.
-          writeEnvKey(path.join(process.cwd(), '.env'), envKey, typed);
+          // Always write to ~/.openagent/.env — never project cwd / drive root.
+          const envFile = getDefaultEnvFilePath();
+          writeEnvKey(envFile, envKey, typed);
           process.env[envKey] = typed;
+          setNotice(`Saved ${envKey} to ${envFile}`);
         }
 
         setPendingKeyEntry(null);
         setExistingKey(undefined);
-        setNotice('');
         applyModel(entry);
       } catch (err) {
         // Never let setup crashes kill the process — stay on the key step.
@@ -398,7 +399,7 @@ export function ProviderModelDialog({
           )}
           <Box marginTop={1}>
             <Text color={theme.text.secondary}>
-              Paste key then Enter to save · Esc back to list · keys go to .env
+              Paste key then Enter · Esc back · keys saved to ~/.openagent/.env
             </Text>
           </Box>
         </Box>

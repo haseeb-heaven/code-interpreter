@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as path from 'node:path';
 import {
   listWebSearchProviders,
   planWebSearchRoute,
   webSearchProviderHelpTable,
   writeEnvKey,
+  getDefaultEnvFilePath,
   openBrowserSecurely,
   getWebSearchBackend,
   recommendedWebSearchProviderId,
@@ -197,7 +197,7 @@ export const webSearchCommand: SlashCommand = {
     }
 
     try {
-      const envPath = path.join(process.cwd(), '.env');
+      const envPath = getDefaultEnvFilePath();
       writeEnvKey(envPath, backend.meta.envKey, apiKey);
       process.env[backend.meta.envKey] = apiKey;
       context.ui.addItem(

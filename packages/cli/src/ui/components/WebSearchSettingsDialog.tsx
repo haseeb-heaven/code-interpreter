@@ -18,6 +18,7 @@ import {
   listWebSearchProviders,
   planWebSearchRoute,
   writeEnvKey,
+  getDefaultEnvFilePath,
   openBrowserSecurely,
   type WebSearchProviderMeta,
 } from '@open-agent/core';
@@ -123,7 +124,7 @@ export function WebSearchSettingsDialog({
       return;
     }
     try {
-      const envPath = path.join(process.cwd(), '.env');
+      const envPath = getDefaultEnvFilePath();
       writeEnvKey(envPath, selected.envKey, raw);
       process.env[selected.envKey] = raw;
       setExistingKey(raw);

@@ -561,13 +561,25 @@ function findEnvFile(
   isTrusted: boolean,
   ignoreLocalEnv: boolean,
 ): string | null {
+  // 1) Canonical OpenAgent home (keys always written here)
+  try {
+    const openAgentEnv = path.join(homedir(), '.openagent', '.env');
+    if (fs.existsSync(openAgentEnv)) {
+      return openAgentEnv;
+    }
+  } catch {
+    // ignore
+  }
+
   let currentDir = path.resolve(startDir);
   while (true) {
-    // prefer gemini-specific .env under GEMINI_DIR
+    // prefer app-specific .env under .openagent / legacy .gemini in project
     if (isTrusted) {
-      const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
-      if (fs.existsSync(geminiEnvPath)) {
-        return geminiEnvPath;
+      for (const dirName of ['.openagent', GEMINI_DIR]) {
+        const appEnvPath = path.join(currentDir, dirName, '.env');
+        if (fs.existsSync(appEnvPath)) {
+          return appEnvPath;
+        }
       }
     }
     const envPath = path.join(currentDir, '.env');
@@ -578,7 +590,7 @@ function findEnvFile(
     }
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir || !parentDir) {
-      // check .env under home as fallback, again preferring gemini-specific .env
+      // Home fallbacks: ~/.openagent/.env (already checked), then ~/.gemini/.env, ~/.env
       if (isTrusted) {
         const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, '.env');
         if (fs.existsSync(homeGeminiEnvPath)) {
