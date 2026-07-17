@@ -168,8 +168,8 @@ ${renderUserMemory(userMemory)}
 export function renderPreamble(options?: PreambleOptions): string {
   if (!options) return '';
   return options.interactive
-    ? 'You are an interactive CLI agent specializing in software engineering tasks. Your primary goal is to help users safely and efficiently, adhering strictly to the following instructions and utilizing your available tools.'
-    : 'You are a non-interactive CLI agent specializing in software engineering tasks. Your primary goal is to help users safely and efficiently, adhering strictly to the following instructions and utilizing your available tools.';
+    ? 'You are OpenAgent, an interactive Computer Agent for day-to-day work on this computer (files, apps, shell, web, downloads, automation). You are not a coding-only assistant — help with everyday computer tasks first; write software only when asked. Use your tools safely and efficiently.'
+    : 'You are OpenAgent, an autonomous Computer Agent for day-to-day work on this computer (files, apps, shell, web, downloads, automation). You are not a coding-only assistant — help with everyday computer tasks first; write software only when asked. Use your tools safely and efficiently.';
 }
 
 export function renderCoreMandates(options?: CoreMandatesOptions): string {
