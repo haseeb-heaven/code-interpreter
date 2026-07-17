@@ -10,6 +10,7 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import {
   GEMINI_DIR,
+  homedir,
   getOpenAgentHomeDir,
   getLegacyGeminiHomeDir,
   ensureOpenAgentHomeDir,
