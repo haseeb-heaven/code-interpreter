@@ -19,13 +19,13 @@ import {
   type CommandContext,
   CommandKind,
   type SlashCommand,
+  type SlashCommandActionReturn,
 } from './types.js';
 import { MessageType } from '../types.js';
 
 function activeModelId(context: CommandContext): string | undefined {
   try {
-    // Optional chaining avoids unsafe typed access when config is partially mocked.
-    const model: unknown = context.services?.config?.getModel?.();
+    const model: unknown = context.services.agentContext?.config?.getModel?.();
     return typeof model === 'string' && model.trim() ? model : undefined;
   } catch {
     return undefined;
@@ -39,7 +39,10 @@ export const webSearchCommand: SlashCommand = {
     'Web search providers: list, save keys, open signup pages. /websearch open <id> when key is empty.',
   kind: CommandKind.BUILT_IN,
   autoExecute: false,
-  action: async (context: CommandContext, args: string): Promise<void> => {
+  action: async (
+    context: CommandContext,
+    args: string,
+  ): Promise<SlashCommandActionReturn | void> => {
     const parts = args.trim().split(/\s+/).filter(Boolean);
     const modelId = activeModelId(context);
     const family = inferModelFamily(modelId);
