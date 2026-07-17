@@ -17,9 +17,10 @@ import { theme } from '../semantic-colors.js';
 import { ThemedGradient } from './ThemedGradient.js';
 import { CliSpinner } from './CliSpinner.js';
 
-import { isAppleTerminal } from '@open-agent/core';
-
-import { longAsciiLogoCompactText } from './AsciiArt.js';
+import {
+  longAsciiLogoCompactText,
+  tinyAsciiLogoCompactText,
+} from './AsciiArt.js';
 import { getAsciiArtWidth } from '../utils/textUtils.js';
 
 interface AppHeaderProps {
@@ -27,34 +28,17 @@ interface AppHeaderProps {
   showDetails?: boolean;
 }
 
-const DEFAULT_ICON = `▝▜▄  
-  ▝▜▄
- ▗▟▀ 
-▝▀    `;
-
-/**
- * The default Apple Terminal.app adds significant line-height padding between
- * rows. This breaks Unicode block-drawing characters that rely on vertical
- * adjacency (like half-blocks). This version is perfectly symmetric vertically,
- * which makes the padding gaps look like an intentional "scanline" design
- * rather than a broken image.
- */
-const MAC_TERMINAL_ICON = `▝▜▄  
-  ▝▜▄
-  ▗▟▀
-▗▟▀  `;
-
 /**
  * The horizontal padding (in columns) required for metadata (version, identity, etc.)
  * when rendered alongside the ASCII logo.
  */
-const LOGO_METADATA_PADDING = 20;
+const LOGO_METADATA_PADDING = 28;
 
 /**
  * The terminal width below which we switch to a narrow/column layout to prevent
  * UI elements from wrapping or overlapping.
  */
-const NARROW_TERMINAL_BREAKPOINT = 60;
+const NARROW_TERMINAL_BREAKPOINT = 48;
 
 export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
   const settings = useSettings();
@@ -78,38 +62,32 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
     settings.merged.ui.hideBanner || config.getScreenReader()
   );
 
-  const ICON = isAppleTerminal() ? MAC_TERMINAL_ICON : DEFAULT_ICON;
-
-  let logoTextArt = '';
-  if (loggedOut) {
-    const widthOfLongLogo =
-      getAsciiArtWidth(longAsciiLogoCompactText) + LOGO_METADATA_PADDING;
-
-    if (terminalWidth >= widthOfLongLogo) {
-      logoTextArt = longAsciiLogoCompactText.trim();
-    }
-  }
-
-  // If the terminal is too narrow to fit the icon and metadata (especially long nightly versions)
-  // side-by-side, we switch to column mode to prevent wrapping.
+  const widthOfOaLogo =
+    getAsciiArtWidth(longAsciiLogoCompactText) + LOGO_METADATA_PADDING;
+  const canFitOaLogo = terminalWidth >= widthOfOaLogo;
   const isNarrow = terminalWidth < NARROW_TERMINAL_BREAKPOINT;
 
+  // Always prefer the full OA block logo; fall back to the tiny glyph art on
+  // very narrow terminals so the banner stays readable.
+  const logoArt = canFitOaLogo
+    ? longAsciiLogoCompactText.trim()
+    : tinyAsciiLogoCompactText.trim();
+
   const renderLogo = () => (
-    <Box flexDirection="row">
-      <Box flexShrink={0}>
-        <ThemedGradient>{ICON}</ThemedGradient>
-      </Box>
-      {logoTextArt && (
-        <Box marginLeft={3}>
-          <Text color={theme.text.primary}>{logoTextArt}</Text>
-        </Box>
-      )}
+    <Box flexShrink={0}>
+      <ThemedGradient>{logoArt}</ThemedGradient>
     </Box>
   );
 
+  /**
+   * Metadata sits to the right of the OA logo. Blank rows align "OpenAgent vX"
+   * with logo line 2 and the auth line with logo line 5 (when using the full OA).
+   */
   const renderMetadata = (isBelow = false) => (
     <Box marginLeft={isBelow ? 0 : 2} flexDirection="column">
-      {/* Line 1: OpenAgent vVersion [Updating] */}
+      {!isBelow && canFitOaLogo && <Box height={1} />}
+
+      {/* Line: OpenAgent vVersion [Updating] */}
       <Box>
         <Text bold color={theme.text.primary}>
           OpenAgent
@@ -126,19 +104,27 @@ export const AppHeader = ({ version, showDetails = true }: AppHeaderProps) => {
 
       {showDetails && (
         <>
-          {/* Line 2: Blank */}
-          <Box height={1} />
+          {!isBelow && canFitOaLogo && (
+            <>
+              <Box height={1} />
+              <Box height={1} />
+            </>
+          )}
+          {isBelow && <Box height={1} />}
 
-          {/* Lines 3 & 4: User Identity info (Email /auth and Plan /upgrade) */}
+          {/* User Identity: provider / Google sign-in */}
           {settings.merged.ui.showUserIdentity !== false && (
             <UserIdentity config={config} />
+          )}
+          {loggedOut && (
+            <Text color={theme.text.secondary}>Not authenticated · /auth</Text>
           )}
         </>
       )}
     </Box>
   );
 
-  const useColumnLayout = !!logoTextArt || isNarrow;
+  const useColumnLayout = isNarrow || !canFitOaLogo;
 
   return (
     <Box flexDirection="column">
