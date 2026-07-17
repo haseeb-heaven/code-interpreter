@@ -51,7 +51,7 @@ describe('ExtensionManager Settings Scope', () => {
     tempWorkspace = fs.mkdtempSync(
       path.join(os.tmpdir(), 'gemini-cli-test-workspace-'),
     );
-    extensionsDir = path.join(currentTempHome, '.gemini', 'extensions');
+    extensionsDir = path.join(currentTempHome, '.openagent', 'extensions');
     extensionDir = path.join(extensionsDir, extensionName);
 
     fs.mkdirSync(extensionDir, { recursive: true });

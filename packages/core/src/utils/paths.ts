@@ -53,36 +53,76 @@ export function getLegacyGeminiHomeDir(): string {
   return path.join(home, GEMINI_DIR);
 }
 
+const LEGACY_HOME_FILES = [
+  'settings.json',
+  '.env',
+  'trustedFolders.json',
+  'keybindings.json',
+  'google_accounts.json',
+  'installation_id',
+  'provider-usage.json',
+  'state.json',
+  'projects.json',
+  'GEMINI.md',
+  'extension_integrity.json',
+] as const;
+
+/** Directories to copy from ~/.gemini → ~/.openagent (skills, extensions, …). */
+const LEGACY_HOME_DIRS = [
+  'extensions',
+  'skills',
+  'agents',
+  'commands',
+  'hooks',
+  'memory',
+  'acknowledgments',
+  'history',
+  'cache',
+  'tmp',
+] as const;
+
+function copyIfMissing(src: string, dest: string): void {
+  try {
+    if (!fs.existsSync(src) || fs.existsSync(dest)) return;
+    const st = fs.statSync(src);
+    if (st.isDirectory()) {
+      fs.cpSync(src, dest, { recursive: true });
+    } else {
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.copyFileSync(src, dest);
+    }
+  } catch {
+    // Best-effort migration only.
+  }
+}
+
 /**
- * Ensures `~/.openagent` exists. Soft-migrates settings/.env from `~/.gemini`
- * on first create so existing users keep their keys and prefs.
+ * Soft-migrate files and dirs from legacy `~/.gemini` into `~/.openagent`
+ * when the destination is missing (skills, extensions, settings, keys, …).
+ */
+export function migrateLegacyGeminiHomeIntoOpenAgent(
+  openAgentDir: string = getOpenAgentHomeDir(),
+): void {
+  const legacy = getLegacyGeminiHomeDir();
+  if (!fs.existsSync(legacy)) return;
+  for (const name of LEGACY_HOME_FILES) {
+    copyIfMissing(path.join(legacy, name), path.join(openAgentDir, name));
+  }
+  for (const name of LEGACY_HOME_DIRS) {
+    copyIfMissing(path.join(legacy, name), path.join(openAgentDir, name));
+  }
+}
+
+/**
+ * Ensures `~/.openagent` exists and migrates skills/extensions/settings from
+ * `~/.gemini` when those paths are still missing under openagent.
  */
 export function ensureOpenAgentHomeDir(): string {
   const dir = getOpenAgentHomeDir();
-  const existed = fs.existsSync(dir);
-  if (!existed) {
+  if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    const legacy = getLegacyGeminiHomeDir();
-    if (fs.existsSync(legacy)) {
-      for (const name of [
-        'settings.json',
-        '.env',
-        'trustedFolders.json',
-        'keybindings.json',
-        'google_accounts.json',
-      ]) {
-        const src = path.join(legacy, name);
-        const dest = path.join(dir, name);
-        try {
-          if (fs.existsSync(src) && !fs.existsSync(dest)) {
-            fs.copyFileSync(src, dest);
-          }
-        } catch {
-          // Best-effort migration only.
-        }
-      }
-    }
   }
+  migrateLegacyGeminiHomeIntoOpenAgent(dir);
   return dir;
 }
 

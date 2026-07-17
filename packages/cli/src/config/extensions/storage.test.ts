@@ -13,7 +13,7 @@ import {
   EXTENSION_SETTINGS_FILENAME,
   EXTENSIONS_CONFIG_FILENAME,
 } from './variables.js';
-import { Storage } from '@open-agent/core';
+import { ensureOpenAgentHomeDir } from '@open-agent/core';
 
 vi.mock('node:os');
 vi.mock('node:fs', async (importOriginal) => {
@@ -26,22 +26,23 @@ vi.mock('node:fs', async (importOriginal) => {
     },
   };
 });
-vi.mock('@open-agent/core');
+vi.mock('@open-agent/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@open-agent/core')>();
+  return {
+    ...actual,
+    ensureOpenAgentHomeDir: vi.fn(),
+  };
+});
 
 describe('ExtensionStorage', () => {
   const mockHomeDir = '/mock/home';
+  const openAgentHome = path.join(mockHomeDir, '.openagent');
   const extensionName = 'test-extension';
   let storage: ExtensionStorage;
 
   beforeEach(() => {
     vi.mocked(os.homedir).mockReturnValue(mockHomeDir);
-    vi.mocked(Storage).mockImplementation(
-      () =>
-        ({
-          getExtensionsDir: () =>
-            path.join(mockHomeDir, '.gemini', 'extensions'),
-        }) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-    );
+    vi.mocked(ensureOpenAgentHomeDir).mockReturnValue(openAgentHome);
     storage = new ExtensionStorage(extensionName);
   });
 
@@ -51,8 +52,7 @@ describe('ExtensionStorage', () => {
 
   it('should return the correct extension directory', () => {
     const expectedDir = path.join(
-      mockHomeDir,
-      '.gemini',
+      openAgentHome,
       'extensions',
       extensionName,
     );
@@ -61,29 +61,28 @@ describe('ExtensionStorage', () => {
 
   it('should return the correct config path', () => {
     const expectedPath = path.join(
-      mockHomeDir,
-      '.gemini',
+      openAgentHome,
       'extensions',
       extensionName,
-      EXTENSIONS_CONFIG_FILENAME, // EXTENSIONS_CONFIG_FILENAME
+      EXTENSIONS_CONFIG_FILENAME,
     );
     expect(storage.getConfigPath()).toBe(expectedPath);
   });
 
   it('should return the correct env file path', () => {
     const expectedPath = path.join(
-      mockHomeDir,
-      '.gemini',
+      openAgentHome,
       'extensions',
       extensionName,
-      EXTENSION_SETTINGS_FILENAME, // EXTENSION_SETTINGS_FILENAME
+      EXTENSION_SETTINGS_FILENAME,
     );
     expect(storage.getEnvFilePath()).toBe(expectedPath);
   });
 
-  it('should return the correct user extensions directory', () => {
-    const expectedDir = path.join(mockHomeDir, '.gemini', 'extensions');
+  it('should return the correct user extensions directory under .openagent', () => {
+    const expectedDir = path.join(openAgentHome, 'extensions');
     expect(ExtensionStorage.getUserExtensionsDir()).toBe(expectedDir);
+    expect(ensureOpenAgentHomeDir).toHaveBeenCalled();
   });
 
   it('should create a temporary directory', async () => {

@@ -11,7 +11,7 @@ import {
   EXTENSION_SETTINGS_FILENAME,
   EXTENSIONS_CONFIG_FILENAME,
 } from './variables.js';
-import { Storage, homedir } from '@open-agent/core';
+import { ensureOpenAgentHomeDir } from '@open-agent/core';
 
 export class ExtensionStorage {
   private readonly extensionName: string;
@@ -35,8 +35,9 @@ export class ExtensionStorage {
     return path.join(this.getExtensionDir(), EXTENSION_SETTINGS_FILENAME);
   }
 
+  /** Always `~/.openagent/extensions` (migrates from `~/.gemini/extensions`). */
   static getUserExtensionsDir(): string {
-    return new Storage(homedir()).getExtensionsDir();
+    return path.join(ensureOpenAgentHomeDir(), 'extensions');
   }
 
   static async createTmpDir(): Promise<string> {

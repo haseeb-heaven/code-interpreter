@@ -10,9 +10,8 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import {
   GEMINI_DIR,
+  OPENAGENT_DIR,
   homedir,
-  getOpenAgentHomeDir,
-  getLegacyGeminiHomeDir,
   ensureOpenAgentHomeDir,
   GOOGLE_ACCOUNTS_FILENAME,
   isSubpath,
@@ -55,28 +54,15 @@ export class Storage {
   }
 
   /**
-   * Global config root for OpenAgent.
-   * Prefers `~/.openagent`; falls back to legacy `~/.gemini` if that already
-   * exists and openagent has not been created yet (read path). New writes go
-   * through {@link ensureOpenAgentHomeDir} → always `~/.openagent`.
+   * Global config root for OpenAgent — always `~/.openagent`.
+   * Creates the dir and soft-migrates skills/extensions/settings from
+   * `~/.gemini` when missing. Never returns the legacy Gemini path as primary.
    */
   static getGlobalGeminiDir(): string {
-    const openAgent = getOpenAgentHomeDir();
-    const legacy = getLegacyGeminiHomeDir();
-    try {
-      if (fs.existsSync(openAgent)) {
-        return openAgent;
-      }
-      if (fs.existsSync(legacy)) {
-        return legacy;
-      }
-    } catch {
-      // ignore fs errors and use openagent default
-    }
-    return openAgent;
+    return ensureOpenAgentHomeDir();
   }
 
-  /** Always `~/.openagent` (created). Prefer this for new writes. */
+  /** Always `~/.openagent` (created). */
   static getOpenAgentHomeDir(): string {
     return ensureOpenAgentHomeDir();
   }
@@ -185,8 +171,21 @@ export class Storage {
     return path.join(Storage.getGlobalTempDir(), BIN_DIR_NAME);
   }
 
+  /**
+   * Project/workspace app config dir.
+   * Prefers `.openagent`; falls back to legacy `.gemini` if that exists.
+   * New workspaces use `.openagent`.
+   */
   getGeminiDir(): string {
-    return path.join(this.targetDir, GEMINI_DIR);
+    const openAgent = path.join(this.targetDir, OPENAGENT_DIR);
+    const legacy = path.join(this.targetDir, GEMINI_DIR);
+    try {
+      if (fs.existsSync(openAgent)) return openAgent;
+      if (fs.existsSync(legacy)) return legacy;
+    } catch {
+      // ignore
+    }
+    return openAgent;
   }
 
   /**
