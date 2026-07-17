@@ -160,4 +160,26 @@ describe('normalizeToolCallRequest', () => {
     );
     expect((result.args as { query: string }).query).toBe(userSaid);
   });
+
+  it('maps WebFetch {query, download_location} to prompt with URL', () => {
+    const result = normalizeToolCallRequest('WebFetch', {
+      query: 'web: https://example.com/doc.pdf',
+      download_location: 'C:/Users/Downloads/',
+    });
+    const prompt = (result.args as { prompt: string }).prompt;
+    expect(prompt).toContain('https://example.com/doc.pdf');
+    expect(result.args as Record<string, unknown>).not.toHaveProperty(
+      'download_location',
+    );
+    expect(result.args as Record<string, unknown>).not.toHaveProperty('query');
+  });
+
+  it('maps web_fetch url field to prompt', () => {
+    const result = normalizeToolCallRequest('web_fetch', {
+      url: 'https://example.org/page',
+    });
+    expect((result.args as { prompt: string }).prompt).toContain(
+      'https://example.org/page',
+    );
+  });
 });

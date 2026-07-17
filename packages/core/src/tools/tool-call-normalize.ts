@@ -283,13 +283,60 @@ export function normalizeToolArgs(toolName: string, args: unknown): unknown {
     toolName === 'web_fetch' ||
     toolName === 'WebFetch'
   ) {
-    if (!isNonEmptyString(out['prompt']) && !isNonEmptyString(out['url'])) {
-      const alt = firstString(out, ['url', 'uri', 'link', 'href', 'prompt']);
-      if (alt) {
-        // Schema uses `prompt` which may contain a URL or fetch instruction.
-        out['prompt'] = alt.startsWith('http')
-          ? `Fetch and summarize: ${alt}`
-          : alt;
+    // Models often invent alternate shapes: { query, url, download_location }
+    // Schema only accepts `prompt` (URLs + instructions embedded in the string).
+    if (!isNonEmptyString(out['prompt'])) {
+      const candidates = [
+        firstString(out, [
+          'url',
+          'uri',
+          'link',
+          'href',
+          'query',
+          'q',
+          'search',
+          'text',
+          'prompt',
+        ]),
+      ].filter(
+        (s): s is string => typeof s === 'string' && s.trim().length > 0,
+      );
+
+      let raw = candidates[0];
+      if (raw) {
+        // Strip common prefixes models invent: "web: https://...", "url=..."
+        raw = raw.replace(/^(web|url|link|fetch)\s*[:=]\s*/i, '').trim();
+
+        const urlMatch = raw.match(/https?:\/\/[^\s"'<>]+/i);
+        const url = urlMatch ? urlMatch[0] : undefined;
+        if (url) {
+          const rest = raw.replace(url, '').trim();
+          out['prompt'] = rest
+            ? `${rest}\n\n${url}`
+            : `Fetch and summarize: ${url}`;
+        } else if (raw.startsWith('http')) {
+          out['prompt'] = `Fetch and summarize: ${raw}`;
+        } else {
+          out['prompt'] = raw;
+        }
+      }
+    }
+    // Drop invented / non-schema fields so only `prompt` remains for validation.
+    for (const drop of [
+      'query',
+      'q',
+      'url',
+      'uri',
+      'link',
+      'href',
+      'download_location',
+      'save_path',
+      'path',
+      'search',
+      'text',
+    ]) {
+      if (drop in out && drop !== 'prompt') {
+        delete out[drop];
       }
     }
   }
