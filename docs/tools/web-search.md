@@ -1,6 +1,6 @@
 # Web search tool (`google_web_search`)
 
-The `google_web_search` tool allows the Gemini agent to retrieve up-to-date
+The `google_web_search` tool allows the OpenAgent agent to retrieve up-to-date
 information, news, and facts from the internet via Google Search.
 
 ## Technical reference

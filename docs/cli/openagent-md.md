@@ -44,7 +44,7 @@ quick visual cue of the active instructional context.
 
 ### Example `OPENAGENT.md` file
 
-Here is an example of what you can include in a `OPENAGENT.md` file at the root
+Here is an example of what you can include in an `OPENAGENT.md` file at the root
 of a TypeScript project:
 
 ```markdown

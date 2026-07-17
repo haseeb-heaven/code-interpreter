@@ -1,6 +1,6 @@
 # Web fetch tool (`web_fetch`)
 
-The `web_fetch` tool allows the Gemini agent to retrieve and process content
+The `web_fetch` tool allows the OpenAgent agent to retrieve and process content
 from specific URLs provided in your prompt.
 
 ## Technical reference

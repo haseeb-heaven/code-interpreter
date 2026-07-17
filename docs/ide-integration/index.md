@@ -271,7 +271,7 @@ attempt to connect using the provided PID.
 #### Configuration errors
 
 - **Message:**
-  `🔴 Disconnected: Directory mismatch. Gemini CLI is running in a different location than the open workspace in [IDE Name]. Please run the CLI from one of the following directories: [List of directories]`
+  `🔴 Disconnected: Directory mismatch. OpenAgent is running in a different location than the open workspace in [IDE Name]. Please run the CLI from one of the following directories: [List of directories]`
 
   - **Cause:** The CLI's current working directory is outside the workspace you
     have open in your IDE.
@@ -286,7 +286,7 @@ attempt to connect using the provided PID.
 #### General errors
 
 - **Message:**
-  `IDE integration is not supported in your current environment. To use this feature, run Gemini CLI in one of these supported IDEs: [List of IDEs]`
+  `IDE integration is not supported in your current environment. To use this feature, run open-agent in one of these supported IDEs: [List of IDEs]`
 
   - **Cause:** You are running OpenAgent CLI in a terminal or environment that
     is not a supported IDE.

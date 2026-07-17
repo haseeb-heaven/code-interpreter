@@ -19,7 +19,7 @@ specialized tools tailored to that task.
 
 ## Usage
 
-The `activate_skill` tool is used exclusively by the Gemini agent. You cannot
+The `activate_skill` tool is used exclusively by the OpenAgent agent. You cannot
 invoke this tool manually.
 
 When the agent identifies that a task matches a discovered skill, it requests to

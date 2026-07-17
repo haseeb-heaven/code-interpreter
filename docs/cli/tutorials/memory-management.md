@@ -104,7 +104,7 @@ excellent for debugging why the agent might be ignoring a rule.
 
 ### Scenario: Refresh context
 
-If you edit a `OPENAGENT.md` file while a session is running, the agent won't
+If you edit an `OPENAGENT.md` file while a session is running, the agent won't
 know immediately. Force a reload with:
 
 **Command:** `/memory reload`
