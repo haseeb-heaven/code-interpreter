@@ -10,10 +10,12 @@ import path from 'node:path';
 import {
   isKnownSafeCommand as isMacSafeCommand,
   isDangerousCommand as isMacDangerousCommand,
+  isCircuitBreakerCommand as isMacCircuitBreakerCommand,
 } from '../sandbox/utils/commandSafety.js';
 import {
   isKnownSafeCommand as isWindowsSafeCommand,
   isDangerousCommand as isWindowsDangerousCommand,
+  isCircuitBreakerCommand as isWindowsCircuitBreakerCommand,
 } from '../sandbox/windows/commandSafety.js';
 import {
   sanitizeEnvironment,
@@ -176,6 +178,14 @@ export interface SandboxManager {
   isDangerousCommand(args: string[]): boolean;
 
   /**
+   * Checks if a command matches an absolute, non-overridable denial
+   * (a "circuit breaker" pattern like `rm -rf /` or `format C:`). These
+   * patterns must be blocked in every approval mode, including YOLO/bypass,
+   * and cannot be relaxed by policy rules.
+   */
+  isCircuitBreakerCommand(args: string[]): boolean;
+
+  /**
    * Parses the output of a command to detect sandbox denials.
    */
   parseDenials(result: ShellExecutionResult): ParsedSandboxDenial | undefined;
@@ -319,6 +329,12 @@ export class NoopSandboxManager implements SandboxManager {
       : isMacDangerousCommand(args);
   }
 
+  isCircuitBreakerCommand(args: string[]): boolean {
+    return os.platform() === 'win32'
+      ? isWindowsCircuitBreakerCommand(args)
+      : isMacCircuitBreakerCommand(args);
+  }
+
   parseDenials(): undefined {
     return undefined;
   }
@@ -348,6 +364,12 @@ export class LocalSandboxManager implements SandboxManager {
 
   isDangerousCommand(_args: string[]): boolean {
     return false;
+  }
+
+  isCircuitBreakerCommand(args: string[]): boolean {
+    return os.platform() === 'win32'
+      ? isWindowsCircuitBreakerCommand(args)
+      : isMacCircuitBreakerCommand(args);
   }
 
   parseDenials(): undefined {

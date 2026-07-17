@@ -312,6 +312,17 @@ export class PolicyEngine {
       const parsedObjArgs = shellParse(command);
       const parsedArgs = parsedObjArgs.map(extractStringFromParseEntry);
 
+      // Absolute circuit breaker: these patterns are catastrophic and
+      // irreversible (wipe the filesystem root/home, fork bombs, raw-device
+      // writes). No approval mode — including YOLO/bypass — can auto-allow
+      // them; they always require explicit human confirmation.
+      if (this.sandboxManager.isCircuitBreakerCommand(parsedArgs)) {
+        debugLogger.debug(
+          `[PolicyEngine.check] Command matched circuit breaker, forcing ASK_USER regardless of mode: ${command}`,
+        );
+        return PolicyDecision.ASK_USER;
+      }
+
       if (this.sandboxManager.isDangerousCommand(parsedArgs)) {
         if (this.approvalMode === ApprovalMode.YOLO) {
           debugLogger.debug(
@@ -634,6 +645,25 @@ export class PolicyEngine {
     // Default if no rule matched
     if (decision === undefined) {
       if (this.approvalMode === ApprovalMode.YOLO) {
+        // Even in YOLO/bypass mode, an unmatched shell command must still be
+        // screened for the absolute circuit-breaker patterns (catastrophic,
+        // irreversible commands). Everything else is allowed as before.
+        if (!skipHeuristics && isShellCommand && command) {
+          try {
+            await initializeShellParsers();
+            const parsedObjArgs = shellParse(command);
+            const parsedArgs = parsedObjArgs.map(extractStringFromParseEntry);
+            if (this.sandboxManager.isCircuitBreakerCommand(parsedArgs)) {
+              debugLogger.debug(
+                `[PolicyEngine.check] NO MATCH in YOLO mode, but command matched circuit breaker - forcing ASK_USER: ${command}`,
+              );
+              return { decision: PolicyDecision.ASK_USER };
+            }
+          } catch {
+            // Ignore parsing errors; fall through to YOLO allow below.
+          }
+        }
+
         debugLogger.debug(
           `[PolicyEngine.check] NO MATCH in YOLO mode - using ALLOW`,
         );

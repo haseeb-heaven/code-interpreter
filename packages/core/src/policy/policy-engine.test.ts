@@ -420,6 +420,7 @@ describe('PolicyEngine', () => {
         enabled: true,
         prepareCommand: vi.fn(),
         isDangerousCommand: vi.fn().mockReturnValue(false),
+        isCircuitBreakerCommand: vi.fn().mockReturnValue(false),
         isKnownSafeCommand: vi
           .fn()
           .mockImplementation((args) => args[0] === 'npm'),
@@ -1895,6 +1896,154 @@ describe('PolicyEngine', () => {
       );
 
       // Even though the command is flagged as dangerous, YOLO mode should preserve the ALLOW decision
+      expect(result.decision).toBe(PolicyDecision.ALLOW);
+    });
+
+    it('should force ASK_USER for dangerous commands in AUTO mode (unlike YOLO)', async () => {
+      const rules: PolicyRule[] = [
+        {
+          toolName: '*',
+          decision: PolicyDecision.ALLOW,
+          priority: 996,
+          modes: [ApprovalMode.AUTO],
+        },
+      ];
+
+      const mockSandboxManager = new NoopSandboxManager();
+      mockSandboxManager.isDangerousCommand = vi.fn().mockReturnValue(true);
+      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
+
+      engine = new PolicyEngine({
+        rules,
+        approvalMode: ApprovalMode.AUTO,
+        sandboxManager: mockSandboxManager,
+      });
+
+      const result = await engine.check(
+        {
+          name: 'run_shell_command',
+          args: { command: 'rm -rf /tmp/project' },
+        },
+        undefined,
+      );
+
+      // Auto mode must never bypass the dangerous-command safety net
+      expect(result.decision).toBe(PolicyDecision.ASK_USER);
+    });
+
+    it('should force ASK_USER for circuit-breaker commands even in YOLO mode (matched-rule path)', async () => {
+      const rules: PolicyRule[] = [
+        {
+          toolName: '*',
+          decision: PolicyDecision.ALLOW,
+          priority: 999,
+          modes: [ApprovalMode.YOLO],
+        },
+      ];
+
+      const mockSandboxManager = new NoopSandboxManager();
+      mockSandboxManager.isCircuitBreakerCommand = vi
+        .fn()
+        .mockReturnValue(true);
+      mockSandboxManager.isDangerousCommand = vi.fn().mockReturnValue(true);
+      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
+
+      engine = new PolicyEngine({
+        rules,
+        approvalMode: ApprovalMode.YOLO,
+        sandboxManager: mockSandboxManager,
+      });
+
+      const result = await engine.check(
+        {
+          name: 'run_shell_command',
+          args: { command: 'rm -rf /' },
+        },
+        undefined,
+      );
+
+      // Circuit-breaker patterns must never be auto-allowed, even in YOLO
+      expect(result.decision).toBe(PolicyDecision.ASK_USER);
+    });
+
+    it('should force ASK_USER for circuit-breaker commands in YOLO mode when no rule matches', async () => {
+      const mockSandboxManager = new NoopSandboxManager();
+      mockSandboxManager.isCircuitBreakerCommand = vi
+        .fn()
+        .mockReturnValue(true);
+      mockSandboxManager.isDangerousCommand = vi.fn().mockReturnValue(true);
+      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
+
+      engine = new PolicyEngine({
+        approvalMode: ApprovalMode.YOLO,
+        sandboxManager: mockSandboxManager,
+      });
+
+      const result = await engine.check(
+        {
+          name: 'run_shell_command',
+          args: { command: 'format C:' },
+        },
+        undefined,
+      );
+
+      expect(result.decision).toBe(PolicyDecision.ASK_USER);
+    });
+
+    it('should ALLOW non-dangerous shell commands in AUTO mode', async () => {
+      const rules: PolicyRule[] = [
+        {
+          toolName: '*',
+          decision: PolicyDecision.ALLOW,
+          priority: 996,
+          modes: [ApprovalMode.AUTO],
+        },
+      ];
+
+      const mockSandboxManager = new NoopSandboxManager();
+      mockSandboxManager.isDangerousCommand = vi.fn().mockReturnValue(false);
+      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
+
+      engine = new PolicyEngine({
+        rules,
+        approvalMode: ApprovalMode.AUTO,
+        sandboxManager: mockSandboxManager,
+      });
+
+      const result = await engine.check(
+        {
+          name: 'run_shell_command',
+          args: { command: 'npm test' },
+        },
+        undefined,
+      );
+
+      expect(result.decision).toBe(PolicyDecision.ALLOW);
+    });
+
+    it('should ALLOW write tools in AUTO mode when policy allows', async () => {
+      const rules: PolicyRule[] = [
+        {
+          toolName: 'write_file',
+          decision: PolicyDecision.ALLOW,
+          priority: 997,
+          modes: [ApprovalMode.AUTO],
+        },
+      ];
+
+      engine = new PolicyEngine({
+        rules,
+        approvalMode: ApprovalMode.AUTO,
+      });
+
+      const result = await engine.check(
+        {
+          name: 'write_file',
+          args: { file_path: 'src/foo.ts', content: 'export {}' },
+        },
+        undefined,
+      );
+
       expect(result.decision).toBe(PolicyDecision.ALLOW);
     });
 

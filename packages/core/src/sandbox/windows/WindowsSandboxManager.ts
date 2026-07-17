@@ -35,6 +35,7 @@ import {
 import {
   isKnownSafeCommand,
   isDangerousCommand,
+  isCircuitBreakerCommand,
   isStrictlyApproved,
 } from './commandSafety.js';
 import { verifySandboxOverrides } from '../utils/commandUtils.js';
@@ -82,6 +83,10 @@ export class WindowsSandboxManager implements SandboxManager {
 
   isDangerousCommand(args: string[]): boolean {
     return isDangerousCommand(args);
+  }
+
+  isCircuitBreakerCommand(args: string[]): boolean {
+    return isCircuitBreakerCommand(args);
   }
 
   parseDenials(result: ShellExecutionResult): ParsedSandboxDenial | undefined {
