@@ -934,8 +934,19 @@ Logging in with Google... Restarting OpenAgent to continue.
     onAuthError,
   ]);
 
+  // Open multi-model picker on start when setup requested (missing key / first run).
+  // Same Ink UI as /model — never the bare "Enter NVIDIA API key:" console prompt.
   const { isModelDialogOpen, openModelDialog, closeModelDialog } =
-    useModelCommand();
+    useModelCommand(
+      // Lazy import avoided: env flag is set in providerStartup before UI loads.
+      process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'] === '1',
+    );
+
+  useEffect(() => {
+    if (process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'] === '1') {
+      delete process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'];
+    }
+  }, []);
 
   const { isWebSearchDialogOpen, openWebSearchDialog, closeWebSearchDialog } =
     useWebSearchCommand();

@@ -271,16 +271,29 @@ export function ProviderModelDialog({
   return (
     <Box
       borderStyle="round"
-      borderColor={theme.border.default}
+      borderColor={theme.ui.focus}
       flexDirection="column"
       padding={1}
       width="100%"
     >
-      <Text bold>Select Model (all providers)</Text>
-      {currentModel ? (
-        <Text color={theme.text.secondary}>
-          Current: {currentProvider?.displayName ?? 'unknown'} / {currentModel}
+      <Box>
+        <Text color={theme.text.accent}>? </Text>
+        <Text bold color={theme.text.primary}>
+          OpenAgent setup
         </Text>
+      </Box>
+      <Box marginTop={1}>
+        <Text color={theme.text.primary}>
+          Pick a model from any provider (free / open-source / local / BYOK)
+        </Text>
+      </Box>
+      {currentModel ? (
+        <Box marginTop={1}>
+          <Text color={theme.text.secondary}>
+            Current: {currentProvider?.displayName ?? 'unknown'} /{' '}
+            {currentModel}
+          </Text>
+        </Box>
       ) : null}
 
       {pendingKeyEntry === null && (
@@ -290,7 +303,7 @@ export function ProviderModelDialog({
               items={items}
               onSelect={handleSelect}
               initialIndex={initialIndex}
-              showNumbers={false}
+              showNumbers={true}
               showScrollArrows={true}
               maxItemsToShow={12}
             />
@@ -302,8 +315,12 @@ export function ProviderModelDialog({
           )}
           <Box marginTop={1}>
             <Text color={theme.text.secondary}>
-              ✓ key ready · ✗ needs API key · free cloud models still need a
-              provider key · Esc to close
+              (Use Enter to select · Esc to close)
+            </Text>
+          </Box>
+          <Box marginTop={1}>
+            <Text color={theme.text.secondary}>
+              ✓ key ready · ✗ needs API key · after pick, paste key if asked
             </Text>
           </Box>
         </>

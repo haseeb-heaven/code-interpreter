@@ -36,8 +36,6 @@ import {
   resolveProviderRoute,
   writeEnvKey,
   ENV_KEY_ALIASES,
-  type ResolvedRoute,
-  type ProviderDefinition,
 } from '@open-agent/core';
 import type { CliArgs } from './config.js';
 import { SettingScope, type LoadedSettings } from './settings.js';
@@ -126,212 +124,23 @@ function isNonInteractiveTestEnv(): boolean {
   return Boolean(process.env['VITEST']) || process.env['NODE_ENV'] === 'test';
 }
 
-async function promptForProviderKey(
-  provider: ProviderDefinition,
-): Promise<boolean> {
-  const realStdout = new Writable({
-    write(chunk, _encoding, callback) {
-      writeToStdout(chunk);
-      callback();
-    },
-  });
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: realStdout,
-  });
-  const envPath = path.join(process.cwd(), '.env');
-  const envKey = String(provider.envKey);
-  writeToStdout(
-    `\n[Setup] Configuration not found: ${provider.displayName} requires an API key (${envKey}).\n` +
-      `Enter ${provider.displayName} API key: `,
-  );
-  try {
-    const answer = (await rl.question('')).trim();
-    if (answer) {
-      writeEnvKey(envPath, envKey, answer);
-      process.env[envKey] = answer;
-      writeToStdout(`Key successfully saved to ${envPath}.\n\n`);
-      return true;
-    }
-  } catch (err) {
-    writeToStderr(`Error saving API key: ${err instanceof Error ? err.message : err}\n`);
-  } finally {
-    rl.close();
-  }
-  return false;
-}
-
-function maskKey(key: string): string {
-  if (key.length <= 4) return '*'.repeat(key.length);
-  return `${'*'.repeat(key.length - 4)}${key.slice(-4)}`;
-}
-
-const APPROVAL_MODE_CHOICES: ReadonlyArray<{ value: string; label: string }> = [
-  { value: 'default', label: 'Edit mode - approve each file edit/command' },
-  {
-    value: 'auto_edit',
-    label: 'Auto-edit mode - auto-approve edits, ask before commands',
-  },
-  { value: 'plan', label: 'Plan mode - plan first, then ask before executing' },
-  {
-    value: 'yolo',
-    label: 'YOLO mode - auto-approve everything (use with caution)',
-  },
-];
-
 /**
- * First-run setup wizard: reuses the same model list as --models / /model,
- * plus an approval-mode pick and the --byok key-save helper. Linear and
- * skippable (Enter accepts the recommended default, "s" skips entirely).
+ * Env flag: open the Ink multi-model picker (ProviderModelDialog) on UI start.
+ * Replaces the old single-line "Enter NVIDIA API key:" console prompt and the
+ * numbered readline setup wizard — same TUI as /model.
  */
-async function runSetupWizard(
-  argv: CliArgs,
-  settings: LoadedSettings,
-  defaultRoute: ResolvedRoute | undefined,
-): Promise<boolean> {
-  const realStdout = new Writable({
-    write(chunk, _encoding, callback) {
-      writeToStdout(chunk);
-      callback();
-    },
-  });
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: realStdout,
-  });
-  const envPath = path.join(process.cwd(), '.env');
+export const OPEN_MODEL_SETUP_ENV = 'OPENAGENT_CLI_OPEN_MODEL_DIALOG';
 
-  try {
-    const registry = ModelRegistry.load();
-    const detected = await detectLocalModels();
-    const groups = groupModelsByProvider({
-      registry,
-      detectedLocalModels: detected,
-    });
-    const entries = groups.flatMap((group) =>
-      group.models.map((model) => ({ model, provider: group.provider })),
-    );
+export function requestModelSetupUi(): void {
+  process.env[OPEN_MODEL_SETUP_ENV] = '1';
+}
 
-    if (entries.length === 0) {
-      writeToStderr(
-        '[Setup] No models found in configs/models.toml. Skipping setup wizard.\n',
-      );
-      settings.setValue(SettingScope.User, 'general.setupWizardCompleted', true);
-      return false;
-    }
+export function shouldOpenModelSetupOnStart(): boolean {
+  return process.env[OPEN_MODEL_SETUP_ENV] === '1';
+}
 
-    writeToStdout(
-      "\n[Setup] Welcome to OpenAgent! Let's pick a model to get started.\n" +
-        '(Press Enter to accept the recommended option, or "s" to skip setup.)\n\n',
-    );
-
-    let defaultIndex = entries.findIndex((entry) => entry.model.available);
-    if (defaultRoute) {
-      const wantedKey = defaultRoute.configKey ?? defaultRoute.modelId;
-      const match = entries.findIndex(
-        (entry) =>
-          entry.model.key === wantedKey || entry.model.model === defaultRoute.modelId,
-      );
-      if (match !== -1) defaultIndex = match;
-    }
-    if (defaultIndex === -1) defaultIndex = 0;
-
-    entries.forEach((entry, index) => {
-      const ready = entry.model.available ? '✓' : '✗';
-      const marker = index === defaultIndex ? '*' : ' ';
-      const needsKey =
-        !entry.model.available && entry.provider.envKey
-          ? ` (needs ${String(entry.provider.envKey)})`
-          : '';
-      writeToStdout(
-        `${marker}${String(index + 1).padStart(3)}. ${ready} ${entry.provider.displayName} / ${entry.model.key}${needsKey}\n`,
-      );
-    });
-
-    const answer = (await rl.question(`\nModel [${defaultIndex + 1}]: `)).trim();
-    if (answer.toLowerCase() === 's') {
-      writeToStdout(
-        '\n[Setup] Skipped. Run with --byok or --models any time to configure providers.\n\n',
-      );
-      settings.setValue(SettingScope.User, 'general.setupWizardCompleted', true);
-      return false;
-    }
-
-    let selectedIndex = defaultIndex;
-    if (answer) {
-      const parsed = Number.parseInt(answer, 10);
-      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= entries.length) {
-        selectedIndex = parsed - 1;
-      } else {
-        writeToStdout('  Not a valid choice, using the recommended option.\n');
-      }
-    }
-    const selected = entries[selectedIndex];
-
-    if (!selected.model.available) {
-      if (!selected.provider.envKey) {
-        writeToStdout(
-          `  ${selected.provider.displayName} is a local provider - start its server ` +
-            '(Ollama: localhost:11434, LM Studio: localhost:1234) and rerun.\n\n',
-        );
-        return false;
-      }
-      const envKey = String(selected.provider.envKey);
-      const aliasKey = (ENV_KEY_ALIASES[selected.provider.id] ?? []).find(
-        (alias) => process.env[alias]?.trim(),
-      );
-      const existingKey = process.env[envKey]?.trim() || (aliasKey && process.env[aliasKey]) || '';
-      if (existingKey) {
-        writeToStdout(
-          `  Using existing ${selected.provider.displayName} key (${maskKey(existingKey)}).\n`,
-        );
-      } else {
-        const keyAnswer = (
-          await rl.question(
-            `  Enter ${selected.provider.displayName} API key (${envKey}), or Enter to skip: `,
-          )
-        ).trim();
-        if (!keyAnswer) {
-          writeToStdout('\n[Setup] No key entered. Skipped setup.\n\n');
-          settings.setValue(SettingScope.User, 'general.setupWizardCompleted', true);
-          return false;
-        }
-        writeEnvKey(envPath, envKey, keyAnswer);
-        process.env[envKey] = keyAnswer;
-        writeToStdout(`  Key saved to ${envPath}.\n`);
-      }
-    }
-
-    writeToStdout('\nApproval mode - how much should OpenAgent auto-approve?\n');
-    APPROVAL_MODE_CHOICES.forEach((choice, index) => {
-      writeToStdout(
-        `  ${index + 1}. ${choice.label}${index === 0 ? ' (default)' : ''}\n`,
-      );
-    });
-    const modeAnswer = (await rl.question('\nMode [1]: ')).trim();
-    let mode = APPROVAL_MODE_CHOICES[0].value;
-    if (modeAnswer) {
-      const parsed = Number.parseInt(modeAnswer, 10);
-      if (Number.isFinite(parsed) && parsed >= 1 && parsed <= APPROVAL_MODE_CHOICES.length) {
-        mode = APPROVAL_MODE_CHOICES[parsed - 1].value;
-      }
-    }
-    if (mode !== 'default') {
-      settings.setValue(SettingScope.User, 'general.defaultApprovalMode', mode);
-    }
-
-    argv.model = selected.model.key;
-    if (selected.provider.id !== 'gemini') {
-      process.env['OPENAGENT_CLI_PROVIDER'] = selected.provider.id;
-    }
-    writeToStdout(
-      `\n[Setup] All set - using ${selected.provider.displayName} / ${selected.model.key}.\n\n`,
-    );
-    settings.setValue(SettingScope.User, 'general.setupWizardCompleted', true);
-    return true;
-  } finally {
-    rl.close();
-  }
+export function clearModelSetupUiRequest(): void {
+  delete process.env[OPEN_MODEL_SETUP_ENV];
 }
 
 export async function applyProviderRouting(
@@ -353,9 +162,8 @@ export async function applyProviderRouting(
     Boolean(argv.free) ||
     (argv.model !== undefined && isMultiProviderModel(String(argv.model)));
 
-  // First-run setup: only when the user has not finished the wizard and did
-  // not already pick a model/provider. Having GEMINI_API_KEY must NOT skip
-  // the wizard — many users also hold NVIDIA/OpenRouter/etc. keys.
+  // First-run / no model: open the Ink multi-model picker (same UI as /model),
+  // not a console single-key textbox and not the Gemini auth dialog.
   const isFirstRunCandidate =
     !Boolean(argv.provider) &&
     !Boolean(argv.free) &&
@@ -366,7 +174,15 @@ export async function applyProviderRouting(
     !isNonInteractiveTestEnv();
 
   if (isFirstRunCandidate && settings) {
-    return runSetupWizard(argv, settings, undefined);
+    requestModelSetupUi();
+    settings.setValue(SettingScope.User, 'general.setupWizardCompleted', true);
+    // Multi-provider auth so the app boots; user picks model+key in the TUI.
+    settings.setValue(
+      SettingScope.User,
+      'security.auth.selectedType',
+      AuthType.MULTI_PROVIDER,
+    );
+    return false;
   }
 
   // Pure Gemini (or non-multi) model with no multi-provider flags: stay on
@@ -397,11 +213,16 @@ export async function applyProviderRouting(
         'No usable provider route found. Is the local server running / the API key set? ' +
           'Try --models to list models or --byok to add keys.\n',
       );
+    } else if (process.stdin.isTTY && !isNonInteractiveTestEnv()) {
+      // No route at all → open multi-model TUI instead of a blank fail.
+      requestModelSetupUi();
     }
     return false;
   }
 
-  // Check if API key is missing for the resolved provider
+  // Missing API key for the chosen cloud provider: NEVER prompt with a bare
+  // "Enter NVIDIA API key:" line. Open the multi-model picker (same as /model)
+  // so the user can pick any model and paste a key in the dialog.
   if (!route.provider.local && route.provider.envKey) {
     const envKey = route.provider.envKey;
     const hasKey = process.env[envKey] && process.env[envKey]?.trim();
@@ -410,21 +231,23 @@ export async function applyProviderRouting(
     );
     if (!hasKey && !hasAlias) {
       if (process.stdin.isTTY && !isNonInteractiveTestEnv()) {
-        const keyEntered = await promptForProviderKey(route.provider);
-        if (!keyEntered) {
-          writeToStderr(
-            `Error: ${route.provider.displayName} API key is required but not set.\n` +
-              `Please run the command again and enter the key, or set the ${envKey} environment variable.\n`,
+        requestModelSetupUi();
+        // Still pin multi-provider auth; do not force the unavailable model.
+        if (route.provider.id !== 'gemini') {
+          process.env['OPENAGENT_CLI_PROVIDER'] = route.provider.id;
+          settings?.setValue(
+            SettingScope.User,
+            'security.auth.selectedType',
+            AuthType.MULTI_PROVIDER,
           );
-          return false;
         }
-      } else {
-        writeToStderr(
-          `Error: ${route.provider.displayName} API key is required but not set.\n` +
-            `Please set the ${envKey} environment variable.\n`,
-        );
         return false;
       }
+      writeToStderr(
+        `Error: ${route.provider.displayName} API key is required but not set.\n` +
+          `Please set the ${envKey} environment variable, or run interactively to use the model picker.\n`,
+      );
+      return false;
     }
   }
 

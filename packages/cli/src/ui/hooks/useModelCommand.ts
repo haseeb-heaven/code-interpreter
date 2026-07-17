@@ -12,8 +12,14 @@ interface UseModelCommandReturn {
   closeModelDialog: () => void;
 }
 
-export const useModelCommand = (): UseModelCommandReturn => {
-  const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
+/**
+ * @param openOnStart When true, open the multi-model picker on first render
+ * (used instead of the old single-line "Enter NVIDIA API key" console prompt).
+ */
+export const useModelCommand = (
+  openOnStart = false,
+): UseModelCommandReturn => {
+  const [isModelDialogOpen, setIsModelDialogOpen] = useState(openOnStart);
 
   const openModelDialog = useCallback(() => {
     setIsModelDialogOpen(true);
