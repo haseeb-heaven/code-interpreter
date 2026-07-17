@@ -14,17 +14,17 @@ To create your first policy:
     **macOS/Linux**
 
     ```bash
-    mkdir -p ~/.gemini/policies
+    mkdir -p ~/.openagent/policies
     ```
 
     **Windows (PowerShell)**
 
     ```powershell
-    New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.gemini\policies"
+    New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.openagent\policies"
     ```
 
 2.  **Create a new policy file** (for example,
-    `~/.gemini/policies/my-rules.toml`). You can use any filename ending in
+    `~/.openagent/policies/my-rules.toml`). You can use any filename ending in
     `.toml`; all such files in this directory will be loaded and combined:
     ```toml
     [[rule]]
@@ -125,7 +125,7 @@ There are three possible decisions a rule can enforce:
 ### Priority system and tiers
 
 > [!WARNING] The **Workspace** tier (project-level policies) is currently
-> non-functional. Defining policies in a workspace's `.gemini/policies`
+> non-functional. Defining policies in a workspace's `.openagent/policies`
 > directory will not have any effect. See
 > [issue #18186](https://github.com/haseeb-heaven/open-agent/issues/18186). Use
 > User or Admin policies instead.
@@ -224,11 +224,11 @@ User, and (if configured) Admin directories.
 
 ### Policy locations
 
-| Tier          | Type   | Location                                                 |
-| :------------ | :----- | :------------------------------------------------------- |
-| **User**      | Custom | `~/.gemini/policies/*.toml`                              |
-| **Workspace** | Custom | **(Disabled)** `$WORKSPACE_ROOT/.gemini/policies/*.toml` |
-| **Admin**     | System | _See below (OS specific)_                                |
+| Tier          | Type   | Location                                                    |
+| :------------ | :----- | :---------------------------------------------------------- |
+| **User**      | Custom | `~/.openagent/policies/*.toml`                              |
+| **Workspace** | Custom | **(Disabled)** `$WORKSPACE_ROOT/.openagent/policies/*.toml` |
+| **Admin**     | System | _See below (OS specific)_                                   |
 
 #### System-wide policies (Admin)
 

@@ -118,7 +118,7 @@ each tool.
 
 | Tool                                             | Kind    | Description                                                                             |
 | :----------------------------------------------- | :------ | :-------------------------------------------------------------------------------------- |
-| [`activate_skill`](../tools/activate-skill.md)   | `Other` | Loads specialized procedural expertise from the `.gemini/skills` directory.             |
+| [`activate_skill`](../tools/activate-skill.md)   | `Other` | Loads specialized procedural expertise from the `.openagent/skills` directory.          |
 | [`get_internal_docs`](../tools/internal-docs.md) | `Think` | Accesses OpenAgent CLI's own documentation for accurate answers about its capabilities. |
 
 ### Planning

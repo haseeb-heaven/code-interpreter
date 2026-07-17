@@ -166,7 +166,7 @@ Full list: [CLI cheatsheet](../cli/cli-reference.md).
 
 - Type `@src/path/to/file.ts` to attach file content (text files work best).
 - Keep project instructions in context files (see
-  [Project context](../cli/gemini-md.md)).
+  [Project context](../cli/openagent-md.md)).
 - For binary formats (`.docx`, images as binary, etc.), convert to text first —
   see [Common errors](../resources/common-errors.md).
 

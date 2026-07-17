@@ -60,7 +60,7 @@ You can view traces in the Jaeger UI for local development.
     This command configures your workspace for local telemetry and provides a
     link to the Jaeger UI (usually `http://localhost:16686`).
 
-    - **Collector logs:** `~/.gemini/tmp/<projectHash>/otel/collector.log`
+    - **Collector logs:** `~/.openagent/tmp/<projectHash>/otel/collector.log`
 
 2.  **Run open-agent:**
 
@@ -86,7 +86,7 @@ Trace for custom processing or routing.
 > [Google Cloud telemetry prerequisites](./cli/telemetry.md#prerequisites)
 > (Project ID, authentication, IAM roles, and APIs) before using this method.
 
-1.  **Configure `.gemini/settings.json`:**
+1.  **Configure `.openagent/settings.json`:**
 
     ```json
     {
@@ -110,7 +110,8 @@ Trace for custom processing or routing.
     The script outputs links to view traces, metrics, and logs in the Google
     Cloud Console.
 
-    - **Collector logs:** `~/.gemini/tmp/<projectHash>/otel/collector-gcp.log`
+    - **Collector logs:**
+      `~/.openagent/tmp/<projectHash>/otel/collector-gcp.log`
 
 3.  **Run open-agent:**
 

@@ -165,7 +165,7 @@ The available modes are:
 
 | Mode         | Description                                                                                                                                                                                 |
 | :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `persistent` | **(Default)** Launches Chrome with a persistent profile stored at `~/.gemini/cli-browser-profile/`. Cookies, history, and settings are preserved between sessions.                          |
+| `persistent` | **(Default)** Launches Chrome with a persistent profile stored at `~/.openagent/cli-browser-profile/`. Cookies, history, and settings are preserved between sessions.                       |
 | `isolated`   | Launches Chrome with a temporary profile that is deleted after each session. Use this for clean-state automation.                                                                           |
 | `existing`   | Attaches to an already-running Chrome instance. You must enable remote debugging first by navigating to `chrome://inspect/#remote-debugging` in Chrome. No new browser process is launched. |
 
@@ -287,7 +287,7 @@ To use the browser agent in a Docker sandbox:
    ```
 
 2. Configure `sessionMode` and allowed domains in your project's
-   `.gemini/settings.json`:
+   `.openagent/settings.json`:
 
    ```json
    {
@@ -319,15 +319,15 @@ specific personas.
 Custom agents are defined as Markdown files (`.md`) with YAML frontmatter. You
 can place them in:
 
-1.  **Project-level:** `.gemini/agents/*.md` (Shared with your team)
-2.  **User-level:** `~/.gemini/agents/*.md` (Personal agents)
+1.  **Project-level:** `.openagent/agents/*.md` (Shared with your team)
+2.  **User-level:** `~/.openagent/agents/*.md` (Personal agents)
 
 ### File format
 
 The file **MUST** start with YAML frontmatter enclosed in triple-dashes `---`.
 The body of the markdown file becomes the agent's **System Prompt**.
 
-**Example: `.gemini/agents/security-auditor.md`**
+**Example: `.openagent/agents/security-auditor.md`**
 
 ```markdown
 ---
@@ -534,7 +534,7 @@ You can restrict access to specific subagents using the CLI's **Policy Engine**.
 Subagents are treated as virtual tool names for policy matching purposes.
 
 To govern access to a subagent, create a `.toml` file in your policy directory
-(e.g., `~/.gemini/policies/`):
+(e.g., `~/.openagent/policies/`):
 
 ```toml
 [[rule]]

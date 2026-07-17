@@ -29,8 +29,8 @@ standard environment variables (`HTTP_PROXY`, `HTTPS_PROXY`).
 Remote subagents are defined as Markdown files (`.md`) with YAML frontmatter.
 You can place them in:
 
-1.  **Project-level:** `.gemini/agents/*.md` (Shared with your team)
-2.  **User-level:** `~/.gemini/agents/*.md` (Personal agents)
+1.  **Project-level:** `.openagent/agents/*.md` (Shared with your team)
+2.  **User-level:** `~/.openagent/agents/*.md` (Personal agents)
 
 ### Configuration schema
 

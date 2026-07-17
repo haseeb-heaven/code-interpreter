@@ -42,11 +42,11 @@ and their status:
 /extensions list
 ```
 
-You can also manage extensions from your terminal using the `gemini extensions`
-command group:
+You can also manage extensions from your terminal using the
+`openagent extensions` command group:
 
 ```bash
-gemini extensions list
+openagent extensions list
 ```
 
 ## Installation
@@ -54,7 +54,7 @@ gemini extensions list
 Install an extension by providing its GitHub repository URL. For example:
 
 ```bash
-gemini extensions install https://github.com/gemini-cli-extensions/workspace
+openagent extensions install https://github.com/gemini-cli-extensions/workspace
 ```
 
 For more advanced installation options, see the

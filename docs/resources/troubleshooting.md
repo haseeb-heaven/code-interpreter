@@ -156,7 +156,7 @@ BYOK usage.
     debug mode for open-agent.
   - **Cause:** The `DEBUG` and `DEBUG_MODE` variables are automatically excluded
     from project `.env` files to prevent interference with open-agent behavior.
-  - **Solution:** Use a `.gemini/.env` file instead, or configure the
+  - **Solution:** Use a `.openagent/.env` file instead, or configure the
     `advanced.excludedEnvVars` setting in your `settings.json` to exclude fewer
     variables.
 

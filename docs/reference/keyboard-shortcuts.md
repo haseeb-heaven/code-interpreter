@@ -145,8 +145,8 @@ available combinations.
 ## Customizing Keybindings
 
 You can add alternative keybindings or remove default keybindings by creating a
-`keybindings.json` file in your home gemini directory (typically
-`~/.gemini/keybindings.json`).
+`keybindings.json` file in your home open-agent directory (typically
+`~/.openagent/keybindings.json`).
 
 ### Configuration Format
 

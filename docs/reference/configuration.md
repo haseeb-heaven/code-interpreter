@@ -42,11 +42,13 @@ four locations for these files:
     settings have the lowest precedence and are intended to be overridden by
     user, project, or system override settings.
 - **User settings file:**
-  - **Location:** `~/.gemini/settings.json` (where `~` is your home directory).
+  - **Location:** `~/.openagent/settings.json` (where `~` is your home
+    directory).
   - **Scope:** Applies to all OpenAgent CLI sessions for the current user. User
     settings override system defaults.
 - **Project settings file:**
-  - **Location:** `.gemini/settings.json` within your project's root directory.
+  - **Location:** `.openagent/settings.json` within your project's root
+    directory.
   - **Scope:** Applies only when running OpenAgent CLI from that specific
     project. Project settings override user settings and system defaults.
 - **System settings file:**
@@ -74,14 +76,14 @@ which will be loaded automatically.
 CLI in a corporate environment, see the
 [Enterprise Configuration](../cli/enterprise.md) documentation.
 
-### The `.gemini` directory in your project
+### The `.openagent` directory in your project
 
-In addition to a project settings file, a project's `.gemini` directory can
+In addition to a project settings file, a project's `.openagent` directory can
 contain other project-specific files related to OpenAgent CLI's operation, such
 as:
 
 - [Custom sandbox profiles](#sandboxing) (for example,
-  `.gemini/sandbox-macos-custom.sb`, `.gemini/sandbox.Dockerfile`).
+  `.openagent/sandbox-macos-custom.sb`, `.openagent/sandbox.Dockerfile`).
 
 ### Available settings in `settings.json`
 
@@ -346,8 +348,8 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.hideContextSummary`** (boolean):
 
-  - **Description:** Hide the context summary (GEMINI.md, MCP servers) above the
-    input.
+  - **Description:** Hide the context summary (OPENAGENT.md, MCP servers) above
+    the input.
   - **Default:** `false`
 
 - **`ui.footer.items`** (array):
@@ -1652,7 +1654,7 @@ their corresponding top-level category object in your `settings.json` file.
 - **`context.memoryBoundaryMarkers`** (array):
 
   - **Description:** File or directory names that mark the boundary for
-    GEMINI.md discovery. The upward traversal stops at the first directory
+    OPENAGENT.md discovery. The upward traversal stops at the first directory
     containing any of these markers. An empty array disables parent traversal.
   - **Default:**
 
@@ -1670,7 +1672,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`context.loadMemoryFromIncludeDirectories`** (boolean):
 
-  - **Description:** Controls how /memory reload loads GEMINI.md files. When
+  - **Description:** Controls how /memory reload loads OPENAGENT.md files. When
     true, include directories are scanned; when false, only the current
     directory is used.
   - **Default:** `false`
@@ -2164,7 +2166,7 @@ their corresponding top-level category object in your `settings.json` file.
 - **`experimental.gemmaModelRouter.binaryPath`** (string):
 
   - **Description:** Custom path to the LiteRT-LM binary. Leave empty to use the
-    default location (~/.gemini/bin/litert/).
+    default location (~/.openagent/bin/litert/).
   - **Default:** `""`
   - **Requires restart:** Yes
 
@@ -2555,7 +2557,7 @@ of v0.3.0:
     }
   },
   "context": {
-    "fileName": ["CONTEXT.md", "GEMINI.md"],
+    "fileName": ["CONTEXT.md", "OPENAGENT.md"],
     "includeDirectories": ["path/to/dir1", "~/path/to/dir2", "../path/to/dir3"],
     "loadFromIncludeDirectories": true,
     "fileFiltering": {
@@ -2574,7 +2576,7 @@ The CLI keeps a history of shell commands you run. To avoid conflicts between
 different projects, this history is stored in a project-specific directory
 within your user's home folder.
 
-- **Location:** `~/.gemini/tmp/<project_hash>/shell_history`
+- **Location:** `~/.openagent/tmp/<project_hash>/shell_history`
   - `<project_hash>` is a unique identifier generated from your project's root
     path.
   - The history is stored in a file named `shell_history`.
@@ -2598,9 +2600,9 @@ loading order is:
 
 **Environment variable exclusion:** Some environment variables (like `DEBUG` and
 `DEBUG_MODE`) are automatically excluded from being loaded from project `.env`
-files to prevent interference with gemini-cli behavior. Variables from
-`.gemini/.env` files are never excluded. You can customize this behavior using
-the `advanced.excludedEnvVars` setting in your `settings.json` file.
+files to prevent interference with open-agent behavior. Variables from
+`.openagent/.env` files are never excluded. You can customize this behavior
+using the `advanced.excludedEnvVars` setting in your `settings.json` file.
 
 - **`GEMINI_API_KEY`**:
   - Your API key for the Gemini API.
@@ -2620,7 +2622,7 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
 - **`GEMINI_CLI_TRUSTED_FOLDERS_PATH`**:
   - Overrides the default location for the `trustedFolders.json` file.
   - Useful if you want to store this configuration in a custom location instead
-    of the default `~/.gemini/`.
+    of the default `~/.openagent/`.
 - **`GEMINI_CLI_IDE_PID`**:
   - Manually specifies the PID of the IDE process to use for integration. This
     is useful when running OpenAgent CLI in a standalone terminal while still
@@ -2630,7 +2632,7 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
   - Specifies the root directory for OpenAgent CLI's user-level configuration
     and storage.
   - By default, this is the user's system home directory. The CLI will create a
-    `.gemini` folder inside this directory.
+    `.openagent` folder inside this directory.
   - Useful for shared compute environments or keeping CLI state isolated.
   - Example: `export GEMINI_CLI_HOME="/path/to/user/config"` (Windows
     PowerShell: `$env:GEMINI_CLI_HOME="C:\path\to\user\config"`)
@@ -2722,20 +2724,20 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
   - Required for using Vertex AI in non-express mode.
   - Example: `export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"` (Windows
     PowerShell: `$env:GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"`).
-- **`GEMINI_SANDBOX`**:
+- **`OPENAGENT_SANDBOX`** (legacy alias: `GEMINI_SANDBOX`):
   - Alternative to the `sandbox` setting in `settings.json`.
   - Accepts `true`, `false`, `docker`, `podman`, or a custom command string.
 - **`GEMINI_SYSTEM_MD`**:
   - Replaces the built‑in system prompt with content from a Markdown file.
-  - `true`/`1`: Use project default path `./.gemini/system.md`.
+  - `true`/`1`: Use project default path `./.openagent/system.md`.
   - Any other string: Treat as a path (relative/absolute supported, `~`
     expands).
   - `false`/`0` or unset: Use the built‑in prompt. See
     [System Prompt Override](../cli/system-prompt.md).
 - **`GEMINI_WRITE_SYSTEM_MD`**:
   - Writes the current built‑in system prompt to a file for review.
-  - `true`/`1`: Write to `./.gemini/system.md`. Otherwise treat the value as a
-    path.
+  - `true`/`1`: Write to `./.openagent/system.md`. Otherwise treat the value as
+    a path.
   - Run the CLI once with this set to generate the file.
 - **`SEATBELT_PROFILE`** (macOS specific):
   - Switches the Seatbelt (`sandbox-exec`) profile on macOS.
@@ -2748,15 +2750,17 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
     allows network.
   - `strict-proxied`: Same as `strict-open` but routes network through proxy.
   - `<profile_name>`: Uses a custom profile. To define a custom profile, create
-    a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/`
-    directory (for example, `my-project/.gemini/sandbox-macos-custom.sb`).
+    a file named `sandbox-macos-<profile_name>.sb` in your project's
+    `.openagent/` directory (for example,
+    `my-project/.openagent/sandbox-macos-custom.sb`).
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI
   itself):
   - Set to `true` or `1` to enable verbose debug logging, which can be helpful
     for troubleshooting.
   - **Note:** These variables are automatically excluded from project `.env`
-    files by default to prevent interference with gemini-cli behavior. Use
-    `.gemini/.env` files if you need to set these for gemini-cli specifically.
+    files by default to prevent interference with open-agent behavior. Use
+    `.openagent/.env` files if you need to set these for open-agent
+    specifically.
 - **`NO_COLOR`**:
   - Set to any value to disable all color output in the CLI.
 - **`CLI_TITLE`**:
@@ -2923,20 +2927,20 @@ for that specific session.
 ## Context files (hierarchical instructional context)
 
 While not strictly configuration for the CLI's _behavior_, context files
-(defaulting to `GEMINI.md` but configurable via the `context.fileName` setting)
-are crucial for configuring the _instructional context_ (also referred to as
-"memory") provided to the Gemini model. This powerful feature lets you give
-project-specific instructions, coding style guides, or any relevant background
-information to the AI, making its responses more tailored and accurate to your
-needs. The CLI includes UI elements, such as an indicator in the footer showing
-the number of loaded context files, to keep you informed about the active
-context.
+(defaulting to `OPENAGENT.md` but configurable via the `context.fileName`
+setting) are crucial for configuring the _instructional context_ (also referred
+to as "memory") provided to the Gemini model. This powerful feature lets you
+give project-specific instructions, coding style guides, or any relevant
+background information to the AI, making its responses more tailored and
+accurate to your needs. The CLI includes UI elements, such as an indicator in
+the footer showing the number of loaded context files, to keep you informed
+about the active context.
 
 - **Purpose:** These Markdown files contain instructions, guidelines, or context
   that you want the Gemini model to be aware of during your interactions. The
   system is designed to manage this instructional context hierarchically.
 
-### Example context file content (for example, `GEMINI.md`)
+### Example context file content (for example, `OPENAGENT.md`)
 
 Here's a conceptual example of what a context file at the root of a TypeScript
 project might contain:
@@ -2978,14 +2982,14 @@ you. Project-specific context files are highly encouraged to establish
 conventions and context.
 
 - **Hierarchical loading and precedence:** The CLI implements a sophisticated
-  hierarchical memory system by loading context files (for example, `GEMINI.md`)
-  from several locations. Content from files lower in this list (more specific)
-  typically overrides or supplements content from files higher up (more
-  general). The exact concatenation order and final context can be inspected
-  using the `/memory show` command. The typical loading order is:
+  hierarchical memory system by loading context files (for example,
+  `OPENAGENT.md`) from several locations. Content from files lower in this list
+  (more specific) typically overrides or supplements content from files higher
+  up (more general). The exact concatenation order and final context can be
+  inspected using the `/memory show` command. The typical loading order is:
   1.  **Global context file:**
-      - Location: `~/.gemini/<configured-context-filename>` (for example,
-        `~/.gemini/GEMINI.md` in your user home directory).
+      - Location: `~/.openagent/<configured-context-filename>` (for example,
+        `~/.openagent/OPENAGENT.md` in your user home directory).
       - Scope: Provides default instructions for all your projects.
   2.  **Project root and ancestors context files:**
       - Location: The CLI searches for the configured context file in the
@@ -3031,17 +3035,18 @@ file modifications) within a sandboxed environment to protect your system.
 Sandboxing is disabled by default, but you can enable it in a few ways:
 
 - Using `--sandbox` or `-s` flag.
-- Setting `GEMINI_SANDBOX` environment variable.
+- Setting the `OPENAGENT_SANDBOX` environment variable (the legacy
+  `GEMINI_SANDBOX` alias is also supported).
 - Sandbox is enabled when using `--yolo` or `--approval-mode=yolo` by default.
 
-By default, it uses a pre-built `gemini-cli-sandbox` Docker image.
+By default, it uses a pre-built `open-agent-sandbox` Docker image.
 
 For project-specific sandboxing needs, you can create a custom Dockerfile at
-`.gemini/sandbox.Dockerfile` in your project's root directory. This Dockerfile
-can be based on the base sandbox image:
+`.openagent/sandbox.Dockerfile` in your project's root directory. This
+Dockerfile can be based on the base sandbox image:
 
 ```dockerfile
-FROM gemini-cli-sandbox
+FROM open-agent-sandbox
 
 # Add your custom dependencies or configurations here.
 # Note: The base image runs as the non-root 'node' user.
@@ -3053,7 +3058,7 @@ FROM gemini-cli-sandbox
 # COPY ./my-config /app/my-config
 ```
 
-When `.gemini/sandbox.Dockerfile` exists, you can use `BUILD_SANDBOX`
+When `.openagent/sandbox.Dockerfile` exists, you can use `BUILD_SANDBOX`
 environment variable when running OpenAgent CLI to automatically build the
 custom sandbox image:
 

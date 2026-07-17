@@ -24,8 +24,8 @@ Slash commands provide meta-level control over the CLI itself.
       and remote agents.
     - **Usage:** `/agents list`
   - **`reload`** (alias: `refresh`):
-    - **Description:** Rescans agent directories (`~/.gemini/agents` and
-      `.gemini/agents`) and reloads the registry.
+    - **Description:** Rescans agent directories (`~/.openagent/agents` and
+      `.openagent/agents`) and reloads the registry.
     - **Usage:** `/agents reload`
   - **`enable`**:
     - **Description:** Enables a specific subagent.
@@ -48,7 +48,7 @@ Slash commands provide meta-level control over the CLI itself.
   filed within the GitHub repository for OpenAgent CLI. The string you enter
   after `/bug` will become the headline for the bug being filed. The default
   `/bug` behavior can be modified using the `advanced.bugCommand` setting in
-  your `.gemini/settings.json` files.
+  your `.openagent/settings.json` files.
 
 ### `/chat`
 
@@ -84,8 +84,8 @@ Slash commands provide meta-level control over the CLI itself.
       `<tag>` for identifying the conversation state.
     - **Details on checkpoint location:** The default locations for saved chat
       checkpoints are:
-      - Linux/macOS: `~/.gemini/tmp/<project_hash>/`
-      - Windows: `C:\Users\<YourUsername>\.gemini\tmp\<project_hash>\`
+      - Linux/macOS: `~/.openagent/tmp/<project_hash>/`
+      - Windows: `C:\Users\<YourUsername>\.openagent\tmp\<project_hash>\`
       - **Behavior:** Chats are saved into a project-specific directory,
         determined by where you run the CLI. Consequently, saved chats are only
         accessible when working within that same project.
@@ -114,14 +114,14 @@ Slash commands provide meta-level control over the CLI itself.
 - **Sub-commands:**
   - **`list`**:
     - **Description:** List available custom command `.toml` files from all
-      sources (user-level `~/.gemini/commands/`, project-level
-      `<project>/.gemini/commands/`, and active extensions).
+      sources (user-level `~/.openagent/commands/`, project-level
+      `<project>/.openagent/commands/`, and active extensions).
     - **Usage:** `/commands list`
   - **`reload`**:
     - **Description:** Reload custom command definitions from all sources
-      (user-level `~/.gemini/commands/`, project-level
-      `<project>/.gemini/commands/`, MCP prompts, and extensions). Use this to
-      pick up new or modified `.toml` files without restarting the CLI.
+      (user-level `~/.openagent/commands/`, project-level
+      `<project>/.openagent/commands/`, MCP prompts, and extensions). Use this
+      to pick up new or modified `.toml` files without restarting the CLI.
     - **Usage:** `/commands reload`
 
 ### `/compress`
@@ -230,10 +230,10 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/init`
 
-- **Description:** To help users easily create a `GEMINI.md` file, this command
-  analyzes the current directory and generates a tailored context file, making
-  it simpler for them to provide project-specific instructions to the Gemini
-  agent.
+- **Description:** To help users easily create an `OPENAGENT.md` file, this
+  command analyzes the current directory and generates a tailored context file,
+  making it simpler for them to provide project-specific instructions to the
+  Gemini agent.
 
 ### `/mcp`
 
@@ -264,22 +264,22 @@ Slash commands provide meta-level control over the CLI itself.
 ### `/memory`
 
 - **Description:** Manage the AI's instructional context (hierarchical memory
-  loaded from `GEMINI.md` files).
+  loaded from `OPENAGENT.md` files).
 - **Sub-commands:**
   - **`list`**:
-    - **Description:** Lists the paths of the GEMINI.md files in use for
+    - **Description:** Lists the paths of the OPENAGENT.md files in use for
       hierarchical memory.
   - **`refresh`**:
     - **Description:** Reload the hierarchical instructional memory from all
-      `GEMINI.md` files found in the configured locations (global,
+      `OPENAGENT.md` files found in the configured locations (global,
       project/ancestors, and sub-directories). This command updates the model
-      with the latest `GEMINI.md` content.
+      with the latest `OPENAGENT.md` content.
   - **`show`**:
     - **Description:** Display the full, concatenated content of the current
-      hierarchical memory that has been loaded from all `GEMINI.md` files. This
-      lets you inspect the instructional context being provided to the Gemini
-      model.
-  - **Note:** For more details on how `GEMINI.md` files contribute to
+      hierarchical memory that has been loaded from all `OPENAGENT.md` files.
+      This lets you inspect the instructional context being provided to the
+      Gemini model.
+  - **Note:** For more details on how `OPENAGENT.md` files contribute to
     hierarchical memory, see the
     [CLI Configuration documentation](./configuration.md).
 
@@ -397,7 +397,7 @@ Slash commands provide meta-level control over the CLI itself.
   settings.
 - **Details:** This command provides a user-friendly interface for changing
   settings that control the behavior and appearance of OpenAgent CLI. It is
-  equivalent to manually editing the `.gemini/settings.json` file, but with
+  equivalent to manually editing the `.openagent/settings.json` file, but with
   validation and guidance to prevent errors. See the
   [settings documentation](../cli/settings.md) for a full list of available
   settings.
@@ -491,7 +491,7 @@ Slash commands provide meta-level control over the CLI itself.
     `b`, `e`; go to line start/end with `0`, `$`, `^`; go to specific lines with
     `G` (or `gg` for first line)
   - **Persistent setting:** Vim mode preference is saved to
-    `~/.gemini/settings.json` and restored between sessions
+    `~/.openagent/settings.json` and restored between sessions
   - **Repeat last command:** Use `.` to repeat the last editing operation
   - **Status indicator:** When enabled, shows `[NORMAL]` or `[INSERT]` in the
     footer

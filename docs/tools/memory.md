@@ -6,9 +6,9 @@ editing Markdown memory files directly.
 ## Technical reference
 
 The agent routes memories to the appropriate Markdown file: shared project
-instructions go in repository `GEMINI.md` files, private project notes go in the
-per-project private memory folder, and cross-project personal preferences go in
-the global `~/.gemini/GEMINI.md` file.
+instructions go in repository `OPENAGENT.md` files, private project notes go in
+the per-project private memory folder, and cross-project personal preferences go
+in the global `~/.openagent/OPENAGENT.md` file.
 
 ## Technical behavior
 
@@ -28,5 +28,5 @@ the global `~/.gemini/GEMINI.md` file.
 
 - Follow the [Memory management guide](../cli/tutorials/memory-management.md)
   for practical examples.
-- Learn how the [Project context (GEMINI.md)](../cli/gemini-md.md) system loads
-  this information.
+- Learn how the [Project context (OPENAGENT.md)](../cli/openagent-md.md) system
+  loads this information.
