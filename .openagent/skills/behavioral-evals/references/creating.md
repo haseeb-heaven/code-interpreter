@@ -17,7 +17,7 @@ decision-making.
 - **Workspace State**: Seed with standard project anchors if testing general
   capabilities:
   - `package.json` for NodeJS environments.
-  - Minimal configuration files (`tsconfig.json`, `GEMINI.md`).
+  - Minimal configuration files (`tsconfig.json`, `OPENAGENT.md`).
 - **Structural Complexity**: Provide enough files to force the agent to _search_
   or _navigate_, rather than giving the answer directly. Avoid trivial one-file
   tests unless testing exact prompt steering.
