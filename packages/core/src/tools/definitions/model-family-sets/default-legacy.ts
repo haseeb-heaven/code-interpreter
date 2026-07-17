@@ -413,7 +413,7 @@ A good instruction should concisely answer:
   google_web_search: {
     name: WEB_SEARCH_TOOL_NAME,
     description:
-      'Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.',
+      'Performs a web search and returns results with source URLs. Uses Google Search grounding when a Gemini API key is available; otherwise falls back to an independent web search backend so multi-provider sessions (Cerebras, Groq, OpenRouter, local, …) still work. ALWAYS pass a non-empty "query" string. Use this for current events, changelogs, docs, and anything not in the local workspace.',
     parametersJsonSchema: {
       type: 'object',
       properties: {

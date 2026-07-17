@@ -134,4 +134,18 @@ describe('normalizeToolCallRequest', () => {
     });
     expect((result.args as { command: string }).command).toBe('Get-Date');
   });
+
+  it('maps q/search → query for google_web_search', () => {
+    const result = normalizeToolCallRequest('google_web_search', {
+      q: 'C++17 changelog',
+    });
+    expect((result.args as { query: string }).query).toBe('C++17 changelog');
+
+    const result2 = normalizeToolCallRequest('WebSearch', {
+      search: 'React 19 breaking changes',
+    });
+    expect((result2.args as { query: string }).query).toBe(
+      'React 19 breaking changes',
+    );
+  });
 });

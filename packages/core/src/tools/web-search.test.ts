@@ -16,7 +16,6 @@ import {
 import { WebSearchTool, type WebSearchToolParams } from './web-search.js';
 import type { Config } from '../config/config.js';
 import { GeminiClient } from '../core/client.js';
-import { ToolErrorType } from './tool-error.js';
 import { createMockMessageBus } from '../test-utils/mock-message-bus.js';
 
 // Mock GeminiClient and Config constructor
@@ -115,8 +114,8 @@ describe('WebSearchTool', () => {
       expect(result.sources).toBeUndefined();
     });
 
-    it('should handle no search results found', async () => {
-      const params: WebSearchToolParams = { query: 'no results query' };
+    it('should fall back to independent search when Gemini returns empty text', async () => {
+      const params: WebSearchToolParams = { query: 'OpenAgent terminal agent' };
       (mockGeminiClient.generateContent as Mock).mockResolvedValue({
         candidates: [
           {
@@ -131,24 +130,26 @@ describe('WebSearchTool', () => {
       const invocation = tool.build(params);
       const result = await invocation.execute({ abortSignal });
 
-      expect(result.llmContent).toBe(
-        'No search results or information found for query: "no results query"',
-      );
-      expect(result.returnDisplay).toBe('No information found.');
+      // Independent backend should still return usable results
+      expect(result.error).toBeUndefined();
+      expect(result.llmContent).toContain('Web search results');
+      expect(result.returnDisplay).toMatch(/returned/);
     });
 
-    it('should return a WEB_SEARCH_FAILED error on failure', async () => {
-      const params: WebSearchToolParams = { query: 'error query' };
+    it('should fall back to independent search when Gemini throws', async () => {
+      const params: WebSearchToolParams = { query: 'TypeScript handbook' };
       const testError = new Error('API Failure');
       (mockGeminiClient.generateContent as Mock).mockRejectedValue(testError);
 
       const invocation = tool.build(params);
       const result = await invocation.execute({ abortSignal });
 
-      expect(result.error?.type).toBe(ToolErrorType.WEB_SEARCH_FAILED);
-      expect(result.llmContent).toContain('Error:');
-      expect(result.llmContent).toContain('API Failure');
-      expect(result.returnDisplay).toBe('Error performing web search.');
+      // Gemini failure must not hard-fail the tool when fallback works
+      expect(result.error).toBeUndefined();
+      expect(String(result.llmContent)).toContain('Web search results');
+      expect(String(result.llmContent).toLowerCase()).not.toContain(
+        'api failure',
+      );
     });
 
     it('should correctly format results with sources and citations', async () => {

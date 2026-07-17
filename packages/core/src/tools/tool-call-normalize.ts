@@ -22,6 +22,8 @@ import {
   READ_MANY_FILES_TOOL_NAME,
   SHELL_TOOL_NAME,
   WRITE_FILE_TOOL_NAME,
+  WEB_SEARCH_TOOL_NAME,
+  WEB_FETCH_TOOL_NAME,
   resolveCanonicalToolName,
   TOOL_LEGACY_ALIASES,
 } from './tool-names.js';
@@ -72,7 +74,6 @@ export function looksLikeFileGlobPattern(pattern: string): boolean {
   // If it is not a valid JS regex, and uses glob metacharacters, treat as glob.
   if (/[*?[{]/.test(p)) {
     try {
-       
       new RegExp(p);
     } catch {
       return true;
@@ -254,6 +255,69 @@ export function normalizeToolArgs(toolName: string, args: unknown): unknown {
         'include_path',
       ]);
       if (single) out['include'] = [single];
+    }
+  }
+
+  if (
+    canonical === WEB_SEARCH_TOOL_NAME ||
+    toolName === 'google_web_search' ||
+    toolName === 'GoogleSearch' ||
+    toolName === 'WebSearch'
+  ) {
+    if (!isNonEmptyString(out['query'])) {
+      const alt = firstString(out, [
+        'q',
+        'search',
+        'search_query',
+        'text',
+        'prompt',
+        'question',
+        'keywords',
+      ]);
+      if (alt) out['query'] = alt;
+    }
+  }
+
+  if (
+    canonical === WEB_FETCH_TOOL_NAME ||
+    toolName === 'web_fetch' ||
+    toolName === 'WebFetch'
+  ) {
+    if (!isNonEmptyString(out['prompt']) && !isNonEmptyString(out['url'])) {
+      const alt = firstString(out, ['url', 'uri', 'link', 'href', 'prompt']);
+      if (alt) {
+        // Schema uses `prompt` which may contain a URL or fetch instruction.
+        out['prompt'] = alt.startsWith('http')
+          ? `Fetch and summarize: ${alt}`
+          : alt;
+      }
+    }
+  }
+
+  // Write file: map body/text → content
+  if (
+    canonical === WRITE_FILE_TOOL_NAME ||
+    toolName === 'write_file' ||
+    toolName === 'WriteFile'
+  ) {
+    if (!isNonEmptyString(out['content'])) {
+      const alt = firstString(out, ['body', 'text', 'data', 'file_content']);
+      if (alt) out['content'] = alt;
+    }
+  }
+
+  // Grep/glob: common alias `regex` / `glob_pattern` / `search`
+  if (canonical === GREP_TOOL_NAME || canonical === GLOB_TOOL_NAME) {
+    if (!isNonEmptyString(out['pattern'])) {
+      const alt = firstString(out, [
+        'regex',
+        'query',
+        'search',
+        'glob_pattern',
+        'file_pattern',
+        'text',
+      ]);
+      if (alt) out['pattern'] = alt;
     }
   }
 

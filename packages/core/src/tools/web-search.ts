@@ -24,6 +24,9 @@ import { WEB_SEARCH_DEFINITION } from './definitions/coreTools.js';
 import { resolveToolDeclaration } from './definitions/resolver.js';
 import { LlmRole } from '../telemetry/llmRole.js';
 import type { AgentLoopContext } from '../config/agent-loop-context.js';
+import type { Config } from '../config/config.js';
+import type { GeminiClient } from '../core/client.js';
+import { searchWebFallback } from '../utils/webSearchProviders.js';
 
 interface GroundingChunkWeb {
   uri?: string;
@@ -32,19 +35,18 @@ interface GroundingChunkWeb {
 
 interface GroundingChunkItem {
   web?: GroundingChunkWeb;
-  // Other properties might exist if needed in the future
 }
 
 interface GroundingSupportSegment {
   startIndex: number;
   endIndex: number;
-  text?: string; // text is optional as per the example
+  text?: string;
 }
 
 interface GroundingSupportItem {
   segment?: GroundingSupportSegment;
   groundingChunkIndices?: number[];
-  confidenceScores?: number[]; // Optional as per example
+  confidenceScores?: number[];
 }
 
 /**
@@ -54,7 +56,6 @@ export interface WebSearchToolParams {
   /**
    * The search query.
    */
-
   query: string;
 }
 
@@ -67,12 +68,51 @@ export interface WebSearchToolResult extends ToolResult {
     : GroundingChunkItem[];
 }
 
+function isConfigLike(ctx: AgentLoopContext | Config): ctx is Config {
+  return (
+    'getGeminiClient' in ctx &&
+    typeof (ctx).getGeminiClient === 'function'
+  );
+}
+
+function isAgentLoopContext(
+  ctx: AgentLoopContext | Config,
+): ctx is AgentLoopContext {
+  return (
+    'config' in ctx &&
+    'geminiClient' in ctx &&
+    'toolRegistry' in ctx &&
+    'promptId' in ctx
+  );
+}
+
+/**
+ * Resolve GeminiClient from either a full AgentLoopContext or a bare Config
+ * (how the tool is registered in production).
+ */
+function resolveGeminiClient(
+  ctx: AgentLoopContext | Config | undefined,
+): GeminiClient | undefined {
+  if (!ctx) return undefined;
+  if (isAgentLoopContext(ctx)) {
+    return ctx.geminiClient;
+  }
+  if (isConfigLike(ctx)) {
+    try {
+      return ctx.getGeminiClient();
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 class WebSearchToolInvocation extends BaseToolInvocation<
   WebSearchToolParams,
   WebSearchToolResult
 > {
   constructor(
-    private readonly context: AgentLoopContext,
+    private readonly context: AgentLoopContext | Config,
     params: WebSearchToolParams,
     messageBus: MessageBus,
     _toolName?: string,
@@ -85,10 +125,17 @@ class WebSearchToolInvocation extends BaseToolInvocation<
     return `Searching the web for: "${this.params.query}"`;
   }
 
-  async execute({
-    abortSignal: signal,
-  }: ExecuteOptions): Promise<WebSearchToolResult> {
-    const geminiClient = this.context.geminiClient;
+  /**
+   * Gemini Google Search grounding when a GeminiClient is available.
+   * Falls back to independent search on failure / empty response.
+   */
+  private async executeGeminiSearch(
+    signal: AbortSignal,
+  ): Promise<WebSearchToolResult | null> {
+    const geminiClient = resolveGeminiClient(this.context);
+    if (!geminiClient) {
+      return null;
+    }
 
     try {
       const response = await geminiClient.generateContent(
@@ -109,10 +156,7 @@ class WebSearchToolInvocation extends BaseToolInvocation<
         | undefined;
 
       if (!responseText || !responseText.trim()) {
-        return {
-          llmContent: `No search results or information found for query: "${this.params.query}"`,
-          returnDisplay: 'No information found.',
-        };
+        return null; // fall through to independent search
       }
 
       let modifiedResponseText = responseText;
@@ -139,10 +183,8 @@ class WebSearchToolInvocation extends BaseToolInvocation<
             }
           });
 
-          // Sort insertions by index in descending order to avoid shifting subsequent indices
           insertions.sort((a, b) => b.index - a.index);
 
-          // Use TextEncoder/TextDecoder since segment indices are UTF-8 byte positions
           const encoder = new TextEncoder();
           const responseBytes = encoder.encode(modifiedResponseText);
           const parts: Uint8Array[] = [];
@@ -155,7 +197,6 @@ class WebSearchToolInvocation extends BaseToolInvocation<
           }
           parts.unshift(responseBytes.subarray(0, lastIndex));
 
-          // Concatenate all parts into a single buffer
           const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
           const finalBytes = new Uint8Array(totalLength);
           let offset = 0;
@@ -176,6 +217,36 @@ class WebSearchToolInvocation extends BaseToolInvocation<
         llmContent: `Web search results for "${this.params.query}":\n\n${modifiedResponseText}`,
         returnDisplay: `Search results for "${this.params.query}" returned.`,
         sources,
+      };
+    } catch (error: unknown) {
+      if (isAbortError(error)) {
+        throw error;
+      }
+      debugLogger.warn(
+        `Gemini Google Search failed, falling back to independent web search: ${getErrorMessage(error)}`,
+      );
+      return null;
+    }
+  }
+
+  async execute({
+    abortSignal: signal,
+  }: ExecuteOptions): Promise<WebSearchToolResult> {
+    try {
+      // 1) Prefer Gemini Google Search grounding when available
+      const geminiResult = await this.executeGeminiSearch(signal);
+      if (geminiResult) {
+        return geminiResult;
+      }
+
+      // 2) Provider-agnostic fallback (DuckDuckGo) — works for Cerebras/Groq/etc.
+      const fallback = await searchWebFallback(this.params.query, signal);
+      return {
+        llmContent: `Web search results for "${this.params.query}" (via ${fallback.provider}):\n\n${fallback.summary}`,
+        returnDisplay: `Search results for "${this.params.query}" returned (${fallback.provider}).`,
+        sources: fallback.hits.map((h) => ({
+          web: { title: h.title, uri: h.url },
+        })),
       };
     } catch (error: unknown) {
       if (isAbortError(error)) {
@@ -201,7 +272,10 @@ class WebSearchToolInvocation extends BaseToolInvocation<
 }
 
 /**
- * A tool to perform web searches using Google Search via the Gemini API.
+ * A tool to perform web searches.
+ * Uses Gemini Google Search grounding when a Gemini API key is available;
+ * otherwise falls back to independent DuckDuckGo search so multi-provider
+ * sessions (Cerebras, Groq, OpenRouter, …) still get real web results.
  */
 export class WebSearchTool extends BaseDeclarativeTool<
   WebSearchToolParams,
@@ -210,7 +284,7 @@ export class WebSearchTool extends BaseDeclarativeTool<
   static readonly Name = WEB_SEARCH_TOOL_NAME;
 
   constructor(
-    private readonly context: AgentLoopContext,
+    private readonly context: AgentLoopContext | Config,
     messageBus: MessageBus,
   ) {
     super(
@@ -234,7 +308,7 @@ export class WebSearchTool extends BaseDeclarativeTool<
     params: WebSearchToolParams,
   ): string | null {
     if (!params.query || params.query.trim() === '') {
-      return "The 'query' parameter cannot be empty.";
+      return 'The \'query\' parameter cannot be empty. Example: {"query":"C++17 changelog PDF"}';
     }
     return null;
   }
@@ -245,8 +319,11 @@ export class WebSearchTool extends BaseDeclarativeTool<
     _toolName?: string,
     _toolDisplayName?: string,
   ): ToolInvocation<WebSearchToolParams, WebSearchToolResult> {
+    // IMPORTANT: pass the registered context (Config) directly.
+    // Previously this passed `this.context.config`, which is undefined when
+    // the tool is constructed with a bare Config — breaking Gemini search.
     return new WebSearchToolInvocation(
-      this.context.config,
+      this.context,
       params,
       messageBus ?? this.messageBus,
       _toolName,
