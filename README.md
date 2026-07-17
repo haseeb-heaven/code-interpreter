@@ -100,6 +100,7 @@ GitHub browsing):
 - [Documentation](#documentation)
 - [Installation](#installation)
 - [API key setup for all providers](#api-key-setup-for-all-providers)
+- [Web search (for agents & open-source models)](#web-search-for-agents--open-source-models)
 - [Model registry](#model-registry-configsmodelstoml)
 - [Usage](#usage)
 - [Features](#features)
@@ -147,6 +148,68 @@ npm start -- --byok     # asks for each provider key, writes .env,
 
 In-session, `/byok <provider> <key>` saves a key and immediately reports the
 newly unlocked models.
+
+## Web search (for agents & open-source models)
+
+The `google_web_search` tool routes across **multiple backends**. You do **not**
+need every key — OpenAgent picks the best available one for your **active
+model**.
+
+### Recommended backend by model family
+
+| Active model family                                    | Recommended web search                                | Why                                      |
+| ------------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------- |
+| **Gemini**                                             | Google Search (Gemini grounding) via `GEMINI_API_KEY` | Native grounding                         |
+| **Open-source / free** (OpenRouter, Groq, Cerebras, …) | **Brave** (`BRAVE_API_KEY`)                           | Independent index, cheap, agent-friendly |
+| **Local** (Ollama / LM Studio)                         | **DuckDuckGo** (no key)                               | Zero setup offline-friendly fallback     |
+| Any + `TAVILY_API_KEY`                                 | Tavily also available                                 | AI-shaped snippets                       |
+| Any + `SERPER_API_KEY`                                 | Serper                                                | Google-style SERP                        |
+| Any + `EXA_API_KEY`                                    | Exa                                                   | Semantic / research search               |
+
+Auto order when keys exist: **preferred env → recommended for model → Brave →
+Tavily → Serper → Exa → Gemini → DuckDuckGo**.
+
+Force a backend: `WEB_SEARCH_PROVIDER=brave` (or `tavily`, `serper`, `exa`,
+`gemini`, `duckduckgo`).
+
+### Get API keys (open these pages)
+
+| Backend                   | Env var          | Create key                            |
+| ------------------------- | ---------------- | ------------------------------------- |
+| Brave Search              | `BRAVE_API_KEY`  | https://api.search.brave.com/app/keys |
+| Tavily                    | `TAVILY_API_KEY` | https://app.tavily.com/home           |
+| Serper                    | `SERPER_API_KEY` | https://serper.dev/api-key            |
+| Exa                       | `EXA_API_KEY`    | https://dashboard.exa.ai/api-keys     |
+| Google / Gemini grounding | `GEMINI_API_KEY` | https://aistudio.google.com/apikey    |
+| DuckDuckGo                | —                | No key                                |
+
+### Interactive wizard
+
+```text
+/websearch                 # open settings wizard (★ = recommended for current model)
+/websearch list            # text table of providers + key status
+/websearch brave           # details for one provider
+/websearch open brave      # open signup page in browser when key is empty
+/websearch brave <key>     # save BRAVE_API_KEY to .env
+```
+
+In the wizard: select a provider → paste the key → **Enter**. If the key box is
+**empty** and you press **Enter**, OpenAgent opens that provider’s signup
+website so you can create a key.
+
+Or add keys to `.env` (see [`.env.example`](.env.example)):
+
+```dotenv
+BRAVE_API_KEY=
+TAVILY_API_KEY=
+SERPER_API_KEY=
+EXA_API_KEY=
+GEMINI_API_KEY=
+WEB_SEARCH_PROVIDER=
+```
+
+**Open-source models need a search key for best results.** Without any search
+key, OpenAgent still works via **DuckDuckGo** (no signup), but quality varies.
 
 ## Model registry (`configs/models.toml`)
 

@@ -26,7 +26,11 @@ import { LlmRole } from '../telemetry/llmRole.js';
 import type { AgentLoopContext } from '../config/agent-loop-context.js';
 import type { Config } from '../config/config.js';
 import type { GeminiClient } from '../core/client.js';
-import { searchWebFallback } from '../utils/webSearchProviders.js';
+import {
+  executeWebSearchHttp,
+  planWebSearchRoute,
+  hasGeminiSearchKey,
+} from '../websearch/index.js';
 
 interface GroundingChunkWeb {
   uri?: string;
@@ -69,10 +73,7 @@ export interface WebSearchToolResult extends ToolResult {
 }
 
 function isConfigLike(ctx: AgentLoopContext | Config): ctx is Config {
-  return (
-    'getGeminiClient' in ctx &&
-    typeof (ctx).getGeminiClient === 'function'
-  );
+  return 'getGeminiClient' in ctx && typeof ctx.getGeminiClient === 'function';
 }
 
 function isAgentLoopContext(
@@ -229,25 +230,93 @@ class WebSearchToolInvocation extends BaseToolInvocation<
     }
   }
 
+  private resolveActiveModelId(): string | undefined {
+    const ctx = this.context;
+    try {
+      if (ctx && typeof ctx === 'object' && 'getModel' in ctx) {
+        const getModel = (ctx).getModel;
+        if (typeof getModel === 'function') {
+          return getModel.call(ctx);
+        }
+      }
+      if (ctx && typeof ctx === 'object' && 'config' in ctx) {
+        const cfg = (ctx as AgentLoopContext).config;
+        if (cfg && typeof cfg.getModel === 'function') {
+          return cfg.getModel();
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
+  }
+
   async execute({
     abortSignal: signal,
   }: ExecuteOptions): Promise<WebSearchToolResult> {
     try {
-      // 1) Prefer Gemini Google Search grounding when available
-      const geminiResult = await this.executeGeminiSearch(signal);
-      if (geminiResult) {
-        return geminiResult;
-      }
+      const modelId = this.resolveActiveModelId();
+      const preferred = process.env['WEB_SEARCH_PROVIDER']?.trim() || undefined;
+      const plan = planWebSearchRoute({
+        modelId,
+        preferredProviderId: preferred,
+      });
 
-      // 2) Provider-agnostic fallback (DuckDuckGo) — works for Cerebras/Groq/etc.
-      const fallback = await searchWebFallback(this.params.query, signal);
-      return {
-        llmContent: `Web search results for "${this.params.query}" (via ${fallback.provider}):\n\n${fallback.summary}`,
-        returnDisplay: `Search results for "${this.params.query}" returned (${fallback.provider}).`,
-        sources: fallback.hits.map((h) => ({
+      const toToolResult = (http: {
+        summary: string;
+        provider: string;
+        hits: Array<{ title: string; url: string }>;
+      }): WebSearchToolResult => ({
+        llmContent: http.summary.startsWith('Web search results')
+          ? http.summary
+          : `Web search results for "${this.params.query}" (via ${http.provider}):\n\n${http.summary}`,
+        returnDisplay: `Search results for "${this.params.query}" returned (${http.provider}).`,
+        sources: http.hits.map((h) => ({
           web: { title: h.title, uri: h.url },
         })),
-      };
+      });
+
+      // Prefer explicit HTTP backends (Brave/Tavily/…) when the plan selects them
+      // and they are available — so OSS models with BRAVE_API_KEY don't always hit Gemini.
+      const preferHttp =
+        plan.providerId &&
+        plan.providerId !== 'gemini' &&
+        plan.providerId !== 'duckduckgo';
+
+      if (preferHttp) {
+        try {
+          const http = await executeWebSearchHttp({
+            query: this.params.query,
+            modelId,
+            preferredProviderId: plan.providerId,
+            signal,
+            skipProviderIds: ['gemini'],
+          });
+          return toToolResult(http);
+        } catch (httpErr) {
+          debugLogger.warn(
+            `HTTP web search failed (${plan.providerId}), trying Gemini/DDG: ${getErrorMessage(httpErr)}`,
+          );
+        }
+      }
+
+      // Gemini Google Search grounding (recommended for Gemini models / when client works)
+      if (plan.providerId === 'gemini' || hasGeminiSearchKey() || !preferHttp) {
+        const geminiResult = await this.executeGeminiSearch(signal);
+        if (geminiResult) {
+          return geminiResult;
+        }
+      }
+
+      // Full multi-provider HTTP chain ending in DuckDuckGo
+      const http = await executeWebSearchHttp({
+        query: this.params.query,
+        modelId,
+        preferredProviderId: preferred,
+        signal,
+        skipProviderIds: ['gemini'],
+      });
+      return toToolResult(http);
     } catch (error: unknown) {
       if (isAbortError(error)) {
         return {
@@ -272,10 +341,9 @@ class WebSearchToolInvocation extends BaseToolInvocation<
 }
 
 /**
- * A tool to perform web searches.
- * Uses Gemini Google Search grounding when a Gemini API key is available;
- * otherwise falls back to independent DuckDuckGo search so multi-provider
- * sessions (Cerebras, Groq, OpenRouter, …) still get real web results.
+ * A tool to perform web searches across multiple backends (Brave, Tavily,
+ * Serper, Exa, Gemini Google Search, DuckDuckGo). Routing prefers the
+ * recommended provider for the active model when a key is present.
  */
 export class WebSearchTool extends BaseDeclarativeTool<
   WebSearchToolParams,
@@ -308,7 +376,7 @@ export class WebSearchTool extends BaseDeclarativeTool<
     params: WebSearchToolParams,
   ): string | null {
     if (!params.query || params.query.trim() === '') {
-      return 'The \'query\' parameter cannot be empty. Example: {"query":"C++17 changelog PDF"}';
+      return 'The \'query\' parameter cannot be empty. Example: {"query":"your search terms"}';
     }
     return null;
   }

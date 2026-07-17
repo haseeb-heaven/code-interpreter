@@ -45,6 +45,7 @@ import { mcpCommand } from '../ui/commands/mcpCommand.js';
 import { memoryCommand } from '../ui/commands/memoryCommand.js';
 import { modelCommand } from '../ui/commands/modelCommand.js';
 import { byokCommand } from '../ui/commands/byokCommand.js';
+import { webSearchCommand } from '../ui/commands/webSearchCommand.js';
 import { oncallCommand } from '../ui/commands/oncallCommand.js';
 import { permissionsCommand } from '../ui/commands/permissionsCommand.js';
 import { planCommand } from '../ui/commands/planCommand.js';
@@ -57,6 +58,7 @@ import { resumeCommand } from '../ui/commands/resumeCommand.js';
 import { statsCommand } from '../ui/commands/statsCommand.js';
 import { themeCommand } from '../ui/commands/themeCommand.js';
 import { toolsCommand } from '../ui/commands/toolsCommand.js';
+import { usageCommand } from '../ui/commands/usageCommand.js';
 import { skillsCommand } from '../ui/commands/skillsCommand.js';
 import { settingsCommand } from '../ui/commands/settingsCommand.js';
 import { tasksCommand } from '../ui/commands/tasksCommand.js';
@@ -69,7 +71,7 @@ import { voiceCommand } from '../ui/commands/voiceCommand.js';
 
 /**
  * Loads the core, hard-coded slash commands that are an integral part
- * of the Gemini CLI application.
+ * of the open-agent application.
  */
 export class BuiltinCommandLoader implements ICommandLoader {
   constructor(private config: Config | null) {}
@@ -191,6 +193,7 @@ export class BuiltinCommandLoader implements ICommandLoader {
       memoryCommand(this.config),
       modelCommand,
       byokCommand,
+      webSearchCommand,
       ...(this.config?.getFolderTrust() ? [permissionsCommand] : []),
       ...(this.config?.isPlanEnabled() ? [planCommand] : []),
       policiesCommand,
@@ -205,6 +208,7 @@ export class BuiltinCommandLoader implements ICommandLoader {
       statsCommand,
       themeCommand,
       toolsCommand,
+      usageCommand,
       ...(this.config?.isSkillsSupportEnabled()
         ? this.config?.getSkillManager()?.isAdminEnabled() === false
           ? [

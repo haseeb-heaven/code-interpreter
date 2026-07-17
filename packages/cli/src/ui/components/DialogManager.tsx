@@ -25,6 +25,7 @@ import { relaunchApp } from '../../utils/processUtils.js';
 import { SessionBrowser } from './SessionBrowser.js';
 import { PermissionsModifyTrustDialog } from './PermissionsModifyTrustDialog.js';
 import { ProviderModelDialog } from './ProviderModelDialog.js';
+import { WebSearchSettingsDialog } from './WebSearchSettingsDialog.js';
 import { VoiceModelDialog } from './VoiceModelDialog.js';
 import { theme } from '../semantic-colors.js';
 import { useUIState } from '../contexts/UIStateContext.js';
@@ -239,6 +240,9 @@ export const DialogManager = ({
   }
   if (uiState.isModelDialogOpen) {
     return <ProviderModelDialog onClose={uiActions.closeModelDialog} />;
+  }
+  if (uiState.isWebSearchDialogOpen) {
+    return <WebSearchSettingsDialog onClose={uiActions.closeWebSearchDialog} />;
   }
   if (uiState.isVoiceModelDialogOpen) {
     return <VoiceModelDialog onClose={uiActions.closeVoiceModelDialog} />;

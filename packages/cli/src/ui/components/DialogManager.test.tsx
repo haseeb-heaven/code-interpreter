@@ -53,8 +53,8 @@ vi.mock('./ProQuotaDialog.js', () => ({
 vi.mock('./PermissionsModifyTrustDialog.js', () => ({
   PermissionsModifyTrustDialog: () => <Text>PermissionsModifyTrustDialog</Text>,
 }));
-vi.mock('./ModelDialog.js', () => ({
-  ModelDialog: () => <Text>ModelDialog</Text>,
+vi.mock('./ProviderModelDialog.js', () => ({
+  ProviderModelDialog: () => <Text>ModelDialog</Text>,
 }));
 vi.mock('./IdeTrustChangeDialog.js', () => ({
   IdeTrustChangeDialog: () => <Text>IdeTrustChangeDialog</Text>,
@@ -84,6 +84,7 @@ describe('DialogManager', () => {
     isThemeDialogOpen: false,
     isSettingsDialogOpen: false,
     isModelDialogOpen: false,
+    isWebSearchDialogOpen: false,
     isAuthenticating: false,
     isAwaitingApiKeyInput: false,
     isAuthDialogOpen: false,
