@@ -83,7 +83,7 @@ import {
 export const DEFAULT_LEGACY_SET: CoreToolSet = {
   read_file: {
     name: READ_FILE_TOOL_NAME,
-    description: `Reads and returns the content of a specified file. If the file is large, the content will be truncated. The tool's response will clearly indicate if truncation has occurred and will provide details on how to read more of the file using the 'start_line' and 'end_line' parameters. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), audio files (MP3, WAV, AIFF, AAC, OGG, FLAC), and PDF files. For text files, it can read specific line ranges.`,
+    description: `Reads and returns the content of a specified file. If the file is large, the content will be truncated. The tool's response will clearly indicate if truncation has occurred and will provide details on how to read more of the file using the 'start_line' and 'end_line' parameters. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), audio files (MP3, WAV, AIFF, AAC, OGG, FLAC), PDF files, and Word documents (.docx text extraction). For text files, it can read specific line ranges.`,
     parametersJsonSchema: {
       type: 'object',
       properties: {
@@ -180,12 +180,12 @@ export const DEFAULT_LEGACY_SET: CoreToolSet = {
   grep_search_ripgrep: {
     name: GREP_TOOL_NAME,
     description:
-      'Searches for a regular expression pattern within file contents.',
+      'Searches for a regular expression pattern within file contents. ALWAYS pass a non-empty `pattern` (content regex, NOT a file glob like `*.txt` — use glob for filenames). Do NOT call with empty `{}`.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [PARAM_PATTERN]: {
-          description: `The pattern to search for. By default, treated as a Rust-flavored regular expression. Use '\\b' for precise symbol matching (e.g., '\\bMatchMe\\b').`,
+          description: `Required content regex (e.g. 'TODO|FIXME', 'function\\s+foo'). Do NOT pass file globs like '*.txt' or '*.*' here — use the glob tool for file names. Never omit this field.`,
           type: 'string',
         },
         [PARAM_DIR_PATH]: {
@@ -261,13 +261,13 @@ export const DEFAULT_LEGACY_SET: CoreToolSet = {
   glob: {
     name: GLOB_TOOL_NAME,
     description:
-      'Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases.',
+      'Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`, `**/*.{txt,md}`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases. ALWAYS pass a non-empty `pattern`. Do NOT use this tool for searching inside file contents (use grep_search for that). Do NOT call with empty `{}`.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [PARAM_PATTERN]: {
           description:
-            "The glob pattern to match against (e.g., '**/*.py', 'docs/*.md').",
+            "Required. The glob pattern to match against (e.g., '**/*.py', 'docs/*.md', '**/*.{txt,md}'). Never omit this field.",
           type: 'string',
         },
         [PARAM_DIR_PATH]: {
@@ -619,7 +619,7 @@ The agent did not use the todo list because this task could be completed by a ti
   get_internal_docs: {
     name: GET_INTERNAL_DOCS_TOOL_NAME,
     description:
-      'Returns the content of Gemini CLI internal documentation files. If no path is provided, returns a list of all available documentation paths.',
+      'Returns the content of OpenAgent internal documentation files. If no path is provided, returns a list of all available documentation paths.',
     parametersJsonSchema: {
       type: 'object',
       properties: {

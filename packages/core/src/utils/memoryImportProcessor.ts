@@ -371,7 +371,16 @@ export async function processImports(
       } else if (typeof err === 'string') {
         message = err;
       }
-      logger.error(`Failed to import ${importPath}: ${message}`);
+      // Missing optional skill/memory includes are common with half-installed
+      // extensions; warn instead of ERROR so sessions stay usable.
+      const missing = /ENOENT|no such file|File not found|not found/i.test(
+        message,
+      );
+      if (missing) {
+        logger.warn(`Failed to import ${importPath}: ${message}`);
+      } else {
+        logger.error(`Failed to import ${importPath}: ${message}`);
+      }
       result += `<!-- Import failed: ${importPath} - ${message} -->`;
     }
   }

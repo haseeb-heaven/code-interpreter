@@ -67,6 +67,8 @@ const env = {
 };
 
 const keepCiEnv =
+  process.env.OPENAGENT_KEEP_CI_ENV === '1' ||
+  process.env.OPENAGENT_KEEP_CI_ENV === 'true' ||
   process.env.GEMINI_KEEP_CI_ENV === '1' ||
   process.env.GEMINI_KEEP_CI_ENV === 'true';
 if (!keepCiEnv) {
@@ -76,7 +78,7 @@ if (!keepCiEnv) {
   if (ciKeys.length > 0) {
     ciKeys.forEach((k) => delete env[k]);
     process.stderr.write(
-      `[gemini] Removed CI env vars to keep interactive mode working in dev: ${ciKeys.join(', ')}. Set GEMINI_KEEP_CI_ENV=1 to disable.\n`,
+      `[openagent] Removed CI env vars to keep interactive mode working in dev: ${ciKeys.join(', ')}. Set OPENAGENT_KEEP_CI_ENV=1 to disable.\n`,
     );
   }
 }

@@ -38,31 +38,11 @@ code: rate_limit_exceeded
 ✓ ReadManyFiles  Attempting to read …\demo_word.docx → Read 0 file(s)
 ```
 
-|           |                                                                                                                                                                                     |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cause** | `.docx` is a **binary** Office format. Default excludes include `**/*.docx`, and the reader only handles text / images / audio / PDF. Paths outside the workspace are also skipped. |
-| **Fix**   | Extract text to a `.txt` inside the workspace, then `@` that file.                                                                                                                  |
-
-```powershell
-# PowerShell / Python stdlib — no python-docx required
-python -c @"
-import zipfile, re, pathlib
-src = pathlib.Path(r'D:\tmp\dummy_media\documents\demo_word.docx')
-xml = zipfile.ZipFile(src).read('word/document.xml').decode('utf-8')
-text = re.sub(r'</w:p>', '\n', xml)
-text = re.sub(r'<[^>]+>', '', text)
-out = pathlib.Path('scratch/demo_word.txt')
-out.parent.mkdir(parents=True, exist_ok=True)
-out.write_text(text.strip(), encoding='utf-8')
-print(out.resolve())
-"@
-```
-
-Then:
-
-```text
-@scratch/demo_word.txt summarize this
-```
+|                               |                                                                                                                                                            |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cause (fixed for `.docx`)** | Older builds treated Word as unreadable binary and excluded `**/*.docx`. Current OpenAgent **extracts plain text from `.docx`** via `read_file` / `@path`. |
+| **Still fails when**          | Path is **outside the workspace**, or the file is legacy `.doc` / Excel / PowerPoint.                                                                      |
+| **Fix**                       | Copy the `.docx` into the project, then `@scratch/demo_word.docx summarize this`.                                                                          |
 
 ### Agent says it cannot locate a file that exists
 

@@ -18,6 +18,7 @@
 
 import type { FreeCatalogEntry, RegistryModelConfig } from './modelRegistry.js';
 import { ModelRegistry } from './modelRegistry.js';
+import { getProvider, providerApiKey } from './providers.js';
 
 /** One curated free/cheap model preset. */
 export interface FreeModelEntry {
@@ -64,6 +65,12 @@ export function isEntryAvailable(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
   if (!entry.envKey) return true;
+  // Prefer provider-aware lookup so aliases like HUGGINGFACE_API_KEY → HF_TOKEN work.
+  const provider = getProvider(entry.provider);
+  if (provider) {
+    if (provider.local) return true;
+    return providerApiKey(provider, env) !== undefined;
+  }
   const value = env[entry.envKey];
   return Boolean(value && value.trim());
 }

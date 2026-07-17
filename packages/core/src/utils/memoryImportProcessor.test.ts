@@ -210,8 +210,8 @@ describe('memoryImportProcessor', () => {
       expect(result.content).toContain(
         '<!-- Import failed: ./nonexistent.md - File not found -->',
       );
-      expect(debugLogger.error).toHaveBeenCalledWith(
-        '[ERROR] [ImportProcessor]',
+      expect(debugLogger.warn).toHaveBeenCalledWith(
+        '[WARN] [ImportProcessor]',
         'Failed to import ./nonexistent.md: File not found',
       );
     });

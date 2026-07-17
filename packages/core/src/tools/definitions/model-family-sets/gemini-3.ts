@@ -92,7 +92,7 @@ import {
 export const GEMINI_3_SET: CoreToolSet = {
   read_file: {
     name: READ_FILE_TOOL_NAME,
-    description: `Reads and returns the content of a specified file. To maintain context efficiency, you MUST use 'start_line' and 'end_line' for targeted, surgical reads of specific sections. For your safety, the tool will automatically truncate output exceeding ${DEFAULT_MAX_LINES_TEXT_FILE} lines, ${MAX_LINE_LENGTH_TEXT_FILE} characters per line, or ${MAX_FILE_SIZE_MB}MB in size; however, triggering these limits is considered token-inefficient. Always retrieve only the minimum content necessary for your next step. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), audio files (MP3, WAV, AIFF, AAC, OGG, FLAC), and PDF files.`,
+    description: `Reads and returns the content of a specified file. To maintain context efficiency, you MUST use 'start_line' and 'end_line' for targeted, surgical reads of specific sections. For your safety, the tool will automatically truncate output exceeding ${DEFAULT_MAX_LINES_TEXT_FILE} lines, ${MAX_LINE_LENGTH_TEXT_FILE} characters per line, or ${MAX_FILE_SIZE_MB}MB in size; however, triggering these limits is considered token-inefficient. Always retrieve only the minimum content necessary for your next step. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), audio files (MP3, WAV, AIFF, AAC, OGG, FLAC), PDF files, and Word documents (.docx text extraction).`,
     parametersJsonSchema: {
       type: 'object',
       properties: {
@@ -187,12 +187,12 @@ export const GEMINI_3_SET: CoreToolSet = {
   grep_search_ripgrep: {
     name: GREP_TOOL_NAME,
     description:
-      'Searches for a regular expression pattern within file contents. This tool is FAST and optimized, powered by ripgrep. PREFERRED over standard `run_shell_command("grep ...")` due to better performance and automatic output limiting (defaults to 100 matches, but can be increased via `total_max_matches`).',
+      'Searches for a regular expression pattern within file contents. This tool is FAST and optimized, powered by ripgrep. PREFERRED over standard `run_shell_command("grep ...")` due to better performance and automatic output limiting (defaults to 100 matches, but can be increased via `total_max_matches`). ALWAYS pass a non-empty `pattern` (content regex, NOT a file glob like `*.txt` — use glob for filenames). Do NOT call with empty `{}`.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [PARAM_PATTERN]: {
-          description: `The pattern to search for. By default, treated as a Rust-flavored regular expression. Use '\\b' for precise symbol matching (e.g., '\\bMatchMe\\b').`,
+          description: `Required content regex (e.g. 'TODO|FIXME', 'function\\s+foo'). Do NOT pass file globs like '*.txt' or '*.*' here — use the glob tool for file names. Never omit this field.`,
           type: 'string',
         },
         [PARAM_DIR_PATH]: {
@@ -268,13 +268,13 @@ export const GEMINI_3_SET: CoreToolSet = {
   glob: {
     name: GLOB_TOOL_NAME,
     description:
-      'Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases.',
+      'Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`, `**/*.{txt,md}`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases. ALWAYS pass a non-empty `pattern`. Do NOT use for searching inside file contents (use grep_search). Do NOT call with empty `{}`.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [PARAM_PATTERN]: {
           description:
-            "The glob pattern to match against (e.g., '**/*.py', 'docs/*.md').",
+            "Required. The glob pattern to match against (e.g., '**/*.py', 'docs/*.md', '**/*.{txt,md}'). Never omit this field.",
           type: 'string',
         },
         [PARAM_DIR_PATH]: {
@@ -602,7 +602,7 @@ The agent did not use the todo list because this task could be completed by a ti
   get_internal_docs: {
     name: GET_INTERNAL_DOCS_TOOL_NAME,
     description:
-      'Returns the content of Gemini CLI internal documentation files. If no path is provided, returns a list of all available documentation paths.',
+      'Returns the content of OpenAgent internal documentation files. If no path is provided, returns a list of all available documentation paths.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
