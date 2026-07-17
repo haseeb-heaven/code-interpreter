@@ -96,6 +96,9 @@ export class Storage {
   }
 
   static getTrustedFoldersPath(): string {
+    if (process.env['OPENAGENT_TRUSTED_FOLDERS_PATH']) {
+      return process.env['OPENAGENT_TRUSTED_FOLDERS_PATH'];
+    }
     if (process.env['GEMINI_CLI_TRUSTED_FOLDERS_PATH']) {
       return process.env['GEMINI_CLI_TRUSTED_FOLDERS_PATH'];
     }

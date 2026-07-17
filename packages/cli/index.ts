@@ -52,9 +52,12 @@ async function getMemoryNodeArgs(): Promise<string[]> {
   try {
     const { readFileSync } = await import('node:fs');
     const { join } = await import('node:path');
-    // Respect GEMINI_CLI_HOME environment variable, falling back to os.homedir()
+    // Respect OPENAGENT_HOME (or legacy GEMINI_CLI_HOME) env var, falling
+    // back to ~/.openagent.
     const baseDir =
-      process.env['GEMINI_CLI_HOME'] || join(os.homedir(), '.gemini');
+      process.env['OPENAGENT_HOME'] ||
+      process.env['GEMINI_CLI_HOME'] ||
+      join(os.homedir(), '.openagent');
     const settingsPath = join(baseDir, 'settings.json');
     const rawSettings = readFileSync(settingsPath, 'utf8');
     const settings = JSON.parse(rawSettings);
@@ -82,7 +85,11 @@ async function getMemoryNodeArgs(): Promise<string[]> {
 }
 
 async function run() {
-  if (!process.env['GEMINI_CLI_NO_RELAUNCH'] && !process.env['SANDBOX']) {
+  if (
+    !process.env['OPENAGENT_NO_RELAUNCH'] &&
+    !process.env['GEMINI_CLI_NO_RELAUNCH'] &&
+    !process.env['SANDBOX']
+  ) {
     // --- Lightweight Parent Process / Daemon ---
     // We avoid importing heavy dependencies here to save ~1.5s of startup time.
 

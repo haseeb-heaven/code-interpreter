@@ -96,26 +96,41 @@ function copyIfMissing(src: string, dest: string): void {
   }
 }
 
+/** Marker file written after the one-time legacy migration has run. */
+const MIGRATION_MARKER_FILENAME = '.migrated-from-gemini';
+
 /**
- * Soft-migrate files and dirs from legacy `~/.gemini` into `~/.openagent`
- * when the destination is missing (skills, extensions, settings, keys, …).
+ * One-time migration of files and dirs from legacy `~/.gemini` into
+ * `~/.openagent` when the destination is missing (skills, extensions,
+ * settings, keys, …). Writes a marker file so this only ever runs once per
+ * `~/.openagent` directory, even if `~/.gemini` still exists afterward.
  */
 export function migrateLegacyGeminiHomeIntoOpenAgent(
   openAgentDir: string = getOpenAgentHomeDir(),
 ): void {
+  const markerPath = path.join(openAgentDir, MIGRATION_MARKER_FILENAME);
+  if (fs.existsSync(markerPath)) return;
+
   const legacy = getLegacyGeminiHomeDir();
-  if (!fs.existsSync(legacy)) return;
-  for (const name of LEGACY_HOME_FILES) {
-    copyIfMissing(path.join(legacy, name), path.join(openAgentDir, name));
+  if (fs.existsSync(legacy)) {
+    for (const name of LEGACY_HOME_FILES) {
+      copyIfMissing(path.join(legacy, name), path.join(openAgentDir, name));
+    }
+    for (const name of LEGACY_HOME_DIRS) {
+      copyIfMissing(path.join(legacy, name), path.join(openAgentDir, name));
+    }
   }
-  for (const name of LEGACY_HOME_DIRS) {
-    copyIfMissing(path.join(legacy, name), path.join(openAgentDir, name));
+
+  try {
+    fs.writeFileSync(markerPath, new Date().toISOString());
+  } catch {
+    // Best-effort marker only; migration itself already succeeded above.
   }
 }
 
 /**
- * Ensures `~/.openagent` exists and migrates skills/extensions/settings from
- * `~/.gemini` when those paths are still missing under openagent.
+ * Ensures `~/.openagent` exists and runs the one-time migration of
+ * skills/extensions/settings from `~/.gemini` if it hasn't run yet.
  */
 export function ensureOpenAgentHomeDir(): string {
   const dir = getOpenAgentHomeDir();
