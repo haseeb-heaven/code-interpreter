@@ -1,0 +1,58 @@
+# Priority system for policy rules:
+# - Higher priority numbers win over lower priority numbers
+# - When multiple rules match, the highest priority rule is applied
+# - Rules are evaluated in order of priority (highest first)
+#
+# Priority bands (tiers):
+# - Default policies (TOML): 1 + priority/1000 (e.g., priority 100 → 1.100)
+# - Extension policies (TOML): 2 + priority/1000 (e.g., priority 100 → 2.100)
+# - Workspace policies (TOML): 3 + priority/1000 (e.g., priority 100 → 3.100)
+# - User policies (TOML): 4 + priority/1000 (e.g., priority 100 → 4.100)
+# - Admin policies (TOML): 5 + priority/1000 (e.g., priority 100 → 5.100)
+#
+# Auto mode (Claude Code-style "auto"):
+# - Auto-approves safe tool calls (reads, workspace edits, non-dangerous shell)
+# - Policy engine still forces ASK_USER for dangerous shell commands (isDangerousCommand)
+#   unless YOLO is active — Auto does NOT bypass that safety net
+# - Write tools require the allowed-path checker (workspace-only)
+# - Redirection is NOT auto-allowed (unlike YOLO) so redirects still prompt
+# - Distinct from YOLO: YOLO auto-approves everything including dangerous ops
+
+# Ask-user tool always requires user interaction, even in Auto mode.
+[[rule]]
+toolName = "ask_user"
+decision = "ask_user"
+priority = 999
+modes = ["auto"]
+interactive = true
+
+# Plan mode transitions are blocked in Auto mode to maintain state consistency
+# (planning currently requires human interaction for plan approval).
+[[rule]]
+toolName = ["enter_plan_mode", "exit_plan_mode"]
+decision = "deny"
+priority = 999
+modes = ["auto"]
+interactive = true
+
+# Workspace writes: allow with path safety (blocks system dirs / outside workspace)
+[[rule]]
+toolName = ["write_file", "replace"]
+decision = "allow"
+priority = 997
+modes = ["auto"]
+
+[rule.safety_checker]
+type = "in-process"
+name = "allowed-path"
+required_context = ["environment"]
+
+# Allow everything else in Auto mode.
+# Dangerous shell commands are still forced to ASK_USER by policy-engine heuristics
+# (isDangerousCommand) because Auto is NOT YOLO.
+# Do not set allowRedirection — redirects remain confirmable for safety.
+[[rule]]
+toolName = "*"
+decision = "allow"
+priority = 996
+modes = ["auto"]

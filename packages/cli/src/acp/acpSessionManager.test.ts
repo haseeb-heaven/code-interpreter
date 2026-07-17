@@ -186,7 +186,17 @@ describe('AcpSessionManager', () => {
           name: 'Auto Edit',
           description: 'Auto-approves edit tools',
         },
-        { id: 'yolo', name: 'YOLO', description: 'Auto-approves all tools' },
+        {
+          id: 'auto',
+          name: 'Auto',
+          description:
+            'Auto-approves safe tools; prompts on dangerous commands and path escapes',
+        },
+        {
+          id: 'yolo',
+          name: 'YOLO',
+          description: 'Auto-approves all tools including dangerous',
+        },
       ],
       currentModeId: 'default',
     });
@@ -260,7 +270,17 @@ describe('AcpSessionManager', () => {
           name: 'Auto Edit',
           description: 'Auto-approves edit tools',
         },
-        { id: 'yolo', name: 'YOLO', description: 'Auto-approves all tools' },
+        {
+          id: 'auto',
+          name: 'Auto',
+          description:
+            'Auto-approves safe tools; prompts on dangerous commands and path escapes',
+        },
+        {
+          id: 'yolo',
+          name: 'YOLO',
+          description: 'Auto-approves all tools including dangerous',
+        },
         { id: 'plan', name: 'Plan', description: 'Read-only mode' },
       ],
       currentModeId: 'plan',

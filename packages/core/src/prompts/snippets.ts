@@ -187,6 +187,7 @@ export function renderPreamble(options?: PreambleOptions): string {
   if (options.approvalMode === 'plan') modeStr = 'Plan';
   if (options.approvalMode === 'yolo') modeStr = 'YOLO';
   if (options.approvalMode === 'autoEdit') modeStr = 'Auto-Edit';
+  if (options.approvalMode === 'auto') modeStr = 'Auto';
 
   const base = options.interactive
     ? 'You are OpenAgent, an interactive **Computer Agent** for day-to-day work on this computer (files, apps, shell, web, downloads, organization, automation, research). You are **not** a coding-only or software-engineering-only assistant — you help with everyday computer tasks first; write or change software only when the user asks for that.'

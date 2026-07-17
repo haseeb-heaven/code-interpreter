@@ -130,11 +130,13 @@ their corresponding top-level category object in your `settings.json` file.
 - **`general.defaultApprovalMode`** (enum):
 
   - **Description:** The default approval mode for tool execution. 'default'
-    prompts for approval, 'auto_edit' auto-approves edit tools, and 'plan' is
-    read-only mode. YOLO mode (auto-approve all actions) can only be enabled via
+    prompts for approval, 'auto_edit' auto-approves edit tools, 'auto'
+    auto-approves safe tools and still prompts on dangerous shell commands /
+    path escapes (Claude Code-style Auto), and 'plan' is read-only mode. YOLO
+    mode (auto-approve all actions including dangerous) can only be enabled via
     command line (--yolo or --approval-mode=yolo).
   - **Default:** `"default"`
-  - **Values:** `"default"`, `"auto_edit"`, `"plan"`
+  - **Values:** `"default"`, `"auto_edit"`, `"auto"`, `"plan"`
 
 - **`general.devtools`** (boolean):
 
@@ -2827,14 +2829,17 @@ for that specific session.
     - `default`: Prompt for approval on each tool call (default behavior)
     - `auto_edit`: Automatically approve edit tools (replace, write_file) while
       prompting for others
-    - `yolo`: Automatically approve all tool calls (equivalent to `--yolo`)
+    - `auto`: Auto-approve safe tools; still prompt on dangerous commands,
+      deletes, and system paths (equivalent to `--auto-mode`)
+    - `yolo`: Automatically approve all tool calls including dangerous
+      (equivalent to `--yolo`)
     - `plan`: Read-only mode for tool calls (requires experimental planning to
       be enabled).
       > **Note:** This mode is currently under development and not yet fully
       > functional.
-  - Cannot be used together with `--yolo`. Use `--approval-mode=yolo` instead of
-    `--yolo` for the new unified approach.
-  - Example: `gemini --approval-mode auto_edit`
+  - Cannot be used together with `--yolo` or `--auto-mode`. Prefer the shortcut
+    flags for common cases.
+  - Example: `openagent --approval-mode auto`
 - **`--debug`** (**`-d`**):
   - Enables debug mode for this session, providing more verbose output. Open the
     debug console with F12 to see the additional logging.
@@ -2892,9 +2897,11 @@ for that specific session.
 - **`--resume [session_id]`** (**`-r [session_id]`**):
   - Resume a previous chat session. Use "latest" for the most recent session,
     provide a session index number, or provide a full session UUID.
-  - If no session_id is provided, defaults to "latest".
-  - Example: `gemini --resume 5` or `gemini --resume latest` or
-    `gemini --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890` or `gemini --resume`
+  - If no session_id is provided, defaults to "latest" (resume the most recent
+    chat).
+  - Example: `openagent --resume` or `openagent --resume latest` or
+    `openagent --resume 5` or
+    `openagent --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890`
   - See [Session Management](../cli/session-management.md) for more details.
 - **`--sandbox`** (**`-s`**):
   - Enables sandbox mode for this session.
@@ -2903,8 +2910,15 @@ for that specific session.
     with screen readers.
 - **`--version`**:
   - Displays the version of the CLI.
-- **`--yolo`**:
-  - Enables YOLO mode, which automatically approves all tool calls.
+- **`--auto-mode`**:
+  - Enables Auto mode (safe classifier): auto-approve safe tools; still prompt
+    on dangerous shell commands, deletes, and system directory writes.
+  - Equivalent to `--approval-mode=auto`. Distinct from `--yolo`.
+  - Example: `openagent --auto-mode`
+- **`--yolo`** (**`-y`**):
+  - Enables YOLO mode, which automatically approves **all** tool calls including
+    dangerous ones. Prefer `--auto-mode` for day-to-day use.
+  - Example: `openagent --yolo`
 
 ## Context files (hierarchical instructional context)
 

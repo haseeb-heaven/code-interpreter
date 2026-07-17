@@ -234,9 +234,15 @@ export function buildAvailableModes(isPlanEnabled: boolean): acp.SessionMode[] {
       description: 'Auto-approves edit tools',
     },
     {
+      id: ApprovalMode.AUTO,
+      name: 'Auto',
+      description:
+        'Auto-approves safe tools; prompts on dangerous commands and path escapes',
+    },
+    {
       id: ApprovalMode.YOLO,
       name: 'YOLO',
-      description: 'Auto-approves all tools',
+      description: 'Auto-approves all tools including dangerous',
     },
   ];
 

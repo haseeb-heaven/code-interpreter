@@ -26,6 +26,7 @@ describe('loadCliConfig skipExtensions', () => {
     prompt: undefined,
     promptInteractive: undefined,
     yolo: undefined,
+    autoMode: undefined,
     approvalMode: undefined,
     policy: undefined,
     adminPolicy: undefined,

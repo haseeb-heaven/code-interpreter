@@ -560,14 +560,30 @@ describe('parseArguments', () => {
     {
       description: 'long flags',
       argv: ['node', 'script.js', '--yolo', '--approval-mode', 'default'],
+      expectedError:
+        'Cannot use both --yolo (-y) and --approval-mode together. Use --approval-mode=yolo instead.',
     },
     {
       description: 'short flags',
       argv: ['node', 'script.js', '-y', '--approval-mode', 'yolo'],
+      expectedError:
+        'Cannot use both --yolo (-y) and --approval-mode together. Use --approval-mode=yolo instead.',
+    },
+    {
+      description: 'auto-mode with approval-mode',
+      argv: ['node', 'script.js', '--auto-mode', '--approval-mode', 'auto'],
+      expectedError:
+        'Cannot use both --auto-mode and --approval-mode together. Use --approval-mode=auto instead.',
+    },
+    {
+      description: 'yolo with auto-mode',
+      argv: ['node', 'script.js', '--yolo', '--auto-mode'],
+      expectedError:
+        'Cannot use both --yolo (-y) and --auto-mode together. Choose one approval shortcut.',
     },
   ])(
-    'should throw an error when using conflicting yolo/approval-mode flags ($description)',
-    async ({ argv }) => {
+    'should throw an error when using conflicting approval shortcut flags ($description)',
+    async ({ argv, expectedError }) => {
       process.argv = argv;
 
       vi.spyOn(process, 'exit').mockImplementation(() => {
@@ -583,9 +599,7 @@ describe('parseArguments', () => {
       );
 
       expect(mockConsoleError).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Cannot use both --yolo (-y) and --approval-mode together. Use --approval-mode=yolo instead.',
-        ),
+        expect.stringContaining(expectedError),
       );
     },
   );
@@ -594,18 +608,24 @@ describe('parseArguments', () => {
     {
       description: 'should allow --approval-mode without --yolo',
       argv: ['node', 'script.js', '--approval-mode', 'auto_edit'],
-      expected: { approvalMode: 'auto_edit', yolo: false },
+      expected: { approvalMode: 'auto_edit', yolo: false, autoMode: false },
     },
     {
       description: 'should allow --yolo without --approval-mode',
       argv: ['node', 'script.js', '--yolo'],
-      expected: { approvalMode: undefined, yolo: true },
+      expected: { approvalMode: undefined, yolo: true, autoMode: false },
+    },
+    {
+      description: 'should allow --auto-mode without --approval-mode',
+      argv: ['node', 'script.js', '--auto-mode'],
+      expected: { approvalMode: undefined, yolo: false, autoMode: true },
     },
   ])('$description', async ({ argv, expected }) => {
     process.argv = argv;
     const parsedArgs = await parseArguments(createTestMergedSettings());
     expect(parsedArgs.approvalMode).toBe(expected.approvalMode);
     expect(parsedArgs.yolo).toBe(expected.yolo);
+    expect(parsedArgs.autoMode).toBe(expected.autoMode);
   });
 
   it('should reject invalid --approval-mode values', async () => {
@@ -792,6 +812,7 @@ describe('loadCliConfig', () => {
         prompt: undefined,
         promptInteractive: undefined,
         yolo: undefined,
+        autoMode: undefined,
         approvalMode: undefined,
         policy: undefined,
         adminPolicy: undefined,
@@ -838,6 +859,7 @@ describe('loadCliConfig', () => {
         prompt: undefined,
         promptInteractive: undefined,
         yolo: undefined,
+        autoMode: undefined,
         approvalMode: undefined,
         policy: undefined,
         adminPolicy: undefined,
@@ -1461,7 +1483,7 @@ describe('Approval mode tool exclusion logic', () => {
     await expect(
       loadCliConfig(settings, 'test-session', invalidArgv as CliArgs),
     ).rejects.toThrow(
-      'Invalid approval mode: invalid_mode. Valid values are: yolo, auto_edit, plan, default',
+      'Invalid approval mode: invalid_mode. Valid values are: yolo, auto, auto_edit, plan, default',
     );
   });
 
@@ -2728,6 +2750,28 @@ describe('loadCliConfig approval mode', () => {
       argv,
     );
     expect(config.getApprovalMode()).toBe(ServerConfig.ApprovalMode.AUTO_EDIT);
+  });
+
+  it('should set AUTO approval mode when --approval-mode=auto', async () => {
+    process.argv = ['node', 'script.js', '--approval-mode', 'auto'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const config = await loadCliConfig(
+      createTestMergedSettings(),
+      'test-session',
+      argv,
+    );
+    expect(config.getApprovalMode()).toBe(ServerConfig.ApprovalMode.AUTO);
+  });
+
+  it('should set AUTO approval mode when --auto-mode is used', async () => {
+    process.argv = ['node', 'script.js', '--auto-mode'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const config = await loadCliConfig(
+      createTestMergedSettings(),
+      'test-session',
+      argv,
+    );
+    expect(config.getApprovalMode()).toBe(ServerConfig.ApprovalMode.AUTO);
   });
 
   it('should set YOLO approval mode when --approval-mode=yolo', async () => {

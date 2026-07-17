@@ -14,6 +14,8 @@ export function getApprovalModeDescription(mode: ApprovalMode): string {
   switch (mode) {
     case ApprovalMode.AUTO_EDIT:
       return 'Auto-Edit mode (edits will be applied automatically)';
+    case ApprovalMode.AUTO:
+      return 'Auto mode (safe actions auto-approved; dangerous ops require confirmation)';
     case ApprovalMode.DEFAULT:
       return 'Default mode (edits will require confirmation)';
     case ApprovalMode.PLAN:

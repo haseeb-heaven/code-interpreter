@@ -457,10 +457,25 @@ describe('createPolicyEngineConfig', () => {
   it('should allow all tools in YOLO mode', async () => {
     const config = await createPolicyEngineConfig({}, ApprovalMode.YOLO);
     const rule = config.rules?.find(
-      (r) => r.decision === PolicyDecision.ALLOW && r.toolName === '*',
+      (r) =>
+        r.decision === PolicyDecision.ALLOW &&
+        r.toolName === '*' &&
+        r.modes?.includes(ApprovalMode.YOLO),
     );
     expect(rule).toBeDefined();
     expect(rule?.priority).toBeCloseTo(1.998, 5);
+  });
+
+  it('should allow all tools in Auto mode', async () => {
+    const config = await createPolicyEngineConfig({}, ApprovalMode.AUTO);
+    const rule = config.rules?.find(
+      (r) =>
+        r.decision === PolicyDecision.ALLOW &&
+        r.toolName === '*' &&
+        r.modes?.includes(ApprovalMode.AUTO),
+    );
+    expect(rule).toBeDefined();
+    expect(rule?.priority).toBeCloseTo(1.996, 5);
   });
 
   it('should allow edit tool in AUTO_EDIT mode', async () => {

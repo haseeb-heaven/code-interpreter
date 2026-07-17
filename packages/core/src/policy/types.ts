@@ -48,6 +48,12 @@ export function getHookSource(input: Record<string, unknown>): HookSource {
 export enum ApprovalMode {
   DEFAULT = 'default',
   AUTO_EDIT = 'autoEdit',
+  /**
+   * Auto mode (Claude Code-style): auto-approve safe tool calls; still prompt
+   * on dangerous shell commands, path escapes, and other high-risk actions.
+   * Distinct from YOLO, which auto-approves everything including dangerous ops.
+   */
+  AUTO = 'auto',
   YOLO = 'yolo',
   PLAN = 'plan',
 }
@@ -61,6 +67,7 @@ export const MODES_BY_PERMISSIVENESS = [
   ApprovalMode.PLAN,
   ApprovalMode.DEFAULT,
   ApprovalMode.AUTO_EDIT,
+  ApprovalMode.AUTO,
   ApprovalMode.YOLO,
 ];
 
@@ -381,3 +388,9 @@ export const ALWAYS_ALLOW_PRIORITY_OFFSET =
  * Matches the raw priority used in yolo.toml.
  */
 export const PRIORITY_YOLO_ALLOW_ALL = 998;
+
+/**
+ * Priority for the Auto mode "allow all" rule.
+ * Matches the raw priority used in auto.toml (below ask_user / plan denials).
+ */
+export const PRIORITY_AUTO_ALLOW_ALL = 996;

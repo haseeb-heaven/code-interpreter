@@ -310,6 +310,7 @@ describe('policy.ts', () => {
           modes: [
             ApprovalMode.DEFAULT,
             ApprovalMode.AUTO_EDIT,
+            ApprovalMode.AUTO,
             ApprovalMode.YOLO,
           ],
         }),
@@ -955,6 +956,7 @@ describe('Plan Mode Denial Consistency', () => {
         expectedModes: [
           ApprovalMode.DEFAULT,
           ApprovalMode.AUTO_EDIT,
+          ApprovalMode.AUTO,
           ApprovalMode.YOLO,
         ],
         description:
@@ -962,9 +964,18 @@ describe('Plan Mode Denial Consistency', () => {
       },
       {
         currentMode: ApprovalMode.AUTO_EDIT,
-        expectedModes: [ApprovalMode.AUTO_EDIT, ApprovalMode.YOLO],
+        expectedModes: [
+          ApprovalMode.AUTO_EDIT,
+          ApprovalMode.AUTO,
+          ApprovalMode.YOLO,
+        ],
         description:
           'include current and more permissive modes in AUTO_EDIT mode',
+      },
+      {
+        currentMode: ApprovalMode.AUTO,
+        expectedModes: [ApprovalMode.AUTO, ApprovalMode.YOLO],
+        description: 'include current and more permissive modes in AUTO mode',
       },
       {
         currentMode: ApprovalMode.YOLO,
@@ -977,6 +988,7 @@ describe('Plan Mode Denial Consistency', () => {
           ApprovalMode.PLAN,
           ApprovalMode.DEFAULT,
           ApprovalMode.AUTO_EDIT,
+          ApprovalMode.AUTO,
           ApprovalMode.YOLO,
         ],
         description: 'include all modes explicitly when granted in PLAN mode',

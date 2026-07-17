@@ -187,9 +187,34 @@ describe('Configuration Integration Tests', () => {
         expected: { approvalMode: 'auto_edit', prompt: 'test', yolo: false },
       },
       {
+        description: 'should parse --approval-mode=auto correctly',
+        argv: ['node', 'script.js', '--approval-mode', 'auto', '-p', 'test'],
+        expected: {
+          approvalMode: 'auto',
+          prompt: 'test',
+          yolo: false,
+          autoMode: false,
+        },
+      },
+      {
+        description: 'should parse --auto-mode correctly',
+        argv: ['node', 'script.js', '--auto-mode', '-p', 'test'],
+        expected: {
+          approvalMode: undefined,
+          prompt: 'test',
+          yolo: false,
+          autoMode: true,
+        },
+      },
+      {
         description: 'should parse --approval-mode=yolo correctly',
         argv: ['node', 'script.js', '--approval-mode', 'yolo', '-p', 'test'],
-        expected: { approvalMode: 'yolo', prompt: 'test', yolo: false },
+        expected: {
+          approvalMode: 'yolo',
+          prompt: 'test',
+          yolo: false,
+          autoMode: false,
+        },
       },
       {
         description: 'should parse --approval-mode=default correctly',
@@ -214,6 +239,11 @@ describe('Configuration Integration Tests', () => {
         expect(parsedArgs.approvalMode).toBe(expected.approvalMode);
         expect(parsedArgs.prompt).toBe(expected.prompt);
         expect(parsedArgs.yolo).toBe(expected.yolo);
+        if ('autoMode' in expected) {
+          expect(parsedArgs.autoMode).toBe(
+            (expected as { autoMode?: boolean }).autoMode,
+          );
+        }
       } finally {
         process.argv = originalArgv;
       }
