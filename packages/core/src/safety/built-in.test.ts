@@ -11,6 +11,9 @@ import * as path from 'node:path';
 import { AllowedPathChecker } from './built-in.js';
 import { SafetyCheckDecision, type SafetyCheckInput } from './protocol.js';
 import type { FunctionCall } from '@google/genai';
+import { canCreateSymlinks } from '@open-agent/test-utils';
+
+const canSymlink = await canCreateSymlinks();
 
 describe('AllowedPathChecker', () => {
   let checker: AllowedPathChecker;
@@ -116,7 +119,7 @@ describe('AllowedPathChecker', () => {
     expect(result.decision).toBe(SafetyCheckDecision.ALLOW);
   });
 
-  it('should deny access if path contains a symlink pointing outside allowed directories', async () => {
+  it.skipIf(!canSymlink)('should deny access if path contains a symlink pointing outside allowed directories', async () => {
     const symlinkPath = path.join(mockCwd, 'symlink');
     const targetPath = path.join(testRootDir, 'etc', 'passwd');
     await fs.mkdir(path.dirname(targetPath), { recursive: true });
@@ -133,7 +136,7 @@ describe('AllowedPathChecker', () => {
     );
   });
 
-  it('should allow access if path contains a symlink pointing INSIDE allowed directories', async () => {
+  it.skipIf(!canSymlink)('should allow access if path contains a symlink pointing INSIDE allowed directories', async () => {
     const symlinkPath = path.join(mockCwd, 'symlink-inside');
     const realFilePath = path.join(mockCwd, 'real-file');
     await fs.writeFile(realFilePath, 'real content');

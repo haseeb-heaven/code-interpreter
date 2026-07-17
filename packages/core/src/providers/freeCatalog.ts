@@ -18,6 +18,7 @@
 
 import type { FreeCatalogEntry, RegistryModelConfig } from './modelRegistry.js';
 import { ModelRegistry } from './modelRegistry.js';
+import { getProvider, providerApiKey } from './providers.js';
 
 /** One curated free/cheap model preset. */
 export interface FreeModelEntry {
@@ -64,6 +65,12 @@ export function isEntryAvailable(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
   if (!entry.envKey) return true;
+  // Prefer provider-aware lookup so aliases like HUGGINGFACE_API_KEY → HF_TOKEN work.
+  const provider = getProvider(entry.provider);
+  if (provider) {
+    if (provider.local) return true;
+    return providerApiKey(provider, env) !== undefined;
+  }
   const value = env[entry.envKey];
   return Boolean(value && value.trim());
 }
@@ -179,6 +186,16 @@ const FREE_ROUTING_FAILURE_MARKERS = [
   'too many requests',
   'tokens per minute',
   'tpm',
+  // Context window overflows — switch to a model with more room / free fallback
+  'context_length_exceeded',
+  'context length',
+  'context window',
+  'maximum context',
+  'max context',
+  'too many tokens',
+  'prompt is too long',
+  'please reduce the length of the messages',
+  'reduce the length of the messages or completion',
 ];
 
 const RATE_LIMIT_MARKERS = [
@@ -190,6 +207,8 @@ const RATE_LIMIT_MARKERS = [
   'too many requests',
   'tokens per minute',
   'provider returned error',
+  'context_length_exceeded',
+  'please reduce the length of the messages',
 ];
 
 const FATAL_MARKERS = [

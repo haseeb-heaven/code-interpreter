@@ -131,13 +131,13 @@ describe('GrepTool', () => {
 
     it('should return error if pattern is missing', () => {
       const params = { dir_path: '.' } as unknown as GrepToolParams;
-      expect(grepTool.validateToolParams(params)).toBe(
+      expect(grepTool.validateToolParams(params)).toContain(
         `params must have required property 'pattern'`,
       );
     });
 
     it('should return error for invalid regex pattern', () => {
-      const params: GrepToolParams = { pattern: '[[' };
+      const params: GrepToolParams = { pattern: '(' };
       expect(grepTool.validateToolParams(params)).toContain(
         'Invalid regular expression pattern',
       );

@@ -38,7 +38,7 @@ describe('HelpCommand', () => {
 
     const data = response.data as string;
 
-    expect(data).toContain('Gemini CLI Help:');
+    expect(data).toContain('OpenAgent Help:');
     expect(data).toContain('### Basics');
     expect(data).toContain('### Commands');
 

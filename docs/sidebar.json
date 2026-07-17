@@ -9,18 +9,30 @@
           { "label": "Quickstart", "slug": "docs/get-started" },
           { "label": "Installation", "slug": "docs/get-started/installation" },
           {
-            "label": "Authentication",
+            "label": "Authentication & providers",
             "slug": "docs/get-started/authentication"
+          },
+          {
+            "label": "Provider catalog",
+            "slug": "docs/get-started/providers"
+          },
+          {
+            "label": "Free models",
+            "slug": "docs/get-started/free-models"
+          },
+          {
+            "label": "Local models",
+            "slug": "docs/get-started/local-models"
           },
           { "label": "CLI cheatsheet", "slug": "docs/cli/cli-reference" },
           {
-            "label": "Gemini 3 on Gemini CLI",
+            "label": "Gemini 3 (optional)",
             "slug": "docs/get-started/gemini-3"
           }
         ]
       },
       {
-        "label": "Use Gemini CLI",
+        "label": "Use OpenAgent",
         "items": [
           {
             "label": "File management",
@@ -194,7 +206,7 @@
             "slug": "docs/cli/enterprise"
           },
           {
-            "label": "Ignore files (.geminiignore)",
+            "label": "Ignore files",
             "slug": "docs/cli/gemini-ignore"
           },
           {
@@ -202,7 +214,7 @@
             "slug": "docs/cli/generation-settings"
           },
           {
-            "label": "Project context (GEMINI.md)",
+            "label": "Project context files",
             "slug": "docs/cli/gemini-md"
           },
           { "label": "Settings", "slug": "docs/cli/settings" },
@@ -261,6 +273,10 @@
         "label": "Resources",
         "items": [
           { "label": "FAQ", "slug": "docs/resources/faq" },
+          {
+            "label": "Common errors",
+            "slug": "docs/resources/common-errors"
+          },
           {
             "label": "Quota and pricing",
             "slug": "docs/resources/quota-and-pricing"

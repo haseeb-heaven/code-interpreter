@@ -63,7 +63,7 @@ export function validateWorkspacePath(
   if (!isWithinWorkspace) {
     return {
       isValid: false,
-      error: `Directory mismatch. Gemini CLI is running in a different location than the open workspace in the IDE. Please run the CLI from one of the following directories: ${ideWorkspacePaths.join(
+      error: `Directory mismatch. OpenAgent is running in a different location than the open workspace in the IDE. Please run the CLI from one of the following directories: ${ideWorkspacePaths.join(
         ', ',
       )}`,
     };

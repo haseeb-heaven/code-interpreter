@@ -203,13 +203,198 @@ export const WEB_FETCH_DISPLAY_NAME = 'WebFetch';
 export const READ_MANY_FILES_DISPLAY_NAME = 'ReadManyFiles';
 
 /**
- * Mapping of legacy tool names to their current names.
- * This ensures backward compatibility for user-defined policies, skills, and hooks.
+ * Mapping of legacy / alternate tool names to their current names.
+ * This ensures backward compatibility for user-defined policies, skills, and hooks,
+ * and recovers common model hallucinations (display names, class names, etc.).
  */
 export const TOOL_LEGACY_ALIASES: Record<string, string> = {
   // Add future renames here, e.g.:
   search_file_content: GREP_TOOL_NAME,
+
+  // Display / class names models often emit instead of the schema name
+  Shell: SHELL_TOOL_NAME,
+  ShellTool: SHELL_TOOL_NAME,
+  shell: SHELL_TOOL_NAME,
+  bash: SHELL_TOOL_NAME,
+  terminal: SHELL_TOOL_NAME,
+  run_command: SHELL_TOOL_NAME,
+  execute: SHELL_TOOL_NAME,
+  execute_command: SHELL_TOOL_NAME,
+  execute_shell: SHELL_TOOL_NAME,
+  powershell: SHELL_TOOL_NAME,
+  cmd: SHELL_TOOL_NAME,
+
+  ReadFile: READ_FILE_TOOL_NAME,
+  ReadFileTool: READ_FILE_TOOL_NAME,
+  WriteFile: WRITE_FILE_TOOL_NAME,
+  WriteFileTool: WRITE_FILE_TOOL_NAME,
+  Edit: EDIT_TOOL_NAME,
+  EditTool: EDIT_TOOL_NAME,
+  Grep: GREP_TOOL_NAME,
+  GrepTool: GREP_TOOL_NAME,
+  SearchText: GREP_TOOL_NAME,
+  FindFiles: GLOB_TOOL_NAME,
+  Glob: GLOB_TOOL_NAME,
+  ReadFolder: LS_TOOL_NAME,
+  ListDirectory: LS_TOOL_NAME,
+  GoogleSearch: WEB_SEARCH_TOOL_NAME,
+  WebSearch: WEB_SEARCH_TOOL_NAME,
+  WebFetch: WEB_FETCH_TOOL_NAME,
+  // Models invent a "download" tool for save-to-disk; route via web_fetch
+  // normalize which remaps to shell when a destination path is present.
+  download: WEB_FETCH_TOOL_NAME,
+  download_file: WEB_FETCH_TOOL_NAME,
+  DownloadFile: WEB_FETCH_TOOL_NAME,
+  Download: WEB_FETCH_TOOL_NAME,
 };
+
+/**
+ * Infer the intended built-in tool from call arguments when the model used an
+ * unknown or placeholder tool name (e.g. `generic_tool`).
+ *
+ * Returns a built-in tool name only when the arg shape is unambiguous.
+ */
+function isPlainArgs(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasStringField(args: Record<string, unknown>, key: string): boolean {
+  const value = args[key];
+  return typeof value === 'string';
+}
+
+export function inferToolNameFromArgs(args: unknown): string | undefined {
+  if (!isPlainArgs(args)) {
+    return undefined;
+  }
+  const a = args;
+
+  // Shell: primary recovery path for hallucinated tools like generic_tool
+  if (hasStringField(a, SHELL_PARAM_COMMAND)) {
+    return SHELL_TOOL_NAME;
+  }
+
+  // File writes / edits before plain reads (more specific first)
+  if (
+    hasStringField(a, PARAM_FILE_PATH) &&
+    hasStringField(a, WRITE_FILE_PARAM_CONTENT)
+  ) {
+    return WRITE_FILE_TOOL_NAME;
+  }
+  if (
+    hasStringField(a, PARAM_FILE_PATH) &&
+    (hasStringField(a, EDIT_PARAM_OLD_STRING) ||
+      hasStringField(a, EDIT_PARAM_NEW_STRING))
+  ) {
+    return EDIT_TOOL_NAME;
+  }
+  if (hasStringField(a, PARAM_FILE_PATH)) {
+    return READ_FILE_TOOL_NAME;
+  }
+
+  if (hasStringField(a, WEB_SEARCH_PARAM_QUERY)) {
+    return WEB_SEARCH_TOOL_NAME;
+  }
+  // URL + save path → download intent (handled by web_fetch→shell remap)
+  if (
+    (hasStringField(a, 'url') ||
+      hasStringField(a, 'uri') ||
+      hasStringField(a, 'link')) &&
+    (hasStringField(a, 'download_location') ||
+      hasStringField(a, 'save_path') ||
+      hasStringField(a, 'destination') ||
+      hasStringField(a, 'out_file') ||
+      hasStringField(a, 'output_path'))
+  ) {
+    return WEB_FETCH_TOOL_NAME;
+  }
+  if (hasStringField(a, WEB_FETCH_PARAM_PROMPT)) {
+    return WEB_FETCH_TOOL_NAME;
+  }
+
+  // Grep vs glob: prefer glob when args look like file-name search
+  // (extension globs, gitignore flags, case_sensitive without grep fields).
+  if (hasStringField(a, PARAM_PATTERN)) {
+    const pattern = String(a[PARAM_PATTERN]);
+    const hasGrepFields =
+      typeof a[GREP_PARAM_INCLUDE_PATTERN] === 'string' ||
+      typeof a[GREP_PARAM_EXCLUDE_PATTERN] === 'string' ||
+      a[GREP_PARAM_NAMES_ONLY] !== undefined ||
+      a[GREP_PARAM_CONTEXT] !== undefined ||
+      a[GREP_PARAM_AFTER] !== undefined ||
+      a[GREP_PARAM_BEFORE] !== undefined;
+    const hasGlobFlags =
+      typeof a[PARAM_CASE_SENSITIVE] === 'boolean' ||
+      typeof a[PARAM_RESPECT_GIT_IGNORE] === 'boolean' ||
+      typeof a[PARAM_RESPECT_GEMINI_IGNORE] === 'boolean';
+    const looksLikeGlob =
+      /^\*\.[\w.*?{},-]+$/.test(pattern.trim()) ||
+      /^\*\*\//.test(pattern.trim()) ||
+      (hasGlobFlags && !hasGrepFields);
+
+    if (looksLikeGlob && !hasGrepFields) {
+      return GLOB_TOOL_NAME;
+    }
+    if (hasGrepFields) {
+      return GREP_TOOL_NAME;
+    }
+    // Bare content-ish pattern → grep is the more common intent.
+    return GREP_TOOL_NAME;
+  }
+
+  if (typeof a[PARAM_DIR_PATH] === 'string' && Object.keys(a).length <= 3) {
+    return LS_TOOL_NAME;
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolve a model-emitted tool name to a canonical registered name.
+ * Order: exact alias map → case-insensitive alias → case-insensitive match
+ * against known names → arg-shape inference.
+ */
+export function resolveCanonicalToolName(
+  name: string,
+  options: {
+    knownNames?: readonly string[];
+    args?: unknown;
+  } = {},
+): string {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) {
+    return name;
+  }
+
+  // Exact legacy / display alias
+  if (TOOL_LEGACY_ALIASES[trimmed]) {
+    return TOOL_LEGACY_ALIASES[trimmed];
+  }
+
+  // Case-insensitive alias
+  const lower = trimmed.toLowerCase();
+  for (const [alias, canonical] of Object.entries(TOOL_LEGACY_ALIASES)) {
+    if (alias.toLowerCase() === lower) {
+      return canonical;
+    }
+  }
+
+  // Case-insensitive match against known registered tool names
+  const known = options.knownNames ?? ALL_BUILTIN_TOOL_NAMES;
+  for (const knownName of known) {
+    if (knownName.toLowerCase() === lower) {
+      return knownName;
+    }
+  }
+
+  // Arg-shape recovery for completely unknown names (generic_tool, etc.)
+  const inferred = inferToolNameFromArgs(options.args);
+  if (inferred && (known).includes(inferred)) {
+    return inferred;
+  }
+
+  return trimmed;
+}
 
 /**
  * Returns all associated names for a tool (including legacy aliases and current name).

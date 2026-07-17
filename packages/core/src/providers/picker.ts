@@ -62,7 +62,7 @@ export function modelSupportsVision(
   return VISION_MODEL_HINTS.some((hint) => id.includes(hint));
 }
 
-function providerForConfig(
+export function providerForConfig(
   configProvider: string | undefined,
   modelId: string,
 ): ProviderDefinition | undefined {
@@ -80,6 +80,25 @@ function providerForConfig(
   if (id.startsWith('deepseek')) return getProvider('deepseek');
   if (id.startsWith('glm')) return getProvider('z-ai');
   return undefined;
+}
+
+/**
+ * Resolves the {@link ProviderDefinition} actually backing the given
+ * model id/key (a registry key, a LiteLLM-style "provider/model" id, or a
+ * bare model id) — the source of truth for "which provider is active,"
+ * as opposed to stale auth-flow settings like `security.auth.selectedType`.
+ */
+export function resolveActiveProvider(
+  modelIdOrKey: string,
+  options: { registry?: ModelRegistry } = {},
+): ProviderDefinition | undefined {
+  const registry = options.registry ?? ModelRegistry.load();
+  const key = registry.resolveModelKey(modelIdOrKey) ?? modelIdOrKey;
+  const cfg = registry.getModel(key);
+  if (cfg) {
+    return providerForConfig(cfg.provider, cfg.model ?? key);
+  }
+  return providerForConfig(undefined, modelIdOrKey);
 }
 
 /**

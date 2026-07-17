@@ -1,13 +1,13 @@
-# Writing hooks for Gemini CLI
+# Writing hooks for OpenAgent CLI
 
-This guide will walk you through creating hooks for Gemini CLI, from a simple
+This guide will walk you through creating hooks for OpenAgent CLI, from a simple
 logging hook to a comprehensive workflow assistant.
 
 ## Prerequisites
 
 Before you start, make sure you have:
 
-- Gemini CLI installed and configured
+- OpenAgent CLI installed and configured
 - Basic understanding of shell scripting or JavaScript/Node.js
 - Familiarity with JSON for hook input/output
 
@@ -78,7 +78,7 @@ New-Item -ItemType Directory -Force -Path ".gemini\hooks"
 
 ## Exit Code Strategies
 
-There are two ways to control or block an action in Gemini CLI:
+There are two ways to control or block an action in OpenAgent CLI:
 
 | Strategy                   | Exit Code | Implementation                                                     | Best For                                                    |
 | :------------------------- | :-------- | :----------------------------------------------------------------- | :---------------------------------------------------------- |
@@ -470,5 +470,5 @@ console.error('Consolidating memories for session end...');
 
 While project-level hooks are great for specific repositories, you can share
 your hooks across multiple projects by packaging them as a
-[Gemini CLI extension](../extensions/index.md). This provides version control,
-easy distribution, and centralized management.
+[OpenAgent CLI extension](../extensions/index.md). This provides version
+control, easy distribution, and centralized management.

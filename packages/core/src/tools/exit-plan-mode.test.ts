@@ -16,10 +16,13 @@ import * as fs from 'node:fs';
 import os from 'node:os';
 import { validatePlanPath } from '../utils/planUtils.js';
 import * as loggers from '../telemetry/loggers.js';
+import { canCreateSymlinks } from '@open-agent/test-utils';
 
 vi.mock('../telemetry/loggers.js', () => ({
   logPlanExecution: vi.fn(),
 }));
+
+const canSymlink = await canCreateSymlinks();
 
 describe('ExitPlanModeTool', () => {
   let tool: ExitPlanModeTool;
@@ -493,7 +496,7 @@ Ask the user for specific feedback on how to improve the plan.`,
       expect(result).toContain('Plan file does not exist');
     });
 
-    it('should reject symbolic links pointing outside the plans directory', () => {
+    it.skipIf(!canSymlink)('should reject symbolic links pointing outside the plans directory', () => {
       const outsideFile = path.join(tempRootDir, 'outside.txt');
       fs.writeFileSync(outsideFile, 'secret');
       const maliciousPath = path.join(mockPlansDir, 'malicious.md');

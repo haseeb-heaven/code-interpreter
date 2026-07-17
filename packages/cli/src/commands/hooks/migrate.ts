@@ -260,7 +260,7 @@ export async function handleMigrateFromClaude() {
 
 export const migrateCommand: CommandModule = {
   command: 'migrate',
-  describe: 'Migrate hooks from Claude Code to Gemini CLI',
+  describe: 'Migrate hooks from Claude Code to OpenAgent',
   builder: (yargs) =>
     yargs.option('from-claude', {
       describe: 'Migrate from Claude Code hooks',
@@ -274,7 +274,7 @@ export const migrateCommand: CommandModule = {
       await handleMigrateFromClaude();
     } else {
       debugLogger.log(
-        'Usage: gemini hooks migrate --from-claude\n\nMigrate hooks from Claude Code to Gemini CLI format.',
+        'Usage: gemini hooks migrate --from-claude\n\nMigrate hooks from Claude Code to OpenAgent format.',
       );
     }
     await exitCli();

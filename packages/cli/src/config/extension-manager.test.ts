@@ -23,6 +23,9 @@ import {
   type CustomTheme,
   IntegrityDataStatus,
 } from '@open-agent/core';
+import { canCreateSymlinks } from '@open-agent/test-utils';
+
+const canSymlink = await canCreateSymlinks();
 
 const mockHomedir = vi.hoisted(() => vi.fn(() => '/tmp/mock-home'));
 const mockIntegrityManager = vi.hoisted(() => ({
@@ -225,7 +228,7 @@ describe('ExtensionManager', () => {
     });
   });
 
-  describe('symlink handling', () => {
+  describe.skipIf(!canSymlink)('symlink handling', () => {
     let extensionDir: string;
     let symlinkDir: string;
 

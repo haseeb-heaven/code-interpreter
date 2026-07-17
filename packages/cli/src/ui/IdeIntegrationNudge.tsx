@@ -94,7 +94,7 @@ export function IdeIntegrationNudge({
       <Box marginBottom={1} flexDirection="column">
         <Text>
           <Text color={theme.status.warning}>{'> '}</Text>
-          {`Do you want to connect ${ideName ?? 'your editor'} to Gemini CLI?`}
+          {`Do you want to connect ${ideName ?? 'your editor'} to OpenAgent?`}
         </Text>
         <Text color={theme.text.secondary}>{installText}</Text>
       </Box>

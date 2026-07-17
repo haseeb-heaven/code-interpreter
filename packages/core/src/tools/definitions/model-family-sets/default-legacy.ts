@@ -83,7 +83,7 @@ import {
 export const DEFAULT_LEGACY_SET: CoreToolSet = {
   read_file: {
     name: READ_FILE_TOOL_NAME,
-    description: `Reads and returns the content of a specified file. If the file is large, the content will be truncated. The tool's response will clearly indicate if truncation has occurred and will provide details on how to read more of the file using the 'start_line' and 'end_line' parameters. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), audio files (MP3, WAV, AIFF, AAC, OGG, FLAC), and PDF files. For text files, it can read specific line ranges.`,
+    description: `Reads and returns the content of a specified file. If the file is large, the content will be truncated. The tool's response will clearly indicate if truncation has occurred and will provide details on how to read more of the file using the 'start_line' and 'end_line' parameters. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), audio files (MP3, WAV, AIFF, AAC, OGG, FLAC), PDF files, and Word documents (.docx text extraction). For text files, it can read specific line ranges.`,
     parametersJsonSchema: {
       type: 'object',
       properties: {
@@ -180,12 +180,12 @@ export const DEFAULT_LEGACY_SET: CoreToolSet = {
   grep_search_ripgrep: {
     name: GREP_TOOL_NAME,
     description:
-      'Searches for a regular expression pattern within file contents.',
+      'Searches for a regular expression pattern within file contents. ALWAYS pass a non-empty `pattern` (content regex, NOT a file glob like `*.txt` — use glob for filenames). Do NOT call with empty `{}`.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [PARAM_PATTERN]: {
-          description: `The pattern to search for. By default, treated as a Rust-flavored regular expression. Use '\\b' for precise symbol matching (e.g., '\\bMatchMe\\b').`,
+          description: `Required content regex (e.g. 'TODO|FIXME', 'function\\s+foo'). Do NOT pass file globs like '*.txt' or '*.*' here — use the glob tool for file names. Never omit this field.`,
           type: 'string',
         },
         [PARAM_DIR_PATH]: {
@@ -261,13 +261,13 @@ export const DEFAULT_LEGACY_SET: CoreToolSet = {
   glob: {
     name: GLOB_TOOL_NAME,
     description:
-      'Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases.',
+      'Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`, `**/*.{txt,md}`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases. ALWAYS pass a non-empty `pattern`. Do NOT use this tool for searching inside file contents (use grep_search for that). Do NOT call with empty `{}`.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [PARAM_PATTERN]: {
           description:
-            "The glob pattern to match against (e.g., '**/*.py', 'docs/*.md').",
+            "Required. The glob pattern to match against (e.g., '**/*.py', 'docs/*.md', '**/*.{txt,md}'). Never omit this field.",
           type: 'string',
         },
         [PARAM_DIR_PATH]: {
@@ -413,7 +413,7 @@ A good instruction should concisely answer:
   google_web_search: {
     name: WEB_SEARCH_TOOL_NAME,
     description:
-      'Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.',
+      'Performs a web search and returns results with source URLs. Uses Google Search grounding when a Gemini API key is available; otherwise falls back to an independent web search backend so multi-provider sessions still work. ALWAYS pass a non-empty "query" string for any information not available in the local workspace. Multi-step: after search, keep using tools in the same turn loop until the full user request is done — web_fetch to read/summarize pages, run_shell_command to download/open/install files, then any further local actions. Do not stop after only listing links if the user asked for more.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
@@ -429,13 +429,13 @@ A good instruction should concisely answer:
   web_fetch: {
     name: WEB_FETCH_TOOL_NAME,
     description:
-      "Processes content from URL(s), including local and private network addresses (e.g., localhost), embedded in a prompt. Include up to 20 URLs and instructions (e.g., summarize, extract specific data) directly in the 'prompt' parameter.",
+      "Reads and analyzes content from URL(s) for the model context. Include up to 20 URLs and instructions (e.g., summarize, extract data) in the single 'prompt' string. Does NOT save files to disk — never pass download_location, save_path, or similar. To download a file to a local path, use run_shell_command (curl / Invoke-WebRequest / wget) with the direct URL, then continue with open/verify/install steps as requested.",
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [WEB_FETCH_PARAM_PROMPT]: {
           description:
-            'A comprehensive prompt that includes the URL(s) (up to 20) to fetch and specific instructions on how to process their content (e.g., "Summarize https://example.com/article and extract key points from https://another.com/data"). All URLs to be fetched must be valid and complete, starting with "http://" or "https://", and be fully-formed with a valid hostname (e.g., a domain name like "example.com" or an IP address). For example, "https://example.com" is valid, but "example.com" is not.',
+            'A comprehensive prompt that includes the URL(s) (up to 20) to fetch and specific instructions on how to process their content (e.g., "Summarize https://example.com/article and extract key points from https://another.com/data"). All URLs to be fetched must be valid and complete, starting with "http://" or "https://", and be fully-formed with a valid hostname (e.g., a domain name like "example.com" or an IP address). For example, "https://example.com" is valid, but "example.com" is not. Do not put local filesystem paths here — this tool does not download files.',
           type: 'string',
         },
       },
@@ -619,7 +619,7 @@ The agent did not use the todo list because this task could be completed by a ti
   get_internal_docs: {
     name: GET_INTERNAL_DOCS_TOOL_NAME,
     description:
-      'Returns the content of Gemini CLI internal documentation files. If no path is provided, returns a list of all available documentation paths.',
+      'Returns the content of OpenAgent internal documentation files. If no path is provided, returns a list of all available documentation paths.',
     parametersJsonSchema: {
       type: 'object',
       properties: {

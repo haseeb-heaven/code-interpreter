@@ -1,6 +1,6 @@
-# Gemini CLI keyboard shortcuts
+# OpenAgent CLI keyboard shortcuts
 
-Gemini CLI ships with a set of default keyboard shortcuts for editing input,
+OpenAgent CLI ships with a set of default keyboard shortcuts for editing input,
 navigating history, and controlling the UI. Use this reference to learn the
 available combinations.
 
@@ -109,8 +109,8 @@ available combinations.
 | `app.cycleApprovalMode`       | Cycle through approval modes: default (prompt), auto_edit (auto-approve edits), and plan (read-only). Plan mode is skipped when the agent is busy. | `Shift+Tab`        |
 | `app.showMoreLines`           | Expand and collapse blocks of content when not in alternate buffer mode.                                                                           | `Ctrl+O`           |
 | `app.expandPaste`             | Expand or collapse a paste placeholder when cursor is over placeholder.                                                                            | `Ctrl+O`           |
-| `app.focusShellInput`         | Move focus from Gemini to the active shell.                                                                                                        | `Tab`              |
-| `app.unfocusShellInput`       | Move focus from the shell back to Gemini.                                                                                                          | `Shift+Tab`        |
+| `app.focusShellInput`         | Move focus from OpenAgent to the active shell.                                                                                                     | `Tab`              |
+| `app.unfocusShellInput`       | Move focus from the shell back to OpenAgent.                                                                                                       | `Shift+Tab`        |
 | `app.clearScreen`             | Clear the terminal screen and redraw the UI.                                                                                                       | `Ctrl+L`           |
 | `app.restart`                 | Restart the application.                                                                                                                           | `R`<br />`Shift+R` |
 | `app.suspend`                 | Suspend the CLI and move it to the background.                                                                                                     | `Ctrl+Z`           |
@@ -126,8 +126,8 @@ available combinations.
 | `background.toggle`         | Toggle current background shell visibility.                        | `Ctrl+B`    |
 | `background.toggleList`     | Toggle background shell list.                                      | `Ctrl+L`    |
 | `background.kill`           | Kill the active background shell.                                  | `Ctrl+K`    |
-| `background.unfocus`        | Move focus from background shell to Gemini.                        | `Shift+Tab` |
-| `background.unfocusList`    | Move focus from background shell list to Gemini.                   | `Tab`       |
+| `background.unfocus`        | Move focus from background shell to OpenAgent.                     | `Shift+Tab` |
+| `background.unfocusList`    | Move focus from background shell list to OpenAgent.                | `Tab`       |
 | `background.unfocusWarning` | Show warning when trying to move focus away from background shell. | `Tab`       |
 | `app.dumpFrame`             | Dump the current frame as a snapshot.                              | `F8`        |
 | `app.startRecording`        | Start recording the session.                                       | `F6`        |
@@ -251,7 +251,7 @@ a `key` combination.
 
 ## Vi mode shortcuts
 
-When vim mode is enabled with `/vim` or `general.vimMode: true`, Gemini CLI
+When vim mode is enabled with `/vim` or `general.vimMode: true`, OpenAgent CLI
 supports NORMAL and INSERT modes.
 
 ### Mode switching

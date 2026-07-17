@@ -1,13 +1,13 @@
 # Themes
 
-Gemini CLI supports a variety of themes to customize its color scheme and
+Open-agent supports a variety of themes to customize its color scheme and
 appearance. You can change the theme to suit your preferences via the `/theme`
 command or `"theme":` configuration setting.
 
 ## Available themes
 
-Gemini CLI comes with a selection of pre-defined themes, which you can list
-using the `/theme` command within Gemini CLI:
+Open-agent comes with a selection of pre-defined themes, which you can list
+using the `/theme` command within open-agent:
 
 - **Dark themes:**
   - `ANSI`
@@ -31,7 +31,7 @@ using the `/theme` command within Gemini CLI:
 
 ### Changing themes
 
-1.  Enter `/theme` into Gemini CLI.
+1.  Enter `/theme` into open-agent.
 2.  A dialog or selection prompt appears, listing the available themes.
 3.  Using the arrow keys, select a theme. Some interfaces might offer a live
     preview or highlight as you select.
@@ -45,7 +45,7 @@ using the `/theme` command within Gemini CLI:
 
 ### Theme persistence
 
-Selected themes are saved in Gemini CLI's
+Selected themes are saved in open-agent's
 [configuration](../reference/configuration.md) so your preference is remembered
 across sessions.
 
@@ -53,7 +53,7 @@ across sessions.
 
 ## Custom color themes
 
-Gemini CLI lets you create your own custom color themes by specifying them in
+Open-agent lets you create your own custom color themes by specifying them in
 your `settings.json` file. This gives you full control over the color palette
 used in the CLI.
 
@@ -184,7 +184,7 @@ custom theme defined in `settings.json`.
 
 <!-- prettier-ignore -->
 > [!WARNING]
-> For your safety, Gemini CLI will only load theme files that
+> For your safety, open-agent will only load theme files that
 > are located within your home directory. If you attempt to load a theme from
 > outside your home directory, a warning will be displayed and the theme will
 > not be loaded. This is to prevent loading potentially malicious theme files
@@ -196,7 +196,7 @@ custom theme defined in `settings.json`.
 
 ### Using your custom theme
 
-- Select your custom theme using the `/theme` command in Gemini CLI. Your custom
+- Select your custom theme using the `/theme` command in open-agent. Your custom
   theme will appear in the theme selection dialog.
 - Or, set it as the default by adding `"theme": "MyCustomTheme"` to the `ui`
   object in your `settings.json`.

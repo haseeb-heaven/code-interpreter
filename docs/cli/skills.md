@@ -1,6 +1,6 @@
 # Agent Skills
 
-Agent Skills let you extend Gemini CLI with specialized expertise, procedural
+Agent Skills let you extend open-agent with specialized expertise, procedural
 workflows, and task-specific resources. Based on the
 [Agent Skills](https://agentskills.io) open standard, a "skill" is a
 self-contained directory that packages instructions and assets into a
@@ -8,7 +8,7 @@ discoverable capability.
 
 Unlike general context files ([GEMINI.md](./gemini-md.md)), which provide
 persistent workspace-wide background, Skills represent **on-demand expertise**.
-This lets Gemini CLI maintain a vast library of specialized capabilities—such as
+This lets open-agent maintain a vast library of specialized capabilities—such as
 security auditing, cloud deployments, or codebase migrations—without cluttering
 the model's immediate context window.
 
@@ -17,7 +17,7 @@ the model's immediate context window.
 The lifecycle of an Agent Skill involves discovery, activation, and conditional
 resource access.
 
-1.  **Discovery**: At the start of a session, Gemini CLI scans the discovery
+1.  **Discovery**: At the start of a session, open-agent scans the discovery
     tiers and injects the name and description of all enabled skills into the
     system prompt.
 2.  **Activation**: When Gemini identifies a task matching a skill's
@@ -34,10 +34,10 @@ resource access.
 
 ## Discovery tiers
 
-Gemini CLI discovers skills from several locations, following a specific order
+open-agent discovers skills from several locations, following a specific order
 of precedence (lowest to highest):
 
-1.  **Built-in skills**: Standard skills included with Gemini CLI that provide
+1.  **Built-in skills**: Standard skills included with open-agent that provide
     foundational capabilities.
 2.  **Extension skills**: Skills bundled within installed
     [extensions](../extensions/index.md).
@@ -98,18 +98,18 @@ Use the `/skills` slash command to view and manage available expertise:
 
 ### From the terminal
 
-The `gemini skills` command provides management utilities:
+The `openagent skills` command provides management utilities:
 
 ```bash
 # List all discovered skills. Use --all to include built-in skills.
-gemini skills list --all
+openagent skills list --all
 
 # Install a skill from a Git repository or local directory.
 # Use --consent to skip the security confirmation prompt.
-gemini skills install https://github.com/user/repo.git --consent
+openagent skills install https://github.com/user/repo.git --consent
 
 # Uninstall a skill.
-gemini skills uninstall my-skill --scope workspace
+openagent skills uninstall my-skill --scope workspace
 ```
 
 #### Command options

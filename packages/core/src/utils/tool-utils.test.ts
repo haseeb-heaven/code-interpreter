@@ -25,11 +25,20 @@ describe('getToolSuggestion', () => {
     );
     expect(prefixedTool).toBe(' Did you mean "list_files"?');
 
-    // Test that the right tool is first
+    // Closest match is first; distant names may be filtered by threshold
     const suggestionMultiple = getToolSuggestion('list_fils', allToolNames);
-    expect(suggestionMultiple).toBe(
-      ' Did you mean one of: "list_files", "read_file", "write_file"?',
+    expect(suggestionMultiple).toContain('"list_files"');
+  });
+
+  it('should prefer run_shell_command when args include command', () => {
+    const suggestion = getToolSuggestion(
+      'generic_tool',
+      ['update_topic', 'read_file', 'grep_search', 'run_shell_command'],
+      3,
+      { command: 'Get-Date', description: 'Show date' },
     );
+    expect(suggestion).toContain('"run_shell_command"');
+    expect(suggestion).not.toMatch(/^ Did you mean one of: "update_topic"/);
   });
 });
 

@@ -9,6 +9,9 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { copyExtension } from './extension-manager.js';
+import { canCreateSymlinks } from '@open-agent/test-utils';
+
+const canSymlink = await canCreateSymlinks();
 
 describe('copyExtension permissions', () => {
   let tempDir: string;
@@ -104,7 +107,7 @@ describe('copyExtension permissions', () => {
     expect(fs.existsSync(destDir)).toBe(false);
   });
 
-  it('should not follow symlinks or modify symlink targets', async () => {
+  it.skipIf(!canSymlink)('should not follow symlinks or modify symlink targets', async () => {
     const symlinkTarget = path.join(tempDir, 'external-target');
     fs.writeFileSync(symlinkTarget, 'external content');
     // Target is read-only

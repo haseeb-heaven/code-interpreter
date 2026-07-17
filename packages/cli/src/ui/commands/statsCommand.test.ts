@@ -10,7 +10,7 @@ import { type CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 import { MessageType } from '../types.js';
 import { formatDuration } from '../utils/formatters.js';
-import type { Config } from '@open-agent/core';
+import { AuthType, type Config } from '@open-agent/core';
 
 vi.mock('@open-agent/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@open-agent/core')>();
@@ -48,6 +48,7 @@ describe('statsCommand', () => {
       getUserTierName: vi.fn(),
       getUserPaidTier: vi.fn(),
       getModel: vi.fn(),
+      getContentGeneratorConfig: vi.fn().mockReturnValue(undefined),
       get config() {
         return this;
       },
@@ -91,6 +92,9 @@ describe('statsCommand', () => {
       getQuotaResetTime: mockGetQuotaResetTime,
       getUserPaidTier: vi.fn(),
       refreshAvailableCredits: vi.fn(),
+      getContentGeneratorConfig: vi
+        .fn()
+        .mockReturnValue({ authType: AuthType.USE_GEMINI }),
       get config() {
         return this;
       },

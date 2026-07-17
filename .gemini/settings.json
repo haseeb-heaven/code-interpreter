@@ -11,5 +11,9 @@
   },
   "general": {
     "devtools": true
+  },
+  "ui": {
+    "inlineThinkingMode": "full",
+    "showStatusInTitle": true
   }
 }

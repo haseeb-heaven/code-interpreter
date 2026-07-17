@@ -23,6 +23,7 @@ import {
   type AgentLoopContext,
   updatePolicy,
   getErrorMessage,
+  normalizeToolCallRequest,
   type FilterFilesOptions,
   isTextPart,
   GeminiEventType,
@@ -695,7 +696,11 @@ export class Session {
     }
 
     const toolRegistry = this.context.toolRegistry;
-    const tool = toolRegistry.getTool(fc.name);
+    const normalized = normalizeToolCallRequest(fc.name, args, {
+      knownNames: toolRegistry.getAllToolNames(),
+    });
+    const tool = toolRegistry.getTool(normalized.name, normalized.args);
+    const effectiveArgs = (normalized.args ?? args) as typeof args;
 
     if (!tool) {
       return errorResponse(
@@ -704,7 +709,7 @@ export class Session {
     }
 
     try {
-      const invocation = tool.build(args);
+      const invocation = tool.build(effectiveArgs);
 
       const displayTitle =
         typeof invocation.getDisplayTitle === 'function'

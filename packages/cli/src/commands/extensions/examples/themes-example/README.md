@@ -1,13 +1,13 @@
 # Themes Example
 
-This is an example of a Gemini CLI extension that adds a custom theme.
+This is an example of an OpenAgent extension that adds a custom theme.
 
 ## How to use
 
 1.  Link this extension:
 
     ```bash
-    gemini extensions link packages/cli/src/commands/extensions/examples/themes-example
+    openagent extensions link packages/cli/src/commands/extensions/examples/themes-example
     ```
 
 2.  Set the theme in your settings file (`~/.gemini/settings.json`):
@@ -20,12 +20,12 @@ This is an example of a Gemini CLI extension that adds a custom theme.
     }
     ```
 
-    Alternatively, you can set it through the UI by running `gemini` and then
+    Alternatively, you can set it through the UI by running `openagent` and then
     typing `/theme` and pressing Enter.
 
 3.  **Observe the Changes:**
 
-    After setting the theme, you should see the changes reflected in the Gemini
-    CLI's UI. The background will be a dark green, the primary text a lighter
+    After setting the theme, you should see the changes reflected in
+    OpenAgent's UI. The background will be a dark green, the primary text a lighter
     green, and various other UI elements will display different shades of green,
     as defined in this extension's `gemini-extension.json` file.

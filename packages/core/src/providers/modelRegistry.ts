@@ -15,6 +15,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import TOML from '@iarna/toml';
 
 /** Default location of the single-file model registry. */
@@ -58,8 +59,7 @@ interface RegistryData {
   default_priority?: DefaultPriorityEntry[];
 }
 
-function resolveRegistryPath(registryPath?: string): string {
-  const candidate = registryPath || DEFAULT_REGISTRY_PATH;
+function asRegistryFile(candidate: string): string {
   try {
     if (fs.statSync(candidate).isDirectory()) {
       return path.join(candidate, 'models.toml');
@@ -68,6 +68,39 @@ function resolveRegistryPath(registryPath?: string): string {
     // Fall through: treat as a (possibly missing) file path.
   }
   return candidate;
+}
+
+/**
+ * Search upward from `start` for a `configs/models.toml`, so the registry
+ * resolves both in the repo (packages/core/dist/...) and next to the
+ * installed bundle, regardless of the process working directory.
+ */
+function findRegistryUpward(start: string): string | undefined {
+  let dir = start;
+  for (let i = 0; i < 6; i++) {
+    const candidate = path.join(dir, 'configs', 'models.toml');
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return undefined;
+}
+
+function resolveRegistryPath(registryPath?: string): string {
+  if (registryPath) return asRegistryFile(registryPath);
+  const fromEnv = process.env['OPENAGENT_MODELS_TOML'];
+  if (fromEnv && fromEnv.trim()) return asRegistryFile(fromEnv.trim());
+  // 1. Project-local override in the current working directory.
+  if (fs.existsSync(DEFAULT_REGISTRY_PATH)) return DEFAULT_REGISTRY_PATH;
+  // 2. The registry shipped with the install (next to this module/bundle).
+  const moduleDir =
+    typeof __dirname === 'string'
+      ? __dirname
+      : path.dirname(fileURLToPath(import.meta.url));
+  const shipped = findRegistryUpward(moduleDir);
+  if (shipped) return shipped;
+  return DEFAULT_REGISTRY_PATH;
 }
 
 /** Parsed view of a `models.toml` registry file. */

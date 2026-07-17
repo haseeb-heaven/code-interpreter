@@ -29,13 +29,13 @@ interactive browser.
 
 ### From the command line
 
-When starting Gemini CLI, use the `--resume` (or `-r`) flag to load existing
+When starting open-agent, use the `--resume` (or `-r`) flag to load existing
 sessions.
 
 - **Resume latest:**
 
   ```bash
-  gemini --resume
+  openagent --resume
   ```
 
   This immediately loads the most recent session.
@@ -44,12 +44,12 @@ sessions.
   [Listing sessions](#listing-sessions)), then use the index number:
 
   ```bash
-  gemini --resume 1
+  openagent --resume 1
   ```
 
 - **Resume by ID:** You can also provide the full session UUID:
   ```bash
-  gemini --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  openagent --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890
   ```
 
 ### From the interactive interface
@@ -99,8 +99,9 @@ Compatibility aliases:
 ## Parallel sessions with Git worktrees
 
 When working on multiple tasks at once, you can use
-[Git worktrees](./git-worktrees.md) to give each Gemini session its own copy of
-the codebase. This prevents changes in one session from colliding with another.
+[Git worktrees](./git-worktrees.md) to give each open-agent session its own copy
+of the codebase. This prevents changes in one session from colliding with
+another.
 
 ## Managing sessions
 
@@ -113,7 +114,7 @@ To see a list of all available sessions for the current project from the command
 line, use the `--list-sessions` flag:
 
 ```bash
-gemini --list-sessions
+openagent --list-sessions
 ```
 
 Output example:
@@ -134,7 +135,7 @@ history.
 **From the command line:** Use the `--delete-session` flag with an index or ID:
 
 ```bash
-gemini --delete-session 2
+openagent --delete-session 2
 ```
 
 **From the Session Browser:**
@@ -145,14 +146,14 @@ gemini --delete-session 2
 
 ## Configuration
 
-You can configure how Gemini CLI manages your session history in your
+You can configure how open-agent manages your session history in your
 `settings.json` file. These settings let you control retention policies and
 session lengths.
 
 ### Session retention
 
-By default, Gemini CLI automatically cleans up old session data to prevent your
-history from growing indefinitely. When a session is deleted, Gemini CLI also
+By default, open-agent automatically cleans up old session data to prevent your
+history from growing indefinitely. When a session is deleted, open-agent also
 removes all associated data, including implementation plans, task trackers, tool
 outputs, and activity logs.
 

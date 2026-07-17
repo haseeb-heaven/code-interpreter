@@ -227,8 +227,8 @@ export function useToolScheduler(
   );
 
   const cancelAll: CancelAllFn = useCallback(
-    (_signal) => {
-      scheduler.cancelAll();
+    (signal) => {
+      scheduler.cancelAll(signal);
     },
     [scheduler],
   );

@@ -164,7 +164,7 @@ export function getCompatibilityWarnings(options?: {
     warnings.push({
       id: 'gnu-screen',
       message:
-        'Warning: GNU screen detected. Some keyboard shortcuts and visual features may behave unexpectedly. For the best experience, consider using tmux or running Gemini CLI directly in your terminal.',
+        'Warning: GNU screen detected. Some keyboard shortcuts and visual features may behave unexpectedly. For the best experience, consider using tmux or running OpenAgent directly in your terminal.',
       priority: WarningPriority.Low,
     });
   }

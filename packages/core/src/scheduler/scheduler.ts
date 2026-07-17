@@ -30,6 +30,7 @@ import {
   UPDATE_TOPIC_TOOL_NAME,
   EDIT_TOOL_NAMES,
 } from '../tools/tool-names.js';
+import { normalizeToolCallRequest } from '../tools/tool-call-normalize.js';
 import { PolicyDecision, type ApprovalMode } from '../policy/types.js';
 import {
   ToolConfirmationOutcome,
@@ -53,6 +54,14 @@ import {
   type McpProgressPayload,
 } from '../utils/events.js';
 import { GeminiCliOperation } from '../telemetry/constants.js';
+
+function isTextPart(part: unknown): part is { text: string } {
+  if (!part || typeof part !== 'object') return false;
+  if (!('text' in part)) return false;
+  // Access via index signature after 'in' check — no cast needed for narrowing.
+  const text = (part as { readonly text: unknown }).text;
+  return typeof text === 'string' && text.trim().length > 0;
+}
 
 interface SchedulerQueueItem {
   requests: ToolCallRequestInfo[];
@@ -114,6 +123,10 @@ export class Scheduler {
   private isProcessing = false;
   private isCancelling = false;
   private readonly requestQueue: SchedulerQueueItem[] = [];
+  private readonly executingAbortControllers = new Map<
+    string,
+    AbortController
+  >();
 
   constructor(options: SchedulerOptions) {
     this.context = options.context;
@@ -259,9 +272,10 @@ export class Scheduler {
     });
   }
 
-  cancelAll(): void {
+  cancelAll(signal?: AbortSignal): void {
     if (this.isCancelling) return;
     this.isCancelling = true;
+    void signal;
 
     // Clear scheduler request queue
     while (this.requestQueue.length > 0) {
@@ -273,6 +287,10 @@ export class Scheduler {
     const activeCalls = this.state.allActiveCalls;
     for (const activeCall of activeCalls) {
       if (!this.isTerminal(activeCall.status)) {
+        // Abort the real in-flight async work for calls that are actively
+        // executing, not just their UI status.
+        this.executingAbortControllers.get(activeCall.request.callId)?.abort();
+
         this.state.updateStatus(
           activeCall.request.callId,
           CoreToolCallStatus.Cancelled,
@@ -317,19 +335,63 @@ export class Scheduler {
 
     try {
       const toolRegistry = this.context.toolRegistry;
+      const knownToolNames = toolRegistry.getAllToolNames();
+      // Last user utterance — recover empty web_search query from free models.
+      let lastUserText: string | undefined;
+      try {
+        const history = this.config.geminiClient?.getHistory?.() ?? [];
+        for (let i = history.length - 1; i >= 0; i--) {
+          const turn = history[i];
+          if (turn?.role !== 'user' || !turn.parts) continue;
+          const texts: string[] = [];
+          for (const part of turn.parts) {
+            if (!isTextPart(part)) continue;
+            texts.push(part.text);
+          }
+          const joined = texts.join(' ').trim();
+          if (joined) {
+            lastUserText = joined;
+            break;
+          }
+        }
+      } catch {
+        // history may be unavailable early in the session
+      }
+
       const newCalls: ToolCall[] = sortedRequests.map((request) => {
+        // Resolve aliases / display names / arg-shape recovery before validation.
+        // Also remaps grep→glob when the model passes file-glob patterns/args
+        // (e.g. SearchText with pattern `*.*` + respect_git_ignore).
+        const normalized = normalizeToolCallRequest(
+          request.name,
+          request.args,
+          {
+            knownNames: knownToolNames,
+            lastUserText,
+          },
+        );
+        const tool = toolRegistry.getTool(normalized.name, normalized.args);
+        // Prefer remapped args when they form a plain object (glob remaps, aliases).
+        const remappedArgs =
+          normalized.args !== null &&
+          typeof normalized.args === 'object' &&
+          !Array.isArray(normalized.args)
+            ? { ...normalized.args }
+            : request.args;
         const enrichedRequest: ToolCallRequestInfo = {
           ...request,
+          name: tool?.name ?? normalized.name,
+          args: remappedArgs,
           schedulerId: this.schedulerId,
           parentCallId: this.parentCallId,
         };
-        const tool = toolRegistry.getTool(request.name);
 
         if (!tool) {
           return {
             ...this._createToolNotFoundErroredToolCall(
-              enrichedRequest,
-              toolRegistry.getAllToolNames(),
+              { ...enrichedRequest, name: request.name },
+              knownToolNames,
+              request.args,
             ),
             approvalMode: currentApprovalMode,
           };
@@ -355,14 +417,26 @@ export class Scheduler {
   private _createToolNotFoundErroredToolCall(
     request: ToolCallRequestInfo,
     toolNames: string[],
+    args?: unknown,
   ): ErroredToolCall {
-    const suggestion = getToolSuggestion(request.name, toolNames);
+    const suggestion = getToolSuggestion(request.name, toolNames, 3, args);
+    const emptyPlaceholder =
+      request.name === 'generic_tool' ||
+      !args ||
+      (typeof args === 'object' &&
+        !Array.isArray(args) &&
+        Object.keys(args).length === 0);
+    const guidance = emptyPlaceholder
+      ? ` Do not invent tool names. Use one of: run_shell_command (requires "command"), ` +
+        `read_file (requires "file_path"), grep_search (requires content "pattern"), ` +
+        `glob (requires file "pattern" e.g. "**/*.txt"), list_directory (requires "dir_path").`
+      : '';
     return {
       status: CoreToolCallStatus.Error,
       request,
       response: createErrorResponse(
         request,
-        new Error(`Tool "${request.name}" not found.${suggestion}`),
+        new Error(`Tool "${request.name}" not found.${suggestion}${guidance}`),
         ToolErrorType.TOOL_NOT_REGISTERED,
       ),
       durationMs: 0,
@@ -736,33 +810,51 @@ export class Scheduler {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     const activeCall = this.state.getToolCall(callId) as ExecutingToolCall;
 
-    const result = await runWithToolCallContext(
-      {
-        callId: activeCall.request.callId,
-        schedulerId: this.schedulerId,
-        parentCallId: this.parentCallId,
-        subagent: this.subagent,
-      },
-      () =>
-        this.executor.execute({
-          call: activeCall,
-          signal,
-          outputUpdateHandler: (id, out) =>
-            this.state.updateStatus(id, CoreToolCallStatus.Executing, {
-              liveOutput: out,
-            }),
-          onUpdateToolCall: (updated) => {
-            if (
-              updated.status === CoreToolCallStatus.Executing &&
-              updated.pid
-            ) {
-              this.state.updateStatus(callId, CoreToolCallStatus.Executing, {
-                pid: updated.pid,
-              });
-            }
-          },
-        }),
-    );
+    // Track a real AbortController for this specific call so cancelAll() can
+    // abort in-flight work directly, independent of whether the caller has
+    // already aborted the batch-level signal.
+    const callController = new AbortController();
+    if (signal.aborted) {
+      callController.abort();
+    } else {
+      signal.addEventListener('abort', () => callController.abort(), {
+        once: true,
+      });
+    }
+    this.executingAbortControllers.set(callId, callController);
+
+    let result: CompletedToolCall;
+    try {
+      result = await runWithToolCallContext(
+        {
+          callId: activeCall.request.callId,
+          schedulerId: this.schedulerId,
+          parentCallId: this.parentCallId,
+          subagent: this.subagent,
+        },
+        () =>
+          this.executor.execute({
+            call: activeCall,
+            signal: callController.signal,
+            outputUpdateHandler: (id, out) =>
+              this.state.updateStatus(id, CoreToolCallStatus.Executing, {
+                liveOutput: out,
+              }),
+            onUpdateToolCall: (updated) => {
+              if (
+                updated.status === CoreToolCallStatus.Executing &&
+                updated.pid
+              ) {
+                this.state.updateStatus(callId, CoreToolCallStatus.Executing, {
+                  pid: updated.pid,
+                });
+              }
+            },
+          }),
+      );
+    } finally {
+      this.executingAbortControllers.delete(callId);
+    }
 
     if (
       (result.status === CoreToolCallStatus.Success ||

@@ -484,8 +484,18 @@ ${finalExclusionPatternsForDescription
     if (contentParts.length > 0) {
       contentParts.push(DEFAULT_OUTPUT_TERMINATOR);
     } else {
+      const skipHints = skippedFiles
+        .slice(0, 8)
+        .map((f) => `- ${f.path}: ${f.reason}`)
+        .join('\n');
       contentParts.push(
-        'No files matching the criteria were found or all were skipped.',
+        [
+          'No files matching the criteria were found or all were skipped.',
+          skipHints
+            ? `Skipped details:\n${skipHints}`
+            : 'If you referenced a binary Office file (.doc, .xls, .ppt), convert it to text or use a .docx (text is extracted automatically). Paths must be inside the workspace.',
+          'Tip: use read_file with an in-workspace path, or copy the file into the project first.',
+        ].join('\n'),
       );
     }
 

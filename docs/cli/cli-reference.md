@@ -1,23 +1,38 @@
-# Gemini CLI cheatsheet
+# OpenAgent cheatsheet
 
-This page provides a reference for commonly used Gemini CLI commands, options,
-and parameters.
+Quick reference for **OpenAgent** CLI flags, interactive slash commands, and
+model selection. For full setup, see the [Quickstart](../get-started/index.md).
+
+## OpenAgent essentials
+
+| Goal                    | Command                          |
+| ----------------------- | -------------------------------- |
+| Start (local-first)     | `openagent` or `npm start`       |
+| Free catalog rotation   | `openagent --free "task"`        |
+| List models by provider | `openagent --models`             |
+| Interactive API keys    | `openagent --byok`               |
+| Pin model               | `openagent -m groq-llama-3.1-8b` |
+| Pin provider            | `openagent --provider ollama`    |
+| Headless                | `openagent -p "task"`            |
+| Resume                  | `openagent -r latest`            |
+
+In-session: `/models`, `/byok`, `/tools`, `/help`, `/quit`.
 
 ## CLI commands
 
-| Command                            | Description                        | Example                                                      |
-| ---------------------------------- | ---------------------------------- | ------------------------------------------------------------ |
-| `gemini`                           | Start interactive REPL             | `gemini`                                                     |
-| `gemini -p "query"`                | Query non-interactively            | `gemini -p "summarize README.md"`                            |
-| gemini "query"                     | Query and continue interactively   | gemini "explain this project"                                |
-| `cat file \| gemini`               | Process piped content              | `cat logs.txt \| gemini`<br>`Get-Content logs.txt \| gemini` |
-| `gemini -i "query"`                | Execute and continue interactively | `gemini -i "What is the purpose of this project?"`           |
-| `gemini -r "latest"`               | Continue most recent session       | `gemini -r "latest"`                                         |
-| `gemini -r "latest" "query"`       | Continue session with a new prompt | `gemini -r "latest" "Check for type errors"`                 |
-| `gemini -r "<session-id>" "query"` | Resume session by ID               | `gemini -r "abc123" "Finish this PR"`                        |
-| `gemini update`                    | Update to latest version           | `gemini update`                                              |
-| `gemini extensions`                | Manage extensions                  | See [Extensions Management](#extensions-management)          |
-| `gemini mcp`                       | Configure MCP servers              | See [MCP Server Management](#mcp-server-management)          |
+| Command                               | Description                        | Example                                                            |
+| ------------------------------------- | ---------------------------------- | ------------------------------------------------------------------ |
+| `openagent`                           | Start interactive REPL             | `openagent`                                                        |
+| `openagent -p "query"`                | Query non-interactively            | `openagent -p "summarize README.md"`                               |
+| openagent "query"                     | Query and continue interactively   | openagent "explain this project"                                   |
+| `cat file \| openagent`               | Process piped content              | `cat logs.txt \| openagent`<br>`Get-Content logs.txt \| openagent` |
+| `openagent -i "query"`                | Execute and continue interactively | `openagent -i "What is the purpose of this project?"`              |
+| `openagent -r "latest"`               | Continue most recent session       | `openagent -r "latest"`                                            |
+| `openagent -r "latest" "query"`       | Continue session with a new prompt | `openagent -r "latest" "Check for type errors"`                    |
+| `openagent -r "<session-id>" "query"` | Resume session by ID               | `openagent -r "abc123" "Finish this PR"`                           |
+| `openagent update`                    | Update to latest version           | `openagent update`                                                 |
+| `openagent extensions`                | Manage extensions                  | See [Extensions Management](#extensions-management)                |
+| `openagent mcp`                       | Configure MCP servers              | See [MCP Server Management](#mcp-server-management)                |
 
 ### Positional arguments
 
@@ -51,7 +66,7 @@ These commands are available within the interactive REPL.
 | `--model`                        | `-m`  | string  | `auto`    | Model to use. See [Model Selection](#model-selection) for available values.                                                                                            |
 | `--prompt`                       | `-p`  | string  | -         | Prompt text. Appended to stdin input if provided. Forces non-interactive mode.                                                                                         |
 | `--prompt-interactive`           | `-i`  | string  | -         | Execute prompt and continue in interactive mode                                                                                                                        |
-| `--worktree`                     | `-w`  | string  | -         | Start Gemini in a new git worktree. If no name is provided, one is generated automatically. Requires `experimental.worktrees: true` in settings.                       |
+| `--worktree`                     | `-w`  | string  | -         | Start open-agent in a new git worktree. If no name is provided, one is generated automatically. Requires `experimental.worktrees: true` in settings.                   |
 | `--sandbox`                      | `-s`  | boolean | `false`   | Run in a sandboxed environment for safer execution                                                                                                                     |
 | `--skip-trust`                   | -     | boolean | `false`   | Trust the current workspace for this session, skipping the folder trust check.                                                                                         |
 | `--approval-mode`                | -     | string  | `default` | Approval mode for tool execution. Choices: `default`, `auto_edit`, `yolo`, `plan`                                                                                      |
@@ -71,12 +86,29 @@ These commands are available within the interactive REPL.
 
 ## Model selection
 
-The `--model` (or `-m`) flag lets you specify which Gemini model to use. You can
-use either model aliases (user-friendly names) or concrete model names.
+The `--model` (or `-m`) flag accepts:
+
+- **Registry keys** from [`configs/models.toml`](../../configs/models.toml) (for
+  example `groq-llama-3.1-8b`, `openrouter-free`, `gpt-4o`)
+- **Provider-qualified ids** such as `ollama/llama3.1:8b`
+- **Free-catalog ids** used by `--free`
+
+Also:
+
+| Flag              | Purpose                                          |
+| ----------------- | ------------------------------------------------ |
+| `--provider <id>` | Force `ollama`, `groq`, `openai`, `anthropic`, … |
+| `--free`          | Prefer the curated free/cheap rotation           |
+| `--models`        | Print all models grouped by provider and exit    |
+| `--byok`          | Interactive key setup → `.env`                   |
+
+Full lists: [Providers](../get-started/providers.md) ·
+[Models.MD](../../Models.MD) · [Free models](../get-started/free-models.md).
 
 ### Model aliases
 
-These are convenient shortcuts that map to specific models:
+These are convenient shortcuts that map to specific models (Gemini-oriented
+aliases may still appear for compatibility):
 
 | Alias        | Resolves To                                | Description                                                                                                               |
 | ------------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
@@ -87,48 +119,48 @@ These are convenient shortcuts that map to specific models:
 
 ## Extensions management
 
-| Command                                            | Description                                  | Example                                                                        |
-| -------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------ |
-| `gemini extensions install <source>`               | Install extension from Git URL or local path | `gemini extensions install https://github.com/user/my-extension`               |
-| `gemini extensions install <source> --ref <ref>`   | Install from specific branch/tag/commit      | `gemini extensions install https://github.com/user/my-extension --ref develop` |
-| `gemini extensions install <source> --auto-update` | Install with auto-update enabled             | `gemini extensions install https://github.com/user/my-extension --auto-update` |
-| `gemini extensions uninstall <name>`               | Uninstall one or more extensions             | `gemini extensions uninstall my-extension`                                     |
-| `gemini extensions list`                           | List all installed extensions                | `gemini extensions list`                                                       |
-| `gemini extensions update <name>`                  | Update a specific extension                  | `gemini extensions update my-extension`                                        |
-| `gemini extensions update --all`                   | Update all extensions                        | `gemini extensions update --all`                                               |
-| `gemini extensions enable <name>`                  | Enable an extension                          | `gemini extensions enable my-extension`                                        |
-| `gemini extensions disable <name>`                 | Disable an extension                         | `gemini extensions disable my-extension`                                       |
-| `gemini extensions link <path>`                    | Link local extension for development         | `gemini extensions link /path/to/extension`                                    |
-| `gemini extensions new <path>`                     | Create new extension from template           | `gemini extensions new ./my-extension`                                         |
-| `gemini extensions validate <path>`                | Validate extension structure                 | `gemini extensions validate ./my-extension`                                    |
+| Command                                               | Description                                  | Example                                                                           |
+| ----------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------- |
+| `openagent extensions install <source>`               | Install extension from Git URL or local path | `openagent extensions install https://github.com/user/my-extension`               |
+| `openagent extensions install <source> --ref <ref>`   | Install from specific branch/tag/commit      | `openagent extensions install https://github.com/user/my-extension --ref develop` |
+| `openagent extensions install <source> --auto-update` | Install with auto-update enabled             | `openagent extensions install https://github.com/user/my-extension --auto-update` |
+| `openagent extensions uninstall <name>`               | Uninstall one or more extensions             | `openagent extensions uninstall my-extension`                                     |
+| `openagent extensions list`                           | List all installed extensions                | `openagent extensions list`                                                       |
+| `openagent extensions update <name>`                  | Update a specific extension                  | `openagent extensions update my-extension`                                        |
+| `openagent extensions update --all`                   | Update all extensions                        | `openagent extensions update --all`                                               |
+| `openagent extensions enable <name>`                  | Enable an extension                          | `openagent extensions enable my-extension`                                        |
+| `openagent extensions disable <name>`                 | Disable an extension                         | `openagent extensions disable my-extension`                                       |
+| `openagent extensions link <path>`                    | Link local extension for development         | `openagent extensions link /path/to/extension`                                    |
+| `openagent extensions new <path>`                     | Create new extension from template           | `openagent extensions new ./my-extension`                                         |
+| `openagent extensions validate <path>`                | Validate extension structure                 | `openagent extensions validate ./my-extension`                                    |
 
 See [Extensions Documentation](../extensions/index.md) for more details.
 
 ## MCP server management
 
-| Command                                                       | Description                     | Example                                                                                              |
-| ------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `gemini mcp add <name> <command>`                             | Add stdio-based MCP server      | `gemini mcp add github npx -y @modelcontextprotocol/server-github`                                   |
-| `gemini mcp add <name> <url> --transport http`                | Add HTTP-based MCP server       | `gemini mcp add api-server http://localhost:3000 --transport http`                                   |
-| `gemini mcp add <name> <command> --env KEY=value`             | Add with environment variables  | `gemini mcp add slack node server.js --env SLACK_TOKEN=xoxb-xxx`                                     |
-| `gemini mcp add <name> <command> --scope user`                | Add with user scope             | `gemini mcp add db node db-server.js --scope user`                                                   |
-| `gemini mcp add <name> <command> --include-tools tool1,tool2` | Add with specific tools         | `gemini mcp add github npx -y @modelcontextprotocol/server-github --include-tools list_repos,get_pr` |
-| `gemini mcp remove <name>`                                    | Remove an MCP server            | `gemini mcp remove github`                                                                           |
-| `gemini mcp list`                                             | List all configured MCP servers | `gemini mcp list`                                                                                    |
+| Command                                                          | Description                     | Example                                                                                                 |
+| ---------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `openagent mcp add <name> <command>`                             | Add stdio-based MCP server      | `openagent mcp add github npx -y @modelcontextprotocol/server-github`                                   |
+| `openagent mcp add <name> <url> --transport http`                | Add HTTP-based MCP server       | `openagent mcp add api-server http://localhost:3000 --transport http`                                   |
+| `openagent mcp add <name> <command> --env KEY=value`             | Add with environment variables  | `openagent mcp add slack node server.js --env SLACK_TOKEN=xoxb-xxx`                                     |
+| `openagent mcp add <name> <command> --scope user`                | Add with user scope             | `openagent mcp add db node db-server.js --scope user`                                                   |
+| `openagent mcp add <name> <command> --include-tools tool1,tool2` | Add with specific tools         | `openagent mcp add github npx -y @modelcontextprotocol/server-github --include-tools list_repos,get_pr` |
+| `openagent mcp remove <name>`                                    | Remove an MCP server            | `openagent mcp remove github`                                                                           |
+| `openagent mcp list`                                             | List all configured MCP servers | `openagent mcp list`                                                                                    |
 
 See [MCP Server Integration](../tools/mcp-server.md) for more details.
 
 ## Skills management
 
-| Command                          | Description                           | Example                                           |
-| -------------------------------- | ------------------------------------- | ------------------------------------------------- |
-| `gemini skills list`             | List all discovered agent skills      | `gemini skills list`                              |
-| `gemini skills install <source>` | Install skill from Git, path, or file | `gemini skills install https://github.com/u/repo` |
-| `gemini skills link <path>`      | Link local agent skills via symlink   | `gemini skills link /path/to/my-skills`           |
-| `gemini skills uninstall <name>` | Uninstall an agent skill              | `gemini skills uninstall my-skill`                |
-| `gemini skills enable <name>`    | Enable an agent skill                 | `gemini skills enable my-skill`                   |
-| `gemini skills disable <name>`   | Disable an agent skill                | `gemini skills disable my-skill`                  |
-| `gemini skills enable --all`     | Enable all skills                     | `gemini skills enable --all`                      |
-| `gemini skills disable --all`    | Disable all skills                    | `gemini skills disable --all`                     |
+| Command                             | Description                           | Example                                              |
+| ----------------------------------- | ------------------------------------- | ---------------------------------------------------- |
+| `openagent skills list`             | List all discovered agent skills      | `openagent skills list`                              |
+| `openagent skills install <source>` | Install skill from Git, path, or file | `openagent skills install https://github.com/u/repo` |
+| `openagent skills link <path>`      | Link local agent skills via symlink   | `openagent skills link /path/to/my-skills`           |
+| `openagent skills uninstall <name>` | Uninstall an agent skill              | `openagent skills uninstall my-skill`                |
+| `openagent skills enable <name>`    | Enable an agent skill                 | `openagent skills enable my-skill`                   |
+| `openagent skills disable <name>`   | Disable an agent skill                | `openagent skills disable my-skill`                  |
+| `openagent skills enable --all`     | Enable all skills                     | `openagent skills enable --all`                      |
+| `openagent skills disable --all`    | Disable all skills                    | `openagent skills disable --all`                     |
 
 See [Agent Skills Documentation](./skills.md) for more details.

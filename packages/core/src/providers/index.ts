@@ -15,3 +15,5 @@ export * from './picker.js';
 export * from './openaiCompatGenerator.js';
 export * from './resolve.js';
 export * from './factory.js';
+export * from './usageStore.js';
+export * from './usageBalance.js';

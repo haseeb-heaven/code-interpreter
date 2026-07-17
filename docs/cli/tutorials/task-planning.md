@@ -1,12 +1,12 @@
 # Plan tasks with todos
 
-Keep complex jobs on the rails with Gemini CLI's built-in task planning. In this
+Keep complex jobs on the rails with open-agent's built-in task planning. In this
 guide, you'll learn how to ask for a plan, execute it step-by-step, and monitor
 progress with the todo list.
 
 ## Prerequisites
 
-- Gemini CLI installed and authenticated.
+- open-agent installed and authenticated.
 - A complex task in mind (for example, a multi-file refactor or new feature).
 
 ## Why use task planning?
@@ -27,8 +27,8 @@ The best way to trigger task planning is to explicitly ask for it.
 **Prompt:**
 `I want to migrate this project from JavaScript to TypeScript. Please make a plan first.`
 
-Gemini will analyze your codebase and use the `write_todos` tool to generate a
-structured list.
+open-agent will analyze your codebase and use the `write_todos` tool to generate
+a structured list.
 
 **Example Plan:**
 

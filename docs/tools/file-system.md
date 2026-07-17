@@ -1,6 +1,6 @@
 # File system tools reference
 
-Gemini CLI core provides a suite of tools for interacting with the local file
+OpenAgent CLI core provides a suite of tools for interacting with the local file
 system. These tools allow the model to explore and modify your codebase.
 
 ## Technical reference

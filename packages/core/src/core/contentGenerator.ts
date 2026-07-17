@@ -27,6 +27,7 @@ import { InstallationManager } from '../utils/installationManager.js';
 import { FakeContentGenerator } from './fakeContentGenerator.js';
 import { parseCustomHeaders } from '../utils/customHeaderUtils.js';
 import { determineSurface } from '../utils/surface.js';
+import { readCliEnvAlias } from '../utils/cliEnvAliases.js';
 import { RecordingContentGenerator } from './recordingContentGenerator.js';
 import { getVersion, resolveModel } from '../../index.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
@@ -36,6 +37,7 @@ import {
   createMultiProviderGenerator,
   isMultiProviderModel,
 } from '../providers/factory.js';
+import { ModelRoutingContentGenerator } from '../providers/routingGenerator.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -84,7 +86,7 @@ export enum AuthType {
  * 3. GEMINI_API_KEY -> USE_GEMINI
  */
 export function getAuthTypeFromEnv(): AuthType | undefined {
-  if (process.env['GEMINI_CLI_PROVIDER']) {
+  if (readCliEnvAlias('PROVIDER')) {
     return AuthType.MULTI_PROVIDER;
   }
   if (process.env['GOOGLE_GENAI_USE_GCA'] === 'true') {
@@ -101,7 +103,7 @@ export function getAuthTypeFromEnv(): AuthType | undefined {
   }
   if (
     process.env['CLOUD_SHELL'] === 'true' ||
-    process.env['GEMINI_CLI_USE_COMPUTE_ADC'] === 'true'
+    readCliEnvAlias('USE_COMPUTE_ADC') === 'true'
   ) {
     return AuthType.COMPUTE_ADC;
   }
@@ -236,6 +238,8 @@ export async function createContentGenerator(
     // Multi-provider routing: model ids with a known provider prefix
     // (ollama/, lmstudio/, groq/, openrouter/, ...) or registry keys from
     // configs/models.toml bypass the Google-specific paths entirely.
+    // Google-auth sessions handle these via the ModelRoutingContentGenerator
+    // wrapper below, so /model can switch providers mid-session.
     if (
       config.authType === AuthType.MULTI_PROVIDER ||
       isMultiProviderModel(gcConfig.getModel())
@@ -262,8 +266,7 @@ export async function createContentGenerator(
       gcConfig,
       gcConfig.hasGemini35FlashGAAccess?.() ?? false,
     );
-    const customHeadersEnv =
-      process.env['GEMINI_CLI_CUSTOM_HEADERS'] || undefined;
+    const customHeadersEnv = readCliEnvAlias('CUSTOM_HEADERS') || undefined;
     const clientName = gcConfig.getClientName();
     const surface = determineSurface();
 
@@ -439,9 +442,19 @@ export async function createContentGenerator(
     );
   })();
 
+  // Dynamic per-request routing: lets /model switch between Google and
+  // multi-provider models mid-session. Skipped for fake-response test
+  // sessions so recorded fixtures are never bypassed by real providers.
+  const usesFakeResponses = Boolean(
+    gcConfig.fakeResponses || gcConfig.fakeResponsesNonStrict,
+  );
+  const routed = usesFakeResponses
+    ? generator
+    : new ModelRoutingContentGenerator(generator, gcConfig);
+
   if (gcConfig.recordResponses) {
-    return new RecordingContentGenerator(generator, gcConfig.recordResponses);
+    return new RecordingContentGenerator(routed, gcConfig.recordResponses);
   }
 
-  return generator;
+  return routed;
 }

@@ -1,4 +1,4 @@
-# `gemini gemma` — Automated Local Model Routing Setup
+# `openagent gemma` — Automated Local Model Routing Setup
 
 Local model routing uses a local Gemma 3 1B model running on your machine to
 classify and route user requests. It routes simple requests (like file reads) to
@@ -19,7 +19,7 @@ models.
 
 ```bash
 # One command does everything: downloads runtime, pulls model, configures settings, starts server
-gemini gemma setup
+openagent gemma setup
 ```
 
 You'll be prompted to accept the Gemma Terms of Use. The model is ~1 GB.
@@ -29,20 +29,20 @@ every request.
 
 ## Commands
 
-| Command               | What it does                                                   |
-| --------------------- | -------------------------------------------------------------- |
-| `gemini gemma setup`  | Full install (binary + model + settings + server start)        |
-| `gemini gemma status` | Health check — shows what's installed and running              |
-| `gemini gemma start`  | Start the LiteRT server (auto-starts on CLI launch by default) |
-| `gemini gemma stop`   | Stop the LiteRT server                                         |
-| `gemini gemma logs`   | Tail the server logs to see routing requests live              |
-| `/gemma`              | In-session status check (type it inside the CLI)               |
+| Command                  | What it does                                                   |
+| ------------------------ | -------------------------------------------------------------- |
+| `openagent gemma setup`  | Full install (binary + model + settings + server start)        |
+| `openagent gemma status` | Health check — shows what's installed and running              |
+| `openagent gemma start`  | Start the LiteRT server (auto-starts on CLI launch by default) |
+| `openagent gemma stop`   | Stop the LiteRT server                                         |
+| `openagent gemma logs`   | Tail the server logs to see routing requests live              |
+| `/gemma`                 | In-session status check (type it inside the CLI)               |
 
 ## Verifying it works
 
-1. Run `gemini gemma status` — all checks should show green
+1. Run `openagent gemma status` — all checks should show green
 2. Open two terminals:
-   - Terminal 1: `gemini gemma logs` (watch for incoming requests)
+   - Terminal 1: `openagent gemma logs` (watch for incoming requests)
    - Terminal 2: use the CLI normally
 3. You should see classification requests appear in the logs as you interact
    with the CLI
@@ -51,10 +51,10 @@ every request.
 ## Setup flags
 
 ```bash
-gemini gemma setup --port 8080      # custom port
-gemini gemma setup --no-start       # don't start server after install
-gemini gemma setup --force           # re-download everything
-gemini gemma setup --skip-model     # binary only, skip the 1GB model download
+openagent gemma setup --port 8080      # custom port
+openagent gemma setup --no-start       # don't start server after install
+openagent gemma setup --force           # re-download everything
+openagent gemma setup --skip-model     # binary only, skip the 1GB model download
 ```
 
 ## How it works under the hood
@@ -66,8 +66,8 @@ gemini gemma setup --skip-model     # binary only, skip the 1GB model download
 
 ## Disabling
 
-Set `enabled: false` in settings or just run `gemini gemma stop` to turn off the
-server:
+Set `enabled: false` in settings or just run `openagent gemma stop` to turn off
+the server:
 
 ```json
 { "experimental": { "gemmaModelRouter": { "enabled": false } } }
@@ -75,7 +75,7 @@ server:
 
 ## Advanced setup
 
-If you are in an environment where the `gemini gemma setup` command cannot
+If you are in an environment where the `openagent gemma setup` command cannot
 automatically download binaries (for example, behind a strict corporate
 firewall), you can perform the setup manually.
 

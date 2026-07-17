@@ -11,6 +11,10 @@ import {
   ALL_BUILTIN_TOOL_NAMES,
   DISCOVERED_TOOL_PREFIX,
   LS_TOOL_NAME,
+  SHELL_TOOL_NAME,
+  READ_FILE_TOOL_NAME,
+  inferToolNameFromArgs,
+  resolveCanonicalToolName,
 } from './tool-names.js';
 
 // Mock tool-names to provide a consistent alias for testing
@@ -116,6 +120,53 @@ describe('tool-names', () => {
     it('should return only the name itself if no aliases exist', () => {
       const aliases = getToolAliases('unknown_tool');
       expect(aliases).toEqual(['unknown_tool']);
+    });
+  });
+
+  describe('inferToolNameFromArgs', () => {
+    it('maps command args to the shell tool', () => {
+      expect(
+        inferToolNameFromArgs({
+          command: 'Get-Date',
+          description: 'Show date',
+        }),
+      ).toBe(SHELL_TOOL_NAME);
+    });
+
+    it('maps file_path-only args to read_file', () => {
+      expect(inferToolNameFromArgs({ file_path: 'a.ts' })).toBe(
+        READ_FILE_TOOL_NAME,
+      );
+    });
+
+    it('returns undefined for empty/unknown shapes', () => {
+      expect(inferToolNameFromArgs({})).toBeUndefined();
+      expect(inferToolNameFromArgs(null)).toBeUndefined();
+    });
+  });
+
+  describe('resolveCanonicalToolName', () => {
+    it('resolves display-name Shell to run_shell_command', () => {
+      expect(resolveCanonicalToolName('Shell')).toBe(SHELL_TOOL_NAME);
+      expect(resolveCanonicalToolName('ShellTool')).toBe(SHELL_TOOL_NAME);
+    });
+
+    it('recovers generic_tool via arg shape', () => {
+      expect(
+        resolveCanonicalToolName('generic_tool', {
+          knownNames: ALL_BUILTIN_TOOL_NAMES,
+          args: { command: 'echo hi', description: 'test' },
+        }),
+      ).toBe(SHELL_TOOL_NAME);
+    });
+
+    it('leaves unknown names without recoverable args unchanged', () => {
+      expect(
+        resolveCanonicalToolName('generic_tool', {
+          knownNames: ALL_BUILTIN_TOOL_NAMES,
+          args: {},
+        }),
+      ).toBe('generic_tool');
     });
   });
 });

@@ -35,7 +35,7 @@ describe('docsCommand', () => {
       throw new Error('docsCommand must have an action.');
     }
 
-    const docsUrl = 'https://goo.gle/gemini-cli-docs';
+    const docsUrl = 'https://github.com/haseeb-heaven/open-agent/tree/main/docs';
 
     await docsCommand.action(mockContext, '');
 
@@ -57,7 +57,7 @@ describe('docsCommand', () => {
 
     // Simulate a sandbox environment
     vi.stubEnv('SANDBOX', 'gemini-sandbox');
-    const docsUrl = 'https://goo.gle/gemini-cli-docs';
+    const docsUrl = 'https://github.com/haseeb-heaven/open-agent/tree/main/docs';
 
     await docsCommand.action(mockContext, '');
 
@@ -80,7 +80,7 @@ describe('docsCommand', () => {
 
     // Simulate the specific 'sandbox-exec' environment
     vi.stubEnv('SANDBOX', 'sandbox-exec');
-    const docsUrl = 'https://goo.gle/gemini-cli-docs';
+    const docsUrl = 'https://github.com/haseeb-heaven/open-agent/tree/main/docs';
 
     await docsCommand.action(mockContext, '');
 

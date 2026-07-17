@@ -342,7 +342,7 @@ export async function parseArguments(
           type: 'string',
           skipValidation: true,
           description:
-            'Start Gemini in a new git worktree. If no name is provided, one is generated automatically.',
+            'Start OpenAgent in a new git worktree. If no name is provided, one is generated automatically.',
           coerce: (value: unknown): string => {
             const trimmed = typeof value === 'string' ? value.trim() : '';
             if (trimmed === '') {
@@ -408,7 +408,7 @@ export async function parseArguments(
           string: true,
           nargs: 1,
           description:
-            '[DEPRECATED: Use Policy Engine instead See https://geminicli.com/docs/core/policy-engine] Tools that are allowed to run without confirmation',
+            '[DEPRECATED: Use Policy Engine instead See https://github.com/haseeb-heaven/open-agent/blob/main/docs/reference/policy-engine.md] Tools that are allowed to run without confirmation',
           coerce: coerceCommaSeparated,
         })
         .option('extensions', {

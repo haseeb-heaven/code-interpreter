@@ -35,7 +35,11 @@ import { isGitRepository } from '../utils/gitUtils.js';
 import type { Config } from '../config/config.js';
 import type { FileExclusions } from '../utils/ignorePatterns.js';
 import { ToolErrorType } from './tool-error.js';
-import { GREP_TOOL_NAME, GREP_DISPLAY_NAME } from './tool-names.js';
+import {
+  GREP_TOOL_NAME,
+  GREP_DISPLAY_NAME,
+  GLOB_TOOL_NAME,
+} from './tool-names.js';
 import { buildPatternArgsPattern } from '../policy/utils.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import { GREP_DEFINITION } from './definitions/coreTools.js';
@@ -707,12 +711,40 @@ export class GrepTool extends BaseDeclarativeTool<GrepToolParams, ToolResult> {
    * @param params Parameters to validate
    * @returns An error message string if invalid, null otherwise
    */
+  protected override getSchemaValidationHint(): string | null {
+    return (
+      ` Example for content search: {"pattern":"TODO|FIXME","dir_path":"."}. ` +
+      `For finding files by name/extension use the \`${GLOB_TOOL_NAME}\` tool ` +
+      `(e.g. {"pattern":"**/*.txt"}), not ${GREP_TOOL_NAME}.`
+    );
+  }
+
   protected override validateToolParamValues(
     params: GrepToolParams,
   ): string | null {
     try {
       new RegExp(params.pattern);
     } catch (error) {
+      const looksLikeGlob =
+        /^\*\./.test(params.pattern.trim()) ||
+        params.pattern.includes('**') ||
+        (/[*?[{]/.test(params.pattern) &&
+          (() => {
+            try {
+              // eslint-disable-next-line no-new
+              new RegExp(params.pattern);
+              return false;
+            } catch {
+              return true;
+            }
+          })());
+      if (looksLikeGlob) {
+        return (
+          `Pattern "${params.pattern}" looks like a file glob, not a content regex. ` +
+          `Use the \`${GLOB_TOOL_NAME}\` (FindFiles) tool with ` +
+          `{"pattern":"${params.pattern}"} instead of ${GREP_TOOL_NAME} (SearchText).`
+        );
+      }
       return `Invalid regular expression pattern provided: ${params.pattern}. Error: ${getErrorMessage(error)}`;
     }
 

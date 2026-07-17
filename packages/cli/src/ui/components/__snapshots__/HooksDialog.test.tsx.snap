@@ -20,7 +20,7 @@ exports[`HooksDialog > snapshots > renders hook using command as name when name 
 │ Hooks can execute arbitrary commands on your system. Only use hooks from sources you trust.      │
 │ Review hook scripts carefully.                                                                   │
 │                                                                                                  │
-│ Learn more: https://geminicli.com/docs/hooks                                                     │
+│ Learn more: https://github.com/haseeb-heaven/open-agent/blob/main/docs/hooks/index.md            │
 │                                                                                                  │
 │ Configured Hooks                                                                                 │
 │                                                                                                  │
@@ -47,7 +47,7 @@ exports[`HooksDialog > snapshots > renders hook with all metadata (matcher, sequ
 │ Hooks can execute arbitrary commands on your system. Only use hooks from sources you trust.      │
 │ Review hook scripts carefully.                                                                   │
 │                                                                                                  │
-│ Learn more: https://geminicli.com/docs/hooks                                                     │
+│ Learn more: https://github.com/haseeb-heaven/open-agent/blob/main/docs/hooks/index.md            │
 │                                                                                                  │
 │ Configured Hooks                                                                                 │
 │                                                                                                  │
@@ -75,7 +75,7 @@ exports[`HooksDialog > snapshots > renders hooks grouped by event name with enab
 │ Hooks can execute arbitrary commands on your system. Only use hooks from sources you trust.      │
 │ Review hook scripts carefully.                                                                   │
 │                                                                                                  │
-│ Learn more: https://geminicli.com/docs/hooks                                                     │
+│ Learn more: https://github.com/haseeb-heaven/open-agent/blob/main/docs/hooks/index.md            │
 │                                                                                                  │
 │ Configured Hooks                                                                                 │
 │                                                                                                  │
@@ -113,7 +113,7 @@ exports[`HooksDialog > snapshots > renders single hook with security warning, so
 │ Hooks can execute arbitrary commands on your system. Only use hooks from sources you trust.      │
 │ Review hook scripts carefully.                                                                   │
 │                                                                                                  │
-│ Learn more: https://geminicli.com/docs/hooks                                                     │
+│ Learn more: https://github.com/haseeb-heaven/open-agent/blob/main/docs/hooks/index.md            │
 │                                                                                                  │
 │ Configured Hooks                                                                                 │
 │                                                                                                  │

@@ -11,7 +11,8 @@
  * from configs/models.toml resolves to an OpenAI-compatible route.
  */
 
-import { getProvider, splitModelId } from './providers.js';
+import { getProvider, isProviderAvailable, splitModelId } from './providers.js';
+import { readCliEnvAlias } from '../utils/cliEnvAliases.js';
 import { ModelRegistry, getModelRegistry } from './modelRegistry.js';
 import { OpenAICompatContentGenerator } from './openaiCompatGenerator.js';
 import { FreeLLMCatalog, matchCatalogEntry } from './freeCatalog.js';
@@ -63,6 +64,18 @@ export function createMultiProviderGenerator(
   const configured = cfg?.provider ? getProvider(cfg.provider) : undefined;
   const provider = configured ?? splitModelId(id).provider;
   if (!provider) return undefined;
+  // Bare gemini/... ids stay on the native Gemini path (must stay in sync
+  // with isMultiProviderModel above).
+  if (provider.id === 'gemini') return undefined;
+
+  if (!isProviderAvailable(provider, env)) {
+    const keyName = provider.envKey ?? 'an API key';
+    throw new Error(
+      `Model "${modelId}" needs the ${provider.displayName} provider, but ` +
+        `${keyName} is not set. Add ${keyName} to your .env (or environment), ` +
+        `or start with --free (or use the /model dialog) to pick a model whose key you have.`,
+    );
+  }
 
   const generator = new OpenAICompatContentGenerator({
     modelId: id,
@@ -77,7 +90,7 @@ export function createMultiProviderGenerator(
   // Free-catalog models (and any session started with --free) get the
   // runtime fallback chain: rate limits and free-router failures fall
   // through the catalog instead of killing the request.
-  const freeSession = env['GEMINI_CLI_FREE'] === '1';
+  const freeSession = readCliEnvAlias('FREE', env) === '1';
   const inCatalog =
     matchCatalogEntry(id, FreeLLMCatalog.load(reg), reg) !== undefined;
   if (freeSession || inCatalog) {

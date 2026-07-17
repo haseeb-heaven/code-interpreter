@@ -19,6 +19,9 @@ import { StandardFileSystemService } from '../services/fileSystemService.js';
 import { createMockWorkspaceContext } from '../test-utils/mockWorkspaceContext.js';
 import { createMockMessageBus } from '../test-utils/mock-message-bus.js';
 import { isSubpath } from '../utils/paths.js';
+import { canCreateSymlinks } from '@open-agent/test-utils';
+
+const canSymlink = await canCreateSymlinks();
 
 vi.mock('../telemetry/loggers.js', () => ({
   logFileOperation: vi.fn(),
@@ -401,7 +404,7 @@ describe('Consolidated At-Reference Path Resolution Tests (b-495551283)', () => 
     ).rejects.toThrow('Path not in workspace');
   });
 
-  it('getCorrectedFileContent handles symlink loops gracefully', async () => {
+  it.skipIf(!canSymlink)('getCorrectedFileContent handles symlink loops gracefully', async () => {
     const symlinkPath1 = path.join(tempRootDir, 'symlink1');
     const symlinkPath2 = path.join(tempRootDir, 'symlink2');
     await fsp.symlink(symlinkPath2, symlinkPath1);
@@ -419,7 +422,7 @@ describe('Consolidated At-Reference Path Resolution Tests (b-495551283)', () => 
     expect(result.error?.message).toContain('Failed to resolve path');
   });
 
-  it('EditTool.getModifyContext handles symlink loops gracefully by throwing a descriptive error', async () => {
+  it.skipIf(!canSymlink)('EditTool.getModifyContext handles symlink loops gracefully by throwing a descriptive error', async () => {
     const symlinkPath1 = path.join(tempRootDir, 'symlink1');
     const symlinkPath2 = path.join(tempRootDir, 'symlink2');
     await fsp.symlink(symlinkPath2, symlinkPath1);

@@ -162,7 +162,7 @@ export function useRunEventNotifications({
       notificationsEnabled,
       buildRunEventNotificationContent({
         type: 'session_complete',
-        detail: 'Gemini CLI finished responding.',
+        detail: 'OpenAgent finished responding.',
       }),
       notificationMethod,
     );

@@ -10,6 +10,7 @@ import {
   type AnyToolInvocation,
 } from '../index.js';
 import { SHELL_TOOL_NAMES } from './shell-utils.js';
+import { inferToolNameFromArgs } from '../tools/tool-names.js';
 import levenshtein from 'fast-levenshtein';
 import type { ToolCallResponseInfo } from '../scheduler/types.js';
 
@@ -29,25 +30,40 @@ export function isToolCallResponseInfo(
 
 /**
  * Generates a suggestion string for a tool name that was not found in the registry.
- * It finds the closest matches based on Levenshtein distance.
+ * Prefers arg-shape hints (e.g. `{command}` → run_shell_command), then closest
+ * Levenshtein matches within a reasonable distance threshold.
  * @param unknownToolName The tool name that was not found.
  * @param allToolNames The list of all available tool names.
  * @param topN The number of suggestions to return. Defaults to 3.
+ * @param args Optional tool-call args for shape-based suggestions.
  * @returns A suggestion string like " Did you mean 'tool'?" or " Did you mean one of: 'tool1', 'tool2'?", or an empty string if no suggestions are found.
  */
 export function getToolSuggestion(
   unknownToolName: string,
   allToolNames: string[],
   topN = 3,
+  args?: unknown,
 ): string {
-  const matches = allToolNames.map((toolName) => ({
-    name: toolName,
-    distance: levenshtein.get(unknownToolName, toolName),
-  }));
+  const available = new Set(allToolNames);
+  const ranked: Array<{ name: string; distance: number }> = [];
 
-  matches.sort((a, b) => a.distance - b.distance);
+  // Shape-based hint first (recover from hallucinated names like generic_tool)
+  const inferred = inferToolNameFromArgs(args);
+  if (inferred && available.has(inferred)) {
+    ranked.push({ name: inferred, distance: 0 });
+  }
 
-  const topNResults = matches.slice(0, topN);
+  const maxDistance = Math.max(4, Math.floor(unknownToolName.length / 2));
+  for (const toolName of allToolNames) {
+    if (ranked.some((r) => r.name === toolName)) continue;
+    const distance = levenshtein.get(unknownToolName, toolName);
+    if (distance <= maxDistance) {
+      ranked.push({ name: toolName, distance });
+    }
+  }
+
+  ranked.sort((a, b) => a.distance - b.distance);
+  const topNResults = ranked.slice(0, topN);
 
   if (topNResults.length === 0) {
     return '';

@@ -29,6 +29,7 @@ import {
   DISCOVERED_TOOL_PREFIX,
   TOOL_LEGACY_ALIASES,
   getToolAliases,
+  resolveCanonicalToolName,
   WRITE_FILE_TOOL_NAME,
   EDIT_TOOL_NAME,
   UPDATE_TOPIC_TOOL_NAME,
@@ -785,11 +786,18 @@ export class ToolRegistry {
 
   /**
    * Get the definition of a specific tool.
+   *
+   * @param name Tool name as emitted by the model (may be a display name,
+   *   legacy alias, or hallucinated placeholder like `generic_tool`).
+   * @param args Optional call arguments; used to recover the correct tool when
+   *   the name is unknown but the arg shape is unambiguous (e.g. `{command}`
+   *   → `run_shell_command`).
    */
-  getTool(name: string): AnyDeclarativeTool | undefined {
+  getTool(name: string, args?: unknown): AnyDeclarativeTool | undefined {
     let tool = this.allKnownTools.get(name);
 
-    // If not found, check legacy aliases
+    // Exact legacy / display-name alias (uses the live TOOL_LEGACY_ALIASES export
+    // so test mocks and runtime aliases both apply).
     if (!tool && TOOL_LEGACY_ALIASES[name]) {
       const currentName = TOOL_LEGACY_ALIASES[name];
       tool = this.allKnownTools.get(currentName);
@@ -797,6 +805,38 @@ export class ToolRegistry {
         debugLogger.debug(
           `Resolved legacy tool name "${name}" to current name "${currentName}"`,
         );
+      }
+    }
+
+    // Case-insensitive names, broader aliases, and arg-shape recovery
+    // (e.g. hallucinated `generic_tool` with `{command}` → run_shell_command).
+    if (!tool) {
+      const knownNames = Array.from(this.allKnownTools.keys());
+      const resolved = resolveCanonicalToolName(name, {
+        knownNames,
+        args,
+      });
+      if (resolved !== name) {
+        tool = this.allKnownTools.get(resolved);
+        if (tool) {
+          debugLogger.debug(
+            `Resolved tool name "${name}" to current name "${resolved}"`,
+          );
+        }
+      }
+    }
+
+    // Display-name match (e.g. model emits "Shell")
+    if (!tool) {
+      const lower = name.toLowerCase();
+      for (const candidate of this.allKnownTools.values()) {
+        if (candidate.displayName.toLowerCase() === lower) {
+          tool = candidate;
+          debugLogger.debug(
+            `Resolved tool display name "${name}" to "${candidate.name}"`,
+          );
+          break;
+        }
       }
     }
 

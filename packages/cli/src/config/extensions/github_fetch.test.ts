@@ -151,7 +151,7 @@ describe('fetchJson', () => {
     it('should include Authorization header if token is present', async () => {
       getMock.mockImplementationOnce((_url, options, callback) => {
         expect(options.headers).toEqual({
-          'User-Agent': 'gemini-cli',
+          'User-Agent': 'open-agent',
           Authorization: 'token my-secret-token',
         });
         const res = new EventEmitter() as IncomingMessage;
@@ -183,7 +183,7 @@ describe('fetchJson', () => {
     it('should not include Authorization header if token is not present', async () => {
       getMock.mockImplementationOnce((_url, options, callback) => {
         expect(options.headers).toEqual({
-          'User-Agent': 'gemini-cli',
+          'User-Agent': 'open-agent',
         });
         const res = new EventEmitter() as IncomingMessage;
         res.statusCode = 200;

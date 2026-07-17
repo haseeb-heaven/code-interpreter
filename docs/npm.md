@@ -1,18 +1,17 @@
 # Package overview
 
-This monorepo contains two main packages: `open-agent` and
-`@open-agent/core`.
+This monorepo contains two main packages: `open-agent` and `@open-agent/core`.
 
 ## `open-agent`
 
-This is the main package for Gemini CLI. It is responsible for the user
+This is the main package for open-agent. It is responsible for the user
 interface, command parsing, and all other user-facing functionality.
 
 When this package is published, it is bundled into a single executable file.
 This bundle includes all of the package's dependencies, including
-`@open-agent/core`. This means that whether a user installs the package
-with `npm install -g open-agent` or runs it directly with
-`npx open-agent`, they are using this single, self-contained executable.
+`@open-agent/core`. This means that whether a user installs the package with
+`npm install -g open-agent` or runs it directly with `npx open-agent`, they are
+using this single, self-contained executable.
 
 ## `@open-agent/core`
 

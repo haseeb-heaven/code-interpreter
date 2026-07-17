@@ -342,7 +342,7 @@ export function formatValidationError(
   }
 
   lines.push('Please fix the configuration.');
-  lines.push('See: https://geminicli.com/docs/reference/configuration/');
+  lines.push('See: https://github.com/haseeb-heaven/open-agent/blob/main/docs/reference/configuration.md');
 
   return lines.join('\n');
 }

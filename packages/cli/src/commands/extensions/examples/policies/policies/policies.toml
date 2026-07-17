@@ -1,4 +1,4 @@
-# Example Policy Rules for Gemini CLI Extension
+# Example Policy Rules for OpenAgent Extension
 #
 # Extensions run in Tier 2 (Extension Tier).
 # Security Note: 'allow' decisions and 'yolo' mode configurations are ignored.

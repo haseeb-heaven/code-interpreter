@@ -54,6 +54,18 @@ for (const file of policyFiles) {
 
 console.log(`Copied ${policyFiles.length} policy files to bundle/policies/`);
 
+// 2b. Copy the model registry so installed bundles resolve provider routes
+// (configs/models.toml is looked up next to the bundle at runtime).
+const bundleConfigsDir = join(bundleDir, 'configs');
+if (!existsSync(bundleConfigsDir)) {
+  mkdirSync(bundleConfigsDir, { recursive: true });
+}
+copyFileSync(
+  join(root, 'configs', 'models.toml'),
+  join(bundleConfigsDir, 'models.toml'),
+);
+console.log('Copied configs/models.toml to bundle/configs/');
+
 // Also copy policies to a2a-server dist directory for bundled execution
 const a2aPolicyDir = join(root, 'packages/a2a-server/dist/policies');
 if (!existsSync(a2aPolicyDir)) {

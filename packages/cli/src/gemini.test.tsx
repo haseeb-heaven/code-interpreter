@@ -278,6 +278,13 @@ vi.mock('./config/auth.js', () => ({
   validateAuthMethod: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('./config/providerStartup.js', () => ({
+  handleProviderStartupFlags: vi.fn().mockResolvedValue(undefined),
+  applyProviderRouting: vi.fn().mockResolvedValue(false),
+  printModelPicker: vi.fn().mockResolvedValue(undefined),
+  runByokWalkthrough: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe('gemini.tsx main function', () => {
   let originalIsTTY: boolean | undefined;
   let initialUnhandledRejectionListeners: NodeJS.UnhandledRejectionListener[] =

@@ -166,6 +166,12 @@ describe('Scheduler Parallel Execution', () => {
     isReadOnly: false,
     build: vi.fn(),
   } as unknown as AnyDeclarativeTool;
+  const writeFileTool = {
+    name: WRITE_FILE_TOOL_NAME,
+    kind: Kind.Execute,
+    isReadOnly: false,
+    build: vi.fn(),
+  } as unknown as AnyDeclarativeTool;
   const editTool = {
     name: EDIT_TOOL_NAME,
     kind: Kind.Execute,
@@ -214,7 +220,7 @@ describe('Scheduler Parallel Execution', () => {
         if (name === 'agent-tool-1') return agentTool1;
         if (name === 'agent-tool-2') return agentTool2;
         if (name === UPDATE_TOPIC_TOOL_NAME) return topicTool;
-        if (name === WRITE_FILE_TOOL_NAME) return writeTool;
+        if (name === WRITE_FILE_TOOL_NAME) return writeFileTool;
         if (name === EDIT_TOOL_NAME) return editTool;
         return undefined;
       }),
@@ -349,6 +355,9 @@ describe('Scheduler Parallel Execution', () => {
       mockInvocation as unknown as AnyToolInvocation,
     );
     vi.mocked(writeTool.build).mockReturnValue(
+      mockInvocation as unknown as AnyToolInvocation,
+    );
+    vi.mocked(writeFileTool.build).mockReturnValue(
       mockInvocation as unknown as AnyToolInvocation,
     );
     vi.mocked(editTool.build).mockReturnValue(

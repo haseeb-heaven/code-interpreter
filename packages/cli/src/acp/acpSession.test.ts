@@ -84,7 +84,7 @@ describe('Session', () => {
   let mockConfig: Mocked<Config>;
   let mockConnection: Mocked<acp.AgentSideConnection>;
   let session: Session;
-  let mockToolRegistry: { getTool: Mock };
+  let mockToolRegistry: { getTool: Mock; getAllToolNames: Mock };
   let mockTool: { kind: string; build: Mock };
   let mockMessageBus: Mocked<MessageBus>;
   let mockSendMessageStream: MockInstance<
@@ -113,6 +113,7 @@ describe('Session', () => {
     };
     mockToolRegistry = {
       getTool: vi.fn().mockReturnValue(mockTool),
+      getAllToolNames: vi.fn().mockReturnValue([]),
     };
     mockMessageBus = {
       publish: vi.fn(),
@@ -367,7 +368,9 @@ describe('Session', () => {
       prompt: [{ type: 'text', text: 'Call tool' }],
     });
 
-    expect(mockToolRegistry.getTool).toHaveBeenCalledWith('test_tool');
+    expect(mockToolRegistry.getTool).toHaveBeenCalledWith('test_tool', {
+      foo: 'bar',
+    });
     expect(result).toMatchObject({ stopReason: 'end_turn' });
   });
 

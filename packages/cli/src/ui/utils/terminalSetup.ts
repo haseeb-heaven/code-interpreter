@@ -471,7 +471,7 @@ export async function terminalSetup(): Promise<TerminalSetupResult> {
 }
 
 export const TERMINAL_SETUP_CONSENT_MESSAGE =
-  'Gemini CLI works best with Shift+Enter/Ctrl+Enter for multiline input. ' +
+  'open-agent works best with Shift+Enter/Ctrl+Enter for multiline input. ' +
   'Would you like to automatically configure your terminal keybindings?';
 
 export function formatTerminalSetupResultMessage(

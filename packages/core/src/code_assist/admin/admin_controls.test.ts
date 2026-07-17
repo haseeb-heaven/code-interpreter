@@ -823,7 +823,7 @@ describe('Admin Controls', () => {
       const message = getAdminErrorMessage('Code Completion', mockConfig);
 
       expect(message).toBe(
-        'Code Completion is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli?project=test-project-123',
+        'Code Completion is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md?project=test-project-123',
       );
     });
 
@@ -835,7 +835,7 @@ describe('Admin Controls', () => {
       const message = getAdminErrorMessage('Chat', mockConfig);
 
       expect(message).toBe(
-        'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+        'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md',
       );
     });
 
@@ -845,7 +845,7 @@ describe('Admin Controls', () => {
       const message = getAdminErrorMessage('Chat', mockConfig);
 
       expect(message).toBe(
-        'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+        'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md',
       );
     });
 
@@ -853,7 +853,7 @@ describe('Admin Controls', () => {
       const message = getAdminErrorMessage('Chat', undefined);
 
       expect(message).toBe(
-        'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+        'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md',
       );
     });
   });
@@ -876,7 +876,7 @@ describe('Admin Controls', () => {
       );
 
       expect(message).toBe(
-        '1 MCP server is not allowlisted by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli?project=test-project-123',
+        '1 MCP server is not allowlisted by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md?project=test-project-123',
       );
     });
 
@@ -891,7 +891,7 @@ describe('Admin Controls', () => {
       );
 
       expect(message).toBe(
-        '3 MCP servers are not allowlisted by your administrator. To enable them, please request an update to the settings at: https://goo.gle/manage-gemini-cli?project=test-project-123',
+        '3 MCP servers are not allowlisted by your administrator. To enable them, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md?project=test-project-123',
       );
     });
 
@@ -904,7 +904,7 @@ describe('Admin Controls', () => {
       );
 
       expect(message).toBe(
-        '2 MCP servers are not allowlisted by your administrator. To enable them, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+        '2 MCP servers are not allowlisted by your administrator. To enable them, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md',
       );
     });
   });

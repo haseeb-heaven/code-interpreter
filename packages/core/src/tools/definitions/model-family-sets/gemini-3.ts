@@ -19,6 +19,7 @@ import {
   EDIT_TOOL_NAME,
   WEB_SEARCH_TOOL_NAME,
   WRITE_TODOS_TOOL_NAME,
+  SHELL_TOOL_NAME,
   WEB_FETCH_TOOL_NAME,
   READ_MANY_FILES_TOOL_NAME,
   GET_INTERNAL_DOCS_TOOL_NAME,
@@ -92,7 +93,7 @@ import {
 export const GEMINI_3_SET: CoreToolSet = {
   read_file: {
     name: READ_FILE_TOOL_NAME,
-    description: `Reads and returns the content of a specified file. To maintain context efficiency, you MUST use 'start_line' and 'end_line' for targeted, surgical reads of specific sections. For your safety, the tool will automatically truncate output exceeding ${DEFAULT_MAX_LINES_TEXT_FILE} lines, ${MAX_LINE_LENGTH_TEXT_FILE} characters per line, or ${MAX_FILE_SIZE_MB}MB in size; however, triggering these limits is considered token-inefficient. Always retrieve only the minimum content necessary for your next step. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), audio files (MP3, WAV, AIFF, AAC, OGG, FLAC), and PDF files.`,
+    description: `Reads and returns the content of a specified file. To maintain context efficiency, you MUST use 'start_line' and 'end_line' for targeted, surgical reads of specific sections. For your safety, the tool will automatically truncate output exceeding ${DEFAULT_MAX_LINES_TEXT_FILE} lines, ${MAX_LINE_LENGTH_TEXT_FILE} characters per line, or ${MAX_FILE_SIZE_MB}MB in size; however, triggering these limits is considered token-inefficient. Always retrieve only the minimum content necessary for your next step. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), audio files (MP3, WAV, AIFF, AAC, OGG, FLAC), PDF files, and Word documents (.docx text extraction).`,
     parametersJsonSchema: {
       type: 'object',
       properties: {
@@ -187,12 +188,12 @@ export const GEMINI_3_SET: CoreToolSet = {
   grep_search_ripgrep: {
     name: GREP_TOOL_NAME,
     description:
-      'Searches for a regular expression pattern within file contents. This tool is FAST and optimized, powered by ripgrep. PREFERRED over standard `run_shell_command("grep ...")` due to better performance and automatic output limiting (defaults to 100 matches, but can be increased via `total_max_matches`).',
+      'Searches for a regular expression pattern within file contents. This tool is FAST and optimized, powered by ripgrep. PREFERRED over standard `run_shell_command("grep ...")` due to better performance and automatic output limiting (defaults to 100 matches, but can be increased via `total_max_matches`). ALWAYS pass a non-empty `pattern` (content regex, NOT a file glob like `*.txt` — use glob for filenames). Do NOT call with empty `{}`.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [PARAM_PATTERN]: {
-          description: `The pattern to search for. By default, treated as a Rust-flavored regular expression. Use '\\b' for precise symbol matching (e.g., '\\bMatchMe\\b').`,
+          description: `Required content regex (e.g. 'TODO|FIXME', 'function\\s+foo'). Do NOT pass file globs like '*.txt' or '*.*' here — use the glob tool for file names. Never omit this field.`,
           type: 'string',
         },
         [PARAM_DIR_PATH]: {
@@ -268,13 +269,13 @@ export const GEMINI_3_SET: CoreToolSet = {
   glob: {
     name: GLOB_TOOL_NAME,
     description:
-      'Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases.',
+      'Efficiently finds files matching specific glob patterns (e.g., `src/**/*.ts`, `**/*.md`, `**/*.{txt,md}`), returning absolute paths sorted by modification time (newest first). Ideal for quickly locating files based on their name or path structure, especially in large codebases. ALWAYS pass a non-empty `pattern`. Do NOT use for searching inside file contents (use grep_search). Do NOT call with empty `{}`.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [PARAM_PATTERN]: {
           description:
-            "The glob pattern to match against (e.g., '**/*.py', 'docs/*.md').",
+            "Required. The glob pattern to match against (e.g., '**/*.py', 'docs/*.md', '**/*.{txt,md}'). Never omit this field.",
           type: 'string',
         },
         [PARAM_DIR_PATH]: {
@@ -395,14 +396,14 @@ The user has the ability to modify the \`new_string\` content. If modified, this
 
   google_web_search: {
     name: WEB_SEARCH_TOOL_NAME,
-    description: `Performs a grounded Google Search to find information across the internet. Returns a synthesized answer with citations (e.g., [1]) and source URIs. Best for finding up-to-date documentation, troubleshooting obscure errors, or broad research. Use this when you don't have a specific URL. If a search result requires deeper analysis, follow up by using '${WEB_FETCH_TOOL_NAME}' on the provided URI.`,
+    description: `Performs a grounded Google Search to find information across the internet. Returns a synthesized answer with citations (e.g., [1]) and source URIs. Best for finding up-to-date documentation, troubleshooting obscure errors, or broad research. Use this when you don't have a specific URL. Multi-step: if results need deeper reading, follow with '${WEB_FETCH_TOOL_NAME}' on a source URI; if the user wants a file saved locally, use '${SHELL_TOOL_NAME}' (curl / Invoke-WebRequest) to download, then continue open/install/verify actions until the full request is complete. Do not stop after only returning links when more was asked.`,
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [WEB_SEARCH_PARAM_QUERY]: {
           type: 'string',
           description:
-            "The search query. Supports natural language questions (e.g., 'Latest breaking changes in React 19') or specific technical queries.",
+            'Required non-empty search query string (natural language or keywords). Never call this tool with an empty query object.',
         },
       },
       required: [WEB_SEARCH_PARAM_QUERY],
@@ -412,13 +413,13 @@ The user has the ability to modify the \`new_string\` content. If modified, this
   web_fetch: {
     name: WEB_FETCH_TOOL_NAME,
     description:
-      "Analyzes and extracts information from up to 20 URLs. Ideal for documentation review, technical research, or reading raw code from GitHub. You can provide specific, complex instructions for the extraction (e.g., 'Summarize the breaking changes'). Provides cited answers based on the content. GitHub 'blob' URLs are automatically converted to raw versions for better processing. Supports HTTP/HTTPS only.",
+      "Analyzes and extracts information from up to 20 URLs into the model context. Ideal for documentation review, technical research, or reading raw code from GitHub. Provide analysis instructions in 'prompt' (e.g., 'Summarize the breaking changes'). GitHub 'blob' URLs convert to raw. HTTP/HTTPS only. Does NOT save files to disk — never pass download_location/save_path. To download a binary or installer, use run_shell_command, then continue with further user-requested actions.",
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [WEB_FETCH_PARAM_PROMPT]: {
           description:
-            'A string containing the URL(s) and your specific analysis instructions. Be clear about what information you want to find or summarize. Supports up to 20 URLs.',
+            'A string containing the URL(s) and your specific analysis instructions. Be clear about what information you want to find or summarize. Supports up to 20 URLs. Not a download destination — filesystem paths do not belong here.',
           type: 'string',
         },
       },
@@ -602,7 +603,7 @@ The agent did not use the todo list because this task could be completed by a ti
   get_internal_docs: {
     name: GET_INTERNAL_DOCS_TOOL_NAME,
     description:
-      'Returns the content of Gemini CLI internal documentation files. If no path is provided, returns a list of all available documentation paths.',
+      'Returns the content of OpenAgent internal documentation files. If no path is provided, returns a list of all available documentation paths.',
     parametersJsonSchema: {
       type: 'object',
       properties: {

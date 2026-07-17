@@ -102,6 +102,7 @@ import { useQuotaAndFallback } from './hooks/useQuotaAndFallback.js';
 import { useEditorSettings } from './hooks/useEditorSettings.js';
 import { useSettingsCommand } from './hooks/useSettingsCommand.js';
 import { useModelCommand } from './hooks/useModelCommand.js';
+import { useWebSearchCommand } from './hooks/useWebSearchCommand.js';
 import { useVoiceModelCommand } from './hooks/useVoiceModelCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { useVimMode } from './contexts/VimModeContext.js';
@@ -936,6 +937,9 @@ Logging in with Google... Restarting OpenAgent to continue.
   const { isModelDialogOpen, openModelDialog, closeModelDialog } =
     useModelCommand();
 
+  const { isWebSearchDialogOpen, openWebSearchDialog, closeWebSearchDialog } =
+    useWebSearchCommand();
+
   const {
     isVoiceModelDialogOpen,
     openVoiceModelDialog,
@@ -965,6 +969,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       openSettingsDialog,
       openSessionBrowser,
       openModelDialog,
+      openWebSearchDialog,
       openVoiceModelDialog,
       openAgentConfigDialog,
       openPermissionsDialog,
@@ -1004,6 +1009,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       openSettingsDialog,
       openSessionBrowser,
       openModelDialog,
+      openWebSearchDialog,
       openVoiceModelDialog,
       openAgentConfigDialog,
       setQuittingMessages,
@@ -2093,7 +2099,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       lastTitleRef.current = paddedTitle;
       stdout.write(`\x1b]0;${paddedTitle}\x07`);
     }
-    // Note: We don't need to reset the window title on exit because Gemini CLI is already doing that elsewhere
+    // Note: We don't need to reset the window title on exit because OpenAgent is already doing that elsewhere
   }, [
     streamingState,
     thought,
@@ -2189,6 +2195,7 @@ Logging in with Google... Restarting OpenAgent to continue.
     isThemeDialogOpen ||
     isSettingsDialogOpen ||
     isModelDialogOpen ||
+    isWebSearchDialogOpen ||
     isVoiceModelDialogOpen ||
     isAgentConfigDialogOpen ||
     isPermissionsDialogOpen ||
@@ -2450,6 +2457,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       isSettingsDialogOpen,
       isSessionBrowserOpen,
       isModelDialogOpen,
+      isWebSearchDialogOpen,
       isVoiceModelDialogOpen,
       isAgentConfigDialogOpen,
       selectedAgentName,
@@ -2563,6 +2571,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       isSettingsDialogOpen,
       isSessionBrowserOpen,
       isModelDialogOpen,
+      isWebSearchDialogOpen,
       isVoiceModelDialogOpen,
       isAgentConfigDialogOpen,
       selectedAgentName,
@@ -2679,6 +2688,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       exitPrivacyNotice,
       closeSettingsDialog,
       closeModelDialog,
+      closeWebSearchDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
       openAgentConfigDialog,
@@ -2781,6 +2791,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       exitPrivacyNotice,
       closeSettingsDialog,
       closeModelDialog,
+      closeWebSearchDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
       openAgentConfigDialog,

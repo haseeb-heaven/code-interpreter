@@ -70,6 +70,30 @@ export interface ResolveOptions {
   listLMStudio?: typeof listLMStudioModels;
 }
 
+/**
+ * Infers which provider a registry entry belongs to: its explicit
+ * `provider` tag, else the prefix on `model` (e.g. "groq/..."), else a
+ * bare model id is assumed to be openrouter (if api_base is set) or openai.
+ *
+ * An explicit `provider` tag that names an unsupported/unregistered
+ * provider (e.g. "browser-use", which isn't a chat-completions backend)
+ * is authoritative and must NOT fall through to the openrouter/openai
+ * guess — that guess is only for entries with no provider tag at all.
+ * `"local"` is a special sentinel (not a real provider entry) meaning
+ * "route through Ollama", matching picker.ts's providerForConfig.
+ */
+function inferProviderForConfig(
+  cfg: { model?: string; provider?: string; api_base?: unknown },
+  fallbackModelId: string,
+): ProviderDefinition | undefined {
+  if (cfg.provider) {
+    return getProvider(cfg.provider) ?? (cfg.provider === 'local' ? getProvider('ollama') : undefined);
+  }
+  const modelId = (cfg.model ?? fallbackModelId).trim();
+  const { provider } = splitModelId(modelId);
+  return provider ?? (cfg.api_base ? getProvider('openrouter') : getProvider('openai'));
+}
+
 function routeFromRegistry(
   key: string,
   registry: ModelRegistry,
@@ -78,12 +102,7 @@ function routeFromRegistry(
   const cfg = registry.getModel(key);
   if (!cfg) return undefined;
   const modelId = (cfg.model ?? key).trim();
-  const { provider } = splitModelId(modelId);
-  const configured = cfg.provider ? getProvider(cfg.provider) : undefined;
-  const resolved =
-    configured ??
-    provider ??
-    (cfg.api_base ? getProvider('openrouter') : getProvider('openai'));
+  const resolved = inferProviderForConfig(cfg, key);
   if (!resolved) return undefined;
   return {
     modelId,
@@ -157,10 +176,11 @@ export async function resolveProviderRoute(
       options.model ??
       registry
         .listModelNames()
-        .map((key) => registry.getModel(key))
+        .map((key) => ({ key, cfg: registry.getModel(key) }))
         .find(
-          (cfg) => cfg && getProvider(cfg.provider ?? '')?.id === provider.id,
-        )?.model;
+          ({ key, cfg }) =>
+            cfg && inferProviderForConfig(cfg, key)?.id === provider.id,
+        )?.cfg?.model;
     if (!model) return undefined;
     const bare = splitModelId(model).provider
       ? model

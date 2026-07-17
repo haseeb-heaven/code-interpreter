@@ -4,6 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import dotenv from 'dotenv';
+
+// Load repo-root .env for live websearch / provider probes (does not override
+// vars already set in the shell). Unit tests still mock or stub as needed.
+const _repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..',
+);
+dotenv.config({ path: path.join(_repoRoot, '.env') });
+dotenv.config({ path: path.join(process.cwd(), '.env') });
+
 // Unset NO_COLOR environment variable to ensure consistent theme behavior between local and CI test runs
 if (process.env.NO_COLOR !== undefined) {
   delete process.env.NO_COLOR;

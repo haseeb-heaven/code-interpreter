@@ -42,7 +42,7 @@ directory, allowing the agent to manage its plan for the current session.
   graph (DAG). The agent must resolve dependencies before starting blocked
   tasks.
 - **Interaction:** Users can view the current state of the tracker by asking the
-  agent to visualize it, or by running `gemini-cli` commands if implemented.
+  agent to visualize it, or by running `openagent` commands if implemented.
 
 ## Use cases
 

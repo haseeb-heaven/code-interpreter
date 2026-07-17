@@ -424,7 +424,7 @@ export async function main() {
 
   const argv = await argvPromise;
 
-  await handleProviderStartupFlags(argv);
+  await handleProviderStartupFlags(argv, settings);
 
   const { sessionId, resumedSessionData } = await resolveSessionId(
     argv.resume,
@@ -438,7 +438,7 @@ export async function main() {
   ) {
     coreEvents.emitFeedback(
       'warning',
-      'Warning: --allowed-tools cli argument and tools.allowed in settings.json are deprecated and will be removed in 1.0: Migrate to Policy Engine: https://geminicli.com/docs/core/policy-engine/',
+      'Warning: --allowed-tools cli argument and tools.allowed in settings.json are deprecated and will be removed in 1.0: Migrate to Policy Engine: https://github.com/haseeb-heaven/open-agent/blob/main/docs/reference/policy-engine.md',
     );
   }
 
@@ -448,7 +448,7 @@ export async function main() {
   ) {
     coreEvents.emitFeedback(
       'warning',
-      'Warning: tools.exclude in settings.json is deprecated and will be removed in 1.0. Migrate to Policy Engine: https://geminicli.com/docs/core/policy-engine/',
+      'Warning: tools.exclude in settings.json is deprecated and will be removed in 1.0. Migrate to Policy Engine: https://github.com/haseeb-heaven/open-agent/blob/main/docs/reference/policy-engine.md',
     );
   }
 
@@ -624,7 +624,7 @@ export async function main() {
   }
 
   // We are now past the logic handling potentially launching a child process
-  // to run Gemini CLI. It is now safe to perform expensive initialization that
+  // to run open-agent. It is now safe to perform expensive initialization that
   // may have side effects.
   {
     const loadConfigHandle = startupProfiler.start('load_cli_config');

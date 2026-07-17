@@ -86,8 +86,8 @@
     "cross-spawn": "7.0.6"
   },
   "bin": {
-    "openagent": "bundle/gemini.js",
-    "gemini": "bundle/gemini.js"
+    "openagent": "bundle/openagent.js",
+    "gemini": "bundle/openagent.js"
   },
   "files": [
     "bundle/",

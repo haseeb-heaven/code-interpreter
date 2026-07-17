@@ -1121,6 +1121,39 @@ describe('Scheduler (Orchestrator)', () => {
       expect(mockStateManager.finalizeCall).toHaveBeenCalledWith('call-1');
     });
 
+    it('should abort the in-flight AbortController when cancelAll() is called during execution', async () => {
+      let capturedSignal: AbortSignal | undefined;
+      let resolveExecute: (value: unknown) => void;
+      const executePromise = new Promise((resolve) => {
+        resolveExecute = resolve;
+      });
+
+      mockExecutor.execute.mockImplementation(
+        ({ signal: callSignal }: { signal: AbortSignal }) => {
+          capturedSignal = callSignal;
+          return executePromise as Promise<CompletedToolCall>;
+        },
+      );
+
+      const schedulePromise = scheduler.schedule(req1, signal);
+
+      await vi.waitFor(() => {
+        expect(capturedSignal).toBeDefined();
+      });
+      expect(capturedSignal!.aborted).toBe(false);
+
+      scheduler.cancelAll();
+
+      expect(capturedSignal!.aborted).toBe(true);
+
+      resolveExecute!({
+        status: CoreToolCallStatus.Cancelled,
+        response: { callId: 'call-1', responseParts: [] },
+      } as unknown as CancelledToolCall);
+
+      await schedulePromise;
+    });
+
     it('should break the loop if no progress is made (safeguard against stuck states)', async () => {
       // Setup: A tool that is 'validating' but stays 'validating' even after processing
       // This simulates a bug in state management or a weird edge case.

@@ -287,7 +287,7 @@ for (const jsFile of jsFiles) {
   const hash = sha256(content);
 
   // Node SEA requires the main entry point to be explicitly mapped
-  if (jsFile === 'gemini.js') {
+  if (jsFile === 'openagent.js') {
     assets['gemini.mjs'] = fsPath;
     manifest.mainHash = hash;
   } else {

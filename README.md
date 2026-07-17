@@ -14,7 +14,13 @@
 > bring-your-own-key frontier models. Describe a task in plain English. Get the
 > result.
 
-![OpenAgent CLI Screenshot](assets/openagent_cli_screenshot.jpg)
+### Main UI / UX
+
+![OpenAgent Main UI](assets/openagent_main_ui.png)
+
+The interactive terminal UI shows the **OA** header, auth status (for example
+`Authenticated with Gemini API key`), approval mode, model, workspace, branch,
+memory usage, and the prompt — ready for natural-language tasks.
 
 ```bash
 npm install
@@ -74,14 +80,38 @@ npm start -- --provider lmstudio
 | **Account / sign-in**      |         ✅ none needed         |   ❌ often required   |
 | **MCP support**            |               ✅               |       ⚠️ varies       |
 
+## Documentation
+
+Full guides live in **[`docs/`](docs/README.md)** (beautifully structured for
+GitHub browsing):
+
+| Guide         | Link                                                                 |
+| ------------- | -------------------------------------------------------------------- |
+| **Docs home** | [docs/index.md](docs/index.md)                                       |
+| Quickstart    | [docs/get-started/index.md](docs/get-started/index.md)               |
+| Free models   | [docs/get-started/free-models.md](docs/get-started/free-models.md)   |
+| Local models  | [docs/get-started/local-models.md](docs/get-started/local-models.md) |
+| Providers     | [docs/get-started/providers.md](docs/get-started/providers.md)       |
+| Common errors | [docs/resources/common-errors.md](docs/resources/common-errors.md)   |
+| Model matrix  | [Models.MD](Models.MD)                                               |
+
 ## Table of Contents
 
+- [Documentation](#documentation)
 - [Installation](#installation)
 - [API key setup for all providers](#api-key-setup-for-all-providers)
+- [Web search (for agents & open-source models)](#web-search-for-agents--open-source-models)
 - [Model registry](#model-registry-configsmodelstoml)
 - [Usage](#usage)
 - [Features](#features)
 - [Building and testing](#building-and-testing)
+  - [Prerequisites (`.env`)](#prerequisites-env)
+  - [Unit tests — web search](#unit-tests--web-search)
+  - [Unit tests — models & providers](#unit-tests--models--providers)
+  - [Live tests — web search](#live-tests--web-search)
+  - [Live tests — cloud models](#live-tests--cloud-models)
+  - [Live tests — local models](#live-tests--local-models)
+  - [All-in-one commands](#all-in-one-commands)
 - [Attribution](#attribution)
 - [License](#license)
 
@@ -127,6 +157,71 @@ npm start -- --byok     # asks for each provider key, writes .env,
 In-session, `/byok <provider> <key>` saves a key and immediately reports the
 newly unlocked models.
 
+## Web search (for agents & open-source models)
+
+The `google_web_search` tool routes across **multiple backends**. You do **not**
+need every key — OpenAgent picks the best available one for your **active
+model**.
+
+### Recommended backend by model family
+
+| Active model family                                    | Recommended web search                                | Why                                      |
+| ------------------------------------------------------ | ----------------------------------------------------- | ---------------------------------------- |
+| **Gemini**                                             | Google Search (Gemini grounding) via `GEMINI_API_KEY` | Native grounding                         |
+| **Open-source / free** (OpenRouter, Groq, Cerebras, …) | **Brave** (`BRAVE_API_KEY`)                           | Independent index, cheap, agent-friendly |
+| **Local** (Ollama / LM Studio)                         | **DuckDuckGo** (no key)                               | Zero setup offline-friendly fallback     |
+| Any + `TAVILY_API_KEY`                                 | Tavily also available                                 | AI-shaped snippets                       |
+| Any + `SERPER_API_KEY`                                 | Serper                                                | Google-style SERP                        |
+| Any + `EXA_API_KEY`                                    | Exa                                                   | Semantic / research search               |
+
+Auto order when keys exist: **preferred env → recommended for model → Brave →
+Tavily → Serper → Exa → Gemini → DuckDuckGo**.
+
+Force a backend: `WEB_SEARCH_PROVIDER=brave` (or `tavily`, `serper`, `exa`,
+`gemini`, `duckduckgo`).
+
+### Get API keys (open these pages)
+
+| Backend                   | Env var          | Create key                            |
+| ------------------------- | ---------------- | ------------------------------------- |
+| Brave Search              | `BRAVE_API_KEY`  | https://api.search.brave.com/app/keys |
+| Tavily                    | `TAVILY_API_KEY` | https://app.tavily.com/home           |
+| Serper                    | `SERPER_API_KEY` | https://serper.dev/api-key            |
+| Exa                       | `EXA_API_KEY`    | https://dashboard.exa.ai/api-keys     |
+| Google / Gemini grounding | `GEMINI_API_KEY` | https://aistudio.google.com/apikey    |
+| DuckDuckGo                | —                | No key                                |
+
+### Interactive wizard
+
+```text
+/websearch                 # open settings wizard (★ = recommended for current model)
+/websearch list            # text table of providers + key status
+/websearch brave           # details for one provider
+/websearch open brave      # open signup page in browser when key is empty
+/websearch brave <key>     # save BRAVE_API_KEY to .env
+```
+
+In the wizard: select a provider → paste the key → **Enter**. If the key box is
+**empty** and you press **Enter**, OpenAgent opens that provider’s signup
+website so you can create a key.
+
+Or add keys to `.env` (see [`.env.example`](.env.example)):
+
+```dotenv
+BRAVE_API_KEY=
+TAVILY_API_KEY=
+SERPER_API_KEY=
+EXA_API_KEY=
+GEMINI_API_KEY=
+WEB_SEARCH_PROVIDER=
+```
+
+**Open-source models need a search key for best results.** Without any search
+key, OpenAgent still works via **DuckDuckGo** (no signup), but quality varies.
+
+How to run unit and live web-search tests: see
+[Building and testing → Web search](#unit-tests--web-search).
+
 ## Model registry (`configs/models.toml`)
 
 Every model OpenAgent knows about lives in one human-editable file:
@@ -137,6 +232,9 @@ models or providers by editing this single file — no code changes required.
 
 See [Models.MD](Models.MD) for the complete supported-model list including the
 **vision + streaming support matrix** for every provider.
+
+How to run unit and live model/provider tests: see
+[Building and testing → Models](#unit-tests--models--providers).
 
 ## 🛠️ **Usage**
 
@@ -203,23 +301,163 @@ Inside a session:
 
 ## Building and testing
 
+All vitest commands below run from the **repo root** with
+`--root packages/core`. Vitest loads keys from the **repo-root `.env`**
+automatically (via `packages/core/test-setup.ts`); shell env vars still win if
+already set.
+
 ```bash
 npm install       # install all workspace dependencies
 npm run build     # build every package
 npm test          # full unit test suite (all workspaces)
 ```
 
-Provider-specific test suites (in `packages/core`):
+### Prerequisites (`.env`)
+
+Copy [`.env.example`](.env.example) → `.env` and fill the keys you have. You do
+**not** need every key.
+
+| Area | Env vars used by tests |
+| ---- | ---------------------- |
+| **Web search (live)** | `BRAVE_API_KEY`, `TAVILY_API_KEY`, `SERPER_API_KEY`, `EXA_API_KEY`, `GEMINI_API_KEY` (DuckDuckGo needs none) |
+| **Cloud models (live)** | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `NVIDIA_API_KEY`, `TOGETHER_API_KEY`, `HF_TOKEN` / `HUGGINGFACE_API_KEY`, `OPENROUTER_API_KEY`, `CEREBRAS_API_KEY`, `Z_AI_API_KEY` |
+| **Local models (live)** | none (Ollama / LM Studio must be running) |
+
+Missing keys → that backend/provider is **skipped**, not failed. Quota /
+empty-balance errors on live model probes are **soft-skipped** (not product
+failures).
+
+---
+
+### Unit tests — web search
+
+Mocked backends + router (no paid keys required). DuckDuckGo may hit the public
+network in one backend unit test.
 
 ```bash
-npx vitest run src/providers                        # all provider unit tests
-RUN_LOCAL_PROVIDER_TESTS=1 npx vitest run src/providers/local.integration.test.ts   # live Ollama / LM Studio
-RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts -t openrouter  # live OpenRouter :free probe
+# Entire websearch package (unit + live file; live cases skip without keys)
+npx vitest run src/websearch --root packages/core
+
+# Individual backend unit files
+npx vitest run src/websearch/backends/brave.test.ts --root packages/core
+npx vitest run src/websearch/backends/tavily.test.ts --root packages/core
+npx vitest run src/websearch/backends/serper.test.ts --root packages/core
+npx vitest run src/websearch/backends/exa.test.ts --root packages/core
+npx vitest run src/websearch/backends/duckduckgo.test.ts --root packages/core
+npx vitest run src/websearch/router.test.ts --root packages/core
 ```
 
-Live integration tests are skipped in CI and for any provider whose API key is
-not set, so they are always safe to run. Every model entry in
-`configs/models.toml` is covered by a registry-wide test suite.
+---
+
+### Unit tests — models & providers
+
+Registry-wide coverage of `configs/models.toml` (every model entry), free
+catalog, BYOK helpers, routing, and provider metadata. **No live API calls.**
+
+```bash
+# All provider unit tests under packages/core
+npx vitest run src/providers --root packages/core
+
+# Focused suites
+npx vitest run src/providers/allModels.test.ts --root packages/core
+npx vitest run src/providers/modelRegistry.test.ts --root packages/core
+npx vitest run src/providers/freeCatalog.test.ts --root packages/core
+npx vitest run src/providers/providers.test.ts --root packages/core
+npx vitest run src/providers/byok.test.ts --root packages/core
+npx vitest run src/providers/resolve.test.ts --root packages/core
+npx vitest run src/providers/picker.test.ts --root packages/core
+```
+
+---
+
+### Live tests — web search
+
+Hits real search APIs with keys from `.env`. Safe to run anytime: missing keys
+skip that backend.
+
+```bash
+# All live web-search probes (Brave / Tavily / Serper / Exa / DDG / route plan)
+npx vitest run src/websearch/live.websearch.test.ts --root packages/core
+```
+
+**PowerShell:** same command (`.env` is loaded by the test setup).
+
+Optional: force a backend for manual app use (not required for tests):
+
+```bash
+# bash / zsh
+export WEB_SEARCH_PROVIDER=brave
+
+# PowerShell
+$env:WEB_SEARCH_PROVIDER = 'brave'
+```
+
+---
+
+### Live tests — cloud models
+
+One cheap model per cloud provider (complete + stream). Requires
+`RUN_LIVE_PROVIDER_TESTS=1`. Skipped in CI. Skipped when the provider key is
+missing. Quota/billing soft-skips pass with a warning.
+
+```bash
+# bash / zsh — all providers that have keys in .env
+RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts --root packages/core
+
+# Single provider (example: OpenRouter free)
+RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts --root packages/core -t openrouter
+```
+
+**PowerShell:**
+
+```powershell
+$env:RUN_LIVE_PROVIDER_TESTS = '1'
+# Unset CI if your shell injects it (CI skips the whole live suite)
+Remove-Item Env:CI -ErrorAction SilentlyContinue
+npx vitest run src/providers/cloud.integration.test.ts --root packages/core --reporter=verbose
+```
+
+Providers in the live matrix: `openai`, `anthropic`, `gemini`, `groq`,
+`deepseek`, `nvidia`, `together`, `huggingface`, `openrouter`, `cerebras`,
+`z-ai`.
+
+---
+
+### Live tests — local models
+
+Needs a running Ollama and/or LM Studio server (no cloud keys).
+
+```bash
+# bash / zsh
+RUN_LOCAL_PROVIDER_TESTS=1 npx vitest run src/providers/local.integration.test.ts --root packages/core
+```
+
+**PowerShell:**
+
+```powershell
+$env:RUN_LOCAL_PROVIDER_TESTS = '1'
+npx vitest run src/providers/local.integration.test.ts --root packages/core
+```
+
+---
+
+### All-in-one commands
+
+```bash
+# Unit: web search + model registry (good default before a PR)
+npx vitest run src/websearch src/providers/allModels.test.ts src/providers/providers.test.ts src/providers/freeCatalog.test.ts src/providers/modelRegistry.test.ts --root packages/core
+
+# Live: web search + every cloud provider that has a key (bash)
+RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/websearch/live.websearch.test.ts src/providers/cloud.integration.test.ts --root packages/core
+```
+
+**PowerShell live combo:**
+
+```powershell
+$env:RUN_LIVE_PROVIDER_TESTS = '1'
+Remove-Item Env:CI -ErrorAction SilentlyContinue
+npx vitest run src/websearch/live.websearch.test.ts src/providers/cloud.integration.test.ts --root packages/core --reporter=verbose
+```
 
 ## 📝 **Changelog**
 

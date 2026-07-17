@@ -189,8 +189,8 @@ export function renderPreamble(options?: PreambleOptions): string {
   if (options.approvalMode === 'autoEdit') modeStr = 'Auto-Edit';
 
   const base = options.interactive
-    ? 'You are Gemini CLI, an interactive CLI agent specializing in software engineering tasks.'
-    : 'You are Gemini CLI, an autonomous CLI agent specializing in software engineering tasks.';
+    ? 'You are OpenAgent, an interactive CLI agent specializing in software engineering tasks.'
+    : 'You are OpenAgent, an autonomous CLI agent specializing in software engineering tasks.';
 
   return `${base} You are currently operating in **${modeStr}** mode. Your primary goal is to help users safely and effectively.`;
 }
@@ -414,6 +414,7 @@ export function renderOperationalGuidelines(
 
 ## Tool Usage
 - **Parallelism & Sequencing:** Tools execute in parallel by default. Execute multiple independent tool calls in parallel when feasible (e.g., searching, reading files, independent shell commands, or editing *different* files). If a tool depends on the output or side-effects of a previous tool in the same turn (e.g., running a shell command that depends on the success of a previous command), you MUST set the \`wait_for_previous\` parameter to \`true\` on the dependent tool to ensure sequential execution.
+- **Complete Multi-Step Requests:** When the user asks for a chain of actions (e.g. search the web → download a file → open/install/verify → further local work), keep calling tools in subsequent steps until **every** part is done. Do not stop after the first successful tool. Prefer available web-search tools for discovery, page-fetch tools only to **read/summarize** page text, and ${formatToolName(SHELL_TOOL_NAME)} to **download** (curl / Invoke-WebRequest / wget), open, extract, or run installers. Page-fetch tools never write files to disk — never invent \`download_location\` / \`save_path\` parameters for them.
 - **File Editing Collisions:** Do NOT make multiple calls to the ${formatToolName(EDIT_TOOL_NAME)} tool for the SAME file in a single turn. To make multiple edits to the same file, you MUST perform them sequentially across multiple conversational turns to prevent race conditions and ensure the file state is accurate before each edit.
 - **Command Execution:** Use the ${formatToolName(SHELL_TOOL_NAME)} tool for running shell commands, remembering the safety rule to explain modifying commands first.${toolUsageInteractive(
     options.interactive,

@@ -94,6 +94,10 @@ export class Storage {
     return path.join(Storage.getGlobalGeminiDir(), TRUSTED_FOLDERS_FILENAME);
   }
 
+  static getProviderUsagePath(): string {
+    return path.join(Storage.getGlobalGeminiDir(), 'provider-usage.json');
+  }
+
   static getUserCommandsDir(): string {
     return path.join(Storage.getGlobalGeminiDir(), 'commands');
   }

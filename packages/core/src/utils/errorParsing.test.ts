@@ -111,7 +111,7 @@ describe('parseAndFormatApiError', () => {
 
   it('should handle an unknown error type', () => {
     const error = 12345;
-    const expected = '[API Error: An unknown error occurred.]';
+    const expected = '[API Error: 12345]';
     expect(parseAndFormatApiError(error)).toBe(expected);
   });
 });

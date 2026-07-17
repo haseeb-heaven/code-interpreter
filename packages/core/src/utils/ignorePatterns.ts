@@ -22,6 +22,9 @@ export const COMMON_IGNORE_PATTERNS: string[] = [
 
 /**
  * Binary file extension patterns that are typically excluded from text processing.
+ * Note: `.docx` is intentionally NOT excluded — OpenAgent extracts plain text from
+ * Word Open XML so `@file.docx` / read_file / read_many_files can summarize docs.
+ * Legacy binary Office formats (.doc, .xls, …) remain excluded from bulk reads.
  */
 export const BINARY_FILE_PATTERNS: string[] = [
   '**/*.bin',
@@ -41,7 +44,6 @@ export const BINARY_FILE_PATTERNS: string[] = [
   '**/*.pak',
   '**/*.rpa',
   '**/*.doc',
-  '**/*.docx',
   '**/*.xls',
   '**/*.xlsx',
   '**/*.ppt',

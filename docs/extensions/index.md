@@ -1,9 +1,9 @@
-# Gemini CLI extensions
+# OpenAgent CLI extensions
 
-Gemini CLI extensions package prompts, MCP servers, custom commands, themes,
+OpenAgent CLI extensions package prompts, MCP servers, custom commands, themes,
 hooks, sub-agents, and agent skills into a familiar and user-friendly format.
-With extensions, you can expand the capabilities of Gemini CLI and share those
-capabilities with others. They are designed to be easily installable and
+With extensions, you can expand the capabilities of OpenAgent CLI and share
+those capabilities with others. They are designed to be easily installable and
 shareable.
 
 To see what's possible, browse the
@@ -15,8 +15,8 @@ Choose the guide that best fits your needs.
 
 ### I want to use extensions
 
-Learn how to discover, install, and manage extensions to enhance your Gemini CLI
-experience.
+Learn how to discover, install, and manage extensions to enhance your OpenAgent
+CLI experience.
 
 - **[Manage extensions](#manage-extensions):** List and verify your installed
   extensions.

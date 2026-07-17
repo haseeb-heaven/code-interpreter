@@ -6,7 +6,7 @@ URLs, and apply that knowledge to your code.
 
 ## Prerequisites
 
-- Gemini CLI installed and authenticated.
+- open-agent installed and authenticated.
 - An internet connection.
 
 ## How to research new technologies
@@ -19,9 +19,9 @@ about it yet. You need to teach it.
 **Prompt:**
 `Search for the 'Bun 1.0' release notes and summarize the key changes.`
 
-Gemini uses the `google_web_search` tool to find relevant pages and synthesizes
-an answer. This "grounding" process ensures the agent isn't hallucinating
-features that don't exist.
+open-agent uses the `google_web_search` tool to find relevant pages and
+synthesizes an answer. This "grounding" process ensures the agent isn't
+hallucinating features that don't exist.
 
 **Prompt:** `Find the documentation for the 'React Router v7' loader API.`
 
@@ -37,8 +37,8 @@ You found a blog post with the exact solution to your bug.
 **Prompt:**
 `Read https://example.com/fixing-memory-leaks and explain how to apply it to my code.`
 
-Gemini will retrieve the page content (stripping away ads and navigation) and
-use it to answer your question.
+open-agent will retrieve the page content (stripping away ads and navigation)
+and use it to answer your question.
 
 ### Scenario: Comparing sources
 

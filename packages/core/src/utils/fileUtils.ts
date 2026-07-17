@@ -15,6 +15,7 @@ import { ToolErrorType } from '../tools/tool-error.js';
 import { BINARY_EXTENSIONS } from './ignorePatterns.js';
 import { createRequire as createModuleRequire } from 'node:module';
 import { debugLogger } from './debugLogger.js';
+import { extractDocxText, isDocxPath } from './officeText.js';
 
 import {
   DEFAULT_MAX_LINES_TEXT_FILE,
@@ -366,11 +367,14 @@ export async function isBinaryFile(filePath: string): Promise<boolean> {
 /**
  * Detects the type of file based on extension and content.
  * @param filePath Path to the file.
- * @returns Promise that resolves to 'text', 'image', 'pdf', 'audio', 'video', 'binary' or 'svg'.
+ * @returns Promise that resolves to 'text', 'image', 'pdf', 'audio', 'video',
+ * 'binary', 'svg', or 'docx'.
  */
 export async function detectFileType(
   filePath: string,
-): Promise<'text' | 'image' | 'pdf' | 'audio' | 'video' | 'binary' | 'svg'> {
+): Promise<
+  'text' | 'image' | 'pdf' | 'audio' | 'video' | 'binary' | 'svg' | 'docx'
+> {
   const ext = path.extname(filePath).toLowerCase();
 
   // The mimetype for various TypeScript extensions (ts, mts, cts, tsx) can be
@@ -382,6 +386,11 @@ export async function detectFileType(
 
   if (ext === '.svg') {
     return 'svg';
+  }
+
+  // Word Open XML — extractable as text (must run before binary-extension list).
+  if (isDocxPath(filePath)) {
+    return 'docx';
   }
 
   const lookedUpMimeType = mime.getType(filePath); // Returns null if not found, or the mime type string
@@ -496,6 +505,54 @@ export async function processSingleFileContent(
           llmContent: `Cannot display content of binary file: ${relativePathForDisplay}`,
           returnDisplay: `Skipped binary file: ${relativePathForDisplay}`,
         };
+      }
+      case 'docx': {
+        try {
+          const extracted = await extractDocxText(filePath);
+          if (!extracted.trim()) {
+            return {
+              llmContent: `DOCX file has no extractable text: ${relativePathForDisplay}`,
+              returnDisplay: `Empty DOCX text: ${relativePathForDisplay}`,
+            };
+          }
+          const lines = extracted.split(/\r?\n/);
+          const originalLineCount = lines.length;
+          const sliceEnd = Math.min(
+            DEFAULT_MAX_LINES_TEXT_FILE,
+            originalLineCount,
+          );
+          let linesWereTruncatedInLength = false;
+          const formattedLines = lines.slice(0, sliceEnd).map((line) => {
+            if (line.length > MAX_LINE_LENGTH_TEXT_FILE) {
+              linesWereTruncatedInLength = true;
+              return (
+                line.substring(0, MAX_LINE_LENGTH_TEXT_FILE) + '... [truncated]'
+              );
+            }
+            return line;
+          });
+          const isTruncated =
+            sliceEnd < originalLineCount || linesWereTruncatedInLength;
+          const body = formattedLines.join('\n');
+          const header = `[Extracted text from Word document: ${relativePathForDisplay}]\n\n`;
+          return {
+            llmContent: header + body,
+            returnDisplay: isTruncated
+              ? `Extracted text from DOCX ${relativePathForDisplay} (truncated)`
+              : `Extracted text from DOCX ${relativePathForDisplay}`,
+            isTruncated,
+            originalLineCount,
+            linesShown: [1, sliceEnd],
+          };
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          return {
+            llmContent: `Failed to extract text from DOCX ${relativePathForDisplay}: ${msg}`,
+            returnDisplay: `Failed DOCX extract: ${relativePathForDisplay}`,
+            error: `Failed to extract text from DOCX ${filePath}: ${msg}`,
+            errorType: ToolErrorType.READ_CONTENT_FAILURE,
+          };
+        }
       }
       case 'svg': {
         const SVG_MAX_SIZE_BYTES = 1 * 1024 * 1024;

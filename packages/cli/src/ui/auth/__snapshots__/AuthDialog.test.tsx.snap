@@ -13,9 +13,9 @@ exports[`AuthDialog > Snapshots > renders correctly with auth error 1`] = `
 │                                                                                                  │
 │   (Use Enter to select)                                                                          │
 │                                                                                                  │
-│   Terms of Services and Privacy Notice for Gemini CLI                                            │
+│   Terms of Services and Privacy Notice for OpenAgent                                             │
 │                                                                                                  │
-│   https://geminicli.com/docs/resources/tos-privacy/                                              │
+│   https://github.com/haseeb-heaven/open-agent/blob/main/docs/get-started/authentication.mdx      │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "
@@ -32,9 +32,9 @@ exports[`AuthDialog > Snapshots > renders correctly with default props 1`] = `
 │                                                                                                  │
 │   (Use Enter to select)                                                                          │
 │                                                                                                  │
-│   Terms of Services and Privacy Notice for Gemini CLI                                            │
+│   Terms of Services and Privacy Notice for OpenAgent                                             │
 │                                                                                                  │
-│   https://geminicli.com/docs/resources/tos-privacy/                                              │
+│   https://github.com/haseeb-heaven/open-agent/blob/main/docs/get-started/authentication.mdx      │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "
@@ -51,9 +51,9 @@ exports[`AuthDialog > Snapshots > renders correctly with enforced auth type 1`] 
 │                                                                                                  │
 │   (Use Enter to select)                                                                          │
 │                                                                                                  │
-│   Terms of Services and Privacy Notice for Gemini CLI                                            │
+│   Terms of Services and Privacy Notice for OpenAgent                                             │
 │                                                                                                  │
-│   https://geminicli.com/docs/resources/tos-privacy/                                              │
+│   https://github.com/haseeb-heaven/open-agent/blob/main/docs/get-started/authentication.mdx      │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "

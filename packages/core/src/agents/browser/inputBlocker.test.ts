@@ -64,7 +64,7 @@ describe('inputBlocker', () => {
 
       const call = vi.mocked(mockBrowserManager.callTool).mock.calls[0];
       const args = call[1] as { function: string };
-      expect(args.function).toContain('Gemini CLI is controlling this browser');
+      expect(args.function).toContain('OpenAgent is controlling this browser');
     });
 
     it('should set aria-hidden to prevent accessibility tree pollution', async () => {

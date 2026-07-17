@@ -26,7 +26,7 @@ export async function getConsentForOauth(prompt: string): Promise<boolean> {
   }
   throw new FatalAuthenticationError(
     'Authentication consent could not be obtained.\n' +
-      'Please run Gemini CLI in an interactive terminal to authenticate, ' +
+      'Please run OpenAgent in an interactive terminal to authenticate, ' +
       'or use NO_BROWSER=true for manual authentication.',
   );
 }

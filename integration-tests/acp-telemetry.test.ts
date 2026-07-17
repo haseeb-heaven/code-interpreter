@@ -52,7 +52,7 @@ describe('ACP telemetry', () => {
     });
 
     const telemetryPath = join(rig.homeDir!, 'telemetry.log');
-    const bundlePath = join(import.meta.dirname, '..', 'bundle/gemini.js');
+    const bundlePath = join(import.meta.dirname, '..', 'bundle/openagent.js');
 
     child = spawn(
       'node',

@@ -81,5 +81,13 @@ export function parseAndFormatApiError(
     return `[API Error: ${error}]`;
   }
 
-  return '[API Error: An unknown error occurred.]';
+  if (error instanceof Error) {
+    return `[API Error: ${error.message}]`;
+  }
+
+  try {
+    return `[API Error: ${JSON.stringify(error)}]`;
+  } catch {
+    return `[API Error: ${String(error)}]`;
+  }
 }

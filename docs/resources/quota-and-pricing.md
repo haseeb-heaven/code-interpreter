@@ -1,6 +1,6 @@
-# Gemini CLI: Quotas and pricing
+# open-agent: Quotas and pricing
 
-Gemini CLI offers a generous free tier that covers many individual developers'
+open-agent offers a generous free tier that covers many individual developers'
 use cases. For enterprise or professional usage, or if you need increased quota,
 several options are available depending on your authentication account type.
 
@@ -9,7 +9,7 @@ quota for your needs, see the [Plans page](https://geminicli.com/plans/).
 
 ## Overview
 
-This article outlines the specific quotas and pricing applicable to Gemini CLI
+This article outlines the specific quotas and pricing applicable to open-agent
 when using different authentication methods.
 
 The following table summarizes the available quotas and their respective limits:
@@ -40,7 +40,7 @@ the service in times of high demand.
 
 ## Free usage
 
-Access to Gemini CLI begins with a generous free tier, perfect for
+Access to open-agent begins with a generous free tier, perfect for
 experimentation and light use.
 
 Your free usage is governed by the following limits, which depend on your
@@ -53,7 +53,7 @@ Assist for individuals. This includes:
 
 - 1000 maximum model requests / user / day
 - Model requests will be made across the Gemini model family as determined by
-  Gemini CLI.
+  open-agent.
 
 Learn more at
 [Gemini Code Assist for Individuals Limits](https://developers.google.com/gemini-code-assist/resources/quotas#quotas-for-agent-mode-gemini-cli).
@@ -83,7 +83,7 @@ Learn more at
 ## Paid tier: Higher limits for a fixed cost
 
 If you use up your initial number of requests, you can continue to benefit from
-Gemini CLI by upgrading to one of the following subscriptions:
+open-agent by upgrading to one of the following subscriptions:
 
 ### Individuals
 
@@ -133,7 +133,7 @@ Standard/Plus and AI Expanded, are not supported._
   - Gemini Code Assist Enterprise edition:
     - 2000 maximum model requests / user / day
   - Model requests will be made across the Gemini model family as determined by
-    Gemini CLI.
+    open-agent.
 
   [Learn more about Gemini Code Assist license limits](https://developers.google.com/gemini-code-assist/resources/quotas#quotas-for-agent-mode-gemini-cli).
 
@@ -182,7 +182,7 @@ quota.
 These plans currently apply only to the use of Gemini web-based products
 provided by Google-based experiences (for example, the Gemini web app or the
 Flow video editor). These plans do not apply to the API usage which powers the
-Gemini CLI. Supporting these plans is under active consideration for future
+open-agent. Supporting these plans is under active consideration for future
 support.
 
 ## Check usage and limits

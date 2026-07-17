@@ -29,6 +29,14 @@ import {
 } from './paths.js';
 import type { GeminiCLIExtension } from '../config/config.js';
 import { SimpleExtensionLoader } from './extensionLoader.js';
+import { isGitRepository } from './gitUtils.js';
+
+// findProjectRoot()/isGitRepository() walk upward to the filesystem root
+// (matching real git semantics), so if any ancestor of the OS temp dir
+// happens to contain a .git directory (e.g. a dotfiles repo in the user's
+// home dir), tests relying on "no .git above the trusted root" are
+// spuriously affected. This is an environment condition, not a product bug.
+const tmpDirInGitRepo = isGitRepository(os.tmpdir());
 
 vi.mock('os', async (importOriginal) => {
   const actualOs = await importOriginal<typeof os>();
@@ -254,30 +262,33 @@ describe('memoryDiscovery', () => {
       expect(result).toContain(srcFile);
     });
 
-    it('should fall back to trusted root as ceiling when no .git exists', async () => {
-      // Setup: /homedir/docs/notes (no .git anywhere)
-      const docsDir = await createEmptyDir(path.join(homedir, 'docs'));
-      const notesDir = await createEmptyDir(path.join(docsDir, 'notes'));
+    it.skipIf(tmpDirInGitRepo)(
+      'should fall back to trusted root as ceiling when no .git exists',
+      async () => {
+        // Setup: /homedir/docs/notes (no .git anywhere)
+        const docsDir = await createEmptyDir(path.join(homedir, 'docs'));
+        const notesDir = await createEmptyDir(path.join(docsDir, 'notes'));
 
-      await createTestFile(
-        path.join(homedir, DEFAULT_CONTEXT_FILENAME),
-        'Home content',
-      );
-      const docsFile = await createTestFile(
-        path.join(docsDir, DEFAULT_CONTEXT_FILENAME),
-        'Docs content',
-      );
+        await createTestFile(
+          path.join(homedir, DEFAULT_CONTEXT_FILENAME),
+          'Home content',
+        );
+        const docsFile = await createTestFile(
+          path.join(docsDir, DEFAULT_CONTEXT_FILENAME),
+          'Docs content',
+        );
 
-      // No .git, so ceiling falls back to the trusted root itself.
-      // notesDir has no GEMINI.md and won't traverse up to docsDir.
-      const resultNotes = await getEnvironmentMemoryPaths([notesDir]);
-      expect(resultNotes).toHaveLength(0);
+        // No .git, so ceiling falls back to the trusted root itself.
+        // notesDir has no GEMINI.md and won't traverse up to docsDir.
+        const resultNotes = await getEnvironmentMemoryPaths([notesDir]);
+        expect(resultNotes).toHaveLength(0);
 
-      // docsDir has a GEMINI.md at the trusted root itself, so it's found.
-      const resultDocs = await getEnvironmentMemoryPaths([docsDir]);
-      expect(resultDocs).toHaveLength(1);
-      expect(resultDocs[0]).toBe(docsFile);
-    });
+        // docsDir has a GEMINI.md at the trusted root itself, so it's found.
+        const resultDocs = await getEnvironmentMemoryPaths([docsDir]);
+        expect(resultDocs).toHaveLength(1);
+        expect(resultDocs[0]).toBe(docsFile);
+      },
+    );
 
     it('should deduplicate paths when same root is trusted multiple times', async () => {
       const repoDir = await createEmptyDir(path.join(testRootDir, 'repo'));

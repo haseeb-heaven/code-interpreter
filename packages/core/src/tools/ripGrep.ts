@@ -28,7 +28,7 @@ import {
 import { getErrorMessage, isNodeError } from '../utils/errors.js';
 import type { Config } from '../config/config.js';
 import { fileExists } from '../utils/fileUtils.js';
-import { GREP_TOOL_NAME } from './tool-names.js';
+import { GREP_TOOL_NAME, GLOB_TOOL_NAME } from './tool-names.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import {
   FileExclusions,
@@ -656,6 +656,14 @@ export class RipGrepTool extends BaseDeclarativeTool<
    * @param params Parameters to validate
    * @returns An error message string if invalid, null otherwise
    */
+  protected override getSchemaValidationHint(): string | null {
+    return (
+      ` Example for content search: {"pattern":"TODO|FIXME","dir_path":"."}. ` +
+      `For finding files by name/extension use \`${GLOB_TOOL_NAME}\` ` +
+      `(e.g. {"pattern":"**/*.txt"}), not content search.`
+    );
+  }
+
   protected override validateToolParamValues(
     params: RipGrepToolParams,
   ): string | null {
@@ -663,6 +671,17 @@ export class RipGrepTool extends BaseDeclarativeTool<
       try {
         new RegExp(params.pattern);
       } catch (error) {
+        if (
+          /^\*\./.test(params.pattern.trim()) ||
+          params.pattern.includes('**') ||
+          /[*?[{]/.test(params.pattern)
+        ) {
+          return (
+            `Pattern "${params.pattern}" looks like a file glob, not a content regex. ` +
+            `Use the \`${GLOB_TOOL_NAME}\` (FindFiles) tool with ` +
+            `{"pattern":"${params.pattern}"} instead.`
+          );
+        }
         return `Invalid regular expression pattern provided: ${params.pattern}. Error: ${getErrorMessage(error)}`;
       }
     }

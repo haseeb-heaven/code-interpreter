@@ -1,12 +1,12 @@
 # Set up an MCP server
 
-Connect Gemini CLI to your external databases and services. In this guide,
-you'll learn how to extend Gemini CLI's capabilities by installing the GitHub
+Connect open-agent to your external databases and services. In this guide,
+you'll learn how to extend open-agent's capabilities by installing the GitHub
 MCP server and using it to manage your repositories.
 
 ## Prerequisites
 
-- Gemini CLI installed.
+- open-agent installed.
 - **Docker:** Required for this specific example (many MCP servers run as Docker
   containers).
 - **GitHub token:** A Personal Access Token (PAT) with repo permissions.
@@ -32,14 +32,14 @@ export GITHUB_PERSONAL_ACCESS_TOKEN="github_pat_..."
 $env:GITHUB_PERSONAL_ACCESS_TOKEN="github_pat_..."
 ```
 
-## How to configure Gemini CLI
+## How to configure open-agent
 
-You tell Gemini about new servers by editing your `settings.json`.
+You tell open-agent about new servers by editing your `settings.json`.
 
 1.  Open `~/.gemini/settings.json` (or the project-specific
     `.gemini/settings.json`).
-2.  Add the `mcpServers` block. This tells Gemini: "Run this docker container
-    and talk to it."
+2.  Add the `mcpServers` block. This tells open-agent: "Run this docker
+    container and talk to it."
 
 ```json
 {
@@ -70,7 +70,7 @@ You tell Gemini about new servers by editing your `settings.json`.
 
 ## How to verify the connection
 
-Restart Gemini CLI. It will automatically try to start the defined servers.
+Restart open-agent. It will automatically try to start the defined servers.
 
 **Command:** `/mcp list`
 

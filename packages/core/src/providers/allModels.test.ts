@@ -136,13 +136,64 @@ describe('configs/models.toml (real registry)', () => {
   it.each(
     modelNames.filter((name) => {
       const cfg = registry.getModel(name)!;
-      return Boolean(splitModelId(cfg.model).provider);
+      const provider = splitModelId(cfg.model).provider;
+      return Boolean(provider) && provider!.id !== 'gemini';
     }),
   )('"%s" builds a working multi-provider generator', (name) => {
     const generator = createMultiProviderGenerator(name, ALL_KEYS, registry);
     expect(generator, `${name} must produce a generator`).toBeDefined();
     expect(generator!.apiBase).toMatch(/^https?:\/\//);
     expect(generator!.model.length).toBeGreaterThan(0);
+  });
+
+  it.each(
+    modelNames.filter((name) => {
+      const cfg = registry.getModel(name)!;
+      return splitModelId(cfg.model).provider?.id === 'gemini';
+    }),
+  )(
+    '"%s" stays on the native Gemini path (no multi-provider generator)',
+    (name) => {
+      // Regression test: createMultiProviderGenerator must stay in sync
+      // with isMultiProviderModel and never build an OpenAI-compat shim
+      // for a gemini model - that shim doesn't reproduce native Gemini
+      // behavior (thought signatures, grounding metadata, Vertex headers).
+      const generator = createMultiProviderGenerator(name, ALL_KEYS, registry);
+      expect(generator, `${name} must NOT produce a multi-provider generator`)
+        .toBeUndefined();
+    },
+  );
+
+  it('throws a clear, actionable error when the provider API key is missing', () => {
+    expect(() =>
+      createMultiProviderGenerator('cerebras-gpt-oss-120b', {}, registry),
+    ).toThrow(/CEREBRAS_API_KEY/);
+    expect(() =>
+      createMultiProviderGenerator('groq/llama-3.1-8b-instant', {}, registry),
+    ).toThrow(/GROQ_API_KEY/);
+  });
+
+  it('honors the OPENAGENT_MODELS_TOML env override when loading', () => {
+    const prev = process.env['OPENAGENT_MODELS_TOML'];
+    process.env['OPENAGENT_MODELS_TOML'] = REGISTRY_PATH;
+    try {
+      const fromEnv = ModelRegistry.load();
+      expect(fromEnv.hasModel('cerebras-gpt-oss-120b')).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env['OPENAGENT_MODELS_TOML'];
+      else process.env['OPENAGENT_MODELS_TOML'] = prev;
+    }
+  });
+
+  it('resolves the shipped registry even from a foreign working directory', () => {
+    const prevCwd = process.cwd();
+    process.chdir(path.dirname(REPO_ROOT));
+    try {
+      const found = ModelRegistry.load();
+      expect(found.hasModel('cerebras-gpt-oss-120b')).toBe(true);
+    } finally {
+      process.chdir(prevCwd);
+    }
   });
 
   it('the picker surfaces every provider present in the registry', () => {

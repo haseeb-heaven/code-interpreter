@@ -1,7 +1,7 @@
 {
   "name": "@open-agent/core",
   "version": "4.0.0",
-  "description": "Gemini CLI Core",
+  "description": "OpenAgent Core",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

@@ -1,8 +1,8 @@
-# Gemini CLI configuration
+# OpenAgent CLI configuration
 
-Gemini CLI offers several ways to configure its behavior, including environment
-variables, command-line arguments, and settings files. This document outlines
-the different configuration methods and available settings.
+OpenAgent CLI offers several ways to configure its behavior, including
+environment variables, command-line arguments, and settings files. This document
+outlines the different configuration methods and available settings.
 
 ## Configuration layers
 
@@ -22,8 +22,8 @@ overridden by higher numbers):
 
 ## Settings files
 
-Gemini CLI uses JSON settings files for persistent configuration. There are four
-locations for these files:
+OpenAgent CLI uses JSON settings files for persistent configuration. There are
+four locations for these files:
 
 <!-- prettier-ignore -->
 > [!TIP]
@@ -43,22 +43,22 @@ locations for these files:
     user, project, or system override settings.
 - **User settings file:**
   - **Location:** `~/.gemini/settings.json` (where `~` is your home directory).
-  - **Scope:** Applies to all Gemini CLI sessions for the current user. User
+  - **Scope:** Applies to all OpenAgent CLI sessions for the current user. User
     settings override system defaults.
 - **Project settings file:**
   - **Location:** `.gemini/settings.json` within your project's root directory.
-  - **Scope:** Applies only when running Gemini CLI from that specific project.
-    Project settings override user settings and system defaults.
+  - **Scope:** Applies only when running OpenAgent CLI from that specific
+    project. Project settings override user settings and system defaults.
 - **System settings file:**
   - **Location:** `/etc/gemini-cli/settings.json` (Linux),
     `C:\ProgramData\gemini-cli\settings.json` (Windows) or
     `/Library/Application Support/GeminiCli/settings.json` (macOS). The path can
     be overridden using the `GEMINI_CLI_SYSTEM_SETTINGS_PATH` environment
     variable.
-  - **Scope:** Applies to all Gemini CLI sessions on the system, for all users.
-    System settings act as overrides, taking precedence over all other settings
-    files. May be useful for system administrators at enterprises to have
-    controls over users' Gemini CLI setups.
+  - **Scope:** Applies to all OpenAgent CLI sessions on the system, for all
+    users. System settings act as overrides, taking precedence over all other
+    settings files. May be useful for system administrators at enterprises to
+    have controls over users' OpenAgent CLI setups.
 
 **Note on environment variables in settings:** String values within your
 `settings.json` and `gemini-extension.json` files can reference environment
@@ -70,14 +70,15 @@ want to provide a fallback value, use `${MY_API_TOKEN:-default-token}`.
 Additionally, each extension can have its own `.env` file in its directory,
 which will be loaded automatically.
 
-**Note for Enterprise Users:** For guidance on deploying and managing Gemini CLI
-in a corporate environment, see the
+**Note for Enterprise Users:** For guidance on deploying and managing OpenAgent
+CLI in a corporate environment, see the
 [Enterprise Configuration](../cli/enterprise.md) documentation.
 
 ### The `.gemini` directory in your project
 
 In addition to a project settings file, a project's `.gemini` directory can
-contain other project-specific files related to Gemini CLI's operation, such as:
+contain other project-specific files related to OpenAgent CLI's operation, such
+as:
 
 - [Custom sandbox profiles](#sandboxing) (for example,
   `.gemini/sandbox-macos-custom.sb`, `.gemini/sandbox.Dockerfile`).
@@ -291,8 +292,8 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.showStatusInTitle`** (boolean):
 
-  - **Description:** Show Gemini CLI model thoughts in the terminal window title
-    during the working phase
+  - **Description:** Show OpenAgent CLI model thoughts in the terminal window
+    title during the working phase
   - **Default:** `false`
 
 - **`ui.dynamicWindowTitle`** (boolean):
@@ -303,7 +304,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.showHomeDirectoryWarning`** (boolean):
 
-  - **Description:** Show a warning when running Gemini CLI in the home
+  - **Description:** Show a warning when running OpenAgent CLI in the home
     directory.
   - **Default:** `true`
   - **Requires restart:** Yes
@@ -2153,7 +2154,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`experimental.gemmaModelRouter.autoStartServer`** (boolean):
 
-  - **Description:** Automatically start the LiteRT-LM server when Gemini CLI
+  - **Description:** Automatically start the LiteRT-LM server when OpenAgent CLI
     starts and the Gemma router is enabled.
   - **Default:** `false`
   - **Requires restart:** Yes
@@ -2424,7 +2425,7 @@ their corresponding top-level category object in your `settings.json` file.
 #### `mcpServers`
 
 Configures connections to one or more Model-Context Protocol (MCP) servers for
-discovering and using custom tools. Gemini CLI attempts to connect to each
+discovering and using custom tools. OpenAgent CLI attempts to connect to each
 configured MCP server to discover available tools. Every discovered tool is
 prepended with the `mcp_` prefix and its server alias to form a fully qualified
 name (FQN) (for example, `mcp_serverAlias_actualToolName`) to avoid conflicts.
@@ -2475,8 +2476,8 @@ must be provided. If multiple are specified, the order of precedence is
 
 #### `telemetry`
 
-Configures logging and metrics collection for Gemini CLI. For more information,
-see [Telemetry](../cli/telemetry.md).
+Configures logging and metrics collection for OpenAgent CLI. For more
+information, see [Telemetry](../cli/telemetry.md).
 
 - **Properties:**
   - **`enabled`** (boolean): Whether or not telemetry is enabled.
@@ -2620,12 +2621,12 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
     of the default `~/.gemini/`.
 - **`GEMINI_CLI_IDE_PID`**:
   - Manually specifies the PID of the IDE process to use for integration. This
-    is useful when running Gemini CLI in a standalone terminal while still
+    is useful when running OpenAgent CLI in a standalone terminal while still
     wanting to associate it with a specific IDE instance.
   - Overrides the automatic IDE detection logic.
 - **`GEMINI_CLI_HOME`**:
-  - Specifies the root directory for Gemini CLI's user-level configuration and
-    storage.
+  - Specifies the root directory for OpenAgent CLI's user-level configuration
+    and storage.
   - By default, this is the user's system home directory. The CLI will create a
     `.gemini` folder inside this directory.
   - Useful for shared compute environments or keeping CLI state isolated.
@@ -2764,10 +2765,10 @@ the `advanced.excludedEnvVars` setting in your `settings.json` file.
 
 ### Environment variable redaction
 
-To prevent accidental leakage of sensitive information, Gemini CLI automatically
-redacts potential secrets from environment variables when executing tools (such
-as shell commands). This "best effort" redaction applies to variables inherited
-from the system or loaded from `.env` files.
+To prevent accidental leakage of sensitive information, OpenAgent CLI
+automatically redacts potential secrets from environment variables when
+executing tools (such as shell commands). This "best effort" redaction applies
+to variables inherited from the system or loaded from `.env` files.
 
 **Default Redaction Rules:**
 
@@ -2879,8 +2880,8 @@ for that specific session.
   - **Note:** For structured output and scripting, use the
     `--output-format json` or `--output-format stream-json` flag.
 - **`--prompt <your_prompt>`** (**`-p <your_prompt>`**):
-  - Used to pass a prompt directly to the command. This invokes Gemini CLI in a
-    non-interactive mode.
+  - Used to pass a prompt directly to the command. This invokes OpenAgent CLI in
+    a non-interactive mode.
 - **`--prompt-interactive <your_prompt>`** (**`-i <your_prompt>`**):
   - Starts an interactive session with the provided prompt as the initial input.
   - The prompt is processed within the interactive session, not before it.
@@ -3006,11 +3007,11 @@ conventions and context.
 
 By understanding and utilizing these configuration layers and the hierarchical
 nature of context files, you can effectively manage the AI's memory and tailor
-Gemini CLI's responses to your specific needs and projects.
+OpenAgent CLI's responses to your specific needs and projects.
 
 ## Sandboxing
 
-Gemini CLI can execute potentially unsafe operations (like shell commands and
+OpenAgent CLI can execute potentially unsafe operations (like shell commands and
 file modifications) within a sandboxed environment to protect your system.
 
 Sandboxing is disabled by default, but you can enable it in a few ways:
@@ -3039,22 +3040,22 @@ FROM gemini-cli-sandbox
 ```
 
 When `.gemini/sandbox.Dockerfile` exists, you can use `BUILD_SANDBOX`
-environment variable when running Gemini CLI to automatically build the custom
-sandbox image:
+environment variable when running OpenAgent CLI to automatically build the
+custom sandbox image:
 
 ```bash
 BUILD_SANDBOX=1 gemini -s
 ```
 
 Building a custom sandbox with `BUILD_SANDBOX` is only supported when running
-Gemini CLI from source. If you installed the CLI with npm, build the Docker
+OpenAgent CLI from source. If you installed the CLI with npm, build the Docker
 image separately and reference that image in your sandbox configuration.
 
 ## Usage statistics
 
-To help us improve Gemini CLI, we collect anonymized usage statistics. This data
-helps us understand how the CLI is used, identify common issues, and prioritize
-new features.
+To help us improve OpenAgent CLI, we collect anonymized usage statistics. This
+data helps us understand how the CLI is used, identify common issues, and
+prioritize new features.
 
 **What we collect:**
 

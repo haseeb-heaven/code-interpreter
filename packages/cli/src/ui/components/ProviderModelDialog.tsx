@@ -8,8 +8,9 @@
  * /model dialog for the multi-provider fork: lists every model from
  * configs/models.toml grouped by provider (plus detected Ollama /
  * LM Studio models), and lets the user switch to any of them. Selecting
- * a paid model whose provider key is missing opens an inline API-key
- * step that saves the key to .env for that provider.
+ * a cloud model always surfaces an API-key step: if a key is already in
+ * .env / process.env it is shown masked in the text box; otherwise the
+ * user is asked to paste one. Free OpenRouter/etc. models still need keys.
  */
 
 import type React from 'react';
@@ -26,6 +27,8 @@ import {
   writeEnvKey,
   getModelRegistry,
   groupModelsByProvider,
+  providerApiKey,
+  resolveActiveProvider,
   type PickerGroup,
   type PickerModel,
   type ProviderDefinition,
@@ -59,6 +62,12 @@ function tierLabel(model: PickerModel): string {
   }
 }
 
+function maskKey(key: string): string {
+  const t = key.trim();
+  if (t.length <= 8) return '••••••••';
+  return `${t.slice(0, 4)}…${t.slice(-4)}`;
+}
+
 export function ProviderModelDialog({
   onClose,
 }: ProviderModelDialogProps): React.JSX.Element {
@@ -71,6 +80,7 @@ export function ProviderModelDialog({
   const [pendingKeyEntry, setPendingKeyEntry] = useState<DialogEntry | null>(
     null,
   );
+  const [existingKey, setExistingKey] = useState<string | undefined>();
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -118,7 +128,9 @@ export function ProviderModelDialog({
         }${
           !model.available && provider.envKey
             ? ` · needs ${String(provider.envKey)}`
-            : ''
+            : model.available && provider.envKey
+              ? ` · ${String(provider.envKey)} set`
+              : ''
         }`,
       })),
     [entries],
@@ -134,9 +146,9 @@ export function ProviderModelDialog({
   const applyModel = useCallback(
     (entry: DialogEntry) => {
       if (config) {
-        // Registry keys are unique (LiteLLM ids can be shared by aliases),
-        // so pass the key and let the provider factory resolve it.
-        config.setModel(entry.model.key, true);
+        // Persist selection so restarts keep the provider/model.
+        // Registry keys are unique (LiteLLM ids can be shared by aliases).
+        config.setModel(entry.model.key, false);
         logModelSlashCommand(
           config,
           new ModelSlashCommandEvent(entry.model.key),
@@ -147,25 +159,46 @@ export function ProviderModelDialog({
     [config, onClose],
   );
 
+  const promptForKey = useCallback((entry: DialogEntry) => {
+    const key = entry.provider.envKey
+      ? providerApiKey(entry.provider, process.env)
+      : undefined;
+    setExistingKey(key);
+    setNotice('');
+    setPendingKeyEntry(entry);
+  }, []);
+
   const handleSelect = useCallback(
     (key: string) => {
       const entry = entries.get(key);
       if (!entry) return;
-      if (entry.model.available) {
-        applyModel(entry);
+
+      // Local providers never need an API key — only a running server.
+      if (entry.provider.local) {
+        if (entry.model.available) {
+          applyModel(entry);
+          return;
+        }
+        setNotice(
+          `${entry.provider.displayName} is a local provider — start its server ` +
+            '(Ollama: localhost:11434, LM Studio: localhost:1234) and reopen /model.',
+        );
         return;
       }
+
+      // Cloud providers (including free-tier OpenRouter/Groq/etc.) always
+      // need an API key. If one is already in .env, show it masked so the
+      // user can confirm or replace it; otherwise ask for a new key.
       if (entry.provider.envKey) {
-        setNotice('');
-        setPendingKeyEntry(entry);
+        promptForKey(entry);
         return;
       }
+
       setNotice(
-        `${entry.provider.displayName} is a local provider - start its server ` +
-          '(Ollama: localhost:11434, LM Studio: localhost:1234) and reopen /model.',
+        `${entry.provider.displayName} has no API key env var configured.`,
       );
     },
-    [entries, applyModel],
+    [entries, applyModel, promptForKey],
   );
 
   const keyBuffer = useTextBuffer({
@@ -174,23 +207,44 @@ export function ProviderModelDialog({
     singleLine: true,
   });
 
+  // When opening the key step with an existing key, seed the buffer so the
+  // user sees it (masked in the label; buffer starts empty for security —
+  // Enter reuses existing key, typing replaces).
+  useEffect(() => {
+    if (pendingKeyEntry) {
+      keyBuffer.setText('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when entry changes
+  }, [pendingKeyEntry]);
+
   const handleKeySubmit = useCallback(
     (value: string) => {
       const entry = pendingKeyEntry;
-      const apiKey = value.trim();
       if (!entry || !entry.provider.envKey) return;
+
+      const typed = value.trim();
+      const envKey = String(entry.provider.envKey);
+
+      // Empty submit + existing key → keep existing key and switch model.
+      const apiKey = typed || existingKey || '';
       if (!apiKey) {
-        setPendingKeyEntry(null);
+        setNotice(
+          `${entry.provider.displayName} requires ${envKey}. Paste your API key and press Enter.`,
+        );
         return;
       }
-      const envKey = String(entry.provider.envKey);
-      // .env is gitignored; same store the --byok walkthrough uses.
-      writeEnvKey(path.join(process.cwd(), '.env'), envKey, apiKey);
-      process.env[envKey] = apiKey;
+
+      if (typed) {
+        // .env is gitignored; same store the --byok walkthrough uses.
+        writeEnvKey(path.join(process.cwd(), '.env'), envKey, typed);
+        process.env[envKey] = typed;
+      }
+
       setPendingKeyEntry(null);
+      setExistingKey(undefined);
       applyModel(entry);
     },
-    [pendingKeyEntry, applyModel],
+    [pendingKeyEntry, existingKey, applyModel],
   );
 
   useKeypress(
@@ -198,6 +252,7 @@ export function ProviderModelDialog({
       if (key.name === 'escape') {
         if (pendingKeyEntry) {
           setPendingKeyEntry(null);
+          setExistingKey(undefined);
         } else {
           onClose();
         }
@@ -208,6 +263,11 @@ export function ProviderModelDialog({
     { isActive: true },
   );
 
+  const currentModel = config?.getModel() ?? '';
+  const currentProvider = currentModel
+    ? resolveActiveProvider(currentModel)
+    : undefined;
+
   return (
     <Box
       borderStyle="round"
@@ -217,6 +277,11 @@ export function ProviderModelDialog({
       width="100%"
     >
       <Text bold>Select Model (all providers)</Text>
+      {currentModel ? (
+        <Text color={theme.text.secondary}>
+          Current: {currentProvider?.displayName ?? 'unknown'} / {currentModel}
+        </Text>
+      ) : null}
 
       {pendingKeyEntry === null && (
         <>
@@ -237,8 +302,8 @@ export function ProviderModelDialog({
           )}
           <Box marginTop={1}>
             <Text color={theme.text.secondary}>
-              ✓ usable now · ✗ needs an API key (selecting one prompts for it) ·
-              Esc to close
+              ✓ key ready · ✗ needs API key · free cloud models still need a
+              provider key · Esc to close
             </Text>
           </Box>
         </>
@@ -247,21 +312,53 @@ export function ProviderModelDialog({
       {pendingKeyEntry !== null && (
         <Box marginTop={1} flexDirection="column">
           <Text>
-            Enter your {pendingKeyEntry.provider.displayName} API key (
-            {String(pendingKeyEntry.provider.envKey)}) to use{' '}
-            <Text bold>{pendingKeyEntry.model.key}</Text>:
+            {pendingKeyEntry.provider.displayName} API key (
+            {String(pendingKeyEntry.provider.envKey)}) for{' '}
+            <Text bold>{pendingKeyEntry.model.key}</Text>
+            {pendingKeyEntry.model.tier === 'free' ||
+            pendingKeyEntry.model.tier === 'free_tier'
+              ? ' (free models still require a provider API key)'
+              : ''}
+            :
           </Text>
+          {existingKey ? (
+            <Box marginTop={1}>
+              <Text color={theme.status.success}>
+                Found existing key: {maskKey(existingKey)} — press Enter to use
+                it, or paste a new key to replace.
+              </Text>
+            </Box>
+          ) : (
+            <Box marginTop={1}>
+              <Text color={theme.status.warning}>
+                No {String(pendingKeyEntry.provider.envKey)} in .env — paste
+                your API key below.
+              </Text>
+            </Box>
+          )}
           <Box marginTop={1}>
             <TextInput
               buffer={keyBuffer}
-              placeholder="paste key and press Enter (Esc to go back)"
+              placeholder={
+                existingKey
+                  ? 'Enter to keep existing key, or paste a new one'
+                  : 'paste key and press Enter (Esc to go back)'
+              }
               onSubmit={handleKeySubmit}
-              onCancel={() => setPendingKeyEntry(null)}
+              onCancel={() => {
+                setPendingKeyEntry(null);
+                setExistingKey(undefined);
+              }}
             />
           </Box>
+          {notice !== '' && (
+            <Box marginTop={1}>
+              <Text color={theme.status.warning}>{notice}</Text>
+            </Box>
+          )}
           <Box marginTop={1}>
             <Text color={theme.text.secondary}>
-              The key is saved to .env (gitignored) in this project.
+              Keys are saved to .env (gitignored) in this project.
             </Text>
           </Box>
         </Box>

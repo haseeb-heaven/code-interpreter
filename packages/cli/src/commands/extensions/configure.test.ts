@@ -88,7 +88,7 @@ describe('extensions configure command', () => {
     vi.clearAllMocks();
 
     tempWorkspaceDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'gemini-cli-test-workspace-'),
+      path.join(os.tmpdir(), 'open-agent-test-workspace-'),
     );
     vi.spyOn(process, 'cwd').mockReturnValue(tempWorkspaceDir);
     // Default behaviors
