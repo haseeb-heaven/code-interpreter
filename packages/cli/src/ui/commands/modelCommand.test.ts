@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { modelCommand } from './modelCommand.js';
 import { type CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
-import type { Config } from '@open-agent/core';
+import { AuthType, type Config } from '@open-agent/core';
 import { MessageType } from '../types.js';
 
 describe('modelCommand', () => {
@@ -39,6 +39,9 @@ describe('modelCommand', () => {
     const mockRefreshUserQuota = vi.fn();
     mockContext.services.agentContext = {
       refreshUserQuota: mockRefreshUserQuota,
+      getContentGeneratorConfig: vi
+        .fn()
+        .mockReturnValue({ authType: AuthType.USE_GEMINI }),
       get config() {
         return this;
       },
@@ -71,6 +74,9 @@ describe('modelCommand', () => {
       const mockRefreshUserQuota = vi.fn();
       mockContext.services.agentContext = {
         refreshUserQuota: mockRefreshUserQuota,
+        getContentGeneratorConfig: vi
+          .fn()
+          .mockReturnValue({ authType: AuthType.USE_GEMINI }),
         get config() {
           return this;
         },

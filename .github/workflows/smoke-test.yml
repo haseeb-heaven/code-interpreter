@@ -38,7 +38,7 @@ jobs:
       - name: 'Build bundle'
         run: 'npm run bundle'
       - name: 'Smoke test bundle'
-        run: 'node ./bundle/gemini.js --version'
+        run: 'node ./bundle/openagent.js --version'
       - name: 'Create Issue on Failure'
         if: '${{ failure() && github.event.inputs.dry-run == false }}'
         env:

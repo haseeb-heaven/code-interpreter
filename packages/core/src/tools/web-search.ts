@@ -72,6 +72,21 @@ export interface WebSearchToolResult extends ToolResult {
     : GroundingChunkItem[];
 }
 
+/**
+ * Appended to successful search results so weaker models keep chaining tools
+ * (fetch page content, download files via shell, open/run, etc.) instead of
+ * stopping after the first hit list. Generic — no domain hardcoding.
+ */
+export const WEB_SEARCH_CHAIN_HINT = `
+
+---
+Multi-step continuation (do not stop after search alone):
+- If the user only wanted facts/links, answer from these results.
+- To read/summarize a page: call web_fetch with prompt containing the full https URL and instructions (web_fetch does NOT save files to disk).
+- To save a file to disk: call run_shell_command (curl / Invoke-WebRequest / wget) with the direct download URL and destination path. Never invent web_fetch download_location/save_path params.
+- Then continue with any further actions the user asked for (open, install, extract, verify, edit, etc.) in the same tool-use loop until the request is complete.
+`;
+
 function isConfigLike(ctx: AgentLoopContext | Config): ctx is Config {
   return 'getGeminiClient' in ctx && typeof ctx.getGeminiClient === 'function';
 }
@@ -215,7 +230,9 @@ class WebSearchToolInvocation extends BaseToolInvocation<
       }
 
       return {
-        llmContent: `Web search results for "${this.params.query}":\n\n${modifiedResponseText}`,
+        llmContent:
+          `Web search results for "${this.params.query}":\n\n${modifiedResponseText}` +
+          WEB_SEARCH_CHAIN_HINT,
         returnDisplay: `Search results for "${this.params.query}" returned.`,
         sources,
       };
@@ -266,15 +283,18 @@ class WebSearchToolInvocation extends BaseToolInvocation<
         summary: string;
         provider: string;
         hits: Array<{ title: string; url: string }>;
-      }): WebSearchToolResult => ({
-        llmContent: http.summary.startsWith('Web search results')
+      }): WebSearchToolResult => {
+        const body = http.summary.startsWith('Web search results')
           ? http.summary
-          : `Web search results for "${this.params.query}" (via ${http.provider}):\n\n${http.summary}`,
-        returnDisplay: `Search results for "${this.params.query}" returned (${http.provider}).`,
-        sources: http.hits.map((h) => ({
-          web: { title: h.title, uri: h.url },
-        })),
-      });
+          : `Web search results for "${this.params.query}" (via ${http.provider}):\n\n${http.summary}`;
+        return {
+          llmContent: body + WEB_SEARCH_CHAIN_HINT,
+          returnDisplay: `Search results for "${this.params.query}" returned (${http.provider}).`,
+          sources: http.hits.map((h) => ({
+            web: { title: h.title, uri: h.url },
+          })),
+        };
+      };
 
       // Prefer explicit HTTP backends (Brave/Tavily/…) when the plan selects them
       // and they are available — so OSS models with BRAVE_API_KEY don't always hit Gemini.

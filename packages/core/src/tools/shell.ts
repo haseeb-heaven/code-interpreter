@@ -1119,8 +1119,11 @@ export class ShellTool extends BaseDeclarativeTool<
   protected override validateToolParamValues(
     params: ShellToolParams,
   ): string | null {
-    if (!params.command.trim()) {
-      return 'Command cannot be empty.';
+    if (!params.command?.trim()) {
+      return (
+        `Command cannot be empty. Call \`${ShellTool.Name}\` with ` +
+        `{"command":"<your shell command>","description":"<brief why>"}.`
+      );
     }
 
     if (params.dir_path) {

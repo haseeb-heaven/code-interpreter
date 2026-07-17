@@ -1,13 +1,11 @@
-# Gemini CLI Roadmap
+# OpenAgent Roadmap
 
-The
-[Official Gemini CLI Roadmap](https://github.com/orgs/google-gemini/projects/11/)
+OpenAgent is an open-source agent that brings the power of open-source, local,
+and bring-your-own-key frontier models directly into your terminal. It provides
+lightweight access to a wide range of models, giving you the most direct path
+from your prompt to your model of choice.
 
-Gemini CLI is an open-source AI agent that brings the power of Gemini directly
-into your terminal. It provides lightweight access to Gemini, giving you the
-most direct path from your prompt to our model.
-
-This document outlines our approach to the Gemini CLI roadmap. Here, you'll find
+This document outlines our approach to the OpenAgent roadmap. Here, you'll find
 our guiding principles and a breakdown of the key areas we are focused on for
 development. Our roadmap is not a static list but a dynamic set of priorities
 that are tracked live in our GitHub Issues.
@@ -31,11 +29,11 @@ roadmap based on community discussions as well as when our priorities evolve.
 
 Our development is guided by the following principles:
 
-- **Power & Simplicity:** Deliver access to state-of-the-art Gemini models with
-  an intuitive and easy-to-use lightweight command-line interface.
+- **Power & Simplicity:** Deliver access to state-of-the-art models with an
+  intuitive and easy-to-use lightweight command-line interface.
 - **Extensibility:** An adaptable agent to help you with a variety of use cases
   and environments along with the ability to run these agents anywhere.
-- **Intelligent:** Gemini CLI should be reliably ranked among the best agentic
+- **Intelligent:** OpenAgent should be reliably ranked among the best agentic
   tools as measured by benchmarks like SWE Bench, Terminal Bench, and CSAT.
 - **Free and Open Source:** Foster a thriving open source community where cost
   isn’t a barrier to personal use, and PRs get merged quickly. This means
@@ -59,7 +57,8 @@ Issues are organized to provide key information at a glance:
 - **Issue Type:** _Workstream_ => _Epics_ => _Features_ => _Tasks|Bugs_
 
 To see what we're working on, you can filter our issues by these dimensions. See
-all our items [here](https://github.com/orgs/google-gemini/projects/11/views/19)
+all our items in the
+[GitHub Issues tracker](https://github.com/haseeb-heaven/open-agent/issues).
 
 ## Focus Areas
 
@@ -67,15 +66,15 @@ To better organize our efforts, we categorize our work into several key feature
 areas. These labels are used on our GitHub Issues to help you filter and find
 initiatives that interest you.
 
-- **Authentication:** Secure user access via API keys, Gemini Code Assist login,
+- **Authentication:** Secure user access via API keys, BYOK provider setup,
   etc.
-- **Model:** Support new Gemini models, multi-modality, local execution, and
+- **Model:** Support new models, multi-modality, local execution, and
   performance tuning.
 - **User Experience:** Improve the CLI's usability, performance, interactive
   features, and documentation.
 - **Tooling:** Built-in tools and the MCP ecosystem.
 - **Core:** Core functionality of the CLI
-- **Extensibility:** Bringing Gemini CLI to other surfaces e.g. GitHub.
+- **Extensibility:** Bringing OpenAgent to other surfaces e.g. GitHub.
 - **Contribution:** Improve the contribution process via test automation and
   CI/CD pipeline enhancements.
 - **Platform:** Manage installation, OS support, and the underlying CLI
@@ -88,7 +87,7 @@ initiatives that interest you.
 
 ## How to Contribute
 
-Gemini CLI is an open-source project, and we welcome contributions from the
+OpenAgent is an open-source project, and we welcome contributions from the
 community! Whether you're a developer, a designer, or just an enthusiastic user
 you can find our
 [Community Guidelines here](https://github.com/haseeb-heaven/open-agent/blob/main/CONTRIBUTING.md)
@@ -109,5 +108,5 @@ to learn how to get started. There are many ways to get involved:
   file for guidelines on how to submit pull requests. We have a list of "good
   first issues" for new contributors.
 - **Write Documentation:** Help us improve our documentation, tutorials, and
-  examples. We are excited about the future of Gemini CLI and look forward to
+  examples. We are excited about the future of OpenAgent and look forward to
   building it with you!

@@ -180,6 +180,61 @@ describe('OpenAICompatContentGenerator', () => {
     expect(response.usageMetadata?.totalTokenCount).toBe(5);
   });
 
+  it('retries without tools when the provider rejects function calling', async () => {
+    const toolRequest: GenerateContentParameters = {
+      ...REQUEST,
+      config: {
+        ...REQUEST.config,
+        tools: [
+          {
+            functionDeclarations: [
+              { name: 'read_file', description: 'read', parametersJsonSchema: {} },
+            ],
+          },
+        ],
+      },
+    };
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse(
+          {
+            code: 400,
+            reason: 'INVALID_REQUEST_BODY',
+            message: 'model features function calling not support',
+          },
+          400,
+        ),
+      )
+      .mockImplementation(() =>
+        Promise.resolve(
+          jsonResponse({
+            choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }],
+          }),
+        ),
+      );
+    const generator = new OpenAICompatContentGenerator({
+      modelId: 'huggingface/meta-llama/Llama-3.1-8B-Instruct',
+      provider: getProvider('huggingface')!,
+      env: { HF_TOKEN: 'x' },
+      fetchImpl,
+    });
+
+    const response = await generator.generateContent(toolRequest, 'prompt-id');
+    expect(response.candidates?.[0]?.content?.parts?.[0]?.text).toBe('ok');
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const first = JSON.parse((fetchImpl.mock.calls[0][1] as { body: string }).body);
+    const second = JSON.parse((fetchImpl.mock.calls[1][1] as { body: string }).body);
+    expect(first.tools).toBeDefined();
+    expect(second.tools).toBeUndefined();
+
+    // Later calls skip tools immediately (no extra round-trip).
+    await generator.generateContent(toolRequest, 'prompt-id');
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    const third = JSON.parse((fetchImpl.mock.calls[2][1] as { body: string }).body);
+    expect(third.tools).toBeUndefined();
+  });
+
   it('sends a Bearer key for cloud providers but none for local', async () => {
     const fetchImpl = vi
       .fn()
@@ -209,6 +264,40 @@ describe('OpenAICompatContentGenerator', () => {
       fetchImpl.mock.calls[1][1] as { headers: Record<string, string> }
     ).headers;
     expect(ollamaHeaders['Authorization']).toBeUndefined();
+  });
+
+  it('forwards config.abortSignal to fetch so Esc actually cancels the request', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ choices: [{ message: {} }] }));
+    const generator = new OpenAICompatContentGenerator({
+      modelId: 'ollama/llama3.1:8b',
+      provider: getProvider('ollama')!,
+      fetchImpl,
+    });
+    const controller = new AbortController();
+    await generator.generateContent(
+      { ...REQUEST, config: { ...REQUEST.config, abortSignal: controller.signal } },
+      'p',
+    );
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
+  it('omits signal from fetch options when no abortSignal is set', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ choices: [{ message: {} }] }));
+    const generator = new OpenAICompatContentGenerator({
+      modelId: 'ollama/llama3.1:8b',
+      provider: getProvider('ollama')!,
+      fetchImpl,
+    });
+    await generator.generateContent(REQUEST, 'p');
+    const options = fetchImpl.mock.calls[0][1] as { signal?: AbortSignal };
+    expect(options.signal).toBeUndefined();
   });
 
   it('maps tool_calls in responses to functionCall parts', async () => {
@@ -284,6 +373,81 @@ describe('OpenAICompatContentGenerator', () => {
       .filter(Boolean);
     expect(texts).toEqual(['Hel', 'lo']);
     expect(chunks.at(-1)?.usageMetadata?.totalTokenCount).toBe(3);
+  });
+
+  it('keeps parallel streamed tool calls distinct when index is missing', async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(
+      sseResponse([
+        JSON.stringify({
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  { id: 'call_a', function: { name: 'google_web_search', arguments: '' } },
+                ],
+              },
+            },
+          ],
+        }),
+        JSON.stringify({
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  { id: 'call_b', function: { name: 'ask_user', arguments: '' } },
+                ],
+              },
+            },
+          ],
+        }),
+        JSON.stringify({
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  { id: 'call_a', function: { arguments: '{"q":"x"}' } },
+                ],
+              },
+            },
+          ],
+        }),
+        JSON.stringify({
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  { id: 'call_b', function: { arguments: '{"q":"y"}' } },
+                ],
+              },
+            },
+          ],
+        }),
+        JSON.stringify({
+          choices: [{ delta: {}, finish_reason: 'tool_calls' }],
+        }),
+        '[DONE]',
+      ]),
+    );
+    const generator = new OpenAICompatContentGenerator({
+      modelId: 'ollama/llama3.1:8b',
+      provider: getProvider('ollama')!,
+      fetchImpl,
+    });
+    const chunks = [];
+    for await (const chunk of await generator.generateContentStream(
+      REQUEST,
+      'p',
+    )) {
+      chunks.push(chunk);
+    }
+    const functionCalls = chunks
+      .at(-1)
+      ?.candidates?.[0]?.content?.parts?.map((p) => p.functionCall)
+      .filter(Boolean);
+    expect(functionCalls).toEqual([
+      { id: 'call_a', name: 'google_web_search', args: { q: 'x' } },
+      { id: 'call_b', name: 'ask_user', args: { q: 'y' } },
+    ]);
   });
 
   it('estimates countTokens and rejects embedContent', async () => {

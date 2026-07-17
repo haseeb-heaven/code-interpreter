@@ -250,11 +250,21 @@ export class ReadFileTool extends BaseDeclarativeTool<
     );
   }
 
+  protected override getSchemaValidationHint(): string | null {
+    return (
+      ` Example: {"file_path":"README.md"}. ` +
+      `Always pass a non-empty file_path; do not call ${READ_FILE_TOOL_NAME} with empty args.`
+    );
+  }
+
   protected override validateToolParamValues(
     params: ReadFileToolParams,
   ): string | null {
-    if (params.file_path.trim() === '') {
-      return "The 'file_path' parameter must be non-empty.";
+    if (!params.file_path || params.file_path.trim() === '') {
+      return (
+        "The 'file_path' parameter must be non-empty. " +
+        `Example: {"file_path":"README.md"}.`
+      );
     }
 
     const sanitizedPath = resolveDefensiveToolPath(

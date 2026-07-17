@@ -21,7 +21,7 @@ import * as pty from '@lydell/node-pty';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BUNDLE_PATH = join(__dirname, '..', 'bundle/gemini.js');
+const BUNDLE_PATH = join(__dirname, '..', 'bundle/openagent.js');
 
 const extension = `{
   "name": "test-symlink-extension",

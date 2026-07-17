@@ -140,7 +140,7 @@ export const FolderTrustDialog: React.FC<FolderTrustDialogProps> = ({
     <Box flexDirection="column">
       <Box marginBottom={1}>
         <Text color={theme.text.primary}>
-          Trusting a folder allows Gemini CLI to load its local configurations,
+          Trusting a folder allows open-agent to load its local configurations,
           including custom commands, hooks, MCP servers, agent skills, and
           settings. These configurations could execute code on your behalf or
           change the behavior of the CLI.
@@ -296,7 +296,7 @@ export const FolderTrustDialog: React.FC<FolderTrustDialogProps> = ({
       {isRestarting && (
         <Box marginLeft={1} marginTop={1}>
           <Text color={theme.status.warning}>
-            Gemini CLI is restarting to apply the trust changes...
+            open-agent is restarting to apply the trust changes...
           </Text>
         </Box>
       )}

@@ -21,6 +21,13 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     reporters: ['default', 'junit'],
+    // Force true-color output before any module (including setupFiles) loads, so chalk's
+    // color-level detection—which is cached at first import—always resolves to level 3.
+    // Setting this inside test-setup.ts is too late: chalk gets imported transitively by
+    // earlier-hoisted ESM imports before that file's own assignment statement runs.
+    env: {
+      FORCE_COLOR: '3',
+    },
 
     outputFile: {
       junit: 'junit.xml',

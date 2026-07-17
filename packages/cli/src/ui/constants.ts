@@ -41,7 +41,7 @@ export const DEFAULT_SELECTION_OPACITY = 0.2;
 export const DEFAULT_BORDER_OPACITY = 0.4;
 
 export const KEYBOARD_SHORTCUTS_URL =
-  'https://geminicli.com/docs/cli/keyboard-shortcuts/';
+  'https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/cli-reference.md';
 export const LRU_BUFFER_PERF_CACHE_LIMIT = 20000;
 
 // Max lines to show for active shell output when not focused

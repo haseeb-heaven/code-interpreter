@@ -26,7 +26,11 @@ import {
 import { type Config } from '../config/config.js';
 import { DEFAULT_FILE_FILTERING_OPTIONS } from '../config/constants.js';
 import { ToolErrorType } from './tool-error.js';
-import { GLOB_TOOL_NAME, GLOB_DISPLAY_NAME } from './tool-names.js';
+import {
+  GLOB_TOOL_NAME,
+  GLOB_DISPLAY_NAME,
+  GREP_TOOL_NAME,
+} from './tool-names.js';
 import { buildPatternArgsPattern } from '../policy/utils.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { debugLogger } from '../utils/debugLogger.js';
@@ -327,6 +331,13 @@ export class GlobTool extends BaseDeclarativeTool<GlobToolParams, ToolResult> {
     );
   }
 
+  protected override getSchemaValidationHint(): string | null {
+    return (
+      ` Example: {"pattern":"**/*.{txt,md}","dir_path":"."}. ` +
+      `\`${GLOB_TOOL_NAME}\` finds files by name/path; use \`${GREP_TOOL_NAME}\` to search inside file contents.`
+    );
+  }
+
   /**
    * Validates the parameters for the tool.
    */
@@ -367,7 +378,10 @@ export class GlobTool extends BaseDeclarativeTool<GlobToolParams, ToolResult> {
       typeof params.pattern !== 'string' ||
       params.pattern.trim() === ''
     ) {
-      return "The 'pattern' parameter cannot be empty.";
+      return (
+        "The 'pattern' parameter cannot be empty. " +
+        `Example: {"pattern":"**/*.txt","dir_path":"."}.`
+      );
     }
 
     return null;

@@ -19,6 +19,7 @@ import {
   EDIT_TOOL_NAME,
   WEB_SEARCH_TOOL_NAME,
   WRITE_TODOS_TOOL_NAME,
+  SHELL_TOOL_NAME,
   WEB_FETCH_TOOL_NAME,
   READ_MANY_FILES_TOOL_NAME,
   GET_INTERNAL_DOCS_TOOL_NAME,
@@ -395,7 +396,7 @@ The user has the ability to modify the \`new_string\` content. If modified, this
 
   google_web_search: {
     name: WEB_SEARCH_TOOL_NAME,
-    description: `Performs a grounded Google Search to find information across the internet. Returns a synthesized answer with citations (e.g., [1]) and source URIs. Best for finding up-to-date documentation, troubleshooting obscure errors, or broad research. Use this when you don't have a specific URL. If a search result requires deeper analysis, follow up by using '${WEB_FETCH_TOOL_NAME}' on the provided URI.`,
+    description: `Performs a grounded Google Search to find information across the internet. Returns a synthesized answer with citations (e.g., [1]) and source URIs. Best for finding up-to-date documentation, troubleshooting obscure errors, or broad research. Use this when you don't have a specific URL. Multi-step: if results need deeper reading, follow with '${WEB_FETCH_TOOL_NAME}' on a source URI; if the user wants a file saved locally, use '${SHELL_TOOL_NAME}' (curl / Invoke-WebRequest) to download, then continue open/install/verify actions until the full request is complete. Do not stop after only returning links when more was asked.`,
     parametersJsonSchema: {
       type: 'object',
       properties: {
@@ -412,13 +413,13 @@ The user has the ability to modify the \`new_string\` content. If modified, this
   web_fetch: {
     name: WEB_FETCH_TOOL_NAME,
     description:
-      "Analyzes and extracts information from up to 20 URLs. Ideal for documentation review, technical research, or reading raw code from GitHub. You can provide specific, complex instructions for the extraction (e.g., 'Summarize the breaking changes'). Provides cited answers based on the content. GitHub 'blob' URLs are automatically converted to raw versions for better processing. Supports HTTP/HTTPS only.",
+      "Analyzes and extracts information from up to 20 URLs into the model context. Ideal for documentation review, technical research, or reading raw code from GitHub. Provide analysis instructions in 'prompt' (e.g., 'Summarize the breaking changes'). GitHub 'blob' URLs convert to raw. HTTP/HTTPS only. Does NOT save files to disk — never pass download_location/save_path. To download a binary or installer, use run_shell_command, then continue with further user-requested actions.",
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [WEB_FETCH_PARAM_PROMPT]: {
           description:
-            'A string containing the URL(s) and your specific analysis instructions. Be clear about what information you want to find or summarize. Supports up to 20 URLs.',
+            'A string containing the URL(s) and your specific analysis instructions. Be clear about what information you want to find or summarize. Supports up to 20 URLs. Not a download destination — filesystem paths do not belong here.',
           type: 'string',
         },
       },

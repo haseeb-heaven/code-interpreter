@@ -32,6 +32,7 @@ import {
   splitModelId,
   type ProviderDefinition,
 } from './providers.js';
+import { recordProviderUsage } from './usageStore.js';
 
 interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -275,11 +276,62 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
+  /**
+   * Set after a provider rejects tool definitions (e.g. HuggingFace router
+   * models without function calling); later requests omit tools entirely.
+   */
+  private toolsUnsupported = false;
+
+  private static isToolsUnsupportedError(
+    status: number,
+    detail: string,
+  ): boolean {
+    return (
+      status === 400 &&
+      /function.?call|tool/i.test(detail) &&
+      /not.{0,10}support/i.test(detail)
+    );
+  }
+
+  /**
+   * POSTs to /chat/completions; when the provider answers 400 with a
+   * "function calling not supported" error, retries once without tools.
+   */
+  private async postChat(
+    request: GenerateContentParameters,
+    stream: boolean,
+  ): Promise<Response> {
+    const signal = request.config?.abortSignal;
+    const attempt = (withTools: boolean) =>
+      this.fetchImpl(`${this.apiBase}/chat/completions`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify(this.buildBody(request, stream, withTools)),
+        ...(signal ? { signal } : {}),
+      });
+    let resp = await attempt(!this.toolsUnsupported);
+    if (resp.ok) return resp;
+    let detail = await resp.text().catch(() => '');
+    if (
+      !this.toolsUnsupported &&
+      OpenAICompatContentGenerator.isToolsUnsupportedError(resp.status, detail)
+    ) {
+      this.toolsUnsupported = true;
+      resp = await attempt(false);
+      if (resp.ok) return resp;
+      detail = await resp.text().catch(() => '');
+    }
+    throw new Error(
+      `${this.provider.id} ${stream ? 'stream' : 'request'} failed (${resp.status}): ${detail.slice(0, 500)}`,
+    );
+  }
+
   private buildBody(
     request: GenerateContentParameters,
     stream: boolean,
+    withTools = true,
   ): Record<string, unknown> {
-    const tools = toOpenAITools(request);
+    const tools = withTools ? toOpenAITools(request) : undefined;
     return {
       model: this.model,
       messages: toOpenAIMessages(request),
@@ -305,17 +357,7 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
     _userPromptId: string,
     _role?: unknown,
   ): Promise<GenerateContentResponse> {
-    const resp = await this.fetchImpl(`${this.apiBase}/chat/completions`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify(this.buildBody(request, false)),
-    });
-    if (!resp.ok) {
-      const detail = await resp.text().catch(() => '');
-      throw new Error(
-        `${this.provider.id} request failed (${resp.status}): ${detail.slice(0, 500)}`,
-      );
-    }
+    const resp = await this.postChat(request, false);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
     const payload = (await resp.json()) as {
       choices?: Array<{
@@ -358,6 +400,17 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
         },
       });
     }
+    if (payload.usage) {
+      try {
+        recordProviderUsage(this.provider.id, {
+          promptTokens: payload.usage.prompt_tokens,
+          completionTokens: payload.usage.completion_tokens,
+          totalTokens: payload.usage.total_tokens,
+        });
+      } catch {
+        // Usage persistence must never break completions.
+      }
+    }
     return makeResponse(parts, {
       finishReason: mapFinishReason(choice?.finish_reason),
       usage: payload.usage,
@@ -370,28 +423,29 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
     _userPromptId: string,
     _role?: unknown,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    const resp = await this.fetchImpl(`${this.apiBase}/chat/completions`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify(this.buildBody(request, true)),
-    });
-    if (!resp.ok || !resp.body) {
-      const detail = await resp.text().catch(() => '');
-      throw new Error(
-        `${this.provider.id} stream failed (${resp.status}): ${detail.slice(0, 500)}`,
-      );
+    const resp = await this.postChat(request, true);
+    if (!resp.body) {
+      throw new Error(`${this.provider.id} stream failed: empty body`);
     }
     const body = resp.body;
     const model = this.model;
+    const providerId = this.provider.id;
 
     async function* stream(): AsyncGenerator<GenerateContentResponse> {
       const decoder = new TextDecoder();
       let buffer = '';
-      // Streamed tool calls arrive fragmented; accumulate by index.
+      // Streamed tool calls arrive fragmented; accumulate by a stable key.
+      // Prefer call.id, then call.index (per the OpenAI streaming spec).
+      // Some backends omit both on continuation chunks, in which case the
+      // delta continues whichever tool call was last touched — defaulting
+      // a missing index to a constant would otherwise merge distinct
+      // parallel tool calls into one entry.
       const toolCalls = new Map<
-        number,
-        { id?: string; name: string; args: string }
+        string,
+        { id?: string; name: string; args: string; order: number }
       >();
+      let toolCallOrder = 0;
+      let lastToolCallKey: string | undefined;
       let usage:
         | {
             prompt_tokens?: number;
@@ -439,14 +493,27 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
               });
             }
             for (const call of delta.tool_calls ?? []) {
-              const index = call.index ?? 0;
-              const entry = toolCalls.get(index) ?? { name: '', args: '' };
+              let key: string;
+              if (call.id) {
+                key = `id:${call.id}`;
+              } else if (call.index !== undefined) {
+                key = `idx:${call.index}`;
+              } else if (lastToolCallKey !== undefined) {
+                key = lastToolCallKey;
+              } else {
+                key = `seq:${toolCallOrder}`;
+              }
+              let entry = toolCalls.get(key);
+              if (!entry) {
+                entry = { name: '', args: '', order: toolCallOrder++ };
+                toolCalls.set(key, entry);
+              }
               if (call.id) entry.id = call.id;
               if (call.function?.name) entry.name += call.function.name;
               if (call.function?.arguments) {
                 entry.args += call.function.arguments;
               }
-              toolCalls.set(index, entry);
+              lastToolCallKey = key;
             }
           }
         }
@@ -456,7 +523,7 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
 
       const finalParts: Part[] = [];
       for (const [, call] of [...toolCalls.entries()].sort(
-        (a, b) => a[0] - b[0],
+        (a, b) => a[1].order - b[1].order,
       )) {
         let args: Record<string, unknown> = {};
         try {
@@ -470,6 +537,17 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
         });
       }
       if (finalParts.length > 0 || usage || finish) {
+        if (usage) {
+          try {
+            recordProviderUsage(providerId, {
+              promptTokens: usage.prompt_tokens,
+              completionTokens: usage.completion_tokens,
+              totalTokens: usage.total_tokens,
+            });
+          } catch {
+            // Usage persistence must never break completions.
+          }
+        }
         yield makeResponse(finalParts, {
           finishReason: mapFinishReason(finish),
           usage,

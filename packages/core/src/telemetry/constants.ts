@@ -6,9 +6,9 @@
 
 export const SERVICE_NAME = 'gemini-cli';
 export const SERVICE_DESCRIPTION =
-  'Gemini CLI is an open-source AI agent that brings the power of Gemini directly into your terminal. It is designed to be a terminal-first, extensible, and powerful tool for developers, engineers, SREs, and beyond.';
+  'OpenAgent is an open-source AI agent that brings the power of Gemini directly into your terminal. It is designed to be a terminal-first, extensible, and powerful tool for developers, engineers, SREs, and beyond.';
 
-// Gemini CLI specific semantic conventions
+// OpenAgent specific semantic conventions
 // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#genai-attributes
 export const GEN_AI_OPERATION_NAME = 'gen_ai.operation.name';
 export const GEN_AI_AGENT_NAME = 'gen_ai.agent.name';
@@ -27,7 +27,7 @@ export const GEN_AI_SYSTEM_INSTRUCTIONS = 'gen_ai.system_instructions';
 export const GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions';
 export const GEN_AI_CONVERSATION_ID = 'gen_ai.conversation.id';
 
-// Gemini CLI specific operations
+// OpenAgent specific operations
 export enum GeminiCliOperation {
   ToolCall = 'tool_call',
   LLMCall = 'llm_call',

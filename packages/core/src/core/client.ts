@@ -42,6 +42,7 @@ import type {
   ResumedSessionData,
 } from '../services/chatRecordingService.js';
 import type { ContentGenerator } from './contentGenerator.js';
+import { isMultiProviderModel } from '../providers/factory.js';
 import { LoopDetectionService } from '../services/loopDetectionService.js';
 import { ChatCompressionService } from '../context/chatCompressionService.js';
 import { AgentHistoryProvider } from '../context/agentHistoryProvider.js';
@@ -772,7 +773,14 @@ export class GeminiClient {
     let modelToUse: string;
 
     // Determine Model (Stickiness vs. Routing)
-    if (this.currentSequenceModel) {
+    // When the user explicitly selected a multi-provider model via /model
+    // (OpenRouter, OpenAI, Groq, …), always honor config.getModel() so sticky
+    // sequence state or Gemini auto-routing cannot keep serving Gemini.
+    const sessionModel = this.config.getModel();
+    if (isMultiProviderModel(sessionModel)) {
+      modelToUse = sessionModel;
+      this.currentSequenceModel = null;
+    } else if (this.currentSequenceModel) {
       modelToUse = this.currentSequenceModel;
     } else {
       const router = this.config.getModelRouterService();
@@ -780,17 +788,22 @@ export class GeminiClient {
       modelToUse = decision.model;
     }
 
-    // availability logic
+    // availability logic — skip Gemini availability remapping for multi-provider
+    // models so OpenRouter/OpenAI/etc. keys are never rewritten to a Gemini id.
     const modelConfigKey: ModelConfigKey = {
       model: modelToUse,
       isChatModel: true,
     };
-    const { model: finalModel } = applyModelSelection(
-      this.config,
-      modelConfigKey,
-      { consumeAttempt: false },
-    );
-    modelToUse = finalModel;
+    if (!isMultiProviderModel(modelToUse)) {
+      const { model: finalModel } = applyModelSelection(
+        this.config,
+        modelConfigKey,
+        { consumeAttempt: false },
+      );
+      modelToUse = finalModel;
+    } else {
+      this.config.setActiveModel(modelToUse);
+    }
 
     if (!signal.aborted && !this.currentSequenceModel) {
       yield { type: GeminiEventType.ModelInfo, value: modelToUse };

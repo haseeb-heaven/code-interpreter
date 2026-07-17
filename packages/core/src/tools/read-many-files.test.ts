@@ -368,7 +368,9 @@ describe('ReadManyFilesTool', () => {
         abortSignal: new AbortController().signal,
       });
       expect(result.llmContent).toEqual([
-        'No files matching the criteria were found or all were skipped.',
+        'No files matching the criteria were found or all were skipped.\n' +
+          'If you referenced a binary Office file (.doc, .xls, .ppt), convert it to text or use a .docx (text is extracted automatically). Paths must be inside the workspace.\n' +
+          'Tip: use read_file with an in-workspace path, or copy the file into the project first.',
       ]);
       expect((result.returnDisplay as ReadManyFilesResult).summary).toContain(
         'No files were read and concatenated based on the criteria.',

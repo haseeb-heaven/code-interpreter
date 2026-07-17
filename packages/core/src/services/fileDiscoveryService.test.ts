@@ -10,6 +10,14 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { FileDiscoveryService } from './fileDiscoveryService.js';
 import { GEMINI_IGNORE_FILE_NAME } from '../config/constants.js';
+import { isGitRepository } from '../utils/gitUtils.js';
+
+// isGitRepository() walks upward to the filesystem root (matching real git
+// semantics), so if any ancestor of the OS temp dir happens to contain a
+// .git directory (e.g. a dotfiles repo in the user's home dir), tests that
+// rely on a temp dir NOT being inside a git repo are spuriously affected.
+// This is an environment condition, not a product bug — skip with reason.
+const tmpDirInGitRepo = isGitRepository(os.tmpdir());
 
 describe('FileDiscoveryService', () => {
   let testRootDir: string;
@@ -45,14 +53,17 @@ describe('FileDiscoveryService', () => {
       expect(service.shouldIgnoreFile('src/foo.js')).toBe(false);
     });
 
-    it('should not load git repo patterns when not in a git repo', async () => {
-      // No .git directory
-      await createTestFile('.gitignore', 'node_modules/');
-      const service = new FileDiscoveryService(projectRoot);
+    it.skipIf(tmpDirInGitRepo)(
+      'should not load git repo patterns when not in a git repo',
+      async () => {
+        // No .git directory
+        await createTestFile('.gitignore', 'node_modules/');
+        const service = new FileDiscoveryService(projectRoot);
 
-      // .gitignore is not loaded in non-git repos
-      expect(service.shouldIgnoreFile('node_modules/foo.js')).toBe(false);
-    });
+        // .gitignore is not loaded in non-git repos
+        expect(service.shouldIgnoreFile('node_modules/foo.js')).toBe(false);
+      },
+    );
 
     it('should load .geminiignore patterns even when not in a git repo', async () => {
       await createTestFile(GEMINI_IGNORE_FILE_NAME, 'secrets.txt');

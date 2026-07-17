@@ -44,7 +44,7 @@ updatePackageJson('packages/cli/package.json', (pkg) => {
   pkg.name = '@haseeb-heaven/open-agent';
   pkg.files = ['bundle/'];
   pkg.bin = {
-    gemini: 'bundle/gemini.js',
+    openagent: 'bundle/openagent.js',
   };
 
   // Remove fields that are not relevant to the bundled package.

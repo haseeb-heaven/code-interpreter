@@ -13,14 +13,14 @@ import type { AgentLoopContext } from '../config/agent-loop-context.js';
 const CliHelpReportSchema = z.object({
   answer: z
     .string()
-    .describe('The detailed answer to the user question about Gemini CLI.'),
+    .describe('The detailed answer to the user question about OpenAgent.'),
   sources: z
     .array(z.string())
     .describe('The documentation files used to answer the question.'),
 });
 
 /**
- * An agent specialized in answering questions about Gemini CLI itself,
+ * An agent specialized in answering questions about OpenAgent itself,
  * using its own documentation and runtime state.
  */
 export const CliHelpAgent = (
@@ -30,14 +30,14 @@ export const CliHelpAgent = (
   kind: 'local',
   displayName: 'CLI Help Agent',
   description:
-    'Specialized agent for answering questions about the Gemini CLI application. Invoke this agent for questions regarding CLI features, configuration schemas (e.g., policies), or instructions on how to create custom subagents. It queries internal documentation to provide accurate usage guidance.',
+    'Specialized agent for answering questions about the OpenAgent application. Invoke this agent for questions regarding CLI features, configuration schemas (e.g., policies), or instructions on how to create custom subagents. It queries internal documentation to provide accurate usage guidance.',
   inputConfig: {
     inputSchema: {
       type: 'object',
       properties: {
         question: {
           type: 'string',
-          description: 'The specific question about Gemini CLI.',
+          description: 'The specific question about OpenAgent.',
         },
       },
       required: ['question'],
@@ -74,12 +74,12 @@ export const CliHelpAgent = (
 
   promptConfig: {
     query:
-      'Your task is to answer the following question about Gemini CLI:\n' +
+      'Your task is to answer the following question about OpenAgent:\n' +
       '<question>\n' +
       '${question}\n' +
       '</question>',
     systemPrompt:
-      "You are **CLI Help Agent**, an expert on Gemini CLI. Your purpose is to provide accurate information about Gemini CLI's features, configuration, and current state.\n\n" +
+      "You are **CLI Help Agent**, an expert on OpenAgent. Your purpose is to provide accurate information about OpenAgent's features, configuration, and current state.\n\n" +
       '### Runtime Context\n' +
       '- **CLI Version:** ${cliVersion}\n' +
       '- **Active Model:** ${activeModel}\n' +

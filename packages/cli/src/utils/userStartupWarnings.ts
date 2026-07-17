@@ -51,7 +51,7 @@ const homeDirectoryCheck: WarningCheck = {
           return null;
         }
 
-        return 'Warning you are running Gemini CLI in your home directory.\nThis warning can be disabled in /settings';
+        return 'Warning you are running open-agent in your home directory.\nThis warning can be disabled in /settings';
       }
       return null;
     } catch {
@@ -67,7 +67,7 @@ const rootDirectoryCheck: WarningCheck = {
     try {
       const workspaceRealPath = await fs.realpath(workspaceRoot);
       const errorMessage =
-        'Warning: You are running Gemini CLI in the root directory. Your entire folder structure will be used for context. It is strongly recommended to run in a project-specific directory.';
+        'Warning: You are running open-agent in the root directory. Your entire folder structure will be used for context. It is strongly recommended to run in a project-specific directory.';
 
       // Check for Unix root directory
       if (path.dirname(workspaceRealPath) === workspaceRealPath) {
@@ -96,9 +96,9 @@ const folderTrustCheck: WarningCheck = {
 
     if (isHeadlessMode()) {
       throw new FatalUntrustedWorkspaceError(
-        'Gemini CLI is not running in a trusted directory. To proceed, either use `--skip-trust`, ' +
+        'open-agent is not running in a trusted directory. To proceed, either use `--skip-trust`, ' +
           'set the `GEMINI_CLI_TRUST_WORKSPACE=true` environment variable, or trust this directory in interactive mode. ' +
-          'For more details, see https://geminicli.com/docs/cli/trusted-folders/#headless-and-automated-environments',
+          'For more details, see https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/trusted-folders.md#headless-and-automated-environments',
       );
     }
 

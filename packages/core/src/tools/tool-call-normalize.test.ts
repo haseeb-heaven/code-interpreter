@@ -9,12 +9,51 @@ import {
   looksLikeFileGlobPattern,
   isGlobShapedSearchArgs,
   normalizeToolCallRequest,
+  extractHttpUrlFromArgs,
+  resolveDownloadDest,
+  looksLikeDirectoryPath,
+  buildDownloadShellCommand,
 } from './tool-call-normalize.js';
 import {
   GLOB_TOOL_NAME,
   GREP_TOOL_NAME,
   SHELL_TOOL_NAME,
 } from './tool-names.js';
+
+describe('download path helpers', () => {
+  it('extracts http URL from free-form args', () => {
+    expect(
+      extractHttpUrlFromArgs({ query: 'web: https://example.com/a.zip?x=1' }),
+    ).toBe('https://example.com/a.zip?x=1');
+    expect(extractHttpUrlFromArgs({ url: 'https://cdn.test/file.bin' })).toBe(
+      'https://cdn.test/file.bin',
+    );
+  });
+
+  it('detects directory vs file destinations', () => {
+    expect(looksLikeDirectoryPath('C:/Users/Downloads/')).toBe(true);
+    expect(looksLikeDirectoryPath('C:/Users/Downloads')).toBe(true);
+    expect(looksLikeDirectoryPath('C:/Users/Downloads/app.exe')).toBe(false);
+  });
+
+  it('joins filename from URL onto directory destinations', () => {
+    expect(
+      resolveDownloadDest('https://ex.com/path/pkg.zip', 'D:/tmp/'),
+    ).toBe('D:/tmp/pkg.zip');
+    expect(
+      resolveDownloadDest('https://ex.com/path/pkg.zip', 'D:/tmp/out.zip'),
+    ).toBe('D:/tmp/out.zip');
+  });
+
+  it('builds a platform shell download command', () => {
+    const cmd = buildDownloadShellCommand(
+      'https://ex.com/f.bin',
+      'D:/tmp/f.bin',
+    );
+    expect(cmd).toMatch(/Invoke-WebRequest|curl /);
+    expect(cmd).toContain('https://ex.com/f.bin');
+  });
+});
 
 describe('looksLikeFileGlobPattern', () => {
   it('detects extension globs', () => {
@@ -161,23 +200,35 @@ describe('normalizeToolCallRequest', () => {
     expect((result.args as { query: string }).query).toBe(userSaid);
   });
 
-  it('maps WebFetch {query, download_location} to prompt with URL', () => {
+  it('remaps WebFetch {url, download_location} to shell download command', () => {
     const result = normalizeToolCallRequest('WebFetch', {
       query: 'web: https://example.com/doc.pdf',
       download_location: 'C:/Users/Downloads/',
     });
-    const prompt = (result.args as { prompt: string }).prompt;
-    expect(prompt).toContain('https://example.com/doc.pdf');
-    expect(result.args as Record<string, unknown>).not.toHaveProperty(
-      'download_location',
-    );
-    expect(result.args as Record<string, unknown>).not.toHaveProperty('query');
+    expect(result.name).toBe(SHELL_TOOL_NAME);
+    expect(result.remappedFrom).toBe('web_fetch');
+    const command = (result.args as { command: string }).command;
+    expect(command).toContain('https://example.com/doc.pdf');
+    expect(command).toMatch(/doc\.pdf/);
+    expect(command).toMatch(/Invoke-WebRequest|curl /);
   });
 
-  it('maps web_fetch url field to prompt', () => {
+  it('remaps invented download tool with url + save_path to shell', () => {
+    const result = normalizeToolCallRequest('download', {
+      url: 'https://cdn.example.org/pkg.zip',
+      save_path: 'D:/tmp/pkg.zip',
+    });
+    expect(result.name).toBe(SHELL_TOOL_NAME);
+    const command = (result.args as { command: string }).command;
+    expect(command).toContain('https://cdn.example.org/pkg.zip');
+    expect(command).toContain('D:/tmp/pkg.zip');
+  });
+
+  it('maps web_fetch url field to prompt when not downloading', () => {
     const result = normalizeToolCallRequest('web_fetch', {
       url: 'https://example.org/page',
     });
+    expect(result.name).toBe('web_fetch');
     expect((result.args as { prompt: string }).prompt).toContain(
       'https://example.org/page',
     );

@@ -35,7 +35,7 @@ describe('ExtensionManager theme loading', () => {
 
   beforeAll(async () => {
     tempHomeDir = await fs.promises.mkdtemp(
-      path.join(tmpdir(), 'gemini-cli-test-'),
+      path.join(tmpdir(), 'open-agent-test-'),
     );
   });
 

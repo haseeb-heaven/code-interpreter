@@ -4,13 +4,13 @@ We would love to accept your patches and contributions to this project. This
 document includes:
 
 - **[Before you begin](#before-you-begin):** Essential steps to take before
-  becoming a Gemini CLI contributor.
+  becoming an OpenAgent contributor.
 - **[Code contribution process](#code-contribution-process):** How to contribute
-  code to Gemini CLI.
+  code to OpenAgent.
 - **[Development setup and workflow](#development-setup-and-workflow):** How to
   set up your development environment and workflow.
 - **[Documentation contribution process](#documentation-contribution-process):**
-  How to contribute documentation to Gemini CLI.
+  How to contribute documentation to OpenAgent.
 
 We're looking forward to seeing your contributions!
 
@@ -90,7 +90,7 @@ You can run the review tool in two ways:
     it with the latest Flash model instead:
     `./scripts/review.sh <PR_NUMBER> gemini-3-flash-preview`.
 
-2.  **Manually from within Gemini CLI:** If you already have the PR checked out
+2.  **Manually from within OpenAgent:** If you already have the PR checked out
     and built, you can run the tool directly from the CLI prompt:
 
     ```text
@@ -217,7 +217,7 @@ To clone the repository:
 
 ```bash
 git clone https://github.com/haseeb-heaven/open-agent.git # Or your fork's URL
-cd gemini-cli
+cd open-agent
 ```
 
 To install dependencies defined in `package.json` as well as root dependencies:
@@ -254,17 +254,17 @@ To skip building the sandbox container, you can use `npm run build` instead.
 
 ### Running the CLI
 
-To start the Gemini CLI from the source code (after building), run the following
+To start OpenAgent from the source code (after building), run the following
 command from the root directory:
 
 ```bash
 npm start
 ```
 
-If you'd like to run the source build outside of the gemini-cli folder, you can
-utilize `npm link path/to/gemini-cli/packages/cli` (see:
+If you'd like to run the source build outside of the open-agent folder, you can
+utilize `npm link path/to/open-agent/packages/cli` (see:
 [docs](https://docs.npmjs.com/cli/v9/commands/npm-link)) or
-`alias gemini="node path/to/gemini-cli/packages/cli"` to run with `gemini`
+`alias openagent="node path/to/open-agent/packages/cli"` to run with `openagent`
 
 ### Running tests
 
@@ -285,7 +285,7 @@ comprehensive check, it is recommended to run `npm run preflight`.
 #### Integration tests
 
 The integration tests are designed to validate the end-to-end functionality of
-the Gemini CLI. They are not run as part of the default `npm run test` command.
+OpenAgent. They are not run as part of the default `npm run test` command.
 
 To run the integration tests, use the following command:
 
@@ -379,18 +379,18 @@ recommended.
 To hit a breakpoint inside the sandbox container run:
 
 ```bash
-DEBUG=1 gemini
+DEBUG=1 openagent
 ```
 
 **Note:** If you have `DEBUG=true` in a project's `.env` file, it won't affect
-gemini-cli due to automatic exclusion. Use `.gemini/.env` files for gemini-cli
+open-agent due to automatic exclusion. Use `.gemini/.env` files for open-agent
 specific debug settings.
 
 ### React DevTools
 
 To debug the CLI's React-based UI, you can use React DevTools.
 
-1.  **Start the Gemini CLI in development mode:**
+1.  **Start OpenAgent in development mode:**
 
     ```bash
     DEV=true npm start
@@ -448,7 +448,7 @@ sandbox.
 
 Container-based sandboxing mounts the project directory (and system temp
 directory) with read-write access and is started/stopped/removed automatically
-as you start/stop Gemini CLI. Files created within the sandbox should be
+as you start/stop OpenAgent. Files created within the sandbox should be
 automatically mapped to your user/group on host machine. You can easily specify
 additional mounts, ports, or environment variables by setting
 `SANDBOX_{MOUNTS,PORTS,ENV}` as needed. You can also fully customize the sandbox
@@ -490,7 +490,7 @@ our documentation to be clear, concise, and helpful to our users. We value:
 - **Accuracy:** Ensure all information is correct and up-to-date.
 - **Completeness:** Cover all aspects of a feature or topic.
 - **Examples:** Provide practical examples to help users understand how to use
-  Gemini CLI.
+  OpenAgent.
 
 ### Getting started
 
@@ -568,4 +568,4 @@ If you have questions about contributing documentation:
   your proposed changes.
 - Reach out to the maintainers.
 
-We appreciate your contributions to making Gemini CLI documentation better!
+We appreciate your contributions to making OpenAgent documentation better!

@@ -436,7 +436,7 @@ describe('settings-validation', () => {
         expect(formatted).toContain('Expected: string, but received: object');
         expect(formatted).toContain('Please fix the configuration.');
         expect(formatted).toContain(
-          'https://geminicli.com/docs/reference/configuration/',
+          'https://github.com/haseeb-heaven/open-agent/blob/main/docs/reference/configuration.md',
         );
       }
     });
@@ -476,7 +476,7 @@ describe('settings-validation', () => {
         const formatted = formatValidationError(result.error, 'test.json');
 
         expect(formatted).toContain(
-          'https://geminicli.com/docs/reference/configuration/',
+          'https://github.com/haseeb-heaven/open-agent/blob/main/docs/reference/configuration.md',
         );
       }
     });

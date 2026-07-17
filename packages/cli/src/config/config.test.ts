@@ -133,7 +133,7 @@ vi.mock('@open-agent/core', async () => {
     ),
     getAdminErrorMessage: vi.fn(
       (_feature) =>
-        `YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli`,
+        `YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md`,
     ),
     isHeadlessMode: vi.fn((opts) => {
       if (process.env['VITEST'] === 'true') {
@@ -1444,7 +1444,7 @@ describe('Approval mode tool exclusion logic', () => {
     });
 
     await expect(loadCliConfig(settings, 'test-session', argv)).rejects.toThrow(
-      'YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+      'YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md',
     );
   });
 
@@ -3588,7 +3588,7 @@ describe('loadCliConfig disableYoloMode', () => {
       security: { disableYoloMode: true },
     });
     await expect(loadCliConfig(settings, 'test-session', argv)).rejects.toThrow(
-      'YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+      'YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md',
     );
   });
 });
@@ -3620,7 +3620,7 @@ describe('loadCliConfig secureModeEnabled', () => {
     });
 
     await expect(loadCliConfig(settings, 'test-session', argv)).rejects.toThrow(
-      'YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+      'YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md',
     );
   });
 
@@ -3634,7 +3634,7 @@ describe('loadCliConfig secureModeEnabled', () => {
     });
 
     await expect(loadCliConfig(settings, 'test-session', argv)).rejects.toThrow(
-      'YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+      'YOLO mode is disabled by your administrator. To enable it, please request an update to the settings at: https://github.com/haseeb-heaven/open-agent/blob/main/docs/cli/enterprise.md',
     );
   });
 

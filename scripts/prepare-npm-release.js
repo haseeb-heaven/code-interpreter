@@ -46,7 +46,7 @@ const cliPkg = readJson(cliPkgPath);
 
 cliPkg.files = ['bundle/'];
 cliPkg.bin = {
-  gemini: 'bundle/gemini.js',
+  openagent: 'bundle/openagent.js',
 };
 
 delete cliPkg.dependencies;

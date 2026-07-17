@@ -17,6 +17,7 @@ import type {
   ToolOutputMaskingConfig,
 } from '../context/types.js';
 export type { ConversationRecord };
+import { isMultiProviderModel } from '../providers/factory.js';
 import {
   AuthType,
   createContentGenerator,
@@ -1915,17 +1916,43 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   setModel(newModel: string, isTemporary: boolean = true): void {
-    if (this.model !== newModel || this._activeModel !== newModel) {
-      this.model = newModel;
+    const next = (newModel ?? '').trim();
+    if (!next) {
+      return;
+    }
+    if (this.model !== next || this._activeModel !== next) {
+      this.model = next;
       // When the user explicitly sets a model, that becomes the active model.
-      this._activeModel = newModel;
-      coreEvents.emitModelChanged(newModel);
+      this._activeModel = next;
+
+      // Mid-session provider switch: if the new model is multi-provider
+      // (OpenRouter, OpenAI, Groq, …), flip authType so subsequent generator
+      // creation and UI identity (UserIdentity, /usage) track the right path.
+      // Keep Gemini/Vertex/OAuth auth when the selected model is a Gemini one.
+      let multi = false;
+      try {
+        multi = isMultiProviderModel(next);
+        if (this.contentGeneratorConfig && multi) {
+          this.contentGeneratorConfig.authType = AuthType.MULTI_PROVIDER;
+        }
+      } catch {
+        // Registry may be unavailable in some tests; ignore.
+      }
+
+      // Drop sticky Gemini availability overrides only when leaving the
+      // Google path, so OpenRouter/etc. are not remapped back to a fallback.
+      if (multi) {
+        this.fallbackOverrides.clear();
+        this.modelConfigService.clearRuntimeOverrides();
+      }
+
+      coreEvents.emitModelChanged(next);
       this.lastEmittedQuotaRemaining = undefined;
       this.lastEmittedQuotaLimit = undefined;
       this.emitQuotaChangedEvent();
     }
     if (this.onModelChange && !isTemporary) {
-      this.onModelChange(newModel);
+      this.onModelChange(next);
     }
     this.modelAvailabilityService.reset();
   }

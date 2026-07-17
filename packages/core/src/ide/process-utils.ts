@@ -209,7 +209,7 @@ async function getIdeProcessInfoForWindows(): Promise<{
  * process).
  *
  * This function can be overridden by setting the `GEMINI_CLI_IDE_PID`
- * environment variable. This is useful for launching Gemini CLI in a
+ * environment variable. This is useful for launching OpenAgent in a
  * standalone terminal while still connecting to an IDE instance.
  *
  * If `GEMINI_CLI_IDE_PID` is set, the function uses that PID and fetches

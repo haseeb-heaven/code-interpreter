@@ -16,6 +16,9 @@ import {
   setDisableWorkspacePolicies,
 } from './policy.js';
 import { writeToStderr } from '@open-agent/core';
+import { canCreateSymlinks } from '@open-agent/test-utils';
+
+const canSymlink = await canCreateSymlinks();
 
 // Mock debugLogger to avoid noise in test output
 vi.mock('@open-agent/core', async (importOriginal) => {
@@ -217,7 +220,7 @@ describe('resolveWorkspacePolicyState', () => {
     });
   });
 
-  it('should return empty state if cwd is a symlink to the home directory', async () => {
+  it.skipIf(!canSymlink)('should return empty state if cwd is a symlink to the home directory', async () => {
     const policiesDir = path.join(tempDir, '.gemini', 'policies');
     fs.mkdirSync(policiesDir, { recursive: true });
     fs.writeFileSync(path.join(policiesDir, 'policy.toml'), 'rules = []');

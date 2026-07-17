@@ -84,8 +84,8 @@ export class GeminiAgent {
       protocolVersion: acp.PROTOCOL_VERSION,
       authMethods,
       agentInfo: {
-        name: 'gemini-cli',
-        title: 'Gemini CLI',
+        name: 'open-agent',
+        title: 'OpenAgent',
         version,
       },
       agentCapabilities: {

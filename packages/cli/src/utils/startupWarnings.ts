@@ -9,7 +9,7 @@ import os from 'node:os';
 import { join as pathJoin } from 'node:path';
 import { getErrorMessage } from '@open-agent/core';
 
-const warningsFilePath = pathJoin(os.tmpdir(), 'gemini-cli-warnings.txt');
+const warningsFilePath = pathJoin(os.tmpdir(), 'open-agent-warnings.txt');
 
 export async function getStartupWarnings(): Promise<string[]> {
   try {

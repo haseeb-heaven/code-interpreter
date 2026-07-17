@@ -216,7 +216,7 @@ describe('RipGrepTool', () => {
     );
 
     it('should throw error for invalid regex pattern', () => {
-      const params: RipGrepToolParams = { pattern: '[[' };
+      const params: RipGrepToolParams = { pattern: '(' };
       expect(grepTool.validateToolParams(params)).toMatch(
         /Invalid regular expression pattern provided/,
       );
@@ -224,7 +224,7 @@ describe('RipGrepTool', () => {
 
     it('should return error if pattern is missing', () => {
       const params = { dir_path: '.' } as unknown as RipGrepToolParams;
-      expect(grepTool.validateToolParams(params)).toBe(
+      expect(grepTool.validateToolParams(params)).toContain(
         `params must have required property 'pattern'`,
       );
     });
@@ -462,7 +462,7 @@ describe('RipGrepTool', () => {
     });
 
     it('should throw error for invalid regex pattern during build', async () => {
-      const params: RipGrepToolParams = { pattern: '[[' };
+      const params: RipGrepToolParams = { pattern: '(' };
       expect(() => grepTool.build(params)).toThrow(
         /Invalid regular expression pattern provided/,
       );

@@ -17,7 +17,7 @@ import { FIVE_MIN_BUFFER_MS } from './oauth-utils.js';
 export class DynamicStoredOAuthProvider implements OAuthClientProvider {
   readonly redirectUrl = '';
   readonly clientMetadata: OAuthClientMetadata = {
-    client_name: 'Gemini CLI (Stored OAuth)',
+    client_name: 'OpenAgent (Stored OAuth)',
     redirect_uris: [],
     grant_types: [],
     response_types: [],

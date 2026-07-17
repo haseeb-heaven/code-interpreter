@@ -8,6 +8,35 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import * as os from 'node:os';
 
+let cachedCanSymlink: boolean | undefined;
+
+/**
+ * Probes whether the current process/user can create filesystem symlinks.
+ * On Windows this requires admin rights or Developer Mode; the result is
+ * cached for the life of the process. Use with `it.skipIf(!(await canCreateSymlinks()))`
+ * to gate symlink-dependent tests instead of letting them fail with EPERM.
+ */
+export async function canCreateSymlinks(): Promise<boolean> {
+  if (cachedCanSymlink !== undefined) {
+    return cachedCanSymlink;
+  }
+  const dir = await fs.mkdtemp(
+    path.join(os.tmpdir(), 'symlink-capability-check-'),
+  );
+  const target = path.join(dir, 'target');
+  const link = path.join(dir, 'link');
+  try {
+    await fs.writeFile(target, '');
+    await fs.symlink(target, link);
+    cachedCanSymlink = true;
+  } catch {
+    cachedCanSymlink = false;
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+  return cachedCanSymlink;
+}
+
 /**
  * Defines the structure of a virtual file system to be created for testing.
  * Keys are file or directory names, and values can be:

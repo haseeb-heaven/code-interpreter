@@ -23,6 +23,7 @@ import { CCPA_AI_MODEL_MAPPINGS } from '../config/models.js';
 import { loadApiKey } from './apiKeyCredentialStorage.js';
 import { FakeContentGenerator } from './fakeContentGenerator.js';
 import { RecordingContentGenerator } from './recordingContentGenerator.js';
+import { ModelRoutingContentGenerator } from '../providers/routingGenerator.js';
 import { resetVersionCache } from '../utils/version.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
 
@@ -154,8 +155,11 @@ describe('createContentGenerator', () => {
     );
     expect(createCodeAssistContentGenerator).toHaveBeenCalled();
     expect(generator).toEqual(
-      new LoggingContentGenerator(
-        new ModelMappingContentGenerator(mockGenerator, CCPA_AI_MODEL_MAPPINGS),
+      new ModelRoutingContentGenerator(
+        new LoggingContentGenerator(
+          new ModelMappingContentGenerator(mockGenerator, CCPA_AI_MODEL_MAPPINGS),
+          mockConfig,
+        ),
         mockConfig,
       ),
     );
@@ -174,8 +178,11 @@ describe('createContentGenerator', () => {
     );
     expect(createCodeAssistContentGenerator).toHaveBeenCalled();
     expect(generator).toEqual(
-      new LoggingContentGenerator(
-        new ModelMappingContentGenerator(mockGenerator, CCPA_AI_MODEL_MAPPINGS),
+      new ModelRoutingContentGenerator(
+        new LoggingContentGenerator(
+          new ModelMappingContentGenerator(mockGenerator, CCPA_AI_MODEL_MAPPINGS),
+          mockConfig,
+        ),
         mockConfig,
       ),
     );
@@ -219,7 +226,10 @@ describe('createContentGenerator', () => {
       }),
     });
     expect(generator).toEqual(
-      new LoggingContentGenerator(mockGenerator.models, mockConfig),
+      new ModelRoutingContentGenerator(
+        new LoggingContentGenerator(mockGenerator.models, mockConfig),
+        mockConfig,
+      ),
     );
   });
 
@@ -832,7 +842,10 @@ describe('createContentGenerator', () => {
       }),
     });
     expect(generator).toEqual(
-      new LoggingContentGenerator(mockGenerator.models, mockConfig),
+      new ModelRoutingContentGenerator(
+        new LoggingContentGenerator(mockGenerator.models, mockConfig),
+        mockConfig,
+      ),
     );
   });
 

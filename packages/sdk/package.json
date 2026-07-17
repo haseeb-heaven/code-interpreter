@@ -1,7 +1,7 @@
 {
   "name": "@open-agent/sdk",
   "version": "4.0.0",
-  "description": "Gemini CLI SDK",
+  "description": "OpenAgent SDK",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

@@ -197,7 +197,7 @@ describe('formatForSpeech', () => {
       );
       expect(result).toContain('line 12');
       expect(result).not.toContain(':3');
-      expect(result).toContain('@google');
+      expect(result).toContain('@open-agent');
     });
   });
 

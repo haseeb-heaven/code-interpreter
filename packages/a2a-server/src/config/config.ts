@@ -24,6 +24,7 @@ import {
   isHeadlessMode,
   FatalAuthenticationError,
   createPolicyEngineConfig,
+  readCliEnvAlias,
   type PolicySettings,
   type TelemetryTarget,
   type ConfigParameters,
@@ -275,14 +276,13 @@ async function refreshAuthentication(
         `[${logPrefix}] COMPUTE_ADC failed or not available: ${adcMessage}`,
       );
 
-      const useComputeAdc =
-        process.env['GEMINI_CLI_USE_COMPUTE_ADC'] === 'true';
+      const useComputeAdc = readCliEnvAlias('USE_COMPUTE_ADC') === 'true';
       const isHeadless = isHeadlessMode();
 
       if (isHeadless || useComputeAdc) {
         const reason = isHeadless
           ? 'headless mode'
-          : 'GEMINI_CLI_USE_COMPUTE_ADC=true';
+          : 'OPENAGENT_CLI_USE_COMPUTE_ADC=true';
         throw new FatalAuthenticationError(
           `COMPUTE_ADC failed: ${adcMessage}. (LOGIN_WITH_GOOGLE fallback skipped due to ${reason}. Run in an interactive terminal to use OAuth.)`,
         );

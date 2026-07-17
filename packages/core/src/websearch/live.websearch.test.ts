@@ -6,6 +6,7 @@
 
 /**
  * Live web-search smoke tests — run only when keys / network are present.
+ * Keys load from repo-root `.env` via packages/core/test-setup.ts.
  *
  *   npx vitest run src/websearch/live.websearch.test.ts --root packages/core
  *

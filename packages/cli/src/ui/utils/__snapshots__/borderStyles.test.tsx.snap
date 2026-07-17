@@ -2,12 +2,12 @@
 
 exports[`MainContent tool group border SVG snapshots > should render SVG snapshot for a pending search dialog (google_web_search) 1`] = `
 "
- ▝▜▄      ▗█▀▀▜▙▝█▛▀▀▌▜██▖▟██▘▜█▘▜██▖▝█▛▝█▛
-   ▝▜▄    █▌     █▙▟  ▐█▝█▛▐█ ▐█ ▐█▝█▖█▌ █▌
-  ▗▟▀     ▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌
- ▝▀        ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀
-
- Gemini CLI v1.2.3
+ ██████╗  █████╗ 
+ ██╔═══██╗██╔══██╗  OpenAgent v1.2.3
+ ██║   ██║███████║
+ ██║   ██║██╔══██║
+ ╚██████╔╝██║  ██║
+  ╚═════╝ ╚═╝  ╚═╝
 
 
 Tips for getting started:
@@ -25,12 +25,12 @@ Tips for getting started:
 
 exports[`MainContent tool group border SVG snapshots > should render SVG snapshot for a shell tool 1`] = `
 "
- ▝▜▄      ▗█▀▀▜▙▝█▛▀▀▌▜██▖▟██▘▜█▘▜██▖▝█▛▝█▛
-   ▝▜▄    █▌     █▙▟  ▐█▝█▛▐█ ▐█ ▐█▝█▖█▌ █▌
-  ▗▟▀     ▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌
- ▝▀        ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀
-
- Gemini CLI v1.2.3
+ ██████╗  █████╗ 
+ ██╔═══██╗██╔══██╗  OpenAgent v1.2.3
+ ██║   ██║███████║
+ ██║   ██║██╔══██║
+ ╚██████╔╝██║  ██║
+  ╚═════╝ ╚═╝  ╚═╝
 
 
 Tips for getting started:
@@ -48,12 +48,12 @@ Tips for getting started:
 
 exports[`MainContent tool group border SVG snapshots > should render SVG snapshot for an empty slice following a search tool 1`] = `
 "
- ▝▜▄      ▗█▀▀▜▙▝█▛▀▀▌▜██▖▟██▘▜█▘▜██▖▝█▛▝█▛
-   ▝▜▄    █▌     █▙▟  ▐█▝█▛▐█ ▐█ ▐█▝█▖█▌ █▌
-  ▗▟▀     ▜▙ ▝█▛ █▌▝ ▖▐█   ▐█ ▐█ ▐█ ▝██▌ █▌
- ▝▀        ▀▀▀▀▘▝▀▀▀▀▘▀▀▘  ▀▀▘▀▀▘▀▀▘ ▝▀▀▝▀▀
-
- Gemini CLI v1.2.3
+ ██████╗  █████╗ 
+ ██╔═══██╗██╔══██╗  OpenAgent v1.2.3
+ ██║   ██║███████║
+ ██║   ██║██╔══██║
+ ╚██████╔╝██║  ██║
+  ╚═════╝ ╚═╝  ╚═╝
 
 
 Tips for getting started:

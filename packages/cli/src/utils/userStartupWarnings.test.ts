@@ -14,6 +14,9 @@ import {
   isWorkspaceTrusted,
 } from '../config/trustedFolders.js';
 import { getCompatibilityWarnings, WarningPriority } from '@open-agent/core';
+import { canCreateSymlinks } from '@open-agent/test-utils';
+
+const canSymlink = await canCreateSymlinks();
 
 // Mock os.homedir to control the home directory in tests
 vi.mock('node:os', async (importOriginal) => {
@@ -72,7 +75,7 @@ describe('getUserStartupWarnings', () => {
         expect.objectContaining({
           id: 'home-directory',
           message: expect.stringContaining(
-            'Warning you are running Gemini CLI in your home directory',
+            'Warning you are running open-agent in your home directory',
           ),
           priority: WarningPriority.Low,
         }),
@@ -101,7 +104,7 @@ describe('getUserStartupWarnings', () => {
       expect(warnings.find((w) => w.id === 'home-directory')).toBeUndefined();
     });
 
-    it('should not return a warning when home directory is a symlink and running in a subdirectory', async () => {
+    it.skipIf(!canSymlink)('should not return a warning when home directory is a symlink and running in a subdirectory', async () => {
       const realHome = path.join(testRootDir, 'real-home');
       await fs.mkdir(realHome, { recursive: true });
       const symlinkedHome = path.join(testRootDir, 'symlinked-home');
@@ -114,7 +117,7 @@ describe('getUserStartupWarnings', () => {
       expect(warnings.find((w) => w.id === 'home-directory')).toBeUndefined();
     });
 
-    it('should return a warning when home directory is a symlink and running in it', async () => {
+    it.skipIf(!canSymlink)('should return a warning when home directory is a symlink and running in it', async () => {
       const realHome = path.join(testRootDir, 'real-home2');
       await fs.mkdir(realHome, { recursive: true });
       const symlinkedHome = path.join(testRootDir, 'symlinked-home2');
@@ -126,7 +129,7 @@ describe('getUserStartupWarnings', () => {
         expect.objectContaining({
           id: 'home-directory',
           message: expect.stringContaining(
-            'Warning you are running Gemini CLI in your home directory',
+            'Warning you are running open-agent in your home directory',
           ),
           priority: WarningPriority.Low,
         }),
@@ -196,7 +199,7 @@ describe('getUserStartupWarnings', () => {
       vi.mocked(isFolderTrustEnabled).mockReturnValue(true);
       vi.mocked(isWorkspaceTrusted).mockImplementation(() => {
         throw new FatalUntrustedWorkspaceError(
-          'Gemini CLI is not running in a trusted directory',
+          'open-agent is not running in a trusted directory',
         );
       });
       vi.mocked(isHeadlessMode).mockReturnValue(true);

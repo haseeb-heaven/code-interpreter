@@ -139,7 +139,7 @@ describe('<UserIdentity />', () => {
     unmount();
   });
 
-  it('should render non-Google auth message', async () => {
+  it('should render non-Google auth message with friendly provider name', async () => {
     const mockConfig = makeFakeConfig();
     vi.spyOn(mockConfig, 'getContentGeneratorConfig').mockReturnValue({
       authType: AuthType.USE_GEMINI,
@@ -152,9 +152,64 @@ describe('<UserIdentity />', () => {
     );
 
     const output = lastFrame();
-    expect(output).toContain(`Authenticated with ${AuthType.USE_GEMINI}`);
+    expect(output).toContain('Authenticated with Gemini API key.');
     expect(output).toContain('/auth');
     expect(output).not.toContain('/upgrade');
+    expect(output).not.toContain('gemini-api-key');
+    unmount();
+  });
+
+  it('should render OpenRouter when multi-provider model is OpenRouter', async () => {
+    const mockConfig = makeFakeConfig();
+    vi.spyOn(mockConfig, 'getContentGeneratorConfig').mockReturnValue({
+      authType: AuthType.MULTI_PROVIDER,
+    } as unknown as ContentGeneratorConfig);
+    vi.spyOn(mockConfig, 'getModel').mockReturnValue('openrouter/free');
+    vi.spyOn(mockConfig, 'getUserTierName').mockReturnValue(undefined);
+
+    const { lastFrame, unmount } = await renderWithProviders(
+      <UserIdentity config={mockConfig} />,
+    );
+
+    const output = lastFrame();
+    expect(output).toContain('Authenticated with OpenRouter API key.');
+    expect(output).not.toContain('multi-provider');
+    expect(output).toContain('/auth');
+    unmount();
+  });
+
+  it('should render OpenAI when multi-provider model is OpenAI', async () => {
+    const mockConfig = makeFakeConfig();
+    vi.spyOn(mockConfig, 'getContentGeneratorConfig').mockReturnValue({
+      authType: AuthType.MULTI_PROVIDER,
+    } as unknown as ContentGeneratorConfig);
+    vi.spyOn(mockConfig, 'getModel').mockReturnValue('openai/gpt-4o');
+    vi.spyOn(mockConfig, 'getUserTierName').mockReturnValue(undefined);
+
+    const { lastFrame, unmount } = await renderWithProviders(
+      <UserIdentity config={mockConfig} />,
+    );
+
+    const output = lastFrame();
+    expect(output).toContain('Authenticated with OpenAI API key.');
+    unmount();
+  });
+
+  it('should render local provider without API key phrasing', async () => {
+    const mockConfig = makeFakeConfig();
+    vi.spyOn(mockConfig, 'getContentGeneratorConfig').mockReturnValue({
+      authType: AuthType.MULTI_PROVIDER,
+    } as unknown as ContentGeneratorConfig);
+    vi.spyOn(mockConfig, 'getModel').mockReturnValue('ollama/llama3.1:8b');
+    vi.spyOn(mockConfig, 'getUserTierName').mockReturnValue(undefined);
+
+    const { lastFrame, unmount } = await renderWithProviders(
+      <UserIdentity config={mockConfig} />,
+    );
+
+    const output = lastFrame();
+    expect(output).toContain('Authenticated with Ollama (local).');
+    expect(output).not.toContain('API key');
     unmount();
   });
 

@@ -19,7 +19,7 @@ import * as os from 'node:os';
 import type { TestMcpConfig } from './test-mcp-server.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BUNDLE_PATH = join(__dirname, '..', '..', '..', 'bundle/gemini.js');
+const BUNDLE_PATH = join(__dirname, '..', '..', '..', 'bundle/openagent.js');
 
 // Get timeout based on environment
 export function getDefaultTimeout() {

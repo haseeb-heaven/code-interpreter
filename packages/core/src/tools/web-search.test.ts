@@ -13,7 +13,11 @@ import {
   afterEach,
   type Mock,
 } from 'vitest';
-import { WebSearchTool, type WebSearchToolParams } from './web-search.js';
+import {
+  WebSearchTool,
+  WEB_SEARCH_CHAIN_HINT,
+  type WebSearchToolParams,
+} from './web-search.js';
 import type { Config } from '../config/config.js';
 import { GeminiClient } from '../core/client.js';
 import { createMockMessageBus } from '../test-utils/mock-message-bus.js';
@@ -106,7 +110,8 @@ describe('WebSearchTool', () => {
       const result = await invocation.execute({ abortSignal });
 
       expect(result.llmContent).toBe(
-        'Web search results for "successful query":\n\nHere are your results.',
+        'Web search results for "successful query":\n\nHere are your results.' +
+          WEB_SEARCH_CHAIN_HINT,
       );
       expect(result.returnDisplay).toBe(
         'Search results for "successful query" returned.',
@@ -184,13 +189,14 @@ describe('WebSearchTool', () => {
       const invocation = tool.build(params);
       const result = await invocation.execute({ abortSignal });
 
-      const expectedLlmContent = `Web search results for "grounding query":
+      const expectedLlmContent =
+        `Web search results for "grounding query":
 
 This is a test[1] response.[1][2]
 
 Sources:
 [1] Example Site (https://example.com)
-[2] Google (https://google.com)`;
+[2] Google (https://google.com)` + WEB_SEARCH_CHAIN_HINT;
 
       expect(result.llmContent).toBe(expectedLlmContent);
       expect(result.returnDisplay).toBe(
@@ -255,14 +261,16 @@ Sources:
       const invocation = tool.build(params);
       const result = await invocation.execute({ abortSignal });
 
-      const expectedLlmContent = `Web search results for "multibyte query":
+      const expectedLlmContent =
+        `Web search results for "multibyte query":
 
 こんにちは![1] Gemini CLI✨️[2][3]
 
 Sources:
 [1] Japanese Greeting (https://example.test/japanese-greeting)
 [2] haseeb-heaven/open-agent (https://github.com/haseeb-heaven/open-agent)
-[3] Gemini CLI: your open-source AI agent (https://blog.google/technology/developers/introducing-gemini-cli-open-source-ai-agent/)`;
+[3] Gemini CLI: your open-source AI agent (https://blog.google/technology/developers/introducing-gemini-cli-open-source-ai-agent/)` +
+        WEB_SEARCH_CHAIN_HINT;
 
       expect(result.llmContent).toBe(expectedLlmContent);
       expect(result.returnDisplay).toBe(

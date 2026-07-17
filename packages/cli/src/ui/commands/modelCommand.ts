@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ModelSlashCommandEvent, logModelSlashCommand } from '@open-agent/core';
+import {
+  AuthType,
+  ModelSlashCommandEvent,
+  logModelSlashCommand,
+} from '@open-agent/core';
 import {
   type CommandContext,
   CommandKind,
@@ -50,8 +54,9 @@ const manageModelCommand: SlashCommand = {
   kind: CommandKind.BUILT_IN,
   autoExecute: true,
   action: async (context: CommandContext) => {
-    if (context.services.agentContext?.config) {
-      await context.services.agentContext.config.refreshUserQuota();
+    const config = context.services.agentContext?.config;
+    if (config?.getContentGeneratorConfig()?.authType === AuthType.USE_GEMINI) {
+      await config.refreshUserQuota();
     }
     return {
       type: 'dialog',

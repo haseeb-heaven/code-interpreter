@@ -132,7 +132,7 @@ export function getAutoModelDescription(
       ? DEFAULT_GEMINI_3_5_FLASH_MODEL
       : PREVIEW_GEMINI_FLASH_MODEL
     : DEFAULT_GEMINI_FLASH_MODEL;
-  return `Let Gemini CLI decide the best model for the task: ${getDisplayString(proModel)}, ${getDisplayString(flashModel)}`;
+  return `Let OpenAgent decide the best model for the task: ${getDisplayString(proModel)}, ${getDisplayString(flashModel)}`;
 }
 
 /**

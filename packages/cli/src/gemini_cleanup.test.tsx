@@ -129,6 +129,13 @@ vi.mock('./validateNonInterActiveAuth.js', () => ({
   validateNonInteractiveAuth: vi.fn().mockResolvedValue({}),
 }));
 
+vi.mock('./config/providerStartup.js', () => ({
+  handleProviderStartupFlags: vi.fn().mockResolvedValue(undefined),
+  applyProviderRouting: vi.fn().mockResolvedValue(false),
+  printModelPicker: vi.fn().mockResolvedValue(undefined),
+  runByokWalkthrough: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('./core/initializer.js', () => ({
   initializeApp: vi.fn().mockResolvedValue({
     authError: null,

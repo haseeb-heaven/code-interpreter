@@ -700,9 +700,21 @@ export abstract class BaseDeclarativeTool<
     );
 
     if (errors) {
-      return errors;
+      const hint = this.getSchemaValidationHint(params, errors);
+      return hint ? `${errors}${hint}` : errors;
     }
     return this.validateToolParamValues(params);
+  }
+
+  /**
+   * Optional hint appended when JSON-schema validation fails (e.g. missing
+   * required fields). Helps weaker models recover on the next turn.
+   */
+  protected getSchemaValidationHint(
+    _params: TParams,
+    _errors: string,
+  ): string | null {
+    return null;
   }
 
   protected validateToolParamValues(_params: TParams): string | null {

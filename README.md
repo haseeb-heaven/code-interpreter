@@ -105,6 +105,13 @@ GitHub browsing):
 - [Usage](#usage)
 - [Features](#features)
 - [Building and testing](#building-and-testing)
+  - [Prerequisites (`.env`)](#prerequisites-env)
+  - [Unit tests — web search](#unit-tests--web-search)
+  - [Unit tests — models & providers](#unit-tests--models--providers)
+  - [Live tests — web search](#live-tests--web-search)
+  - [Live tests — cloud models](#live-tests--cloud-models)
+  - [Live tests — local models](#live-tests--local-models)
+  - [All-in-one commands](#all-in-one-commands)
 - [License](#license)
 
 ## **Installation**
@@ -211,6 +218,9 @@ WEB_SEARCH_PROVIDER=
 **Open-source models need a search key for best results.** Without any search
 key, OpenAgent still works via **DuckDuckGo** (no signup), but quality varies.
 
+How to run unit and live web-search tests: see
+[Building and testing → Web search](#unit-tests--web-search).
+
 ## Model registry (`configs/models.toml`)
 
 Every model OpenAgent knows about lives in one human-editable file:
@@ -221,6 +231,9 @@ models or providers by editing this single file — no code changes required.
 
 See [Models.MD](Models.MD) for the complete supported-model list including the
 **vision + streaming support matrix** for every provider.
+
+How to run unit and live model/provider tests: see
+[Building and testing → Models](#unit-tests--models--providers).
 
 ## 🛠️ **Usage**
 
@@ -287,23 +300,163 @@ Inside a session:
 
 ## Building and testing
 
+All vitest commands below run from the **repo root** with
+`--root packages/core`. Vitest loads keys from the **repo-root `.env`**
+automatically (via `packages/core/test-setup.ts`); shell env vars still win if
+already set.
+
 ```bash
 npm install       # install all workspace dependencies
 npm run build     # build every package
 npm test          # full unit test suite (all workspaces)
 ```
 
-Provider-specific test suites (in `packages/core`):
+### Prerequisites (`.env`)
+
+Copy [`.env.example`](.env.example) → `.env` and fill the keys you have. You do
+**not** need every key.
+
+| Area | Env vars used by tests |
+| ---- | ---------------------- |
+| **Web search (live)** | `BRAVE_API_KEY`, `TAVILY_API_KEY`, `SERPER_API_KEY`, `EXA_API_KEY`, `GEMINI_API_KEY` (DuckDuckGo needs none) |
+| **Cloud models (live)** | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `NVIDIA_API_KEY`, `TOGETHER_API_KEY`, `HF_TOKEN` / `HUGGINGFACE_API_KEY`, `OPENROUTER_API_KEY`, `CEREBRAS_API_KEY`, `Z_AI_API_KEY` |
+| **Local models (live)** | none (Ollama / LM Studio must be running) |
+
+Missing keys → that backend/provider is **skipped**, not failed. Quota /
+empty-balance errors on live model probes are **soft-skipped** (not product
+failures).
+
+---
+
+### Unit tests — web search
+
+Mocked backends + router (no paid keys required). DuckDuckGo may hit the public
+network in one backend unit test.
 
 ```bash
-npx vitest run src/providers                        # all provider unit tests
-RUN_LOCAL_PROVIDER_TESTS=1 npx vitest run src/providers/local.integration.test.ts   # live Ollama / LM Studio
-RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts -t openrouter  # live OpenRouter :free probe
+# Entire websearch package (unit + live file; live cases skip without keys)
+npx vitest run src/websearch --root packages/core
+
+# Individual backend unit files
+npx vitest run src/websearch/backends/brave.test.ts --root packages/core
+npx vitest run src/websearch/backends/tavily.test.ts --root packages/core
+npx vitest run src/websearch/backends/serper.test.ts --root packages/core
+npx vitest run src/websearch/backends/exa.test.ts --root packages/core
+npx vitest run src/websearch/backends/duckduckgo.test.ts --root packages/core
+npx vitest run src/websearch/router.test.ts --root packages/core
 ```
 
-Live integration tests are skipped in CI and for any provider whose API key is
-not set, so they are always safe to run. Every model entry in
-`configs/models.toml` is covered by a registry-wide test suite.
+---
+
+### Unit tests — models & providers
+
+Registry-wide coverage of `configs/models.toml` (every model entry), free
+catalog, BYOK helpers, routing, and provider metadata. **No live API calls.**
+
+```bash
+# All provider unit tests under packages/core
+npx vitest run src/providers --root packages/core
+
+# Focused suites
+npx vitest run src/providers/allModels.test.ts --root packages/core
+npx vitest run src/providers/modelRegistry.test.ts --root packages/core
+npx vitest run src/providers/freeCatalog.test.ts --root packages/core
+npx vitest run src/providers/providers.test.ts --root packages/core
+npx vitest run src/providers/byok.test.ts --root packages/core
+npx vitest run src/providers/resolve.test.ts --root packages/core
+npx vitest run src/providers/picker.test.ts --root packages/core
+```
+
+---
+
+### Live tests — web search
+
+Hits real search APIs with keys from `.env`. Safe to run anytime: missing keys
+skip that backend.
+
+```bash
+# All live web-search probes (Brave / Tavily / Serper / Exa / DDG / route plan)
+npx vitest run src/websearch/live.websearch.test.ts --root packages/core
+```
+
+**PowerShell:** same command (`.env` is loaded by the test setup).
+
+Optional: force a backend for manual app use (not required for tests):
+
+```bash
+# bash / zsh
+export WEB_SEARCH_PROVIDER=brave
+
+# PowerShell
+$env:WEB_SEARCH_PROVIDER = 'brave'
+```
+
+---
+
+### Live tests — cloud models
+
+One cheap model per cloud provider (complete + stream). Requires
+`RUN_LIVE_PROVIDER_TESTS=1`. Skipped in CI. Skipped when the provider key is
+missing. Quota/billing soft-skips pass with a warning.
+
+```bash
+# bash / zsh — all providers that have keys in .env
+RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts --root packages/core
+
+# Single provider (example: OpenRouter free)
+RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/providers/cloud.integration.test.ts --root packages/core -t openrouter
+```
+
+**PowerShell:**
+
+```powershell
+$env:RUN_LIVE_PROVIDER_TESTS = '1'
+# Unset CI if your shell injects it (CI skips the whole live suite)
+Remove-Item Env:CI -ErrorAction SilentlyContinue
+npx vitest run src/providers/cloud.integration.test.ts --root packages/core --reporter=verbose
+```
+
+Providers in the live matrix: `openai`, `anthropic`, `gemini`, `groq`,
+`deepseek`, `nvidia`, `together`, `huggingface`, `openrouter`, `cerebras`,
+`z-ai`.
+
+---
+
+### Live tests — local models
+
+Needs a running Ollama and/or LM Studio server (no cloud keys).
+
+```bash
+# bash / zsh
+RUN_LOCAL_PROVIDER_TESTS=1 npx vitest run src/providers/local.integration.test.ts --root packages/core
+```
+
+**PowerShell:**
+
+```powershell
+$env:RUN_LOCAL_PROVIDER_TESTS = '1'
+npx vitest run src/providers/local.integration.test.ts --root packages/core
+```
+
+---
+
+### All-in-one commands
+
+```bash
+# Unit: web search + model registry (good default before a PR)
+npx vitest run src/websearch src/providers/allModels.test.ts src/providers/providers.test.ts src/providers/freeCatalog.test.ts src/providers/modelRegistry.test.ts --root packages/core
+
+# Live: web search + every cloud provider that has a key (bash)
+RUN_LIVE_PROVIDER_TESTS=1 npx vitest run src/websearch/live.websearch.test.ts src/providers/cloud.integration.test.ts --root packages/core
+```
+
+**PowerShell live combo:**
+
+```powershell
+$env:RUN_LIVE_PROVIDER_TESTS = '1'
+Remove-Item Env:CI -ErrorAction SilentlyContinue
+npx vitest run src/websearch/live.websearch.test.ts src/providers/cloud.integration.test.ts --root packages/core --reporter=verbose
+```
 
 ## 📝 **Changelog**
 

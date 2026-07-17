@@ -15,7 +15,7 @@ export async function fetchJson<T>(
   redirectCount: number = 0,
 ): Promise<T> {
   const headers: { 'User-Agent': string; Authorization?: string } = {
-    'User-Agent': 'gemini-cli',
+    'User-Agent': 'open-agent',
   };
   const token = getGitHubToken();
   if (token) {

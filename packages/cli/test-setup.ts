@@ -28,9 +28,6 @@ if (process.env.NO_COLOR !== undefined) {
   delete process.env.NO_COLOR;
 }
 
-// Force true color output for ink so that snapshots always include color information.
-process.env.FORCE_COLOR = '3';
-
 // Force generic keybinding hints to ensure stable snapshots across different operating systems.
 process.env.FORCE_GENERIC_KEYBINDING_HINTS = 'true';
 

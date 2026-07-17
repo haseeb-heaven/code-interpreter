@@ -33,6 +33,8 @@ import {
 } from '../telemetry/loggers.js';
 import type { ContentGenerator } from './contentGenerator.js';
 import { CodeAssistServer } from '../code_assist/server.js';
+import { OpenAICompatContentGenerator } from '../providers/openaiCompatGenerator.js';
+import { recordProviderUsage } from '../providers/usageStore.js';
 import { toContents } from '../code_assist/converter.js';
 import { isStructuredError } from '../utils/quotaErrorDetection.js';
 import { runInDevTraceSpan, type SpanMetadata } from '../telemetry/trace.js';
@@ -273,6 +275,18 @@ export class LoggingContentGenerator implements ContentGenerator {
     }
 
     logApiResponse(this.config, event);
+
+    if (usageMetadata) {
+      const providerId =
+        this.wrapped instanceof OpenAICompatContentGenerator
+          ? this.wrapped.provider.id
+          : 'gemini';
+      recordProviderUsage(providerId, {
+        promptTokens: usageMetadata.promptTokenCount,
+        completionTokens: usageMetadata.candidatesTokenCount,
+        totalTokens: usageMetadata.totalTokenCount,
+      });
+    }
   }
 
   private _fixGaxiosErrorData(error: unknown): void {

@@ -521,7 +521,7 @@ export async function downloadFile(
   redirectCount: number = 0,
 ): Promise<void> {
   const headers: Record<string, string> = {
-    'User-agent': 'gemini-cli',
+    'User-agent': 'open-agent',
     Accept: 'application/octet-stream',
     ...options?.headers,
   };

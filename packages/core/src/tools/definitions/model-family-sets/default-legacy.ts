@@ -413,7 +413,7 @@ A good instruction should concisely answer:
   google_web_search: {
     name: WEB_SEARCH_TOOL_NAME,
     description:
-      'Performs a web search and returns results with source URLs. Uses Google Search grounding when a Gemini API key is available; otherwise falls back to an independent web search backend so multi-provider sessions still work. ALWAYS pass a non-empty "query" string for any information not available in the local workspace.',
+      'Performs a web search and returns results with source URLs. Uses Google Search grounding when a Gemini API key is available; otherwise falls back to an independent web search backend so multi-provider sessions still work. ALWAYS pass a non-empty "query" string for any information not available in the local workspace. Multi-step: after search, keep using tools in the same turn loop until the full user request is done — web_fetch to read/summarize pages, run_shell_command to download/open/install files, then any further local actions. Do not stop after only listing links if the user asked for more.',
     parametersJsonSchema: {
       type: 'object',
       properties: {
@@ -429,13 +429,13 @@ A good instruction should concisely answer:
   web_fetch: {
     name: WEB_FETCH_TOOL_NAME,
     description:
-      "Processes content from URL(s), including local and private network addresses (e.g., localhost), embedded in a prompt. Include up to 20 URLs and instructions (e.g., summarize, extract specific data) directly in the 'prompt' parameter.",
+      "Reads and analyzes content from URL(s) for the model context. Include up to 20 URLs and instructions (e.g., summarize, extract data) in the single 'prompt' string. Does NOT save files to disk — never pass download_location, save_path, or similar. To download a file to a local path, use run_shell_command (curl / Invoke-WebRequest / wget) with the direct URL, then continue with open/verify/install steps as requested.",
     parametersJsonSchema: {
       type: 'object',
       properties: {
         [WEB_FETCH_PARAM_PROMPT]: {
           description:
-            'A comprehensive prompt that includes the URL(s) (up to 20) to fetch and specific instructions on how to process their content (e.g., "Summarize https://example.com/article and extract key points from https://another.com/data"). All URLs to be fetched must be valid and complete, starting with "http://" or "https://", and be fully-formed with a valid hostname (e.g., a domain name like "example.com" or an IP address). For example, "https://example.com" is valid, but "example.com" is not.',
+            'A comprehensive prompt that includes the URL(s) (up to 20) to fetch and specific instructions on how to process their content (e.g., "Summarize https://example.com/article and extract key points from https://another.com/data"). All URLs to be fetched must be valid and complete, starting with "http://" or "https://", and be fully-formed with a valid hostname (e.g., a domain name like "example.com" or an IP address). For example, "https://example.com" is valid, but "example.com" is not. Do not put local filesystem paths here — this tool does not download files.',
           type: 'string',
         },
       },

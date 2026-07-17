@@ -11,7 +11,7 @@ import { getAntigravityInstallInfo } from '../utils/antigravityUtils.js';
 export const helpCommand: SlashCommand = {
   name: 'help',
   kind: CommandKind.BUILT_IN,
-  description: 'For help on gemini-cli',
+  description: 'For help on open-agent',
   autoExecute: true,
   action: async (context, args) => {
     const lowerArgs = args?.toLowerCase() || '';

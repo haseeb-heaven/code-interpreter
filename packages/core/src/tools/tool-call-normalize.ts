@@ -173,6 +173,175 @@ function firstString(
   return undefined;
 }
 
+const DOWNLOAD_DEST_KEYS = [
+  'download_location',
+  'save_path',
+  'destination',
+  'dest',
+  'out_file',
+  'output_path',
+  'output',
+  'target_path',
+  'local_path',
+] as const;
+
+/**
+ * Extract the first http(s) URL from free-form model args (url fields or text).
+ */
+export function extractHttpUrlFromArgs(
+  args: Record<string, unknown>,
+): string | undefined {
+  const direct = firstString(args, [
+    'url',
+    'uri',
+    'link',
+    'href',
+    'source_url',
+    'download_url',
+  ]);
+  if (direct) {
+    const cleaned = direct
+      .replace(/^(web|url|link|fetch|download)\s*[:=]\s*/i, '')
+      .trim();
+    const m = cleaned.match(/https?:\/\/[^\s"'<>]+/i);
+    if (m) return m[0].replace(/[),.;]+$/, '');
+    if (/^https?:\/\//i.test(cleaned)) return cleaned;
+  }
+
+  for (const key of ['prompt', 'query', 'q', 'text', 'search']) {
+    const text = args[key];
+    if (!isNonEmptyString(text)) continue;
+    const m = text.match(/https?:\/\/[^\s"'<>]+/i);
+    if (m) return m[0].replace(/[),.;]+$/, '');
+  }
+  return undefined;
+}
+
+/**
+ * True when the destination looks like a directory (not a concrete file path).
+ */
+export function looksLikeDirectoryPath(location: string): boolean {
+  const t = location.trim();
+  if (!t) return true;
+  if (/[/\\]$/.test(t)) return true;
+  // Bare folder names / paths without a file-ish final segment
+  const base = t.replace(/[/\\]+$/, '').split(/[/\\]/).pop() ?? '';
+  if (!base) return true;
+  // Has an extension → treat as file; otherwise directory
+  return !/\.[A-Za-z0-9]{1,8}$/.test(base);
+}
+
+/**
+ * Resolve a final on-disk file path from a user/model save location + source URL.
+ */
+export function resolveDownloadDest(url: string, location: string): string {
+  const loc = location.trim().replace(/^["']|["']$/g, '');
+  if (!looksLikeDirectoryPath(loc)) {
+    return loc;
+  }
+  let filename = 'download.bin';
+  try {
+    const u = new URL(url);
+    const last = u.pathname.split('/').filter(Boolean).pop();
+    if (last) {
+      filename = decodeURIComponent(last.split('?')[0] || last);
+    }
+  } catch {
+    // keep default
+  }
+  // Strip characters that break shell paths across platforms
+  filename =
+    filename
+      .split('')
+      .map((ch) => {
+        const code = ch.charCodeAt(0);
+        if (code < 32 || '<>:"|?*'.includes(ch)) return '_';
+        return ch;
+      })
+      .join('')
+      .trim() || 'download.bin';
+  const sep = loc.includes('\\') && !loc.includes('/') ? '\\' : '/';
+  const base = loc.replace(/[/\\]+$/, '');
+  return `${base}${sep}${filename}`;
+}
+
+function shellSingleQuote(value: string): string {
+  // POSIX single-quote escape: 'foo'bar' → 'foo'\''bar'
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function powershellSingleQuote(value: string): string {
+  // PowerShell single-quoted string: double any '
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+/**
+ * Build a platform-native shell command that downloads `url` to `destPath`.
+ * Windows → PowerShell Invoke-WebRequest; otherwise curl.
+ */
+export function buildDownloadShellCommand(url: string, destPath: string): string {
+  const isWin = process.platform === 'win32';
+  if (isWin) {
+    const u = powershellSingleQuote(url);
+    const d = powershellSingleQuote(destPath);
+    // Ensure parent directory exists, then download.
+    return (
+      `$dest = ${d}; $dir = Split-Path -Parent $dest; ` +
+      `if ($dir -and -not (Test-Path -LiteralPath $dir)) { ` +
+      `New-Item -ItemType Directory -Force -Path $dir | Out-Null }; ` +
+      `Invoke-WebRequest -Uri ${u} -OutFile $dest -UseBasicParsing; ` +
+      `Write-Output ('Downloaded to ' + $dest)`
+    );
+  }
+  const u = shellSingleQuote(url);
+  const d = shellSingleQuote(destPath);
+  return (
+    `mkdir -p "$(dirname ${d})" && curl -fsSL -L -o ${d} ${u} && ` +
+    `echo "Downloaded to ${destPath.replace(/"/g, '')}"`
+  );
+}
+
+/**
+ * When the model tries to "download" via web_fetch (inventing download_location /
+ * save_path), remap to run_shell_command so the file actually lands on disk.
+ * web_fetch only reads/summarizes content — it never saves binaries.
+ */
+export function tryRemapWebFetchDownloadToShell(
+  toolName: string,
+  args: unknown,
+): NormalizedToolCall | null {
+  if (!isRecord(args)) return null;
+
+  const canonical = TOOL_LEGACY_ALIASES[toolName] ?? toolName;
+  const isWebFetch =
+    canonical === WEB_FETCH_TOOL_NAME ||
+    toolName === 'web_fetch' ||
+    toolName === 'WebFetch' ||
+    toolName.toLowerCase() === 'webfetch' ||
+    toolName.toLowerCase() === 'download' ||
+    toolName.toLowerCase() === 'download_file' ||
+    toolName.toLowerCase() === 'downloadfile';
+
+  if (!isWebFetch) return null;
+
+  const dest = firstString(args, [...DOWNLOAD_DEST_KEYS]);
+  if (!dest) return null;
+
+  const url = extractHttpUrlFromArgs(args);
+  if (!url) return null;
+
+  const finalPath = resolveDownloadDest(url, dest);
+  const command = buildDownloadShellCommand(url, finalPath);
+  return {
+    name: SHELL_TOOL_NAME,
+    args: {
+      command,
+      description: `Download ${url} to ${finalPath}`,
+    },
+    remappedFrom: toolName,
+  };
+}
+
 /**
  * Recover common parameter aliases weaker models emit
  * (e.g. `path` instead of `dir_path` / `file_path`).
@@ -434,6 +603,20 @@ export function normalizeToolCallRequest(
       args: normalizeToolArgs(GLOB_TOOL_NAME, pickGlobArgs(args)),
       remappedFrom: name,
     };
+  }
+
+  // web_fetch + download_location/save_path + URL → shell download (real file).
+  // Check original args before normalizeToolArgs strips non-schema fields.
+  const downloadRemap = tryRemapWebFetchDownloadToShell(resolvedName, args);
+  if (downloadRemap) {
+    return downloadRemap;
+  }
+  // Also when the model used display/unknown name "download" that did not resolve
+  if (resolvedName !== name) {
+    const downloadRemapOrig = tryRemapWebFetchDownloadToShell(name, args);
+    if (downloadRemapOrig) {
+      return downloadRemapOrig;
+    }
   }
 
   let nextArgs = normalizeToolArgs(resolvedName, args);

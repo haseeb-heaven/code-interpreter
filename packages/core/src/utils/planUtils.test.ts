@@ -8,7 +8,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import path from 'node:path';
 import * as fs from 'node:fs';
 import os from 'node:os';
+import { canCreateSymlinks } from '@open-agent/test-utils';
 import { validatePlanPath, validatePlanContent } from './planUtils.js';
+
+const canSymlink = await canCreateSymlinks();
 
 describe('planUtils', () => {
   let tempRootDir: string;
@@ -45,7 +48,7 @@ describe('planUtils', () => {
       expect(result).toContain('Plan file does not exist');
     });
 
-    it('should detect path traversal via symbolic links', async () => {
+    it.skipIf(!canSymlink)('should detect path traversal via symbolic links', async () => {
       const maliciousPath = 'malicious.md';
       const fullMaliciousPath = path.join(plansDir, maliciousPath);
 

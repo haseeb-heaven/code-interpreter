@@ -11,16 +11,39 @@ import type {
 } from '../types.js';
 import { MessageType } from '../types.js';
 import { formatDuration } from '../utils/formatters.js';
-import { UserAccountManager, getG1CreditBalance } from '@open-agent/core';
+import {
+  AuthType,
+  UserAccountManager,
+  getG1CreditBalance,
+  resolveActiveProvider,
+} from '@open-agent/core';
 import {
   type CommandContext,
   type SlashCommand,
   CommandKind,
 } from './types.js';
 
+const GEMINI_AUTH_TYPES: ReadonlySet<AuthType> = new Set([
+  AuthType.USE_GEMINI,
+  AuthType.LOGIN_WITH_GOOGLE,
+  AuthType.USE_VERTEX_AI,
+  AuthType.LEGACY_CLOUD_SHELL,
+  AuthType.COMPUTE_ADC,
+]);
+
 function getUserIdentity(context: CommandContext) {
-  const selectedAuthType =
-    context.services.settings.merged.security.auth.selectedType || '';
+  const config = context.services.agentContext?.config;
+  const authType = config?.getContentGeneratorConfig()?.authType;
+  let selectedAuthType = '';
+  if (authType && GEMINI_AUTH_TYPES.has(authType)) {
+    selectedAuthType = authType;
+  } else {
+    const currentModel = config?.getModel();
+    const provider = currentModel
+      ? resolveActiveProvider(currentModel)
+      : undefined;
+    selectedAuthType = provider?.displayName ?? '';
+  }
 
   const userAccountManager = new UserAccountManager();
   const cachedAccount = userAccountManager.getCachedGoogleAccount();
@@ -59,19 +82,19 @@ async function defaultSessionView(context: CommandContext) {
     creditBalance,
   };
 
-  if (context.services.agentContext?.config) {
+  const statsConfig = context.services.agentContext?.config;
+  if (statsConfig) {
+    const statsAuthType = statsConfig.getContentGeneratorConfig()?.authType;
+    const isGeminiAuth = !!statsAuthType && GEMINI_AUTH_TYPES.has(statsAuthType);
     const [quota] = await Promise.all([
-      context.services.agentContext.config.refreshUserQuota(),
-      context.services.agentContext.config.refreshAvailableCredits(),
+      isGeminiAuth ? statsConfig.refreshUserQuota() : Promise.resolve(undefined),
+      statsConfig.refreshAvailableCredits(),
     ]);
     if (quota) {
       statsItem.quotas = quota;
-      statsItem.pooledRemaining =
-        context.services.agentContext.config.getQuotaRemaining();
-      statsItem.pooledLimit =
-        context.services.agentContext.config.getQuotaLimit();
-      statsItem.pooledResetTime =
-        context.services.agentContext.config.getQuotaResetTime();
+      statsItem.pooledRemaining = statsConfig.getQuotaRemaining();
+      statsItem.pooledLimit = statsConfig.getQuotaLimit();
+      statsItem.pooledResetTime = statsConfig.getQuotaResetTime();
     }
   }
 
@@ -80,7 +103,6 @@ async function defaultSessionView(context: CommandContext) {
 
 export const statsCommand: SlashCommand = {
   name: 'stats',
-  altNames: ['usage'],
   description: 'Check session stats. Usage: /stats [session|model|tools]',
   kind: CommandKind.BUILT_IN,
   autoExecute: false,

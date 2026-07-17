@@ -1,7 +1,7 @@
 {
   "name": "open-agent-vscode-ide-companion",
-  "displayName": "Gemini CLI Companion",
-  "description": "Enable Gemini CLI with direct access to your IDE workspace.",
+  "displayName": "OpenAgent Companion",
+  "description": "Enable OpenAgent with direct access to your IDE workspace.",
   "version": "4.0.0",
   "publisher": "google",
   "icon": "assets/icon.png",
@@ -32,12 +32,12 @@
   ],
   "contributes": {
     "configuration": {
-      "title": "Gemini CLI",
+      "title": "OpenAgent",
       "properties": {
         "gemini-cli.debug.logging.enabled": {
           "type": "boolean",
           "default": false,
-          "description": "Enable detailed logging for debugging the Gemini CLI Companion."
+          "description": "Enable detailed logging for debugging the OpenAgent Companion."
         }
       }
     },
@@ -49,21 +49,21 @@
     "commands": [
       {
         "command": "gemini.diff.accept",
-        "title": "Gemini CLI: Accept Diff",
+        "title": "OpenAgent: Accept Diff",
         "icon": "$(check)"
       },
       {
         "command": "gemini.diff.cancel",
-        "title": "Gemini CLI: Close Diff Editor",
+        "title": "OpenAgent: Close Diff Editor",
         "icon": "$(close)"
       },
       {
         "command": "gemini-cli.runGeminiCLI",
-        "title": "Gemini CLI: Run"
+        "title": "OpenAgent: Run"
       },
       {
         "command": "gemini-cli.showNotices",
-        "title": "Gemini CLI: View Third-Party Notices"
+        "title": "OpenAgent: View Third-Party Notices"
       }
     ],
     "menus": {

@@ -277,9 +277,14 @@ export class PromptProvider {
 
     // Inject live model/provider identity so weaker free models do not claim
     // to be Gemini (or any other vendor) after the user switches via /model.
+    // Skipped when a fully custom GEMINI_SYSTEM_MD prompt is in effect, since
+    // that env var is a documented full override of the system prompt.
     try {
-      const activeModelId =
-        context.config.getActiveModel?.() ?? context.config.getModel?.() ?? '';
+      const activeModelId = usedCustomSystemPrompt
+        ? ''
+        : (context.config.getActiveModel?.() ??
+          context.config.getModel?.() ??
+          '');
       if (activeModelId) {
         let providerLabel = 'configured provider';
         try {
