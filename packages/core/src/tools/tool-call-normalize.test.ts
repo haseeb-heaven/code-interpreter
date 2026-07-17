@@ -137,29 +137,27 @@ describe('normalizeToolCallRequest', () => {
 
   it('maps q/search → query for google_web_search', () => {
     const result = normalizeToolCallRequest('google_web_search', {
-      q: 'C++17 changelog',
+      q: 'example search topic',
     });
-    expect((result.args as { query: string }).query).toBe('C++17 changelog');
+    expect((result.args as { query: string }).query).toBe(
+      'example search topic',
+    );
 
     const result2 = normalizeToolCallRequest('WebSearch', {
-      search: 'React 19 breaking changes',
+      search: 'another user question',
     });
     expect((result2.args as { query: string }).query).toBe(
-      'React 19 breaking changes',
+      'another user question',
     );
   });
 
-  it('recovers empty web_search query from last user text', () => {
+  it('recovers empty web_search query from last user text (verbatim)', () => {
+    const userSaid = 'find docs about whatever the user actually typed';
     const result = normalizeToolCallRequest(
       'google_web_search',
       {},
-      {
-        lastUserText:
-          'Search web C++ 20 changelogs as pdf file to my downloads folder and open that file now',
-      },
+      { lastUserText: userSaid },
     );
-    expect((result.args as { query: string }).query.toLowerCase()).toContain(
-      'c++ 20',
-    );
+    expect((result.args as { query: string }).query).toBe(userSaid);
   });
 });

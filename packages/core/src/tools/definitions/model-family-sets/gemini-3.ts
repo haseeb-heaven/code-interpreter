@@ -402,7 +402,7 @@ The user has the ability to modify the \`new_string\` content. If modified, this
         [WEB_SEARCH_PARAM_QUERY]: {
           type: 'string',
           description:
-            "Required non-empty search query. Natural language questions (e.g., 'C++17 changelog PDF') or specific technical queries. Never call this tool with an empty query object.",
+            'Required non-empty search query string (natural language or keywords). Never call this tool with an empty query object.',
         },
       },
       required: [WEB_SEARCH_PARAM_QUERY],
