@@ -195,13 +195,14 @@ describe('AuthDialog', () => {
         setup: () => {
           vi.stubEnv('GEMINI_API_KEY', 'test-key');
         },
-        expected: AuthType.USE_GEMINI,
-        desc: 'from GEMINI_API_KEY env var',
+        // OpenAgent prefers multi-provider even when a Gemini key exists.
+        expected: AuthType.MULTI_PROVIDER,
+        desc: 'defaults to multi-provider when only GEMINI_API_KEY is set',
       },
       {
         setup: () => {},
-        expected: AuthType.LOGIN_WITH_GOOGLE,
-        desc: 'defaults to Sign in with Google',
+        expected: AuthType.MULTI_PROVIDER,
+        desc: 'defaults to free/open-source multi-provider',
       },
     ])('selects initial auth type $desc', async ({ setup, expected }) => {
       setup();
@@ -400,7 +401,7 @@ describe('AuthDialog', () => {
         },
         expectations: (p: typeof props) => {
           expect(p.onAuthError).toHaveBeenCalledWith(
-            'You must select an auth method to proceed. Press Ctrl+C twice to exit.',
+            'Select Free/open-source models (or another method) to continue. Press Ctrl+C twice to exit.',
           );
         },
       },

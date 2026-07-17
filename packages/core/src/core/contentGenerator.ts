@@ -80,13 +80,33 @@ export enum AuthType {
 /**
  * Detects the best authentication type based on environment variables.
  *
- * Checks in order:
- * 1. GOOGLE_GENAI_USE_GCA=true -> LOGIN_WITH_GOOGLE
- * 2. GOOGLE_GENAI_USE_VERTEXAI=true -> USE_VERTEX_AI
- * 3. GEMINI_API_KEY -> USE_GEMINI
+ * OpenAgent order (multi-provider first — not Gemini CLI):
+ * 1. OPENAGENT_CLI_PROVIDER / multi-provider cloud keys → MULTI_PROVIDER
+ * 2. GOOGLE_GENAI_USE_GCA=true → LOGIN_WITH_GOOGLE
+ * 3. GOOGLE_GENAI_USE_VERTEXAI=true → USE_VERTEX_AI
+ * 4. GEMINI_API_KEY alone → USE_GEMINI
  */
 export function getAuthTypeFromEnv(): AuthType | undefined {
   if (readCliEnvAlias('PROVIDER')) {
+    return AuthType.MULTI_PROVIDER;
+  }
+  // Prefer multi-provider when any non-Gemini BYOK key is present so a
+  // GEMINI_API_KEY in .env does not force the Gemini-only auth path.
+  const multiKeys = [
+    'OPENAI_API_KEY',
+    'ANTHROPIC_API_KEY',
+    'GROQ_API_KEY',
+    'DEEPSEEK_API_KEY',
+    'NVIDIA_API_KEY',
+    'TOGETHER_API_KEY',
+    'OPENROUTER_API_KEY',
+    'CEREBRAS_API_KEY',
+    'Z_AI_API_KEY',
+    'HF_TOKEN',
+    'HUGGINGFACE_API_KEY',
+    'BROWSER_USE_API_KEY',
+  ];
+  if (multiKeys.some((k) => process.env[k]?.trim())) {
     return AuthType.MULTI_PROVIDER;
   }
   if (process.env['GOOGLE_GENAI_USE_GCA'] === 'true') {

@@ -5,6 +5,7 @@
  */
 
 import {
+  AuthType,
   IdeClient,
   IdeConnectionEvent,
   IdeConnectionType,
@@ -16,8 +17,10 @@ import {
   debugLogger,
 } from '@open-agent/core';
 import { type LoadedSettings } from '../config/settings.js';
+import { SettingScope } from '../config/settings.js';
 import { performInitialAuth } from './auth.js';
 import { validateTheme } from './theme.js';
+import { resolveOpenAgentDefaultAuth } from '../config/openAgentAuth.js';
 import type { AccountSuspensionInfo } from '../ui/contexts/UIStateContext.js';
 
 export interface InitializationResult {
@@ -40,15 +43,36 @@ export async function initializeApp(
   settings: LoadedSettings,
 ): Promise<InitializationResult> {
   const authHandle = startupProfiler.start('authenticate');
+
+  // OpenAgent: never strand the user on the Gemini CLI "Sign in with Google /
+  // Gemini API Key / Vertex" dialog. Auto-select multi-provider (or Gemini
+  // only when that is the sole available path).
+  let authType = settings.merged.security.auth.selectedType;
+  if (
+    authType === undefined ||
+    // Stale Gemini-only selection while the active model is multi-provider
+    // (e.g. nvidia-nemotron) — re-resolve so auth matches the model.
+    (authType === AuthType.USE_GEMINI &&
+      resolveOpenAgentDefaultAuth(config.getModel()) === AuthType.MULTI_PROVIDER)
+  ) {
+    authType = resolveOpenAgentDefaultAuth(config.getModel());
+    settings.setValue(
+      SettingScope.User,
+      'security.auth.selectedType',
+      authType,
+    );
+  }
+
   const { authError, accountSuspensionInfo } = await performInitialAuth(
     config,
-    settings.merged.security.auth.selectedType,
+    authType,
   );
   authHandle?.end();
   const themeError = validateTheme(settings);
 
-  const shouldOpenAuthDialog =
-    settings.merged.security.auth.selectedType === undefined || !!authError;
+  // Only open /auth UI when login actually failed — not merely because
+  // selectedType was empty (we already filled it above).
+  const shouldOpenAuthDialog = !!authError;
 
   logCliConfiguration(
     config,

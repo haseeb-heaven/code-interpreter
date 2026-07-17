@@ -33,6 +33,10 @@ interface AuthDialogProps {
   setAuthContext: (context: { requiresRestart?: boolean }) => void;
 }
 
+/**
+ * OpenAgent auth picker — multi-provider / free / local first.
+ * Google Gemini CLI options remain available as advanced choices only.
+ */
 export function AuthDialog({
   config,
   settings,
@@ -42,9 +46,22 @@ export function AuthDialog({
   setAuthContext,
 }: AuthDialogProps): React.JSX.Element {
   const [exiting, setExiting] = useState(false);
+
+  // Primary path for OpenAgent: BYOK + free catalog + Ollama / LM Studio.
   let items = [
     {
-      label: 'Sign in with Google',
+      label:
+        'Free / open-source / local models (OpenRouter, Groq, NVIDIA, Ollama, …)',
+      value: AuthType.MULTI_PROVIDER,
+      key: AuthType.MULTI_PROVIDER,
+    },
+    {
+      label: 'Gemini API Key (Gemini models only)',
+      value: AuthType.USE_GEMINI,
+      key: AuthType.USE_GEMINI,
+    },
+    {
+      label: 'Sign in with Google (optional)',
       value: AuthType.LOGIN_WITH_GOOGLE,
       key: AuthType.LOGIN_WITH_GOOGLE,
     },
@@ -66,12 +83,7 @@ export function AuthDialog({
           ]
         : []),
     {
-      label: 'Use Gemini API Key',
-      value: AuthType.USE_GEMINI,
-      key: AuthType.USE_GEMINI,
-    },
-    {
-      label: 'Vertex AI',
+      label: 'Vertex AI (optional)',
       value: AuthType.USE_VERTEX_AI,
       key: AuthType.USE_VERTEX_AI,
     },
@@ -83,7 +95,7 @@ export function AuthDialog({
     );
   }
 
-  let defaultAuthType: AuthType | null = null;
+  let defaultAuthType: AuthType | null = AuthType.MULTI_PROVIDER;
   const defaultAuthTypeEnv = process.env['GEMINI_DEFAULT_AUTH_TYPE'];
   if (
     defaultAuthTypeEnv &&
@@ -98,17 +110,12 @@ export function AuthDialog({
     if (settings.merged.security.auth.selectedType) {
       return item.value === settings.merged.security.auth.selectedType;
     }
-
     if (defaultAuthType) {
       return item.value === defaultAuthType;
     }
-
-    if (process.env['GEMINI_API_KEY']) {
-      return item.value === AuthType.USE_GEMINI;
-    }
-
-    return item.value === AuthType.LOGIN_WITH_GOOGLE;
+    return item.value === AuthType.MULTI_PROVIDER;
   });
+  if (initialAuthIndex < 0) initialAuthIndex = 0;
   if (settings.merged.security.auth.enforcedType) {
     initialAuthIndex = 0;
   }
@@ -142,9 +149,7 @@ export function AuthDialog({
         }
 
         if (authType === AuthType.USE_GEMINI) {
-          // Always show the API key input dialog so the user can
-          // explicitly enter or confirm their key, regardless of
-          // whether GEMINI_API_KEY env var or a stored key exists.
+          // Gemini-only path still collects a key when needed.
           setAuthState(AuthState.AwaitingApiKeyInput);
           return;
         }
@@ -170,15 +175,12 @@ export function AuthDialog({
   useKeypress(
     (key) => {
       if (key.name === 'escape') {
-        // Prevent exit if there is an error message.
-        // This means they user is not authenticated yet.
         if (authError) {
           return true;
         }
         if (settings.merged.security.auth.selectedType === undefined) {
-          // Prevent exiting if no auth method is set
           onAuthError(
-            'You must select an auth method to proceed. Press Ctrl+C twice to exit.',
+            'Select Free/open-source models (or another method) to continue. Press Ctrl+C twice to exit.',
           );
           return true;
         }
@@ -220,11 +222,12 @@ export function AuthDialog({
       <Text color={theme.text.accent}>? </Text>
       <Box flexDirection="column" flexGrow={1}>
         <Text bold color={theme.text.primary}>
-          Get started
+          OpenAgent setup
         </Text>
         <Box marginTop={1}>
           <Text color={theme.text.primary}>
-            How would you like to authenticate for this project?
+            How do you want to run models? (default: free / open-source /
+            local)
           </Text>
         </Box>
         <Box marginTop={1}>
@@ -243,16 +246,13 @@ export function AuthDialog({
           </Box>
         )}
         <Box marginTop={1}>
-          <Text color={theme.text.secondary}>(Use Enter to select)</Text>
-        </Box>
-        <Box marginTop={1}>
-          <Text color={theme.text.primary}>
-            Terms of Services and Privacy Notice for OpenAgent
+          <Text color={theme.text.secondary}>
+            (Enter to select · use --byok or /models to add API keys)
           </Text>
         </Box>
         <Box marginTop={1}>
-          <Text color={theme.text.link}>
-            {'https://github.com/haseeb-heaven/open-agent/blob/main/docs/get-started/authentication.mdx'}
+          <Text color={theme.text.secondary}>
+            Tip: Ollama and OpenRouter free models need no Google account.
           </Text>
         </Box>
       </Box>

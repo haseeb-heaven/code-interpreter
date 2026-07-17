@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { LoadedSettings } from '../../config/settings.js';
+import { SettingScope } from '../../config/settings.js';
 import {
   AuthType,
   type Config,
@@ -17,6 +18,7 @@ import {
 import { getErrorMessage } from '@open-agent/core';
 import { AuthState } from '../types.js';
 import { validateAuthMethod } from '../../config/auth.js';
+import { resolveOpenAgentDefaultAuth } from '../../config/openAgentAuth.js';
 
 export async function validateAuthMethodWithSettings(
   authType: AuthType,
@@ -91,16 +93,16 @@ export const useAuthCommand = (
         return;
       }
 
-      const authType = settings.merged.security.auth.selectedType;
+      let authType = settings.merged.security.auth.selectedType;
+      // OpenAgent: auto-pick multi-provider (free/local/BYOK) instead of
+      // forcing the Gemini CLI auth dialog when nothing is selected.
       if (!authType) {
-        if (process.env['GEMINI_API_KEY']) {
-          onAuthError(
-            'Existing API key detected (GEMINI_API_KEY). Select "Gemini API Key" option to use it.',
-          );
-        } else {
-          onAuthError('No authentication method selected.');
-        }
-        return;
+        authType = resolveOpenAgentDefaultAuth(config.getModel());
+        settings.setValue(
+          SettingScope.User,
+          'security.auth.selectedType',
+          authType,
+        );
       }
 
       if (authType === AuthType.USE_GEMINI) {

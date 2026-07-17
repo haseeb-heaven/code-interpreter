@@ -3,19 +3,19 @@
 exports[`AuthDialog > Snapshots > renders correctly with auth error 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│ ? Get started                                                                                    │
+│ ?OpenAgent setup                                                                                 │
 │                                                                                                  │
-│   How would you like to authenticate for this project?                                           │
+│  How do you want to run models? (default: free / open-source / local)                            │
 │                                                                                                  │
-│   (selected) Sign in with Google(not selected) Use Gemini API Key(not selected) Vertex AI        │
+│  (selected) Free / open-source / loca(not selected) Gemini  (not selected) Sign (not selected)   │
+│  models (OpenRouter, Groq, NVIDIA,   API Key (Gemini models in with Google      Vertex AI        │
+│  Ollama, …)                          only)                  (optional)          (optional)       │
 │                                                                                                  │
-│   Something went wrong                                                                           │
+│  Something went wrong                                                                            │
 │                                                                                                  │
-│   (Use Enter to select)                                                                          │
+│  (Enter to select · use --byok or /models to add API keys)                                       │
 │                                                                                                  │
-│   Terms of Services and Privacy Notice for OpenAgent                                             │
-│                                                                                                  │
-│   https://github.com/haseeb-heaven/open-agent/blob/main/docs/get-started/authentication.mdx      │
+│  Tip: Ollama and OpenRouter free models need no Google account.                                  │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "
@@ -24,17 +24,17 @@ exports[`AuthDialog > Snapshots > renders correctly with auth error 1`] = `
 exports[`AuthDialog > Snapshots > renders correctly with default props 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│ ? Get started                                                                                    │
+│ ?OpenAgent setup                                                                                 │
 │                                                                                                  │
-│   How would you like to authenticate for this project?                                           │
+│  How do you want to run models? (default: free / open-source / local)                            │
 │                                                                                                  │
-│   (selected) Sign in with Google(not selected) Use Gemini API Key(not selected) Vertex AI        │
+│  (selected) Free / open-source / loca(not selected) Gemini  (not selected) Sign (not selected)   │
+│  models (OpenRouter, Groq, NVIDIA,   API Key (Gemini models in with Google      Vertex AI        │
+│  Ollama, …)                          only)                  (optional)          (optional)       │
 │                                                                                                  │
-│   (Use Enter to select)                                                                          │
+│  (Enter to select · use --byok or /models to add API keys)                                       │
 │                                                                                                  │
-│   Terms of Services and Privacy Notice for OpenAgent                                             │
-│                                                                                                  │
-│   https://github.com/haseeb-heaven/open-agent/blob/main/docs/get-started/authentication.mdx      │
+│  Tip: Ollama and OpenRouter free models need no Google account.                                  │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "
@@ -43,17 +43,15 @@ exports[`AuthDialog > Snapshots > renders correctly with default props 1`] = `
 exports[`AuthDialog > Snapshots > renders correctly with enforced auth type 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│ ? Get started                                                                                    │
+│ ? OpenAgent setup                                                                                │
 │                                                                                                  │
-│   How would you like to authenticate for this project?                                           │
+│   How do you want to run models? (default: free / open-source / local)                           │
 │                                                                                                  │
-│   (selected) Use Gemini API Key                                                                  │
+│   (selected) Gemini API Key (Gemini models only)                                                 │
 │                                                                                                  │
-│   (Use Enter to select)                                                                          │
+│   (Enter to select · use --byok or /models to add API keys)                                      │
 │                                                                                                  │
-│   Terms of Services and Privacy Notice for OpenAgent                                             │
-│                                                                                                  │
-│   https://github.com/haseeb-heaven/open-agent/blob/main/docs/get-started/authentication.mdx      │
+│   Tip: Ollama and OpenRouter free models need no Google account.                                 │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "

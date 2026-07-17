@@ -43,18 +43,22 @@ describe('initializer', () => {
     getToolRegistry: ReturnType<typeof vi.fn>;
     getIdeMode: ReturnType<typeof vi.fn>;
     getGeminiMdFileCount: ReturnType<typeof vi.fn>;
+    getModel: ReturnType<typeof vi.fn>;
   };
   let mockSettings: LoadedSettings;
   let mockIdeClient: {
     connect: ReturnType<typeof vi.fn>;
   };
+  let setValue: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setValue = vi.fn();
     mockConfig = {
       getToolRegistry: vi.fn(),
       getIdeMode: vi.fn().mockReturnValue(false),
       getGeminiMdFileCount: vi.fn().mockReturnValue(5),
+      getModel: vi.fn().mockReturnValue('openrouter-free'),
     };
     mockSettings = {
       merged: {
@@ -64,6 +68,7 @@ describe('initializer', () => {
           },
         },
       },
+      setValue,
     } as unknown as LoadedSettings;
     mockIdeClient = {
       connect: vi.fn(),
@@ -136,14 +141,24 @@ describe('initializer', () => {
     expect(result.shouldOpenAuthDialog).toBe(true);
   });
 
-  it('should handle undefined auth type', async () => {
+  it('should auto-select multi-provider auth when type is undefined (no Gemini dialog)', async () => {
     mockSettings.merged.security.auth.selectedType = undefined;
     const result = await initializeApp(
       mockConfig as unknown as Config,
       mockSettings,
     );
 
-    expect(result.shouldOpenAuthDialog).toBe(true);
+    // OpenAgent fills multi-provider by default — no Gemini CLI Get started dialog.
+    expect(result.shouldOpenAuthDialog).toBe(false);
+    expect(setValue).toHaveBeenCalledWith(
+      expect.anything(),
+      'security.auth.selectedType',
+      'multi-provider',
+    );
+    expect(performInitialAuth).toHaveBeenCalledWith(
+      mockConfig,
+      'multi-provider',
+    );
   });
 
   it('should handle theme error', async () => {
