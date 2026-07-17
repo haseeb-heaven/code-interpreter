@@ -327,10 +327,42 @@ export function normalizeToolArgs(toolName: string, args: unknown): unknown {
 /**
  * Normalize a model-emitted tool call name + args for OpenAgent execution.
  */
+/**
+ * Pull a usable search query from free-form user text when the model
+ * emits google_web_search with an empty `{}` args object.
+ */
+export function extractSearchQueryFromUserText(
+  userText: string | undefined,
+): string | undefined {
+  if (!userText || !userText.trim()) return undefined;
+  let q = userText.trim();
+  // Strip common command prefixes
+  q = q
+    .replace(
+      /^(please\s+)?(search(\s+the)?\s+web(\s+for)?|google|look\s+up|find)\s+/i,
+      '',
+    )
+    .trim();
+  // Drop trailing download/open instructions — keep the topic
+  q = q
+    .replace(
+      /\s+(as\s+)?(a\s+)?pdf(\s+file)?(\s+to\s+my\s+downloads?\s+folder)?.*$/i,
+      '',
+    )
+    .replace(/\s+and\s+open\s+that\s+file\s+now\.?$/i, '')
+    .trim();
+  if (q.length < 2) return userText.trim().slice(0, 200);
+  return q.slice(0, 300);
+}
+
 export function normalizeToolCallRequest(
   name: string,
   args: unknown,
-  options: { knownNames?: readonly string[] } = {},
+  options: {
+    knownNames?: readonly string[];
+    /** Last user utterance — used to fill empty web_search query */
+    lastUserText?: string;
+  } = {},
 ): NormalizedToolCall {
   const resolvedName = resolveCanonicalToolName(name, {
     knownNames: options.knownNames,
@@ -373,8 +405,25 @@ export function normalizeToolCallRequest(
     };
   }
 
+  let nextArgs = normalizeToolArgs(resolvedName, args);
+
+  // Recover empty google_web_search query from the latest user message
+  if (
+    (resolvedName === WEB_SEARCH_TOOL_NAME ||
+      name === 'google_web_search' ||
+      name === 'GoogleSearch' ||
+      name === 'WebSearch') &&
+    isRecord(nextArgs) &&
+    !isNonEmptyString(nextArgs['query'])
+  ) {
+    const recovered = extractSearchQueryFromUserText(options.lastUserText);
+    if (recovered) {
+      nextArgs = { ...nextArgs, query: recovered };
+    }
+  }
+
   return {
     name: resolvedName,
-    args: normalizeToolArgs(resolvedName, args),
+    args: nextArgs,
   };
 }

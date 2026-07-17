@@ -55,6 +55,14 @@ import {
 } from '../utils/events.js';
 import { GeminiCliOperation } from '../telemetry/constants.js';
 
+function isTextPart(part: unknown): part is { text: string } {
+  if (!part || typeof part !== 'object') return false;
+  if (!('text' in part)) return false;
+  // Access via index signature after 'in' check — no cast needed for narrowing.
+  const text = (part as { readonly text: unknown }).text;
+  return typeof text === 'string' && text.trim().length > 0;
+}
+
 interface SchedulerQueueItem {
   requests: ToolCallRequestInfo[];
   signal: AbortSignal;
@@ -328,6 +336,28 @@ export class Scheduler {
     try {
       const toolRegistry = this.context.toolRegistry;
       const knownToolNames = toolRegistry.getAllToolNames();
+      // Last user utterance — recover empty web_search query from free models.
+      let lastUserText: string | undefined;
+      try {
+        const history = this.config.geminiClient?.getHistory?.() ?? [];
+        for (let i = history.length - 1; i >= 0; i--) {
+          const turn = history[i];
+          if (turn?.role !== 'user' || !turn.parts) continue;
+          const texts: string[] = [];
+          for (const part of turn.parts) {
+            if (!isTextPart(part)) continue;
+            texts.push(part.text);
+          }
+          const joined = texts.join(' ').trim();
+          if (joined) {
+            lastUserText = joined;
+            break;
+          }
+        }
+      } catch {
+        // history may be unavailable early in the session
+      }
+
       const newCalls: ToolCall[] = sortedRequests.map((request) => {
         // Resolve aliases / display names / arg-shape recovery before validation.
         // Also remaps grep→glob when the model passes file-glob patterns/args
@@ -337,6 +367,7 @@ export class Scheduler {
           request.args,
           {
             knownNames: knownToolNames,
+            lastUserText,
           },
         );
         const tool = toolRegistry.getTool(normalized.name, normalized.args);

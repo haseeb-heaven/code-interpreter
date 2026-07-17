@@ -148,4 +148,18 @@ describe('normalizeToolCallRequest', () => {
       'React 19 breaking changes',
     );
   });
+
+  it('recovers empty web_search query from last user text', () => {
+    const result = normalizeToolCallRequest(
+      'google_web_search',
+      {},
+      {
+        lastUserText:
+          'Search web C++ 20 changelogs as pdf file to my downloads folder and open that file now',
+      },
+    );
+    expect((result.args as { query: string }).query.toLowerCase()).toContain(
+      'c++ 20',
+    );
+  });
 });

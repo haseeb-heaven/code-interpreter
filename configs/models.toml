@@ -130,18 +130,21 @@ notes = "Cerebras Z.ai GLM 4.7 355B (preview, reasoning, ~1000 tok/s, free publi
 
 [models."claude-2"]
 model = "claude-sonnet-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-2.1"]
 model = "claude-sonnet-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-3-5-sonnet"]
 model = "claude-sonnet-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 timeout_seconds = 120
@@ -157,48 +160,56 @@ cooldown_seconds = 120
 
 [models."claude-3-7-sonnet"]
 model = "claude-sonnet-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-3-opus"]
 model = "claude-opus-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-3-sonnet"]
 model = "claude-sonnet-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-4-6-opus"]
 model = "claude-opus-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-4-6-sonnet"]
 model = "claude-sonnet-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-haiku-4-5"]
 model = "claude-haiku-4-5"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-opus-4-6"]
 model = "claude-opus-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."claude-sonnet-4-6"]
 model = "claude-sonnet-4-6"
+provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
@@ -520,14 +531,16 @@ max_tokens = 4096
 tier = "paid"
 
 [models."openrouter-free"]
-model = "openrouter/free"
+# Prefer a tool-capable free upstream. The meta `openrouter/free` router often
+# returns chat-only models that refuse agent tasks or emit empty tool args.
+model = "openai/gpt-oss-20b:free"
 provider = "openrouter"
 api_base = "https://openrouter.ai/api/v1"
 temperature = 0.1
 max_tokens = 4096
 timeout_seconds = 120
 tier = "free"
-notes = "OpenRouter free router (many free upstream models)"
+notes = "OpenRouter free tool-capable model (gpt-oss-20b:free; use for agent/tools)"
 
 [models."openrouter-free".rate_limits]
 rpm = 20
@@ -581,7 +594,7 @@ max_tokens = 4096
 tier = "paid"
 
 [models."openrouter-mimo-v2-pro"]
-model = "xiaomi/mimo-v2-pro"
+model = "xiaomi/mimo-v2.5-pro"
 provider = "openrouter"
 api_base = "https://openrouter.ai/api/v1"
 temperature = 0.1
@@ -676,7 +689,7 @@ model_key = "openrouter-free"
 provider = "openrouter"
 env_key = "OPENROUTER_API_KEY"
 tier = "free"
-notes = "OpenRouter free router (no tool use; agent falls through the chain)"
+notes = "OpenRouter free tool-capable (gpt-oss-20b:free) — safe default for /model free"
 
 [[free_catalog]]
 id = "openrouter-qwen3-coder"

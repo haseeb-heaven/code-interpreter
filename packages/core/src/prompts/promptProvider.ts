@@ -36,6 +36,7 @@ import {
   getProjectMemoryIndexFilePath,
 } from '../tools/memoryTool.js';
 import type { AgentLoopContext } from '../config/agent-loop-context.js';
+import { resolveActiveProvider } from '../providers/picker.js';
 
 /**
  * Orchestrates prompt generation by gathering context and building options.
@@ -106,11 +107,13 @@ export class PromptProvider {
     }
 
     let basePrompt: string;
+    const usedCustomSystemPrompt =
+      !!systemMdResolution.value && !systemMdResolution.isDisabled;
 
     // --- Template File Override ---
-    if (systemMdResolution.value && !systemMdResolution.isDisabled) {
+    if (usedCustomSystemPrompt) {
       let systemMdPath = path.resolve(path.join(GEMINI_DIR, 'system.md'));
-      if (!systemMdResolution.isSwitch) {
+      if (!systemMdResolution.isSwitch && systemMdResolution.value) {
         systemMdPath = systemMdResolution.value;
       }
       if (!fs.existsSync(systemMdPath)) {
@@ -271,6 +274,33 @@ export class PromptProvider {
 
     // Sanitize erratic newlines from composition
     let sanitizedPrompt = finalPrompt.replace(/\n{3,}/g, '\n\n');
+
+    // Inject live model/provider identity so weaker free models do not claim
+    // to be Gemini (or any other vendor) after the user switches via /model.
+    try {
+      const activeModelId =
+        context.config.getActiveModel?.() ?? context.config.getModel?.() ?? '';
+      if (activeModelId) {
+        let providerLabel = 'configured provider';
+        try {
+          const provider = resolveActiveProvider(activeModelId);
+          if (provider?.displayName) {
+            providerLabel = provider.displayName;
+          }
+        } catch {
+          // Registry may be unavailable in tests.
+        }
+        sanitizedPrompt =
+          `# Runtime model identity\n` +
+          `You are running as model id \`${activeModelId}\` via provider ` +
+          `\`${providerLabel}\`. When asked which model or provider you are, ` +
+          `answer with exactly this model id and provider — do not invent ` +
+          `Gemini, GPT, Claude, or other identities.\n\n` +
+          sanitizedPrompt;
+      }
+    } catch {
+      // ignore
+    }
 
     // Context Reinjection (Active Topic)
     if (isTopicUpdateNarrationEnabled) {
