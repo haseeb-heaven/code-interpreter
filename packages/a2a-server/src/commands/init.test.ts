@@ -153,7 +153,7 @@ describe('InitCommand', () => {
         await command.execute(context, []);
 
         expect(fs.writeFileSync).toHaveBeenCalledWith(
-          path.join(mockWorkspacePath, 'GEMINI.md'),
+          path.join(mockWorkspacePath, 'OPENAGENT.md'),
           '',
           'utf8',
         );

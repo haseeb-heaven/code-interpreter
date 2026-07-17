@@ -6,6 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { renderOperationalGuidelines } from './snippets.js';
+import { DEFAULT_CONTEXT_FILENAME } from '../tools/memoryTool.js';
 
 describe('renderOperationalGuidelines - memory', () => {
   const baseOptions = {
@@ -14,11 +15,11 @@ describe('renderOperationalGuidelines - memory', () => {
     topicUpdateNarration: false,
   };
 
-  it('should distinguish shared GEMINI.md instructions from private MEMORY.md', () => {
+  it('should distinguish shared context-file instructions from private MEMORY.md', () => {
     const result = renderOperationalGuidelines(baseOptions);
     expect(result).toContain('Instruction and Memory Files');
-    expect(result).toContain('GEMINI.md');
-    expect(result).toContain('./GEMINI.md');
+    expect(result).toContain(DEFAULT_CONTEXT_FILENAME);
+    expect(result).toContain(`./${DEFAULT_CONTEXT_FILENAME}`);
     expect(result).toContain('MEMORY.md');
     expect(result).toContain('sibling `*.md` file');
     expect(result).toContain('There is no `save_memory` tool');
@@ -41,7 +42,7 @@ describe('renderOperationalGuidelines - memory', () => {
     expect(result).toContain('Never duplicate or mirror the same fact');
 
     // MEMORY.md must be scoped to its sibling notes only and must never
-    // point at GEMINI.md topics.
+    // point at context-file topics.
     expect(result).toContain('index for its sibling `*.md` notes');
     expect(result).toContain('never use it to point at');
   });

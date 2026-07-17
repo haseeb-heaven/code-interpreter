@@ -5,21 +5,23 @@
  */
 
 import type { CommandActionReturn } from './types.js';
+import { DEFAULT_CONTEXT_FILENAME } from '../tools/memoryTool.js';
 
-export function performInit(doesGeminiMdExist: boolean): CommandActionReturn {
-  if (doesGeminiMdExist) {
+export function performInit(
+  doesContextFileExist: boolean,
+): CommandActionReturn {
+  if (doesContextFileExist) {
     return {
       type: 'message',
       messageType: 'info',
-      content:
-        'A GEMINI.md file already exists in this directory. No changes were made.',
+      content: `A ${DEFAULT_CONTEXT_FILENAME} file already exists in this directory. No changes were made.`,
     };
   }
 
   return {
     type: 'submit_prompt',
     content: `
-You are an AI agent that brings the power of Gemini directly into the terminal. Your task is to analyze the current directory and generate a comprehensive GEMINI.md file to be used as instructional context for future interactions.
+You are an AI agent that brings the power of OpenAgent directly into the terminal. Your task is to analyze the current directory and generate a comprehensive ${DEFAULT_CONTEXT_FILENAME} file to be used as instructional context for future interactions.
 
 **Analysis Process:**
 
@@ -35,7 +37,7 @@ You are an AI agent that brings the power of Gemini directly into the terminal. 
     *   **Code Project:** Look for clues like \`package.json\`, \`requirements.txt\`, \`pom.xml\`, \`go.mod\`, \`Cargo.toml\`, \`build.gradle\`, or a \`src\` directory. If you find them, this is likely a software project.
     *   **Non-Code Project:** If you don't find code-related files, this might be a directory for documentation, research papers, notes, or something else.
 
-**GEMINI.md Content Generation:**
+**${DEFAULT_CONTEXT_FILENAME} Content Generation:**
 
 **For a Code Project:**
 
@@ -51,7 +53,7 @@ You are an AI agent that brings the power of Gemini directly into the terminal. 
 
 **Final Output:**
 
-Write the complete content to the \`GEMINI.md\` file. The output must be well-formatted Markdown.
+Write the complete content to the \`${DEFAULT_CONTEXT_FILENAME}\` file. The output must be well-formatted Markdown.
 `,
   };
 }

@@ -12,6 +12,7 @@ import {
   type GeminiCLIExtension,
   homedir,
   Storage,
+  DEFAULT_CONTEXT_FILENAMES,
 } from '@open-agent/core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -128,7 +129,7 @@ function loadExtension(extensionDir: string): GeminiCLIExtension | null {
 
 function getContextFileNames(config: ExtensionConfig): string[] {
   if (!config.contextFileName) {
-    return ['GEMINI.md'];
+    return DEFAULT_CONTEXT_FILENAMES;
   } else if (!Array.isArray(config.contextFileName)) {
     return [config.contextFileName];
   }

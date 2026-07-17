@@ -16,13 +16,17 @@ import {
   WRITE_FILE_TOOL_NAME,
 } from '../tools/tool-names.js';
 import { PREVIEW_GEMINI_FLASH_MODEL } from '../config/models.js';
+import {
+  DEFAULT_CONTEXT_FILENAME,
+  getGlobalMemoryFilePath,
+} from '../tools/memoryTool.js';
 
 describe('SkillExtractionAgent', () => {
   const skillsDir = '/tmp/skills';
   const sessionIndex =
     '[NEW] Debug login flow (12 user msgs) — /tmp/chats/session-1.json';
   const existingSkillsSummary =
-    '## Workspace Skills (.gemini/skills — do NOT duplicate)\n- **existing-skill**: Existing description';
+    '## Workspace Skills (.openagent/skills — do NOT duplicate)\n- **existing-skill**: Existing description';
 
   const agent = SkillExtractionAgent(
     skillsDir,
@@ -98,11 +102,11 @@ describe('SkillExtractionAgent', () => {
     expect(prompt).toContain(
       'the target MUST be exactly the single global personal memory',
     );
-    expect(prompt).toContain('~/.gemini/GEMINI.md');
+    expect(prompt).toContain(getGlobalMemoryFilePath());
     expect(prompt).not.toContain('memory.md');
     expect(prompt).not.toContain('and siblings');
     expect(prompt).toContain(
-      'Project/workspace shared instructions (GEMINI.md and similar files',
+      `Project/workspace shared instructions (${DEFAULT_CONTEXT_FILENAME} and similar files`,
     );
     expect(prompt).toContain('MEMORY PATCH FORMAT (STRICT)');
     expect(prompt).toContain('--- /dev/null');

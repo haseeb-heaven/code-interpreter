@@ -4,7 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { listMemoryFiles, refreshMemory, showMemory } from '@open-agent/core';
+import {
+  listMemoryFiles,
+  refreshMemory,
+  showMemory,
+  DEFAULT_CONTEXT_FILENAME,
+} from '@open-agent/core';
 import type {
   Command,
   CommandContext,
@@ -58,7 +63,7 @@ export class RefreshMemoryCommand implements Command {
 
 export class ListMemoryCommand implements Command {
   readonly name = 'memory list';
-  readonly description = 'Lists the paths of the GEMINI.md files in use.';
+  readonly description = `Lists the paths of the ${DEFAULT_CONTEXT_FILENAME} files in use.`;
 
   async execute(
     context: CommandContext,

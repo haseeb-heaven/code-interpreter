@@ -24,6 +24,7 @@ import {
   refreshMemory,
   showMemory,
 } from './memory.js';
+import { DEFAULT_CONTEXT_FILENAME } from '../tools/memoryTool.js';
 
 vi.mock('../config/storage.js', () => ({
   Storage: {
@@ -136,7 +137,7 @@ describe('memory commands', () => {
       if (result.type === 'message') {
         expect(result.messageType).toBe('info');
         expect(result.content).toContain(
-          'There are 2 GEMINI.md file(s) in use:',
+          'There are 2 OPENAGENT.md file(s) in use:',
         );
         expect(result.content).toContain(filePaths.join('\n'));
       }
@@ -150,7 +151,7 @@ describe('memory commands', () => {
       expect(result.type).toBe('message');
       if (result.type === 'message') {
         expect(result.messageType).toBe('info');
-        expect(result.content).toBe('No GEMINI.md files in use.');
+        expect(result.content).toBe('No OPENAGENT.md files in use.');
       }
     });
 
@@ -164,7 +165,7 @@ describe('memory commands', () => {
       expect(result.type).toBe('message');
       if (result.type === 'message') {
         expect(result.messageType).toBe('info');
-        expect(result.content).toBe('No GEMINI.md files in use.');
+        expect(result.content).toBe('No OPENAGENT.md files in use.');
       }
     });
   });
@@ -464,7 +465,7 @@ describe('memory commands', () => {
     });
 
     it('omits global patches with disallowed targets from the listing', async () => {
-      // Same defense for the global tier: only ~/.gemini/GEMINI.md is allowed.
+      // Same defense for the global tier: only ~/.openagent/OPENAGENT.md is allowed.
       // memory.md (legacy lowercase), sibling .md files, and settings.json all
       // get filtered out of the listing instead of confusing the user.
       const patchDir = path.join(memoryTempDir, '.inbox', 'global');
@@ -490,7 +491,7 @@ describe('memory commands', () => {
       await fs.writeFile(
         path.join(patchDir, 'nested.patch'),
         buildCreationPatch(
-          path.join(globalMemoryDir, 'GEMINI.md', 'nested.md'),
+          path.join(globalMemoryDir, DEFAULT_CONTEXT_FILENAME, 'nested.md'),
           'rejected\n',
         ),
       );
@@ -699,8 +700,8 @@ describe('memory commands', () => {
       );
     });
 
-    it('applies a global creation patch to ~/.gemini/GEMINI.md', async () => {
-      const target = path.join(globalMemoryDir, 'GEMINI.md');
+    it('applies a global creation patch to ~/.openagent/OPENAGENT.md', async () => {
+      const target = path.join(globalMemoryDir, DEFAULT_CONTEXT_FILENAME);
       // Sanity check: target does not exist before apply.
       await expect(fs.access(target)).rejects.toThrow();
 
@@ -726,8 +727,8 @@ describe('memory commands', () => {
       ).rejects.toThrow();
     });
 
-    it('applies a global update patch to ~/.gemini/GEMINI.md', async () => {
-      const target = path.join(globalMemoryDir, 'GEMINI.md');
+    it('applies a global update patch to ~/.openagent/OPENAGENT.md', async () => {
+      const target = path.join(globalMemoryDir, DEFAULT_CONTEXT_FILENAME);
       await fs.writeFile(target, '- prefer X\n');
 
       const patchDir = path.join(memoryTempDir, '.inbox', 'global');
@@ -753,7 +754,7 @@ describe('memory commands', () => {
     it.runIf(isCaseInsensitivePathPlatform)(
       'accepts global memory patch targets with different path casing',
       async () => {
-        const target = path.join(globalMemoryDir, 'GEMINI.md');
+        const target = path.join(globalMemoryDir, DEFAULT_CONTEXT_FILENAME);
         await fs.writeFile(target, '- prefer X\n');
 
         const patchDir = path.join(memoryTempDir, '.inbox', 'global');
@@ -789,7 +790,7 @@ describe('memory commands', () => {
       await fs.writeFile(
         path.join(patchDir, 'GEMINI.patch'),
         buildCreationPatch(
-          path.join(globalMemoryDir, 'GEMINI.md'),
+          path.join(globalMemoryDir, DEFAULT_CONTEXT_FILENAME),
           'Prefer concise.\n',
         ),
       );
@@ -910,7 +911,7 @@ describe('memory commands', () => {
       await expect(fs.access(path.join(patchDir, 'b.patch'))).rejects.toThrow();
     });
 
-    it('rejects global patches that target anything other than ~/.gemini/GEMINI.md', async () => {
+    it('rejects global patches that target anything other than ~/.openagent/OPENAGENT.md', async () => {
       const patchDir = path.join(memoryTempDir, '.inbox', 'global');
       await fs.mkdir(patchDir, { recursive: true });
 
@@ -923,7 +924,7 @@ describe('memory commands', () => {
         ),
       );
 
-      // Sibling .md files in ~/.gemini/ are also not allowed.
+      // Sibling .md files in ~/.openagent/ are also not allowed.
       await fs.writeFile(
         path.join(patchDir, 'sibling.patch'),
         buildCreationPatch(
@@ -945,7 +946,7 @@ describe('memory commands', () => {
       await fs.writeFile(
         path.join(patchDir, 'nested.patch'),
         buildCreationPatch(
-          path.join(globalMemoryDir, 'GEMINI.md', 'nested.md'),
+          path.join(globalMemoryDir, DEFAULT_CONTEXT_FILENAME, 'nested.md'),
           'Should be rejected.\n',
         ),
       );
@@ -972,7 +973,9 @@ describe('memory commands', () => {
         ).rejects.toThrow();
       }
       await expect(
-        fs.access(path.join(globalMemoryDir, 'GEMINI.md', 'nested.md')),
+        fs.access(
+          path.join(globalMemoryDir, DEFAULT_CONTEXT_FILENAME, 'nested.md'),
+        ),
       ).rejects.toThrow();
     });
 
@@ -1062,7 +1065,7 @@ describe('memory commands', () => {
       const result = await moveInboxSkill(moveConfig, 'my-skill', 'global');
 
       expect(result.success).toBe(true);
-      expect(result.message).toBe('Moved "my-skill" to ~/.gemini/skills.');
+      expect(result.message).toBe('Moved "my-skill" to ~/.openagent/skills.');
 
       // Verify the skill was copied to global
       const targetSkill = await fs.readFile(
@@ -1083,7 +1086,7 @@ describe('memory commands', () => {
       const result = await moveInboxSkill(moveConfig, 'my-skill', 'project');
 
       expect(result.success).toBe(true);
-      expect(result.message).toBe('Moved "my-skill" to .gemini/skills.');
+      expect(result.message).toBe('Moved "my-skill" to .openagent/skills.');
 
       // Verify the skill was copied to project
       const targetSkill = await fs.readFile(
