@@ -89,6 +89,7 @@ export * from './utils/authConsent.js';
 export * from './utils/googleQuotaErrors.js';
 export * from './utils/googleErrors.js';
 export * from './utils/fileUtils.js';
+export * from './utils/cliEnvAliases.js';
 export * from './utils/sessionOperations.js';
 export * from './utils/planUtils.js';
 export * from './utils/approvalModeUtils.js';
@@ -182,6 +183,7 @@ export * from './tools/tools.js';
 export * from './tools/tool-error.js';
 export * from './tools/tool-registry.js';
 export * from './tools/tool-names.js';
+export * from './tools/tool-call-normalize.js';
 export * from './resources/resource-registry.js';
 
 // Export prompt logic
