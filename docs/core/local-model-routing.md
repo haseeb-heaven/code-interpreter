@@ -1,7 +1,7 @@
 # Manual Local Model Routing Setup (experimental)
 
-Gemini CLI supports using a local model for
-[routing decisions](../cli/model-routing.md). When configured, Gemini CLI will
+open-agent supports using a local model for
+[routing decisions](../cli/model-routing.md). When configured, open-agent will
 use a locally-running **Gemma** model to make routing decisions (instead of
 sending routing decisions to a hosted model).
 
@@ -12,7 +12,7 @@ sending routing decisions to a hosted model).
 <!-- prettier-ignore -->
 > [!IMPORTANT]
 > **Recommended:** We now provide a fully automated setup command. We recommend
-> using the [`gemini gemma` Setup Guide](./gemma-setup.md) instead of following
+> using the [`openagent gemma` Setup Guide](./gemma-setup.md) instead of following
 > these manual steps.
 
 This feature can help reduce costs associated with hosted model usage while
@@ -22,7 +22,7 @@ offering similar routing decision latency and quality.
 
 Using a Gemma model for routing decisions requires that an implementation of a
 Gemma model be running locally on your machine, served behind an HTTP endpoint
-and accessed via the Gemini API. If you cannot use the `gemini gemma setup`
+and accessed via the Gemini API. If you cannot use the `openagent gemma setup`
 command, follow these manual steps:
 
 ### Download the LiteRT-LM runtime

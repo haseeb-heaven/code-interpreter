@@ -1,14 +1,13 @@
 # Subagents
 
-Subagents are specialized agents that operate within your main Gemini CLI
+Subagents are specialized agents that operate within your main open-agent
 session. They are designed to handle specific, complex tasks—like deep codebase
 analysis, documentation lookup, or domain-specific reasoning—without cluttering
 the main agent's context or toolset.
 
 ## What are subagents?
 
-Subagents are "specialists" that the main Gemini agent can hire for a specific
-job.
+Subagents are "specialists" that the main agent can hire for a specific job.
 
 - **Focused context:** Each subagent has its own system prompt and persona.
 - **Specialized tools:** Subagents can have a restricted or specialized set of
@@ -28,7 +27,7 @@ in your prompt.
 
 ### Automatic delegation
 
-Gemini CLI's main agent is instructed to use specialized subagents when a task
+open-agent's main agent is instructed to use specialized subagents when a task
 matches their expertise. For example, if you ask "How does the auth system
 work?", the main agent may decide to call the `codebase_investigator` subagent
 to perform the research.
@@ -51,7 +50,7 @@ primary model to use that specific subagent tool immediately.
 
 ## Built-in subagents
 
-Gemini CLI comes with the following built-in subagents:
+open-agent comes with the following built-in subagents:
 
 ### Codebase Investigator
 
@@ -79,7 +78,7 @@ Gemini CLI comes with the following built-in subagents:
 ### CLI Help Agent
 
 - **Name:** `cli_help`
-- **Purpose:** Get expert knowledge about Gemini CLI itself, its commands,
+- **Purpose:** Get expert knowledge about open-agent itself, its commands,
   configuration, and documentation.
 - **When to use:** "How do I configure a proxy?", "What does the `/rewind`
   command do?"
@@ -123,7 +122,7 @@ The browser agent requires:
 
 The underlying
 [`chrome-devtools-mcp`](https://www.npmjs.com/package/chrome-devtools-mcp)
-server is bundled with Gemini CLI and launched automatically — no separate
+server is bundled with open-agent and launched automatically — no separate
 installation is needed.
 
 #### Enabling the browser agent
@@ -172,7 +171,7 @@ The available modes are:
 
 #### First-run consent
 
-The first time the browser agent is invoked, Gemini CLI displays a consent
+The first time the browser agent is invoked, open-agent displays a consent
 dialog. You must accept before the browser session starts. This dialog only
 appears once.
 
@@ -307,7 +306,7 @@ To use the browser agent in a Docker sandbox:
 3. Launch the CLI with port forwarding:
 
    ```bash
-   GEMINI_SANDBOX=docker SANDBOX_PORTS=9222 gemini
+   GEMINI_SANDBOX=docker SANDBOX_PORTS=9222 openagent
    ```
 
 ## Creating custom subagents
@@ -395,7 +394,7 @@ Each subagent runs in its own isolated context loop. This means:
 
 ## Subagent tool isolation
 
-Subagent tool isolation moves Gemini CLI away from a single global tool
+Subagent tool isolation moves open-agent away from a single global tool
 registry. By providing isolated execution environments, you can ensure that
 subagents only interact with the parts of the system they are designed for. This
 prevents unintended side effects, improves reliability by avoiding state
@@ -574,7 +573,7 @@ that your subagent was called with a specific prompt and the given description.
 
 ## Remote subagents (Agent2Agent)
 
-Gemini CLI can also delegate tasks to remote subagents using the Agent-to-Agent
+open-agent can also delegate tasks to remote subagents using the Agent-to-Agent
 (A2A) protocol.
 
 See the [Remote Subagents documentation](remote-agents) for detailed

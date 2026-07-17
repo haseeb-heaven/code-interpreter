@@ -1,7 +1,7 @@
 # Release confidence strategy
 
 This document outlines the strategy for gaining confidence in every release of
-Gemini CLI. It serves as a checklist and quality gate for release manager to
+open-agent. It serves as a checklist and quality gate for release manager to
 ensure we are shipping a high-quality product.
 
 ## The goal
@@ -42,8 +42,8 @@ All workflows in `.github/workflows/chained_e2e.yml` must pass.
 After a release is published to npm, the `smoke-test.yml` workflow runs. This
 must pass to confirm the package is installable and the binary is executable.
 
-- **Command:** `npx -y open-agent@<tag> --version` must return the
-  correct version without error.
+- **Command:** `npx -y open-agent@<tag> --version` must return the correct
+  version without error.
 - **Platform:** Currently runs on `ubuntu-latest`.
 
 ## Level 2: Manual verification and dogfooding
@@ -71,11 +71,10 @@ manually run through this checklist.
 
 - **Setup:**
 
-  - [ ] Uninstall any existing global version:
-        `npm uninstall -g open-agent`
+  - [ ] Uninstall any existing global version: `npm uninstall -g open-agent`
   - [ ] Clear npx cache (optional but recommended): `npm cache clean --force`
   - [ ] Install the preview version: `npm install -g open-agent@preview`
-  - [ ] Verify version: `gemini --version`
+  - [ ] Verify version: `openagent --version`
 
 - **Authentication:**
 
@@ -86,13 +85,13 @@ manually run through this checklist.
 
 - **Basic prompting:**
 
-  - [ ] Run `gemini "Tell me a joke"` and verify a sensible response.
-  - [ ] Run in interactive mode: `gemini`. Ask a follow-up question to test
+  - [ ] Run `openagent "Tell me a joke"` and verify a sensible response.
+  - [ ] Run in interactive mode: `openagent`. Ask a follow-up question to test
         context.
 
 - **Piped input:**
 
-  - [ ] Run `echo "Summarize this" | gemini` and verify it processes stdin.
+  - [ ] Run `echo "Summarize this" | openagent` and verify it processes stdin.
 
 - **Context management:**
 
@@ -105,7 +104,7 @@ manually run through this checklist.
   - [ ] Validate that setting is changed
 
 - **Function calling:**
-  - [ ] In interactive mode, ask gemini to "create a file named hello.md with
+  - [ ] In interactive mode, ask openagent to "create a file named hello.md with
         the content 'hello world'" and verify the file is created correctly.
 
 If any of these CUJs fail, the release is a no-go until a patch is applied to

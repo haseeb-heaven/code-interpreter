@@ -1,6 +1,6 @@
 # Memory files
 
-Gemini CLI persists durable facts, user preferences, and project details by
+OpenAgent CLI persists durable facts, user preferences, and project details by
 editing Markdown memory files directly.
 
 ## Technical reference

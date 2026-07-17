@@ -16,53 +16,53 @@ Plan Mode is enabled by default. You can manage this setting using the
 Plan Mode integrates seamlessly into your workflow, letting you switch between
 planning and execution as needed.
 
-You can either configure Gemini CLI to start in Plan Mode by default or enter
+You can either configure open-agent to start in Plan Mode by default or enter
 Plan Mode manually during a session.
 
 ### Launch in Plan Mode
 
-To start Gemini CLI directly in Plan Mode by default:
+To start open-agent directly in Plan Mode by default:
 
 1.  Use the `/settings` command.
 2.  Set **Default Approval Mode** to `Plan`.
 
-To launch Gemini CLI in Plan Mode once:
+To launch open-agent in Plan Mode once:
 
-1. Use `gemini --approval-mode=plan` when launching Gemini CLI.
+1. Use `openagent --approval-mode=plan` when launching open-agent.
 
 ### Enter Plan Mode manually
 
-To start Plan Mode while using Gemini CLI:
+To start Plan Mode while using open-agent:
 
 - **Keyboard shortcut:** Press `Shift+Tab` to cycle through approval modes
   (`Default` -> `Auto-Edit` -> `Plan`). Plan Mode is automatically removed from
-  the rotation when Gemini CLI is actively processing or showing confirmation
+  the rotation when open-agent is actively processing or showing confirmation
   dialogs.
 
 - **Command:** Type `/plan [goal]` in the input box. The `[goal]` is optional;
   for example, `/plan implement authentication` will switch to Plan Mode and
   immediately submit the prompt to the model.
 
-- **Natural Language:** Ask Gemini CLI to "start a plan for...". Gemini CLI
+- **Natural Language:** Ask open-agent to "start a plan for...". Open-agent
   calls the
   [`enter_plan_mode`](../tools/planning.md#1-enter_plan_mode-enterplanmode) tool
-  to switch modes. This tool is not available when Gemini CLI is in
+  to switch modes. This tool is not available when open-agent is in
   [YOLO mode](../reference/configuration.md#command-line-arguments).
 
 ## How to use Plan Mode
 
-Plan Mode lets you collaborate with Gemini CLI to design a solution before
-Gemini CLI takes action.
+Plan Mode lets you collaborate with open-agent to design a solution before
+open-agent takes action.
 
-1.  **Provide a goal:** Start by describing what you want to achieve. Gemini CLI
+1.  **Provide a goal:** Start by describing what you want to achieve. Open-agent
     will then enter Plan Mode (if it's not already) to research the task.
-2.  **Discuss and agree on strategy:** As Gemini CLI analyzes your codebase, it
+2.  **Discuss and agree on strategy:** As open-agent analyzes your codebase, it
     will discuss its findings and proposed strategy with you to ensure
     alignment. It may ask you questions or present different implementation
-    options using [`ask_user`](../tools/ask-user.md). **Gemini CLI will stop and
+    options using [`ask_user`](../tools/ask-user.md). **Open-agent will stop and
     wait for your confirmation** before drafting the formal plan. You should
     reach an informal agreement on the approach before proceeding.
-3.  **Review the plan:** Once you've agreed on the strategy, Gemini CLI creates
+3.  **Review the plan:** Once you've agreed on the strategy, open-agent creates
     a detailed implementation plan as a Markdown file in your plans directory.
 
     - **View:** You can open and read this file to understand the proposed
@@ -70,14 +70,14 @@ Gemini CLI takes action.
     - **Edit:** Press `Ctrl+X` to open the plan directly in your configured
       external editor.
 
-4.  **Approve or iterate:** Gemini CLI will present the finalized plan for your
+4.  **Approve or iterate:** Open-agent will present the finalized plan for your
     formal approval.
     - **Approve:** If you're satisfied with the plan, approve it to start the
       implementation immediately: **Yes, automatically accept edits** or **Yes,
       manually accept edits**.
     - **Iterate:** If the plan needs adjustments, provide feedback in the input
-      box or [edit the plan file directly](#collaborative-plan-editing). Gemini
-      CLI will refine the strategy and update the plan.
+      box or [edit the plan file directly](#collaborative-plan-editing).
+      Open-agent will refine the strategy and update the plan.
     - **Cancel:** You can cancel your plan with `Esc`.
 
 For more complex or specialized planning tasks, you can
@@ -85,11 +85,11 @@ For more complex or specialized planning tasks, you can
 
 ### Collaborative plan editing
 
-You can collaborate with Gemini CLI by making direct changes or leaving comments
+You can collaborate with open-agent by making direct changes or leaving comments
 in the implementation plan. This is often faster and more precise than
 describing complex changes in natural language.
 
-1.  **Open the plan:** Press `Ctrl+X` when Gemini CLI presents a plan for
+1.  **Open the plan:** Press `Ctrl+X` when open-agent presents a plan for
     review.
 2.  **Edit or comment:** The plan opens in your configured external editor (for
     example, VS Code or Vim). You can:
@@ -98,7 +98,7 @@ describing complex changes in natural language.
     - **Leave comments:** Add inline questions or feedback (for example, "Wait,
       shouldn't we use the existing `Logger` class here?").
 3.  **Save and close:** Save your changes and close the editor.
-4.  **Review and refine:** Gemini CLI automatically detects the changes, reviews
+4.  **Review and refine:** Open-agent automatically detects the changes, reviews
     your comments, and adjusts the implementation strategy. It then presents the
     refined plan for your final approval.
 
@@ -107,10 +107,10 @@ describing complex changes in natural language.
 You can exit Plan Mode at any time, whether you have finalized a plan or want to
 switch back to another mode.
 
-- **Approve a plan:** When Gemini CLI presents a finalized plan, approving it
+- **Approve a plan:** When open-agent presents a finalized plan, approving it
   automatically exits Plan Mode and starts the implementation.
 - **Keyboard shortcut:** Press `Shift+Tab` to cycle to the desired mode.
-- **Natural language:** Ask Gemini CLI to "exit plan mode" or "stop planning."
+- **Natural language:** Ask open-agent to "exit plan mode" or "stop planning."
 
 ## Tool Restrictions
 
@@ -145,12 +145,12 @@ These are the only allowed tools:
 ## Customization and best practices
 
 Plan Mode is secure by default, but you can adapt it to fit your specific
-workflows. You can customize how Gemini CLI plans by using skills, adjusting
+workflows. You can customize how open-agent plans by using skills, adjusting
 safety policies, changing where plans are stored, or adding hooks.
 
 ### Custom planning with skills
 
-You can use [Agent Skills](../cli/skills.md) to customize how Gemini CLI
+You can use [Agent Skills](../cli/skills.md) to customize how open-agent
 approaches planning for specific types of tasks. When a skill is activated
 during Plan Mode, its specialized instructions and procedural workflows will
 guide the research, design, and planning phases.
@@ -159,13 +159,13 @@ For example:
 
 - A **"Database Migration"** skill could ensure the plan includes data safety
   checks and rollback strategies.
-- A **"Security Audit"** skill could prompt Gemini CLI to look for specific
+- A **"Security Audit"** skill could prompt open-agent to look for specific
   vulnerabilities during codebase exploration.
-- A **"Frontend Design"** skill could guide Gemini CLI to use specific UI
+- A **"Frontend Design"** skill could guide open-agent to use specific UI
   components and accessibility standards in its proposal.
 
-To use a skill in Plan Mode, you can explicitly ask Gemini CLI to "use the
-`<skill-name>` skill to plan..." or Gemini CLI may autonomously activate it
+To use a skill in Plan Mode, you can explicitly ask open-agent to "use the
+`<skill-name>` skill to plan..." or open-agent may autonomously activate it
 based on the task description.
 
 ### Custom policies
@@ -260,7 +260,7 @@ priority = 100
 modes = ["plan"]
 ```
 
-Tell Gemini CLI it can use these tools in your prompt, for example: _"You can
+Tell open-agent it can use these tools in your prompt, for example: _"You can
 check ongoing changes in git."_
 
 ### Custom plan directory and policies
@@ -307,7 +307,7 @@ argsPattern = "\"file_path\":\"[^\"]+[\\\\/]+\\.gemini[\\\\/]+plans[\\\\/]+[\\w-
 ### Using hooks with Plan Mode
 
 You can use the [hook system](../hooks/writing-hooks.md) to automate parts of
-the planning workflow or enforce additional checks when Gemini CLI transitions
+the planning workflow or enforce additional checks when open-agent transitions
 into or out of Plan Mode.
 
 Hooks such as `BeforeTool` or `AfterTool` can be configured to intercept the
@@ -323,7 +323,7 @@ Hooks such as `BeforeTool` or `AfterTool` can be configured to intercept the
 
 If your organizational policy requires a record of all execution plans, you can
 use an `AfterTool` hook to securely copy the plan artifact to Google Cloud
-Storage whenever Gemini CLI exits Plan Mode to start the implementation.
+Storage whenever open-agent exits Plan Mode to start the implementation.
 
 **`.gemini/hooks/archive-plan.sh`:**
 
@@ -410,7 +410,7 @@ directory:
 Since Plan Mode is built on modular building blocks, you can develop your own
 custom planning workflow as an [extensions](../extensions/index.md). By
 leveraging core tools and [custom policies](#custom-policies), you can define
-how Gemini CLI researches and stores plans for your specific domain.
+how open-agent researches and stores plans for your specific domain.
 
 To build a custom planning workflow, you can use:
 
@@ -434,7 +434,7 @@ high-reasoning model routing.
 
 ## Automatic Model Routing
 
-When using an [auto model](../reference/configuration.md#model), Gemini CLI
+When using an [auto model](../reference/configuration.md#model), open-agent
 automatically optimizes [model routing](../cli/telemetry.md#model-routing) based
 on the current phase of your task:
 
@@ -447,7 +447,7 @@ on the current phase of your task:
     responsive experience during the implementation of the plan.
 
 If the high-reasoning model is unavailable or you don't have access to it,
-Gemini CLI automatically and silently falls back to a faster model to ensure
+open-agent automatically and silently falls back to a faster model to ensure
 your workflow isn't interrupted.
 
 This behavior is enabled by default to provide the best balance of quality and
@@ -465,7 +465,7 @@ performance. You can disable this automatic switching in your settings:
 
 ## Cleanup
 
-By default, Gemini CLI automatically cleans up old session data, including all
+By default, open-agent automatically cleans up old session data, including all
 associated plan files and task trackers.
 
 - **Default behavior:** Sessions (and their plans) are retained for **30 days**.
@@ -477,7 +477,7 @@ associated plan files and task trackers.
 
 Manual deletion also removes all associated artifacts:
 
-- **Command Line:** Use `gemini --delete-session <index|id>`.
+- **Command Line:** Use `openagent --delete-session <index|id>`.
 - **Session Browser:** Press `/resume`, navigate to a session, and press `x`.
 
 If you use a [custom plans directory](#custom-plan-directory-and-policies),
@@ -485,14 +485,14 @@ those files are not automatically deleted and must be managed manually.
 
 ## Non-interactive execution
 
-When running Gemini CLI in non-interactive environments (such as headless
+When running open-agent in non-interactive environments (such as headless
 scripts or CI/CD pipelines), Plan Mode optimizes for automated workflows:
 
 - **Automatic transitions:** The policy engine automatically approves the
   `enter_plan_mode` and `exit_plan_mode` tools without prompting for user
   confirmation.
 - **Automated implementation:** When exiting Plan Mode to execute the plan,
-  Gemini CLI automatically switches to
+  open-agent automatically switches to
   [YOLO mode](../reference/policy-engine.md#approval-modes) instead of the
   standard Default mode. This allows the CLI to execute the implementation steps
   automatically without hanging on interactive tool approvals.
@@ -500,7 +500,7 @@ scripts or CI/CD pipelines), Plan Mode optimizes for automated workflows:
 **Example:**
 
 ```bash
-gemini --approval-mode plan -p "Analyze telemetry and suggest improvements"
+openagent --approval-mode plan -p "Analyze telemetry and suggest improvements"
 ```
 
 [`plan.toml`]:

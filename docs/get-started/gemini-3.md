@@ -1,6 +1,9 @@
-# Gemini 3 Pro and Gemini 3 Flash on Gemini CLI
+# Gemini 3 on OpenAgent (optional)
 
-Learn about how you can use Gemini 3 Pro and Gemini 3 Flash on Gemini CLI.
+OpenAgent supports many providers. This page is only for users who specifically
+want **Gemini 3 Pro / Flash** via a Gemini API key or Google routing. For the
+default multi-provider path, see [Quickstart](./index.md) and
+[Providers](./providers.md).
 
 <!-- prettier-ignore -->
 > [!NOTE]
@@ -13,15 +16,15 @@ Learn about how you can use Gemini 3 Pro and Gemini 3 Flash on Gemini CLI.
 > directly using the `-m` flag:
 >
 > ```
-> gemini -m gemini-3.1-pro-preview
+> openagent -m gemini-3.1-pro-preview
 > ```
 >
 > Learn more about [models](../cli/model.md) and
 > [model routing](../cli/model-routing.md).
 
-## How to get started with Gemini 3 on Gemini CLI
+## How to get started with Gemini 3 on open-agent
 
-Get started by upgrading Gemini CLI to the latest version:
+Get started by upgrading open-agent to the latest version:
 
 ```bash
 npm install -g open-agent@latest
@@ -32,11 +35,11 @@ If your version is 0.21.1 or later:
 1. Run `/model`.
 2. Select **Auto (Gemini 3)**.
 
-For more information, see [Gemini CLI model selection](../cli/model.md).
+For more information, see [open-agent model selection](../cli/model.md).
 
 ### Usage limits and fallback
 
-Gemini CLI will tell you when you reach your Gemini 3 Pro daily usage limit.
+open-agent will tell you when you reach your Gemini 3 Pro daily usage limit.
 When you encounter that limit, you’ll be given the option to switch to Gemini
 2.5 Pro, upgrade for higher limits, or stop. You’ll also be told when your usage
 limit resets and Gemini 3 Pro can be used again.
@@ -53,20 +56,20 @@ a message prompting fallback to Gemini 2.5 Flash.
 ### Capacity errors
 
 There may be times when the Gemini 3 Pro model is overloaded. When that happens,
-Gemini CLI will ask you to decide whether you want to keep trying Gemini 3 Pro
+open-agent will ask you to decide whether you want to keep trying Gemini 3 Pro
 or fallback to Gemini 2.5 Pro.
 
 <!-- prettier-ignore -->
 > [!NOTE]
-> The **Keep trying** option uses exponential backoff, in which Gemini
-> CLI waits longer between each retry, when the system is busy. If the retry
+> The **Keep trying** option uses exponential backoff, in which
+> open-agent waits longer between each retry, when the system is busy. If the retry
 > doesn't happen immediately, wait a few minutes for the request to
 > process.
 
 ### Model selection and routing types
 
-When using Gemini CLI, you may want to control how your requests are routed
-between models. By default, Gemini CLI uses **Auto** routing.
+When using open-agent, you may want to control how your requests are routed
+between models. By default, open-agent uses **Auto** routing.
 
 When using Gemini 3 Pro, you may want to use Auto routing or Pro routing to
 manage your usage limits:
@@ -76,16 +79,16 @@ manage your usage limits:
   Gemini 2.5 Flash. For complex prompts, if Gemini 3 Pro is enabled, it will use
   Gemini 3 Pro; otherwise, it will use Gemini 2.5 Pro.
 - **Pro routing:** If you want to ensure your task is processed by the most
-  capable model, use `/model` and select **Pro**. Gemini CLI will prioritize the
+  capable model, use `/model` and select **Pro**. open-agent will prioritize the
   most capable model available, including Gemini 3 Pro if it has been enabled.
 
 To learn more about selecting a model and routing, refer to
-[Gemini CLI Model Selection](../cli/model.md).
+[open-agent Model Selection](../cli/model.md).
 
-## How to enable Gemini 3 with Gemini CLI on Gemini Code Assist
+## How to enable Gemini 3 with open-agent on Gemini Code Assist
 
 If you're using Gemini Code Assist Standard or Gemini Code Assist Enterprise,
-enabling Gemini 3 Pro on Gemini CLI requires configuring your release channels.
+enabling Gemini 3 Pro on open-agent requires configuring your release channels.
 Using Gemini 3 Pro will require two steps: administrative enablement and user
 enablement.
 
@@ -97,7 +100,7 @@ To learn more about these settings, refer to
 An administrator with **Google Cloud Settings Admin** permissions must follow
 these directions:
 
-- Navigate to the Google Cloud Project you're using with Gemini CLI for Code
+- Navigate to the Google Cloud Project you're using with open-agent for Code
   Assist.
 - Go to **Admin for Gemini** > **Settings**.
 - Under **Release channels for Gemini Code Assist in local IDEs** select
@@ -109,11 +112,11 @@ these directions:
 Wait for two to three minutes after your administrator has enabled **Preview**,
 then:
 
-- Open Gemini CLI.
+- Open open-agent.
 - Use the `/settings` command.
 - Set **Preview Features** to `true`.
 
-Restart Gemini CLI and you should have access to Gemini 3.
+Restart open-agent and you should have access to Gemini 3.
 
 ## Next steps
 

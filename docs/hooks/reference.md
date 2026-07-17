@@ -1,6 +1,6 @@
 # Hooks reference
 
-This document provides the technical specification for Gemini CLI hooks,
+This document provides the technical specification for OpenAgent CLI hooks,
 including JSON schemas and API details.
 
 ## Global hook mechanics
@@ -300,7 +300,8 @@ state saving.
 
 ## Stable Model API
 
-Gemini CLI uses these structures to ensure hooks don't break across SDK updates.
+OpenAgent CLI uses these structures to ensure hooks don't break across SDK
+updates.
 
 **LLMRequest**:
 

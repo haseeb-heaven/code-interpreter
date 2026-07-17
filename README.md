@@ -14,7 +14,13 @@
 > bring-your-own-key frontier models. Describe a task in plain English. Get the
 > result.
 
-![OpenAgent CLI Screenshot](assets/openagent_cli_screenshot.jpg)
+### Main UI / UX
+
+![OpenAgent Main UI](assets/openagent_main_ui.png)
+
+The interactive terminal UI shows the **OA** header, auth status (for example
+`Authenticated with Gemini API key`), approval mode, model, workspace, branch,
+memory usage, and the prompt — ready for natural-language tasks.
 
 ```bash
 npm install
@@ -74,8 +80,24 @@ npm start -- --provider lmstudio
 | **Account / sign-in**      |         ✅ none needed         |   ❌ often required   |
 | **MCP support**            |               ✅               |       ⚠️ varies       |
 
+## Documentation
+
+Full guides live in **[`docs/`](docs/README.md)** (beautifully structured for
+GitHub browsing):
+
+| Guide         | Link                                                                 |
+| ------------- | -------------------------------------------------------------------- |
+| **Docs home** | [docs/index.md](docs/index.md)                                       |
+| Quickstart    | [docs/get-started/index.md](docs/get-started/index.md)               |
+| Free models   | [docs/get-started/free-models.md](docs/get-started/free-models.md)   |
+| Local models  | [docs/get-started/local-models.md](docs/get-started/local-models.md) |
+| Providers     | [docs/get-started/providers.md](docs/get-started/providers.md)       |
+| Common errors | [docs/resources/common-errors.md](docs/resources/common-errors.md)   |
+| Model matrix  | [Models.MD](Models.MD)                                               |
+
 ## Table of Contents
 
+- [Documentation](#documentation)
 - [Installation](#installation)
 - [API key setup for all providers](#api-key-setup-for-all-providers)
 - [Model registry](#model-registry-configsmodelstoml)

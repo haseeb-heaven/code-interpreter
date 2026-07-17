@@ -1,10 +1,10 @@
-# Gemini CLI settings (`/settings` command)
+# open-agent settings (`/settings` command)
 
-Control your Gemini CLI experience with the `/settings` command. The `/settings`
-command opens a dialog to view and edit all your Gemini CLI settings, including
+Control your open-agent experience with the `/settings` command. The `/settings`
+command opens a dialog to view and edit all your open-agent settings, including
 your UI experience, keybindings, and accessibility features.
 
-Your Gemini CLI settings are stored in a `settings.json` file. In addition to
+Your open-agent settings are stored in a `settings.json` file. In addition to
 using the `/settings` command, you can also edit them in one of the following
 locations:
 
@@ -56,9 +56,9 @@ they appear in the UI.
 | Terminal Background Polling Interval | `ui.terminalBackgroundPollingInterval` | Interval in seconds to poll the terminal background color.                                                                                                        | `60`    |
 | Hide Window Title                    | `ui.hideWindowTitle`                   | Hide the window title bar                                                                                                                                         | `false` |
 | Inline Thinking                      | `ui.inlineThinkingMode`                | Display model thinking inline: off or full.                                                                                                                       | `"off"` |
-| Show Thoughts in Title               | `ui.showStatusInTitle`                 | Show Gemini CLI model thoughts in the terminal window title during the working phase                                                                              | `false` |
+| Show Thoughts in Title               | `ui.showStatusInTitle`                 | Show open-agent model thoughts in the terminal window title during the working phase                                                                              | `false` |
 | Dynamic Window Title                 | `ui.dynamicWindowTitle`                | Update the terminal window title with current status icons (Ready: ◇, Action Required: ✋, Working: ✦)                                                            | `true`  |
-| Show Home Directory Warning          | `ui.showHomeDirectoryWarning`          | Show a warning when running Gemini CLI in the home directory.                                                                                                     | `true`  |
+| Show Home Directory Warning          | `ui.showHomeDirectoryWarning`          | Show a warning when running open-agent in the home directory.                                                                                                     | `true`  |
 | Show Compatibility Warnings          | `ui.showCompatibilityWarnings`         | Show warnings about terminal or OS compatibility issues.                                                                                                          | `true`  |
 | Hide Tips                            | `ui.hideTips`                          | Hide helpful tips in the UI                                                                                                                                       | `false` |
 | Escape Pasted @ Symbols              | `ui.escapePastedAtSymbols`             | When enabled, @ symbols in pasted text are escaped to prevent unintended @path expansion.                                                                         | `false` |
@@ -177,7 +177,7 @@ they appear in the UI.
 | Model Steering                                       | `experimental.modelSteering`                    | Enable model steering (user hints) to guide the model during tool execution.                                                                                                                                                                                           | `false`              |
 | Direct Web Fetch                                     | `experimental.directWebFetch`                   | Enable web fetch behavior that bypasses LLM summarization.                                                                                                                                                                                                             | `false`              |
 | Enable Gemma Model Router                            | `experimental.gemmaModelRouter.enabled`         | Enable the Gemma Model Router (experimental). Requires a local endpoint serving Gemma via the Gemini API using LiteRT-LM shim.                                                                                                                                         | `false`              |
-| Auto-start LiteRT Server                             | `experimental.gemmaModelRouter.autoStartServer` | Automatically start the LiteRT-LM server when Gemini CLI starts and the Gemma router is enabled.                                                                                                                                                                       | `false`              |
+| Auto-start LiteRT Server                             | `experimental.gemmaModelRouter.autoStartServer` | Automatically start the LiteRT-LM server when open-agent starts and the Gemma router is enabled.                                                                                                                                                                       | `false`              |
 | Auto Memory                                          | `experimental.autoMemory`                       | Automatically extract memory patches and skills from past sessions in the background. Every change is written as a unified diff `.patch` file under `<projectMemoryDir>/.inbox/<kind>/` and held for review in /memory inbox; nothing is applied until you approve it. | `false`              |
 | Use the generalist profile to manage agent contexts. | `experimental.generalistProfile`                | Suitable for general coding and software development tasks.                                                                                                                                                                                                            | `false`              |
 | Enable Context Management                            | `experimental.contextManagement`                | Enable logic for context management.                                                                                                                                                                                                                                   | `false`              |

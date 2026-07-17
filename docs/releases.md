@@ -1,4 +1,4 @@
-# Gemini CLI releases
+# open-agent releases
 
 <!-- prettier-ignore -->
 > [!IMPORTANT]
@@ -22,9 +22,9 @@ More information can be found about these systems in the
 
 | Package    | `prod` (Wombat Dressing Room) | `dev` (GitHub Private NPM Repo)           |
 | ---------- | ----------------------------- | ----------------------------------------- |
-| CLI        | open-agent            | @haseeb-heaven/open-agent                 |
-| Core       | @open-agent/core       | @haseeb-heaven/open-agent-core A2A Server |
-| A2A Server | @open-agent/a2a-server | @haseeb-heaven/open-agent-a2a-server      |
+| CLI        | open-agent                    | @haseeb-heaven/open-agent                 |
+| Core       | @open-agent/core              | @haseeb-heaven/open-agent-core A2A Server |
+| A2A Server | @open-agent/a2a-server        | @haseeb-heaven/open-agent-a2a-server      |
 
 ## Release cadence and tags
 
@@ -177,8 +177,8 @@ require a full release cycle.
       release administrator.
 5.  Click **Run workflow**.
 
-The workflow will then run `npm dist-tag add` for the appropriate `gemini-cli`,
-`gemini-cli-core` and `gemini-cli-a2a-server` packages, pointing the specified
+The workflow will then run `npm dist-tag add` for the appropriate `open-agent`,
+`@open-agent/core` and `@open-agent/a2a-server` packages, pointing the specified
 channel to the specified version.
 
 ## Patching
@@ -380,8 +380,8 @@ packages are working as expected. This can be done by installing the packages
 locally and running a set of tests to ensure that they are functioning
 correctly.
 
-- `npx -y open-agent@latest --version` to validate the push worked as
-  expected if you were not doing a rc or dev tag
+- `npx -y open-agent@latest --version` to validate the push worked as expected
+  if you were not doing a rc or dev tag
 - `npx -y open-agent@<release tag> --version` to validate the tag pushed
   appropriately
 - _This is destructive locally_
@@ -462,12 +462,12 @@ Here are the key stages:
 
 **Stage 3: Publishing standard packages to NPM**
 
-- **What happens:** The `npm publish` command is run for the
-  `@open-agent/core` and `open-agent` packages.
+- **What happens:** The `npm publish` command is run for the `@open-agent/core`
+  and `open-agent` packages.
 - **Why:** This publishes them as standard Node.js packages. Users installing
-  via `npm install -g open-agent` will download these packages, and
-  `npm` will handle installing the `@open-agent/core` dependency
-  automatically. The code in these packages is not bundled into a single file.
+  via `npm install -g open-agent` will download these packages, and `npm` will
+  handle installing the `@open-agent/core` dependency automatically. The code in
+  these packages is not bundled into a single file.
 
 **Stage 4: Assembling and creating the GitHub release asset**
 
@@ -479,8 +479,8 @@ executable that enables `npx` usage directly from the GitHub repository.
     - **What happens:** The built JavaScript from both `packages/core/dist` and
       `packages/cli/dist`, along with all third-party JavaScript dependencies,
       are bundled by `esbuild` into a single, executable JavaScript file (for
-      example, `gemini.js`). The `node-pty` library is excluded from this bundle
-      as it contains native binaries.
+      example, `openagent.js`). The `node-pty` library is excluded from this
+      bundle as it contains native binaries.
     - **Why:** This creates a single, optimized file that contains all the
       necessary application code. It simplifies execution for users who want to
       run the CLI without a full `npm install`, as all dependencies (including
@@ -489,10 +489,10 @@ executable that enables `npx` usage directly from the GitHub repository.
 2.  **The `bundle` directory is assembled:**
 
     - **What happens:** A temporary `bundle` folder is created at the project
-      root. The single `gemini.js` executable is placed inside it, along with
+      root. The single `openagent.js` executable is placed inside it, along with
       other essential files.
     - **File movement:**
-      - `gemini.js` (from esbuild) -> `bundle/gemini.js`
+      - `openagent.js` (from esbuild) -> `bundle/openagent.js`
       - `README.md` -> `bundle/README.md`
       - `LICENSE` -> `bundle/LICENSE`
       - `packages/cli/src/utils/*.sb` (sandbox profiles) -> `bundle/`
@@ -501,7 +501,7 @@ executable that enables `npx` usage directly from the GitHub repository.
 
 3.  **The GitHub release is created:**
     - **What happens:** The contents of the `bundle` directory, including the
-      `gemini.js` executable, are attached as assets to a new GitHub Release.
+      `openagent.js` executable, are attached as assets to a new GitHub Release.
     - **Why:** This makes the single-file version of the CLI available for
       direct download and enables the
       `npx https://github.com/haseeb-heaven/open-agent` command, which downloads
@@ -510,10 +510,9 @@ executable that enables `npx` usage directly from the GitHub repository.
 **Summary of artifacts**
 
 - **NPM:** Publishes standard, un-bundled Node.js packages. The primary artifact
-  is the code in `packages/cli/dist`, which depends on
-  `@open-agent/core`.
-- **GitHub release:** Publishes a single, bundled `gemini.js` file that contains
-  all dependencies, for easy execution via `npx`.
+  is the code in `packages/cli/dist`, which depends on `@open-agent/core`.
+- **GitHub release:** Publishes a single, bundled `openagent.js` file that
+  contains all dependencies, for easy execution via `npx`.
 
 This dual-artifact process ensures that both traditional `npm` users and those
 who prefer the convenience of `npx` have an optimized experience.

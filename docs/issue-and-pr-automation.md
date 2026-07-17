@@ -185,7 +185,7 @@ the total volume of line changes.
 ### 7. Release automation
 
 This workflow handles the process of packaging and publishing new versions of
-Gemini CLI.
+open-agent.
 
 - **Workflow File**: `.github/workflows/release-manual.yml`
 - **When it runs**: On a daily schedule for "nightly" releases, and manually for

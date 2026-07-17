@@ -1,8 +1,9 @@
 # CLI commands
 
-Gemini CLI supports several built-in commands to help you manage your session,
-customize the interface, and control its behavior. These commands are prefixed
-with a forward slash (`/`), an at symbol (`@`), or an exclamation mark (`!`).
+OpenAgent CLI supports several built-in commands to help you manage your
+session, customize the interface, and control its behavior. These commands are
+prefixed with a forward slash (`/`), an at symbol (`@`), or an exclamation mark
+(`!`).
 
 ## Slash commands (`/`)
 
@@ -43,11 +44,11 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/bug`
 
-- **Description:** File an issue about Gemini CLI. By default, the issue is
-  filed within the GitHub repository for Gemini CLI. The string you enter after
-  `/bug` will become the headline for the bug being filed. The default `/bug`
-  behavior can be modified using the `advanced.bugCommand` setting in your
-  `.gemini/settings.json` files.
+- **Description:** File an issue about OpenAgent CLI. By default, the issue is
+  filed within the GitHub repository for OpenAgent CLI. The string you enter
+  after `/bug` will become the headline for the bug being filed. The default
+  `/bug` behavior can be modified using the `advanced.bugCommand` setting in
+  your `.gemini/settings.json` files.
 
 ### `/chat`
 
@@ -76,7 +77,7 @@ Slash commands provide meta-level control over the CLI itself.
     - **Description:** Resumes a conversation from a previous save.
     - **Note:** You can only resume chats that were saved within the current
       project. To resume a chat from a different project, you must run the
-      Gemini CLI from that project's directory.
+      OpenAgent CLI from that project's directory.
     - **Equivalent:** `/resume resume <tag>`
   - **`save <tag>`**
     - **Description:** Saves the current conversation history. You must add a
@@ -131,7 +132,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/copy`
 
-- **Description:** Copies the last output produced by Gemini CLI to your
+- **Description:** Copies the last output produced by OpenAgent CLI to your
   clipboard, for easy sharing or reuse.
 - **Behavior:**
   - Local sessions use system clipboard tools (pbcopy/xclip/clip).
@@ -161,7 +162,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/docs`
 
-- **Description:** Open Gemini CLI documentation in your browser.
+- **Description:** Open OpenAgent CLI documentation in your browser.
 
 ### `/editor`
 
@@ -170,7 +171,7 @@ Slash commands provide meta-level control over the CLI itself.
 ### `/extensions`
 
 - **Description:** Manage extensions. See
-  [Gemini CLI Extensions](../extensions/index.md).
+  [OpenAgent CLI Extensions](../extensions/index.md).
 - **Sub-commands:**
   - **`config`**:
     - **Description:** Configure extension settings.
@@ -195,13 +196,13 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/help` (or `/?`)
 
-- **Description:** Display help information about Gemini CLI, including
+- **Description:** Display help information about OpenAgent CLI, including
   available commands and their usage.
 
 ### `/hooks`
 
 - **Description:** Manage hooks, which allow you to intercept and customize
-  Gemini CLI behavior at specific lifecycle events.
+  OpenAgent CLI behavior at specific lifecycle events.
 - **Sub-commands:**
   - **`disable-all`**:
     - **Description:** Disable all enabled hooks.
@@ -324,7 +325,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/quit` (or `/exit`)
 
-- **Description:** Exit Gemini CLI.
+- **Description:** Exit OpenAgent CLI.
 - **Flags:**
   - **`--delete`** _(optional)_: Exit and permanently delete the current
     session's history and temporary files (chat recording, tool outputs). Useful
@@ -392,10 +393,10 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/settings`
 
-- **Description:** Open the settings editor to view and modify Gemini CLI
+- **Description:** Open the settings editor to view and modify OpenAgent CLI
   settings.
 - **Details:** This command provides a user-friendly interface for changing
-  settings that control the behavior and appearance of Gemini CLI. It is
+  settings that control the behavior and appearance of OpenAgent CLI. It is
   equivalent to manually editing the `.gemini/settings.json` file, but with
   validation and guidance to prevent errors. See the
   [settings documentation](../cli/settings.md) for a full list of available
@@ -435,7 +436,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/stats`
 
-- **Description:** Display detailed statistics for the current Gemini CLI
+- **Description:** Display detailed statistics for the current OpenAgent CLI
   session.
 - **Sub-commands:**
   - **`session`**:
@@ -454,13 +455,13 @@ Slash commands provide meta-level control over the CLI itself.
 
 ### `/theme`
 
-- **Description:** Open a dialog that lets you change the visual theme of Gemini
-  CLI.
+- **Description:** Open a dialog that lets you change the visual theme of
+  OpenAgent CLI.
 
 ### `/tools`
 
 - **Description:** Display a list of tools that are currently available within
-  Gemini CLI.
+  OpenAgent CLI.
 - **Usage:** `/tools [desc]`
 - **Sub-commands:**
   - **`desc`** or **`descriptions`**:
@@ -564,7 +565,7 @@ your prompt to Gemini. These commands include git-aware filtering.
 ## Shell mode and passthrough commands (`!`)
 
 The `!` prefix lets you interact with your system's shell directly from within
-Gemini CLI.
+OpenAgent CLI.
 
 - **`!<shell_command>`**
 
@@ -573,8 +574,8 @@ Gemini CLI.
     override `ComSpec`). Any output or errors from the command are displayed in
     the terminal.
   - **Examples:**
-    - `!ls -la` (executes `ls -la` and returns to Gemini CLI)
-    - `!git status` (executes `git status` and returns to Gemini CLI)
+    - `!ls -la` (executes `ls -la` and returns to OpenAgent CLI)
+    - `!git status` (executes `git status` and returns to OpenAgent CLI)
 
 - **`!` (Toggle shell mode)**
 
@@ -585,8 +586,8 @@ Gemini CLI.
       - While in shell mode, text you type is interpreted directly as a shell
         command.
     - **Exiting shell mode:**
-      - When exited, the UI reverts to its standard appearance and normal Gemini
-        CLI behavior resumes.
+      - When exited, the UI reverts to its standard appearance and normal
+        OpenAgent CLI behavior resumes.
 
 - **Caution for all `!` usage:** Commands you execute in shell mode have the
   same permissions and impact as if you ran them directly in your terminal.
@@ -594,4 +595,4 @@ Gemini CLI.
 - **Environment variable:** When a command is executed via `!` or in shell mode,
   the `GEMINI_CLI=1` environment variable is set in the subprocess's
   environment. This allows scripts or tools to detect if they are being run from
-  within Gemini CLI.
+  within OpenAgent CLI.

@@ -1,6 +1,6 @@
 # Get started with Agent Skills
 
-Agent Skills extend Gemini CLI with specialized expertise. In this tutorial,
+Agent Skills extend open-agent with specialized expertise. In this tutorial,
 you'll learn how to create your first skill, bundle custom logic, and activate
 it during a session.
 
@@ -78,10 +78,10 @@ fetch(url, { method: 'HEAD' })
 
 ## Verify discovery
 
-Gemini CLI automatically discovers skills in the `.gemini/skills` directory (as
+open-agent automatically discovers skills in the `.gemini/skills` directory (as
 well as the `.agents/skills` alias).
 
-To check if Gemini CLI found your new skill, use the `/skills list` command
+To check if open-agent found your new skill, use the `/skills list` command
 within an interactive session:
 
 ```bash
@@ -124,17 +124,17 @@ Now that the skill is discovered, you can trigger its activation by asking a
 relevant question.
 
 1.  **Trigger**: Start a new session and ask: "Can you audit https://google.com"
-2.  **Activation**: Gemini identifies that the request matches the `api-auditor`
-    description and calls the `activate_skill` tool.
+2.  **Activation**: open-agent identifies that the request matches the
+    `api-auditor` description and calls the `activate_skill` tool.
 3.  **Consent**: You will see a confirmation prompt. Type **y** to approve.
-4.  **Execution**: Once activated, Gemini uses the `run_shell_command` tool to
-    execute your bundled script:
+4.  **Execution**: Once activated, open-agent uses the `run_shell_command` tool
+    to execute your bundled script:
     `node .gemini/skills/api-auditor/scripts/audit.js https://google.com`
 
 ## Pro tip: Use the skill-creator
 
 If you don't want to create the files manually, you can use the built-in
-`skill-creator` skill. Simply ask Gemini:
+`skill-creator` skill. Simply ask open-agent:
 
 > "Create a new skill called 'api-auditor' that tests if URLs are responding."
 
@@ -142,11 +142,12 @@ The `skill-creator` will handle the directory structure and boilerplate for you.
 
 ## Manage skills
 
-You can also manage skills using the `gemini skills` command from your terminal:
+You can also manage skills using the `openagent skills` command from your
+terminal:
 
-- **Install**: `gemini skills install <url-or-path>`
-- **Link**: `gemini skills link <path>` (useful for local development)
-- **Uninstall**: `gemini skills uninstall <name>`
+- **Install**: `openagent skills install <url-or-path>`
+- **Link**: `openagent skills link <path>` (useful for local development)
+- **Uninstall**: `openagent skills uninstall <name>`
 
 ## Next steps
 

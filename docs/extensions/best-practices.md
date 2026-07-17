@@ -1,11 +1,11 @@
-# Gemini CLI extension best practices
+# OpenAgent CLI extension best practices
 
 This guide covers best practices for developing, securing, and maintaining
-Gemini CLI extensions.
+OpenAgent CLI extensions.
 
 ## Development
 
-Developing extensions for Gemini CLI is a lightweight, iterative process. Use
+Developing extensions for OpenAgent CLI is a lightweight, iterative process. Use
 these strategies to build robust and efficient extensions.
 
 ### Structure your extension
@@ -165,7 +165,7 @@ If your extension doesn't appear in `/extensions list`:
 - **Verify the name:** The `name` field in the manifest must match the extension
   directory name exactly.
 - **Restart the CLI:** Extensions are loaded at the start of a session. Restart
-  Gemini CLI after making changes to the manifest or linking a new extension.
+  OpenAgent CLI after making changes to the manifest or linking a new extension.
 
 ### MCP server failures
 
@@ -174,7 +174,7 @@ If your tools aren't working as expected:
 - **Check the logs:** View the CLI logs to see if the MCP server failed to
   start.
 - **Test the command:** Run the server's `command` and `args` directly in your
-  terminal to ensure it starts correctly outside of Gemini CLI.
+  terminal to ensure it starts correctly outside of OpenAgent CLI.
 - **Debug console:** In interactive mode, press **F12** to open the debug
   console and inspect tool calls and responses.
 

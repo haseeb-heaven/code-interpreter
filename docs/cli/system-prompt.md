@@ -1,6 +1,6 @@
 # System Prompt Override (GEMINI_SYSTEM_MD)
 
-The core system instructions that guide Gemini CLI can be completely replaced
+The core system instructions that guide open-agent can be completely replaced
 with your own Markdown file. This feature is controlled via the
 `GEMINI_SYSTEM_MD` environment variable.
 
@@ -48,12 +48,12 @@ error with: `missing system prompt file '<path>'`.
 ## Quick examples
 
 - One‑off session using a project file:
-  - `GEMINI_SYSTEM_MD=1 gemini`
+  - `GEMINI_SYSTEM_MD=1 openagent`
 - Persist for a project using `.gemini/.env`:
   - Create `.gemini/system.md`, then add to `.gemini/.env`:
     - `GEMINI_SYSTEM_MD=1`
 - Use a custom file under your home directory:
-  - `GEMINI_SYSTEM_MD=~/prompts/system.md gemini`
+  - `GEMINI_SYSTEM_MD=~/prompts/system.md openagent`
 
 ## UI indicator
 
@@ -98,9 +98,9 @@ Before overriding, export the current default prompt so you can review required
 safety and workflow rules.
 
 - Write the built‑in prompt to the project default path:
-  - `GEMINI_WRITE_SYSTEM_MD=1 gemini`
+  - `GEMINI_WRITE_SYSTEM_MD=1 openagent`
 - Or write to a custom path:
-  - `GEMINI_WRITE_SYSTEM_MD=~/prompts/DEFAULT_SYSTEM.md gemini`
+  - `GEMINI_WRITE_SYSTEM_MD=~/prompts/DEFAULT_SYSTEM.md openagent`
 
 This creates the file and writes the current built‑in system prompt to it.
 

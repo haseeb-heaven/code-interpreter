@@ -1,6 +1,6 @@
 # MCP resource tools
 
-MCP resource tools let Gemini CLI discover and retrieve data from contextual
+MCP resource tools let OpenAgent CLI discover and retrieve data from contextual
 resources exposed by Model Context Protocol (MCP) servers.
 
 ## 1. `list_mcp_resources` (ListMcpResources)

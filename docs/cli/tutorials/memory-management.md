@@ -1,17 +1,17 @@
 # Manage context and memory
 
-Control what Gemini CLI knows about you and your projects. In this guide, you'll
+Control what open-agent knows about you and your projects. In this guide, you'll
 learn how to define project-wide rules with `GEMINI.md`, teach the agent
 persistent facts, and inspect the active context.
 
 ## Prerequisites
 
-- Gemini CLI installed and authenticated.
+- open-agent installed and authenticated.
 - A project directory where you want to enforce specific rules.
 
 ## Why manage context?
 
-Gemini CLI is powerful but general. It doesn't know your preferred testing
+open-agent is powerful but general. It doesn't know your preferred testing
 framework, your indentation style, or your preference against `any` in
 TypeScript. Context management solves this by giving the agent persistent
 memory.
@@ -46,7 +46,7 @@ loaded into every conversation.
     - **Tone:** Be concise. Don't explain basic React concepts.
     ```
 
-3.  Start a new session. Gemini CLI will now know these rules automatically.
+3.  Start a new session. open-agent will now know these rules automatically.
 
 ### Scenario: Using the hierarchy
 

@@ -1,7 +1,7 @@
-# Gemini CLI model selection (`/model` command)
+# open-agent model selection (`/model` command)
 
-Select your Gemini CLI model. The `/model` command lets you configure the model
-used by Gemini CLI, giving you more control over your results. Use **Pro**
+Select your open-agent model. The `/model` command lets you configure the model
+used by open-agent, giving you more control over your results. Use **Pro**
 models for complex tasks and reasoning, **Flash** models for high speed results,
 or the (recommended) **Auto** setting to choose the best model for your tasks.
 
@@ -13,7 +13,7 @@ or the (recommended) **Auto** setting to choose the best model for your tasks.
 
 ## How to use the `/model` command
 
-Use the following command in Gemini CLI:
+Use the following command in open-agent:
 
 ```
 /model
@@ -35,7 +35,7 @@ startup. For more details, refer to the
 [configuration documentation](../reference/configuration.md).
 
 Changes to these settings will be applied to all subsequent interactions with
-Gemini CLI.
+open-agent.
 
 ## Best practices for model selection
 
