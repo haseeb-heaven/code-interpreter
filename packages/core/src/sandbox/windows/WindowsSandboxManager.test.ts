@@ -91,7 +91,7 @@ describe('WindowsSandboxManager', () => {
     }
   });
 
-  it('should prepare a GeminiSandbox.exe command', async () => {
+  it('should prepare an OpenAgentSandbox.exe command', async () => {
     const req: SandboxRequest = {
       command: 'whoami',
       args: ['/groups'],
@@ -104,7 +104,7 @@ describe('WindowsSandboxManager', () => {
 
     const result = await manager.prepareCommand(req);
 
-    expect(result.program).toContain('GeminiSandbox.exe');
+    expect(result.program).toContain('OpenAgentSandbox.exe');
     expect(result.args).toEqual([
       '0',
       testCwd,

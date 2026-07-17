@@ -15,11 +15,11 @@ using System.Security.Principal;
 using System.Text;
 
 /**
- * A native C# helper for the Gemini CLI sandbox on Windows.
+ * A native C# helper for the OpenAgent sandbox on Windows.
  * This helper uses Restricted Tokens and Job Objects to isolate processes.
  * It also supports internal commands for safe file I/O within the sandbox.
  */
-public class GeminiSandbox {
+public class OpenAgentSandbox {
     // --- P/Invoke Constants and Structures ---
     private const int JobObjectExtendedLimitInformation = 9;
     private const int JobObjectNetRateControlInformation = 32;
@@ -190,7 +190,7 @@ public class GeminiSandbox {
     // --- Main Entry Point ---
     static int Main(string[] args) {
         if (args.Length < 3) {
-            Console.Error.WriteLine("Usage: GeminiSandbox.exe <network:0|1> <cwd> [--forbidden-manifest <path>] [--allowed-manifest <path>] <command> [args...]");
+            Console.Error.WriteLine("Usage: OpenAgentSandbox.exe <network:0|1> <cwd> [--forbidden-manifest <path>] [--allowed-manifest <path>] <command> [args...]");
             Console.Error.WriteLine("Internal commands: __read <path>, __write <path>");
             return 1;
         }

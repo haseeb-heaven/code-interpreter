@@ -23,6 +23,10 @@ const __dirname = path.dirname(__filename);
 interface SandboxCliArgs {
   sandbox?: boolean | string | null;
 }
+// Placeholder OpenAgent sandbox image; not published to a registry yet.
+const DEFAULT_UNPUBLISHED_SANDBOX_IMAGE =
+  'ghcr.io/haseeb-heaven/open-agent-sandbox:4.0.0';
+
 const VALID_SANDBOX_COMMANDS = [
   'docker',
   'podman',
@@ -50,7 +54,9 @@ function getSandboxCommand(
 
   // note environment variable takes precedence over argument (from command line or settings)
   const environmentConfiguredSandbox =
-    process.env['GEMINI_SANDBOX']?.toLowerCase().trim() ?? '';
+    process.env['OPENAGENT_SANDBOX']?.toLowerCase().trim() ??
+    process.env['GEMINI_SANDBOX']?.toLowerCase().trim() ??
+    '';
   sandbox =
     environmentConfiguredSandbox?.length > 0
       ? environmentConfiguredSandbox
@@ -86,7 +92,7 @@ function getSandboxCommand(
     // confirm that specified command exists (unless it's built-in)
     if (sandbox !== 'windows-native' && !commandExists.sync(sandbox)) {
       throw new FatalSandboxError(
-        `Missing sandbox command '${sandbox}' (from GEMINI_SANDBOX)`,
+        `Missing sandbox command '${sandbox}' (from OPENAGENT_SANDBOX)`,
       );
     }
     // runsc uses Docker with --runtime=runsc; both must be available (prioritize runsc when explicitly chosen)
@@ -112,8 +118,8 @@ function getSandboxCommand(
   // throw an error if user requested sandbox but no command was found
   if (sandbox === true) {
     throw new FatalSandboxError(
-      'GEMINI_SANDBOX is true but failed to determine command for sandbox; ' +
-        'install docker or podman or specify command in GEMINI_SANDBOX',
+      'OPENAGENT_SANDBOX is true but failed to determine command for sandbox; ' +
+        'install docker or podman or specify command in OPENAGENT_SANDBOX',
     );
   }
 
@@ -152,7 +158,9 @@ export async function loadSandboxConfig(
 
   const packageJson = await getPackageJson(__dirname);
   const image =
+    process.env['OPENAGENT_SANDBOX_IMAGE'] ??
     process.env['GEMINI_SANDBOX_IMAGE'] ??
+    process.env['OPENAGENT_SANDBOX_IMAGE_DEFAULT'] ??
     process.env['GEMINI_SANDBOX_IMAGE_DEFAULT'] ??
     customImage ??
     packageJson?.config?.sandboxImageUri;
@@ -161,6 +169,16 @@ export async function loadSandboxConfig(
     command === 'windows-native' ||
     command === 'sandbox-exec' ||
     command === 'lxc';
+
+  const isContainerCommand = command === 'docker' || command === 'podman';
+  if (isContainerCommand && image === DEFAULT_UNPUBLISHED_SANDBOX_IMAGE) {
+    throw new FatalSandboxError(
+      `The default OpenAgent sandbox image ('${DEFAULT_UNPUBLISHED_SANDBOX_IMAGE}') ` +
+        'has not been published yet. Build it locally with `npm run build:sandbox` ' +
+        'and set OPENAGENT_SANDBOX_IMAGE to the local tag, or point OPENAGENT_SANDBOX_IMAGE ' +
+        'at another image.',
+    );
+  }
 
   return command && (image || isNative)
     ? { enabled: true, allowedPaths, networkAccess, command, image }

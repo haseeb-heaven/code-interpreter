@@ -90,6 +90,9 @@ const cliConfig = {
     __filename: '__chunk_filename',
     __dirname: '__chunk_dirname',
     'process.env.CLI_VERSION': JSON.stringify(pkg.version),
+    'process.env.OPENAGENT_SANDBOX_IMAGE_DEFAULT': JSON.stringify(
+      pkg.config?.sandboxImageUri,
+    ),
     'process.env.GEMINI_SANDBOX_IMAGE_DEFAULT': JSON.stringify(
       pkg.config?.sandboxImageUri,
     ),

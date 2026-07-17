@@ -16,7 +16,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Compiles the GeminiSandbox C# helper on Windows.
+ * Compiles the OpenAgentSandbox C# helper on Windows.
  * This is used to provide native restricted token sandboxing.
  */
 function compileWindowsSandbox() {
@@ -26,15 +26,15 @@ function compileWindowsSandbox() {
 
   const srcHelperPath = path.resolve(
     __dirname,
-    '../src/sandbox/windows/GeminiSandbox.exe',
+    '../src/sandbox/windows/OpenAgentSandbox.exe',
   );
   const distHelperPath = path.resolve(
     __dirname,
-    '../dist/src/sandbox/windows/GeminiSandbox.exe',
+    '../dist/src/sandbox/windows/OpenAgentSandbox.exe',
   );
   const sourcePath = path.resolve(
     __dirname,
-    '../src/sandbox/windows/GeminiSandbox.cs',
+    '../src/sandbox/windows/OpenAgentSandbox.cs',
   );
 
   if (!fs.existsSync(sourcePath)) {
@@ -102,7 +102,7 @@ function compileWindowsSandbox() {
   );
 
   if (result.status === 0) {
-    console.log('Successfully compiled GeminiSandbox.exe to src');
+    console.log('Successfully compiled OpenAgentSandbox.exe to src');
     // Copy to dist if dist exists
     const distDir = path.resolve(__dirname, '../dist');
     if (fs.existsSync(distDir)) {
@@ -111,7 +111,7 @@ function compileWindowsSandbox() {
         fs.mkdirSync(distScriptsDir, { recursive: true });
       }
       fs.copyFileSync(srcHelperPath, distHelperPath);
-      console.log('Successfully copied GeminiSandbox.exe to dist');
+      console.log('Successfully copied OpenAgentSandbox.exe to dist');
     }
   } else {
     console.error('Failed to compile Windows sandbox helper.');

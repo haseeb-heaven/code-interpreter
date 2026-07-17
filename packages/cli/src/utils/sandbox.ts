@@ -163,8 +163,10 @@ export async function start_sandbox(
           ...finalArgv.map((arg) => quote([arg])),
         ].join(' '),
       );
-      // start and set up proxy if GEMINI_SANDBOX_PROXY_COMMAND is set
-      const proxyCommand = process.env['GEMINI_SANDBOX_PROXY_COMMAND'];
+      // start and set up proxy if OPENAGENT_SANDBOX_PROXY_COMMAND is set
+      const proxyCommand =
+        process.env['OPENAGENT_SANDBOX_PROXY_COMMAND'] ??
+        process.env['GEMINI_SANDBOX_PROXY_COMMAND'];
       let proxyProcess: ChildProcess | undefined = undefined;
       let sandboxProcess: ChildProcess | undefined = undefined;
       const sandboxEnv = { ...process.env };
@@ -292,7 +294,8 @@ export async function start_sandbox(
             stdio: 'inherit',
             env: {
               ...process.env,
-              GEMINI_SANDBOX: command, // in case sandbox is enabled via flags (see config.ts under cli package)
+              OPENAGENT_SANDBOX: command, // in case sandbox is enabled via flags (see config.ts under cli package)
+              GEMINI_SANDBOX: command, // legacy alias
             },
           },
         );
@@ -451,8 +454,10 @@ export async function start_sandbox(
 
     // copy proxy environment variables, replacing localhost with SANDBOX_PROXY_NAME
     // copy as both upper-case and lower-case as is required by some utilities
-    // GEMINI_SANDBOX_PROXY_COMMAND implies HTTPS_PROXY unless HTTP_PROXY is set
-    const proxyCommand = process.env['GEMINI_SANDBOX_PROXY_COMMAND'];
+    // OPENAGENT_SANDBOX_PROXY_COMMAND implies HTTPS_PROXY unless HTTP_PROXY is set
+    const proxyCommand =
+      process.env['OPENAGENT_SANDBOX_PROXY_COMMAND'] ??
+      process.env['GEMINI_SANDBOX_PROXY_COMMAND'];
 
     if (proxyCommand) {
       let proxy =
@@ -678,6 +683,8 @@ export async function start_sandbox(
       // finally switch to that user to run the gemini process. This is
       // necessary on Linux to ensure the user exists within the
       // container's /etc/passwd file, which is required by os.userInfo().
+      // TODO(sandbox-image): rename to 'openagent' once an OpenAgent-built
+      // sandbox image replaces the unpublished placeholder in package.json.
       const username = 'gemini';
       const homeDir = getContainerPath(homedir());
       const quotedHomeDir = quote([homeDir]);
@@ -721,7 +728,7 @@ export async function start_sandbox(
     // push container entrypoint (including args)
     args.push(...finalEntrypoint);
 
-    // start and set up proxy if GEMINI_SANDBOX_PROXY_COMMAND is set
+    // start and set up proxy if OPENAGENT_SANDBOX_PROXY_COMMAND is set
     let proxyProcess: ChildProcess | undefined = undefined;
     let sandboxProcess: ChildProcess | undefined = undefined;
 
