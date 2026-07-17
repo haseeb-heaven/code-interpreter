@@ -222,7 +222,9 @@ export function ProviderModelDialog({
       const entry = pendingKeyEntry;
       if (!entry || !entry.provider.envKey) return;
 
-      const typed = value.trim();
+      // Strip all whitespace/newlines from paste (Windows pastes often include \r).
+      // writeEnvKey rejects keys with newlines and would crash the TUI uncaught.
+      const typed = value.replace(/\s+/g, '').trim();
       const envKey = String(entry.provider.envKey);
 
       // Empty submit + existing key → keep existing key and switch model.
@@ -234,33 +236,52 @@ export function ProviderModelDialog({
         return;
       }
 
-      if (typed) {
-        // .env is gitignored; same store the --byok walkthrough uses.
-        writeEnvKey(path.join(process.cwd(), '.env'), envKey, typed);
-        process.env[envKey] = typed;
-      }
+      try {
+        if (typed) {
+          // .env is gitignored; same store the --byok walkthrough uses.
+          writeEnvKey(path.join(process.cwd(), '.env'), envKey, typed);
+          process.env[envKey] = typed;
+        }
 
-      setPendingKeyEntry(null);
-      setExistingKey(undefined);
-      applyModel(entry);
+        setPendingKeyEntry(null);
+        setExistingKey(undefined);
+        setNotice('');
+        applyModel(entry);
+      } catch (err) {
+        // Never let setup crashes kill the process — stay on the key step.
+        const msg = err instanceof Error ? err.message : String(err);
+        setNotice(`Could not save key: ${msg}. Fix and press Enter again.`);
+      }
     },
     [pendingKeyEntry, existingKey, applyModel],
   );
 
   useKeypress(
     (key) => {
-      if (key.name === 'escape') {
-        if (pendingKeyEntry) {
-          setPendingKeyEntry(null);
-          setExistingKey(undefined);
-        } else {
-          onClose();
+      // Swallow Ctrl+C / Ctrl+D while in this dialog so global quit doesn't
+      // fire mid-paste (users often Ctrl+C to copy, then paste into the box).
+      if (
+        (key.ctrl && (key.name === 'c' || key.name === 'd')) ||
+        key.name === 'escape'
+      ) {
+        if (key.name === 'escape' || (key.ctrl && key.name === 'c')) {
+          if (pendingKeyEntry) {
+            setPendingKeyEntry(null);
+            setExistingKey(undefined);
+            setNotice('Cancelled key entry. Select a model again or Esc to close.');
+            return true;
+          }
+          if (key.name === 'escape') {
+            onClose();
+            return true;
+          }
         }
+        // Ctrl+C with no key step: keep dialog open (global handler also sees it)
         return true;
       }
       return false;
     },
-    { isActive: true },
+    { isActive: true, priority: true },
   );
 
   const currentModel = config?.getModel() ?? '';
@@ -363,8 +384,10 @@ export function ProviderModelDialog({
               }
               onSubmit={handleKeySubmit}
               onCancel={() => {
+                // Esc only — go back to model list, do not quit the app.
                 setPendingKeyEntry(null);
                 setExistingKey(undefined);
+                setNotice('');
               }}
             />
           </Box>
@@ -375,7 +398,7 @@ export function ProviderModelDialog({
           )}
           <Box marginTop={1}>
             <Text color={theme.text.secondary}>
-              Keys are saved to .env (gitignored) in this project.
+              Paste key then Enter to save · Esc back to list · keys go to .env
             </Text>
           </Box>
         </Box>

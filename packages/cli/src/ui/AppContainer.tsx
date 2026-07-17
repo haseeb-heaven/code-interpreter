@@ -1827,6 +1827,12 @@ Logging in with Google... Restarting OpenAgent to continue.
       }
 
       if (keyMatchers[Command.QUIT](key)) {
+        // While multi-model setup (or key paste) is open, ignore Ctrl+C for
+        // quit — users copy keys with Ctrl+C then paste into the dialog.
+        // Esc closes the dialog; use /quit after closing if you need to exit.
+        if (isModelDialogOpen || isWebSearchDialogOpen) {
+          return true;
+        }
         // If the user presses Ctrl+C, we want to cancel any ongoing requests.
         // This should happen regardless of the count.
         void cancelOngoingRequest?.();
@@ -1834,9 +1840,9 @@ Logging in with Google... Restarting OpenAgent to continue.
         handleCtrlCPress();
         return true;
       } else if (keyMatchers[Command.EXIT](key)) {
-        // If the input field is non-empty, do not exit.
-        if (bufferRef.current.text.length > 0) {
-          return false;
+        // If the input field is non-empty or setup dialog is open, do not exit.
+        if (bufferRef.current.text.length > 0 || isModelDialogOpen) {
+          return true;
         }
         handleCtrlDPress();
         return true;
@@ -2030,6 +2036,8 @@ Logging in with Google... Restarting OpenAgent to continue.
       handleCtrlDPress,
       handleSlashCommand,
       cancelOngoingRequest,
+      isModelDialogOpen,
+      isWebSearchDialogOpen,
       activePtyId,
       handleSuspend,
       embeddedShellFocused,
