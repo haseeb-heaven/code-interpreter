@@ -16,7 +16,6 @@
  * localhost:11434 is probed first and used automatically when running.
  */
 
-import * as path from 'node:path';
 import * as readline from 'node:readline/promises';
 import { Writable } from 'node:stream';
 import {

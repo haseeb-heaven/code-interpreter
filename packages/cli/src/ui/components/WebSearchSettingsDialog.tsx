@@ -11,7 +11,6 @@
  */
 
 import type React from 'react';
-import * as path from 'node:path';
 import { useCallback, useContext, useMemo, useState } from 'react';
 import { Box, Text } from 'ink';
 import {
