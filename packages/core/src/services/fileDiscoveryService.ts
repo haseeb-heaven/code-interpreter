@@ -13,7 +13,10 @@ import {
   type IgnoreFileFilter,
 } from '../utils/ignoreFileParser.js';
 import { isGitRepository } from '../utils/gitUtils.js';
-import { GEMINI_IGNORE_FILE_NAME } from '../config/constants.js';
+import {
+  GEMINI_IGNORE_FILE_NAME,
+  OPENAGENT_IGNORE_FILE_NAME,
+} from '../config/constants.js';
 import { isNodeError } from '../utils/errors.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import fs from 'node:fs';
@@ -49,10 +52,10 @@ export class FileDiscoveryService {
     if (isGitRepository(this.projectRoot)) {
       this.gitIgnoreFilter = new GitIgnoreParser(this.projectRoot);
     }
-    this.geminiIgnoreFilter = new IgnoreFileParser(
-      this.projectRoot,
+    this.geminiIgnoreFilter = new IgnoreFileParser(this.projectRoot, [
+      OPENAGENT_IGNORE_FILE_NAME,
       GEMINI_IGNORE_FILE_NAME,
-    );
+    ]);
     if (this.defaultFilterFileOptions.customIgnoreFilePaths?.length) {
       this.customIgnoreFilter = new IgnoreFileParser(
         this.projectRoot,
