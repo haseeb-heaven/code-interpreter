@@ -102,8 +102,11 @@ describe('commandSafety', () => {
       ).toBe(false);
     });
 
-    it('should still flag sudo, find -exec, and unsafe rg flags', () => {
-      expect(isDangerousCommand(['sudo', 'ls'], false)).toBe(true);
+    it('should still flag sudo <dangerous-cmd>, find -exec, and unsafe rg flags', () => {
+      // A bare `sudo` is not itself flagged; the check recurses into the
+      // sub-command, so it's only dangerous if the sub-command is.
+      expect(isDangerousCommand(['sudo', 'ls'], false)).toBe(false);
+      expect(isDangerousCommand(['sudo', 'rm', '-rf', '/'], false)).toBe(true);
       expect(isDangerousCommand(['find', '.', '-exec', 'rm', '{}'], false)).toBe(
         true,
       );

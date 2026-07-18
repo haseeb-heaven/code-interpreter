@@ -486,8 +486,10 @@ export function isCircuitBreakerCommand(args: string[]): boolean {
 /**
  * Legacy, narrower dangerous-command check retained for approval modes that
  * predate the broadened Auto-mode heuristics (DEFAULT, AUTO_EDIT). Only
- * flags `rm -f`/`-rf`/`-fr`, `sudo`, unsafe `find`/`rg` flags, mutating
- * `git` reads, and `base64 -o`.
+ * flags `rm -f`/`-rf`/`-fr`, unsafe `find`/`rg` flags, mutating `git` reads,
+ * and `base64 -o`. A leading `sudo` is not itself flagged; it is stripped
+ * and the check recurses into the sub-command, so `sudo <cmd>` is flagged
+ * only if `<cmd>` alone would be.
  *
  * @param args - The command and its arguments.
  * @returns true if the command is identified as dangerous under the legacy rules.
