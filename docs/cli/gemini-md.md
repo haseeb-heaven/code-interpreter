@@ -1,9 +1,10 @@
-# Provide context with GEMINI.md files
+# Provide context with OPENAGENT.md files
 
-Context files, which use the default name `GEMINI.md`, are a powerful feature
-for providing instructional context to the Gemini model. You can use these files
-to give project-specific instructions, define a persona, or provide coding style
-guides to make the AI's responses more accurate and tailored to your needs.
+Context files, which use the default name `OPENAGENT.md` (falling back to
+`AGENTS.md` or `GEMINI.md` if present), are a powerful feature for providing
+instructional context to the model. You can use these files to give
+project-specific instructions, define a persona, or provide coding style guides
+to make the AI's responses more accurate and tailored to your needs.
 
 Instead of repeating instructions in every prompt, you can define them once in a
 context file.
@@ -17,19 +18,19 @@ order:
 
 1.  **Global context file:**
 
-    - **Location:** `~/.gemini/GEMINI.md` (in your user home directory).
+    - **Location:** `~/.openagent/OPENAGENT.md` (in your user home directory).
     - **Scope:** Provides default instructions for all your projects.
 
 2.  **Environment and workspace context files:**
 
-    - **Location:** The CLI searches for `GEMINI.md` files in your configured
+    - **Location:** The CLI searches for `OPENAGENT.md` files in your configured
       workspace directories and their parent directories.
     - **Scope:** Provides context relevant to the projects you are currently
       working on.
 
 3.  **Just-in-time (JIT) context files:**
     - **Location:** When a tool accesses a file or directory, the CLI
-      automatically scans for `GEMINI.md` files in that directory and its
+      automatically scans for `OPENAGENT.md` files in that directory and its
       ancestors up to a trusted root.
     - **Scope:** Lets the model discover highly specific instructions for
       particular components only when they are needed.
@@ -37,10 +38,10 @@ order:
 The CLI footer displays the number of loaded context files, which gives you a
 quick visual cue of the active instructional context.
 
-### Example `GEMINI.md` file
+### Example `OPENAGENT.md` file
 
-Here is an example of what you can include in a `GEMINI.md` file at the root of
-a TypeScript project:
+Here is an example of what you can include in an `OPENAGENT.md` file at the root
+of a TypeScript project:
 
 ```markdown
 # Project: My TypeScript Library
@@ -65,19 +66,19 @@ You can interact with the loaded context files by using the `/memory` command.
 - **`/memory show`**: Displays the full, concatenated content of the current
   hierarchical memory. This lets you inspect the exact instructional context
   being provided to the model.
-- **`/memory reload`**: Forces a re-scan and reload of all `GEMINI.md` files
+- **`/memory reload`**: Forces a re-scan and reload of all `OPENAGENT.md` files
   from all configured locations.
 
 ## Modularize context with imports
 
-You can break down large `GEMINI.md` files into smaller, more manageable
+You can break down large `OPENAGENT.md` files into smaller, more manageable
 components by importing content from other files using the `@file.md` syntax.
 This feature supports both relative and absolute paths.
 
-**Example `GEMINI.md` with imports:**
+**Example `OPENAGENT.md` with imports:**
 
 ```markdown
-# Main GEMINI.md file
+# Main OPENAGENT.md file
 
 This is the main content.
 
@@ -93,9 +94,10 @@ documentation.
 
 ## Customize the context file name
 
-While `GEMINI.md` is the default filename, you can configure this in your
-`settings.json` file. To specify a different name or a list of names, use the
-`context.fileName` property.
+While `OPENAGENT.md` is the default filename (with `AGENTS.md` and `GEMINI.md`
+recognized as fallbacks), you can configure this in your `settings.json` file.
+To specify a different name or a list of names, use the `context.fileName`
+property.
 
 **Example `settings.json`:**
 

@@ -82,9 +82,7 @@ describe('commandSafety', () => {
 
     it('should not flag chmod/chown/kill/docker/crontab broadening', () => {
       expect(isDangerousCommand(['chmod', '777', 'file'], false)).toBe(false);
-      expect(isDangerousCommand(['chown', 'root', 'file'], false)).toBe(
-        false,
-      );
+      expect(isDangerousCommand(['chown', 'root', 'file'], false)).toBe(false);
       expect(isDangerousCommand(['kill', '-9', '1234'], false)).toBe(false);
       expect(
         isDangerousCommand(['docker', 'rm', '-f', 'container'], false),
@@ -94,9 +92,7 @@ describe('commandSafety', () => {
 
     it('should not flag destructive git ops added by the broadening', () => {
       expect(isDangerousCommand(['git', 'clean', '-fd'], false)).toBe(false);
-      expect(isDangerousCommand(['git', 'reset', '--hard'], false)).toBe(
-        false,
-      );
+      expect(isDangerousCommand(['git', 'reset', '--hard'], false)).toBe(false);
       expect(
         isDangerousCommand(['git', 'push', '--force', 'origin', 'main'], false),
       ).toBe(false);
@@ -107,9 +103,9 @@ describe('commandSafety', () => {
       // sub-command, so it's only dangerous if the sub-command is.
       expect(isDangerousCommand(['sudo', 'ls'], false)).toBe(false);
       expect(isDangerousCommand(['sudo', 'rm', '-rf', '/'], false)).toBe(true);
-      expect(isDangerousCommand(['find', '.', '-exec', 'rm', '{}'], false)).toBe(
-        true,
-      );
+      expect(
+        isDangerousCommand(['find', '.', '-exec', 'rm', '{}'], false),
+      ).toBe(true);
       expect(
         isDangerousCommand(['/usr/bin/rg', '--search-zip', 'pattern'], false),
       ).toBe(true);

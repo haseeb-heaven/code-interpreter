@@ -122,9 +122,9 @@ describe('Windows commandSafety', () => {
   describe('isDangerousCommand with strict=false (legacy DEFAULT/AUTO_EDIT rule set)', () => {
     it('should still flag the original dangerous command list', () => {
       expect(isDangerousCommand(['del', 'file.txt'], false)).toBe(true);
-      expect(isDangerousCommand(['powershell', '-Command', 'echo'], false)).toBe(
-        true,
-      );
+      expect(
+        isDangerousCommand(['powershell', '-Command', 'echo'], false),
+      ).toBe(true);
       expect(isDangerousCommand(['cmd', '/c', 'dir'], false)).toBe(true);
     });
 

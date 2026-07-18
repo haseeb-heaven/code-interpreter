@@ -1933,9 +1933,7 @@ describe('PolicyEngine', () => {
 
     it('should use the narrow legacy dangerous-command check in DEFAULT mode', async () => {
       const mockSandboxManager = new NoopSandboxManager();
-      const isDangerousCommandSpy = vi
-        .fn()
-        .mockReturnValue(false);
+      const isDangerousCommandSpy = vi.fn().mockReturnValue(false);
       mockSandboxManager.isDangerousCommand = isDangerousCommandSpy;
       mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
 
@@ -1960,9 +1958,7 @@ describe('PolicyEngine', () => {
 
     it('should use the narrow legacy dangerous-command check in AUTO_EDIT mode', async () => {
       const mockSandboxManager = new NoopSandboxManager();
-      const isDangerousCommandSpy = vi
-        .fn()
-        .mockReturnValue(false);
+      const isDangerousCommandSpy = vi.fn().mockReturnValue(false);
       mockSandboxManager.isDangerousCommand = isDangerousCommandSpy;
       mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
 
@@ -1987,9 +1983,7 @@ describe('PolicyEngine', () => {
 
     it('should use the broad dangerous-command check in AUTO mode', async () => {
       const mockSandboxManager = new NoopSandboxManager();
-      const isDangerousCommandSpy = vi
-        .fn()
-        .mockReturnValue(false);
+      const isDangerousCommandSpy = vi.fn().mockReturnValue(false);
       mockSandboxManager.isDangerousCommand = isDangerousCommandSpy;
       mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
 

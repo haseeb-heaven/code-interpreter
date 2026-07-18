@@ -337,7 +337,7 @@ export class PolicyEngine {
         )
       ) {
         if (this.approvalMode === ApprovalMode.YOLO) {
-          console.warn(
+          debugLogger.warn(
             `[OpenAgent] YOLO mode: executing command flagged as dangerous without confirmation: ${command}`,
           );
           debugLogger.debug(
@@ -675,7 +675,7 @@ export class PolicyEngine {
               return { decision: PolicyDecision.ASK_USER };
             }
             if (this.sandboxManager.isDangerousCommand(parsedArgs, true)) {
-              console.warn(
+              debugLogger.warn(
                 `[OpenAgent] YOLO mode: executing command flagged as dangerous without confirmation: ${command}`,
               );
               debugLogger.debug(
