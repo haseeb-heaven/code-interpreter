@@ -11,7 +11,7 @@ terminal-first, extensible, and powerful tool for developers.
   understanding, generation, automation, and integration via MCP (Model Context
   Protocol), routed through a multi-provider model registry.
 - **Main Technologies:**
-  - **Runtime:** Node.js (>=20.0.0, recommended ~20.19.0 for development)
+  - **Runtime:** Node.js (>=22.0.0, recommended ~22.x for development)
   - **Language:** TypeScript
   - **UI Framework:** React (using [Ink](https://github.com/vadimdemedes/ink)
     for CLI rendering)
