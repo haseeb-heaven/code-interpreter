@@ -26,7 +26,7 @@ concurrency:
 jobs:
   deflake_e2e_linux:
     name: 'E2E Test (Linux) - ${{ matrix.sandbox }}'
-    runs-on: 'gemini-cli-ubuntu-16-core'
+    runs-on: 'ubuntu-latest'
     if: "github.repository == 'haseeb-heaven/open-agent'"
     strategy:
       fail-fast: false
@@ -119,7 +119,7 @@ jobs:
 
   deflake_e2e_windows:
     name: 'Slow E2E - Win'
-    runs-on: 'gemini-cli-windows-16-core'
+    runs-on: 'windows-latest'
     if: "github.repository == 'haseeb-heaven/open-agent'"
     steps:
       - name: 'Checkout'

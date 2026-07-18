@@ -16,7 +16,7 @@ on:
 jobs:
   save_repo_name:
     if: "github.repository == 'haseeb-heaven/open-agent'"
-    runs-on: 'gemini-cli-ubuntu-16-core'
+    runs-on: 'ubuntu-latest'
     steps:
       - name: 'Save Repo name'
         env:
@@ -33,7 +33,7 @@ jobs:
   trigger_e2e:
     name: 'Trigger e2e'
     if: "github.repository == 'haseeb-heaven/open-agent'"
-    runs-on: 'gemini-cli-ubuntu-16-core'
+    runs-on: 'ubuntu-latest'
     steps:
       - id: 'trigger-e2e'
         run: |
