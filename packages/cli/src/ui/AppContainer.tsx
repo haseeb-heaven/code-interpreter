@@ -716,6 +716,23 @@ export const AppContainer = (props: AppContainerProps) => {
   );
   // Poll for terminal background color changes to auto-switch theme
   useTerminalTheme(handleThemeSelect, config, refreshStatic);
+  // Open multi-model picker on start when setup requested (missing key / first run).
+  // Same Ink UI as /model — never the bare "Enter NVIDIA API key:" console prompt.
+  // Declared before useAuthCommand so its initial value can gate the eager
+  // refreshAuth() attempt below (a fresh no-key install must let the user
+  // pick a provider/model before auth is attempted, not race ahead of it).
+  const { isModelDialogOpen, openModelDialog, closeModelDialog } =
+    useModelCommand(
+      // Lazy import avoided: env flag is set in providerStartup before UI loads.
+      process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'] === '1',
+    );
+
+  useEffect(() => {
+    if (process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'] === '1') {
+      delete process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'];
+    }
+  }, []);
+
   const {
     authState,
     setAuthState,
@@ -730,7 +747,16 @@ export const AppContainer = (props: AppContainerProps) => {
     config,
     initializationResult.authError,
     initializationResult.accountSuspensionInfo,
+    isModelDialogOpen,
   );
+
+  // Once the first-run model picker closes, retry auth against whatever
+  // model/provider the user just picked (or the prior default, if they
+  // cancelled) instead of leaving a stale pre-dialog auth failure in place.
+  const closeModelDialogAndRetryAuth = useCallback(() => {
+    closeModelDialog();
+    setAuthState(AuthState.Unauthenticated);
+  }, [closeModelDialog, setAuthState]);
   const [authContext, setAuthContext] = useState<{ requiresRestart?: boolean }>(
     {},
   );
@@ -933,20 +959,6 @@ Logging in with Google... Restarting OpenAgent to continue.
     settings.merged.security.auth.useExternal,
     onAuthError,
   ]);
-
-  // Open multi-model picker on start when setup requested (missing key / first run).
-  // Same Ink UI as /model — never the bare "Enter NVIDIA API key:" console prompt.
-  const { isModelDialogOpen, openModelDialog, closeModelDialog } =
-    useModelCommand(
-      // Lazy import avoided: env flag is set in providerStartup before UI loads.
-      process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'] === '1',
-    );
-
-  useEffect(() => {
-    if (process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'] === '1') {
-      delete process.env['OPENAGENT_CLI_OPEN_MODEL_DIALOG'];
-    }
-  }, []);
 
   const { isWebSearchDialogOpen, openWebSearchDialog, closeWebSearchDialog } =
     useWebSearchCommand();
@@ -2706,7 +2718,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       exitEditorDialog,
       exitPrivacyNotice,
       closeSettingsDialog,
-      closeModelDialog,
+      closeModelDialog: closeModelDialogAndRetryAuth,
       closeWebSearchDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
@@ -2809,7 +2821,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       exitEditorDialog,
       exitPrivacyNotice,
       closeSettingsDialog,
-      closeModelDialog,
+      closeModelDialogAndRetryAuth,
       closeWebSearchDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,

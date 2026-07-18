@@ -45,6 +45,7 @@ export const useAuthCommand = (
   config: Config,
   initialAuthError: string | null = null,
   initialAccountSuspensionInfo: AccountSuspensionInfo | null = null,
+  isModelSetupDialogOpen = false,
 ) => {
   const [authState, setAuthState] = useState<AuthState>(
     initialAuthError ? AuthState.Updating : AuthState.Unauthenticated,
@@ -90,6 +91,14 @@ export const useAuthCommand = (
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     (async () => {
       if (authState !== AuthState.Unauthenticated) {
+        return;
+      }
+
+      // The first-run multi-model picker is open: let the user pick a
+      // provider/model and paste a key before attempting auth. Attempting
+      // refreshAuth() here would race ahead of that choice and fail against
+      // whatever default (e.g. an unconfigured gpt-4o) resolves first.
+      if (isModelSetupDialogOpen) {
         return;
       }
 
@@ -163,6 +172,7 @@ export const useAuthCommand = (
     settings,
     config,
     authState,
+    isModelSetupDialogOpen,
     setAuthState,
     setAuthError,
     onAuthError,
