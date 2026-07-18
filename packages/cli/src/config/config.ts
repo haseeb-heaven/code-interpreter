@@ -48,6 +48,7 @@ import {
   type RegistrySource,
   detectIdeFromEnv,
 } from '@open-agent/core';
+import { ExtensionRegistryClient } from './extensionRegistryClient.js';
 import {
   type Settings,
   type MergedSettings,
@@ -748,6 +749,14 @@ export async function loadCliConfig(
         uri: resolveToRealPath(path.resolve(cwd, resolvePath(source.uri))),
       };
     });
+    if (extensionRegistrySources.length === 0) {
+      extensionRegistrySources = [
+        {
+          name: ExtensionRegistryClient.DEFAULT_REGISTRY_NAME,
+          uri: ExtensionRegistryClient.DEFAULT_REGISTRY_URL,
+        },
+      ];
+    }
   }
 
   const finalExtensionLoader =
