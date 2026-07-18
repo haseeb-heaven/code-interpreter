@@ -323,8 +323,23 @@ export class PolicyEngine {
         return PolicyDecision.ASK_USER;
       }
 
-      if (this.sandboxManager.isDangerousCommand(parsedArgs)) {
+      // The broadened dangerous-command heuristics (Auto mode) only gate
+      // AUTO and YOLO. DEFAULT and AUTO_EDIT keep the narrower, pre-existing
+      // rule set so this doesn't introduce new confirmation prompts for
+      // approval modes that predate Auto mode.
+      const useBroadDangerousCheck =
+        this.approvalMode === ApprovalMode.AUTO ||
+        this.approvalMode === ApprovalMode.YOLO;
+      if (
+        this.sandboxManager.isDangerousCommand(
+          parsedArgs,
+          useBroadDangerousCheck,
+        )
+      ) {
         if (this.approvalMode === ApprovalMode.YOLO) {
+          debugLogger.warn(
+            `[OpenAgent] YOLO mode: executing command flagged as dangerous without confirmation: ${command}`,
+          );
           debugLogger.debug(
             `[PolicyEngine.check] Command evaluated as dangerous, but YOLO mode is active. Preserving decision: ${command}`,
           );
@@ -658,6 +673,14 @@ export class PolicyEngine {
                 `[PolicyEngine.check] NO MATCH in YOLO mode, but command matched circuit breaker - forcing ASK_USER: ${command}`,
               );
               return { decision: PolicyDecision.ASK_USER };
+            }
+            if (this.sandboxManager.isDangerousCommand(parsedArgs, true)) {
+              debugLogger.warn(
+                `[OpenAgent] YOLO mode: executing command flagged as dangerous without confirmation: ${command}`,
+              );
+              debugLogger.debug(
+                `[PolicyEngine.check] NO MATCH in YOLO mode, command evaluated as dangerous. Preserving ALLOW: ${command}`,
+              );
             }
           } catch {
             // Ignore parsing errors; fall through to YOLO allow below.

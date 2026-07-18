@@ -1,9 +1,10 @@
 # Provide context with OPENAGENT.md files
 
-Context files, which use the default name `OPENAGENT.md`, are a powerful feature
-for providing instructional context to the model. You can use these files to
-give project-specific instructions, define a persona, or provide coding style
-guides to make the AI's responses more accurate and tailored to your needs.
+Context files, which use the default name `OPENAGENT.md` (falling back to
+`AGENTS.md` or `GEMINI.md` if present), are a powerful feature for providing
+instructional context to the model. You can use these files to give
+project-specific instructions, define a persona, or provide coding style guides
+to make the AI's responses more accurate and tailored to your needs.
 
 Instead of repeating instructions in every prompt, you can define them once in a
 context file.
@@ -98,9 +99,10 @@ documentation.
 
 ## Customize the context file name
 
-While `OPENAGENT.md` is the default filename, you can configure this in your
-`settings.json` file. To specify a different name or a list of names, use the
-`context.fileName` property.
+While `OPENAGENT.md` is the default filename (with `AGENTS.md` and `GEMINI.md`
+recognized as fallbacks), you can configure this in your `settings.json` file.
+To specify a different name or a list of names, use the `context.fileName`
+property.
 
 **Example `settings.json`:**
 

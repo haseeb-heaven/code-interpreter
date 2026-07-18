@@ -118,4 +118,36 @@ describe('Windows commandSafety', () => {
       expect(isDangerousCommand(['net', 'user', 'bob', '/delete'])).toBe(true);
     });
   });
+
+  describe('isDangerousCommand with strict=false (legacy DEFAULT/AUTO_EDIT rule set)', () => {
+    it('should still flag the original dangerous command list', () => {
+      expect(isDangerousCommand(['del', 'file.txt'], false)).toBe(true);
+      expect(
+        isDangerousCommand(['powershell', '-Command', 'echo'], false),
+      ).toBe(true);
+      expect(isDangerousCommand(['cmd', '/c', 'dir'], false)).toBe(true);
+    });
+
+    it('should not flag the newly-expanded patterns', () => {
+      expect(
+        isDangerousCommand(['taskkill', '/F', '/IM', 'node.exe'], false),
+      ).toBe(false);
+      expect(
+        isDangerousCommand(
+          ['wmic', 'process', 'where', 'name="x"', 'delete'],
+          false,
+        ),
+      ).toBe(false);
+      expect(isDangerousCommand(['vssadmin', 'list', 'shadows'], false)).toBe(
+        false,
+      );
+      expect(isDangerousCommand(['net', 'user', 'bob', '/delete'], false)).toBe(
+        true,
+      );
+    });
+
+    it('should still be overridden by the circuit breaker', () => {
+      expect(isDangerousCommand(['format', 'C:'], false)).toBe(true);
+    });
+  });
 });

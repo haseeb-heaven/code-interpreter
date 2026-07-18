@@ -484,21 +484,129 @@ export function isCircuitBreakerCommand(args: string[]): boolean {
 }
 
 /**
+ * Legacy, narrower dangerous-command check retained for approval modes that
+ * predate the broadened Auto-mode heuristics (DEFAULT, AUTO_EDIT). Only
+ * flags `rm -f`/`-rf`/`-fr`, unsafe `find`/`rg` flags, mutating `git` reads,
+ * and `base64 -o`. A leading `sudo` is not itself flagged; it is stripped
+ * and the check recurses into the sub-command, so `sudo <cmd>` is flagged
+ * only if `<cmd>` alone would be.
+ *
+ * @param args - The command and its arguments.
+ * @returns true if the command is identified as dangerous under the legacy rules.
+ */
+export function isDangerousCommandLegacy(args: string[]): boolean {
+  if (!args || args.length === 0) {
+    return false;
+  }
+
+  const cmd = args[0];
+
+  if (cmd === 'rm') {
+    return args[1] === '-f' || args[1] === '-rf' || args[1] === '-fr';
+  }
+
+  if (cmd === 'sudo') {
+    return isDangerousCommandLegacy(args.slice(1));
+  }
+
+  if (cmd === 'find') {
+    const unsafeOptions = new Set([
+      '-exec',
+      '-execdir',
+      '-ok',
+      '-okdir',
+      '-delete',
+      '-fls',
+      '-fprint',
+      '-fprint0',
+      '-fprintf',
+    ]);
+    return args.some((arg) => unsafeOptions.has(arg));
+  }
+
+  if (isRipgrepCommand(cmd)) {
+    const unsafeWithArgs = new Set(['--pre', '--hostname-bin']);
+    const unsafeWithoutArgs = new Set(['--search-zip', '-z']);
+
+    return args.some((arg) => {
+      if (unsafeWithoutArgs.has(arg)) return true;
+      for (const opt of unsafeWithArgs) {
+        if (arg === opt || arg.startsWith(opt + '=')) return true;
+      }
+      return false;
+    });
+  }
+
+  if (cmd === 'git') {
+    if (gitHasConfigOverrideGlobalOption(args)) {
+      return true;
+    }
+
+    const { idx, subcommand } = findGitSubcommand(args, [
+      'status',
+      'log',
+      'diff',
+      'show',
+      'branch',
+    ]);
+    if (!subcommand) {
+      // It's a git command we don't recognize as explicitly safe.
+      return false;
+    }
+
+    const subcommandArgs = args.slice(idx + 1);
+
+    if (['status', 'log', 'diff', 'show'].includes(subcommand)) {
+      return !gitSubcommandArgsAreReadOnly(subcommandArgs);
+    }
+
+    if (subcommand === 'branch') {
+      return !(
+        gitSubcommandArgsAreReadOnly(subcommandArgs) &&
+        gitBranchIsReadOnly(subcommandArgs)
+      );
+    }
+
+    return false;
+  }
+
+  if (cmd === 'base64') {
+    const unsafeOptions = new Set(['-o', '--output']);
+    return args
+      .slice(1)
+      .some(
+        (arg) =>
+          unsafeOptions.has(arg) ||
+          arg.startsWith('--output=') ||
+          (arg.startsWith('-o') && arg !== '-o'),
+      );
+  }
+
+  return false;
+}
+
+/**
  * Checks if a command with its arguments is explicitly known to be dangerous
  * and should be blocked or require strict user confirmation. This catches
  * destructive commands like `rm -rf`, `sudo`, and commands with execution
  * flags like `find -exec`.
  *
  * @param args - The command and its arguments.
+ * @param strict - When false, only applies the legacy narrower rule set
+ *   (pre-Auto-mode behavior) instead of the full broadened check.
  * @returns true if the command is identified as dangerous, false otherwise.
  */
-export function isDangerousCommand(args: string[]): boolean {
+export function isDangerousCommand(args: string[], strict = true): boolean {
   if (!args || args.length === 0) {
     return false;
   }
 
   if (isCircuitBreakerCommand(args)) {
     return true;
+  }
+
+  if (!strict) {
+    return isDangerousCommandLegacy(args);
   }
 
   // Normalize basename for path-qualified commands (e.g. /bin/rm → rm)

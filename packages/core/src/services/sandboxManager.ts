@@ -174,8 +174,11 @@ export interface SandboxManager {
 
   /**
    * Checks if a command with its arguments is explicitly known to be dangerous for this sandbox.
+   *
+   * @param strict - When false, applies only the legacy narrower rule set
+   *   (pre-Auto-mode behavior) instead of the full broadened check.
    */
-  isDangerousCommand(args: string[]): boolean;
+  isDangerousCommand(args: string[], strict?: boolean): boolean;
 
   /**
    * Checks if a command matches an absolute, non-overridable denial
@@ -323,10 +326,10 @@ export class NoopSandboxManager implements SandboxManager {
       : isMacSafeCommand(args);
   }
 
-  isDangerousCommand(args: string[]): boolean {
+  isDangerousCommand(args: string[], strict = true): boolean {
     return os.platform() === 'win32'
-      ? isWindowsDangerousCommand(args)
-      : isMacDangerousCommand(args);
+      ? isWindowsDangerousCommand(args, strict)
+      : isMacDangerousCommand(args, strict);
   }
 
   isCircuitBreakerCommand(args: string[]): boolean {
@@ -362,7 +365,7 @@ export class LocalSandboxManager implements SandboxManager {
     return false;
   }
 
-  isDangerousCommand(_args: string[]): boolean {
+  isDangerousCommand(_args: string[], _strict = true): boolean {
     return false;
   }
 

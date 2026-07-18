@@ -63,7 +63,7 @@ four locations for these files:
     have controls over users' OpenAgent CLI setups.
 
 **Note on environment variables in settings:** String values within your
-`settings.json` and `gemini-extension.json` files can reference environment
+`settings.json` and `open-agent-extension.json` files can reference environment
 variables using `$VAR_NAME`, `${VAR_NAME}`, or `${VAR_NAME:-DEFAULT_VALUE}`
 syntax. These variables will be automatically resolved when the settings are
 loaded. For example, if you have an environment variable `MY_API_TOKEN`, you
@@ -133,16 +133,22 @@ their corresponding top-level category object in your `settings.json` file.
 
   - **Description:** The default approval mode for tool execution. 'default'
     prompts for approval, 'auto_edit' auto-approves edit tools, 'auto'
-    auto-approves safe tools and still prompts on dangerous shell commands /
-    path escapes (Claude Code-style Auto), and 'plan' is read-only mode. YOLO
-    mode (auto-approve all actions including dangerous) can only be enabled via
-    command line (--yolo or --approval-mode=yolo).
+    auto-approves safe tools (prompts on dangerous commands/path escapes), and
+    'plan' is read-only mode. YOLO mode (auto-approve all actions including
+    dangerous) can only be enabled via command line (--yolo or
+    --approval-mode=yolo).
   - **Default:** `"default"`
   - **Values:** `"default"`, `"auto_edit"`, `"auto"`, `"plan"`
 
 - **`general.devtools`** (boolean):
 
   - **Description:** Enable DevTools inspector on launch.
+  - **Default:** `false`
+
+- **`general.setupWizardCompleted`** (boolean):
+
+  - **Description:** Whether the first-run provider/model setup wizard has
+    already run.
   - **Default:** `false`
 
 - **`general.enableAutoUpdate`** (boolean):
@@ -296,8 +302,8 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.showStatusInTitle`** (boolean):
 
-  - **Description:** Show OpenAgent CLI model thoughts in the terminal window
-    title during the working phase
+  - **Description:** Show open-agent model thoughts in the terminal window title
+    during the working phase
   - **Default:** `false`
 
 - **`ui.dynamicWindowTitle`** (boolean):
@@ -308,7 +314,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.showHomeDirectoryWarning`** (boolean):
 
-  - **Description:** Show a warning when running OpenAgent CLI in the home
+  - **Description:** Show a warning when running open-agent in the home
     directory.
   - **Default:** `true`
   - **Requires restart:** Yes
@@ -2158,7 +2164,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`experimental.gemmaModelRouter.autoStartServer`** (boolean):
 
-  - **Description:** Automatically start the LiteRT-LM server when OpenAgent CLI
+  - **Description:** Automatically start the LiteRT-LM server when open-agent
     starts and the Gemma router is enabled.
   - **Default:** `false`
   - **Requires restart:** Yes
@@ -2927,14 +2933,14 @@ for that specific session.
 ## Context files (hierarchical instructional context)
 
 While not strictly configuration for the CLI's _behavior_, context files
-(defaulting to `OPENAGENT.md` but configurable via the `context.fileName`
-setting) are crucial for configuring the _instructional context_ (also referred
-to as "memory") provided to the Gemini model. This powerful feature lets you
-give project-specific instructions, coding style guides, or any relevant
-background information to the AI, making its responses more tailored and
-accurate to your needs. The CLI includes UI elements, such as an indicator in
-the footer showing the number of loaded context files, to keep you informed
-about the active context.
+(defaulting to `OPENAGENT.md`, with `AGENTS.md`/`GEMINI.md` recognized as
+fallbacks, and configurable via the `context.fileName` setting) are crucial for
+configuring the _instructional context_ (also referred to as "memory") provided
+to the Gemini model. This powerful feature lets you give project-specific
+instructions, coding style guides, or any relevant background information to the
+AI, making its responses more tailored and accurate to your needs. The CLI
+includes UI elements, such as an indicator in the footer showing the number of
+loaded context files, to keep you informed about the active context.
 
 - **Purpose:** These Markdown files contain instructions, guidelines, or context
   that you want the Gemini model to be aware of during your interactions. The

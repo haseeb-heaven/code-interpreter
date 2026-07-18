@@ -102,6 +102,13 @@
           "default": false,
           "type": "boolean"
         },
+        "setupWizardCompleted": {
+          "title": "Setup Wizard Completed",
+          "description": "Whether the first-run provider/model setup wizard has already run.",
+          "markdownDescription": "Whether the first-run provider/model setup wizard has already run.\n\n- Category: `General`\n- Requires restart: `no`\n- Default: `false`",
+          "default": false,
+          "type": "boolean"
+        },
         "enableAutoUpdate": {
           "title": "Enable Auto Update",
           "description": "Enable automatic updates.",
