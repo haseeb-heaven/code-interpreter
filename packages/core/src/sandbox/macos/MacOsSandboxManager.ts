@@ -58,8 +58,8 @@ export class MacOsSandboxManager implements SandboxManager {
     return isKnownSafeCommand(args);
   }
 
-  isDangerousCommand(args: string[]): boolean {
-    return isDangerousCommand(args);
+  isDangerousCommand(args: string[], strict = true): boolean {
+    return isDangerousCommand(args, strict);
   }
 
   isCircuitBreakerCommand(args: string[]): boolean {

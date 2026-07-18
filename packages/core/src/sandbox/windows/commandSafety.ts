@@ -155,11 +155,52 @@ export function isCircuitBreakerCommand(args: string[]): boolean {
 }
 
 /**
- * Checks if a Windows command is explicitly dangerous.
+ * Legacy, narrower dangerous-command check for Windows, retained for
+ * approval modes that predate the broadened Auto-mode heuristics (DEFAULT,
+ * AUTO_EDIT).
  */
-export function isDangerousCommand(args: string[]): boolean {
+export function isDangerousCommandLegacy(args: string[]): boolean {
+  if (!args || args.length === 0) return false;
+  let cmd = args[0].toLowerCase();
+  if (cmd.endsWith('.exe')) {
+    cmd = cmd.slice(0, -4);
+  }
+
+  const dangerous = new Set([
+    'del',
+    'erase',
+    'rd',
+    'rmdir',
+    'net',
+    'reg',
+    'sc',
+    'format',
+    'mklink',
+    'takeown',
+    'icacls',
+    'powershell',
+    'pwsh',
+    'cmd',
+    'remove-item',
+    'stop-process',
+    'stop-service',
+    'set-item',
+    'new-item',
+  ]);
+
+  return dangerous.has(cmd);
+}
+
+/**
+ * Checks if a Windows command is explicitly dangerous.
+ *
+ * @param strict - When false, only applies the legacy narrower rule set
+ *   (pre-Auto-mode behavior) instead of the full broadened check.
+ */
+export function isDangerousCommand(args: string[], strict = true): boolean {
   if (!args || args.length === 0) return false;
   if (isCircuitBreakerCommand(args)) return true;
+  if (!strict) return isDangerousCommandLegacy(args);
   let cmd = args[0].toLowerCase();
   if (cmd.endsWith('.exe')) {
     cmd = cmd.slice(0, -4);

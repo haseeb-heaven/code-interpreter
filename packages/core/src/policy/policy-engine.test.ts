@@ -1931,6 +1931,125 @@ describe('PolicyEngine', () => {
       expect(result.decision).toBe(PolicyDecision.ASK_USER);
     });
 
+    it('should use the narrow legacy dangerous-command check in DEFAULT mode', async () => {
+      const mockSandboxManager = new NoopSandboxManager();
+      const isDangerousCommandSpy = vi
+        .fn()
+        .mockReturnValue(false);
+      mockSandboxManager.isDangerousCommand = isDangerousCommandSpy;
+      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
+
+      engine = new PolicyEngine({
+        approvalMode: ApprovalMode.DEFAULT,
+        sandboxManager: mockSandboxManager,
+      });
+
+      await engine.check(
+        {
+          name: 'run_shell_command',
+          args: { command: 'chmod 777 file' },
+        },
+        undefined,
+      );
+
+      expect(isDangerousCommandSpy).toHaveBeenCalledWith(
+        expect.any(Array),
+        false,
+      );
+    });
+
+    it('should use the narrow legacy dangerous-command check in AUTO_EDIT mode', async () => {
+      const mockSandboxManager = new NoopSandboxManager();
+      const isDangerousCommandSpy = vi
+        .fn()
+        .mockReturnValue(false);
+      mockSandboxManager.isDangerousCommand = isDangerousCommandSpy;
+      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
+
+      engine = new PolicyEngine({
+        approvalMode: ApprovalMode.AUTO_EDIT,
+        sandboxManager: mockSandboxManager,
+      });
+
+      await engine.check(
+        {
+          name: 'run_shell_command',
+          args: { command: 'chmod 777 file' },
+        },
+        undefined,
+      );
+
+      expect(isDangerousCommandSpy).toHaveBeenCalledWith(
+        expect.any(Array),
+        false,
+      );
+    });
+
+    it('should use the broad dangerous-command check in AUTO mode', async () => {
+      const mockSandboxManager = new NoopSandboxManager();
+      const isDangerousCommandSpy = vi
+        .fn()
+        .mockReturnValue(false);
+      mockSandboxManager.isDangerousCommand = isDangerousCommandSpy;
+      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
+
+      engine = new PolicyEngine({
+        approvalMode: ApprovalMode.AUTO,
+        sandboxManager: mockSandboxManager,
+      });
+
+      await engine.check(
+        {
+          name: 'run_shell_command',
+          args: { command: 'chmod 777 file' },
+        },
+        undefined,
+      );
+
+      expect(isDangerousCommandSpy).toHaveBeenCalledWith(
+        expect.any(Array),
+        true,
+      );
+    });
+
+    it('should emit a visible warning when executing a dangerous command in YOLO mode', async () => {
+      const rules: PolicyRule[] = [
+        {
+          toolName: '*',
+          decision: PolicyDecision.ALLOW,
+          priority: 999,
+          modes: [ApprovalMode.YOLO],
+        },
+      ];
+
+      const mockSandboxManager = new NoopSandboxManager();
+      mockSandboxManager.isDangerousCommand = vi.fn().mockReturnValue(true);
+      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      engine = new PolicyEngine({
+        rules,
+        approvalMode: ApprovalMode.YOLO,
+        sandboxManager: mockSandboxManager,
+      });
+
+      const result = await engine.check(
+        {
+          name: 'run_shell_command',
+          args: { command: 'chmod 777 file' },
+        },
+        undefined,
+      );
+
+      expect(result.decision).toBe(PolicyDecision.ALLOW);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('flagged as dangerous'),
+      );
+
+      warnSpy.mockRestore();
+    });
+
     it('should force ASK_USER for circuit-breaker commands even in YOLO mode (matched-rule path)', async () => {
       const rules: PolicyRule[] = [
         {

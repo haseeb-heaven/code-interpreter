@@ -72,6 +72,51 @@ describe('commandSafety', () => {
     });
   });
 
+  describe('isDangerousCommand with strict=false (legacy DEFAULT/AUTO_EDIT rule set)', () => {
+    it('should only flag rm -f/-rf/-fr, not bare rm/rmdir/unlink', () => {
+      expect(isDangerousCommand(['rm', '-rf', '/tmp/x'], false)).toBe(true);
+      expect(isDangerousCommand(['rm', 'file.txt'], false)).toBe(false);
+      expect(isDangerousCommand(['rmdir', 'dir'], false)).toBe(false);
+      expect(isDangerousCommand(['unlink', 'file'], false)).toBe(false);
+    });
+
+    it('should not flag chmod/chown/kill/docker/crontab broadening', () => {
+      expect(isDangerousCommand(['chmod', '777', 'file'], false)).toBe(false);
+      expect(isDangerousCommand(['chown', 'root', 'file'], false)).toBe(
+        false,
+      );
+      expect(isDangerousCommand(['kill', '-9', '1234'], false)).toBe(false);
+      expect(
+        isDangerousCommand(['docker', 'rm', '-f', 'container'], false),
+      ).toBe(false);
+      expect(isDangerousCommand(['crontab', '-r'], false)).toBe(false);
+    });
+
+    it('should not flag destructive git ops added by the broadening', () => {
+      expect(isDangerousCommand(['git', 'clean', '-fd'], false)).toBe(false);
+      expect(isDangerousCommand(['git', 'reset', '--hard'], false)).toBe(
+        false,
+      );
+      expect(
+        isDangerousCommand(['git', 'push', '--force', 'origin', 'main'], false),
+      ).toBe(false);
+    });
+
+    it('should still flag sudo, find -exec, and unsafe rg flags', () => {
+      expect(isDangerousCommand(['sudo', 'ls'], false)).toBe(true);
+      expect(isDangerousCommand(['find', '.', '-exec', 'rm', '{}'], false)).toBe(
+        true,
+      );
+      expect(
+        isDangerousCommand(['/usr/bin/rg', '--search-zip', 'pattern'], false),
+      ).toBe(true);
+    });
+
+    it('should still be overridden by the circuit breaker', () => {
+      expect(isDangerousCommand(['rm', '-rf', '/'], false)).toBe(true);
+    });
+  });
+
   describe('rg specific logic', () => {
     it('should consider rg safe without unsafe args if path is trusted', () => {
       vi.mocked(paths.resolveToRealPath).mockReturnValue('/usr/bin/rg');
