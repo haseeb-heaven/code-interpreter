@@ -20,7 +20,7 @@
     "client/index.html"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.0.0"
   },
   "devDependencies": {
     "react": "19.2.4",
