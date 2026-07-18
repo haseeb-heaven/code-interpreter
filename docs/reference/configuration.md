@@ -2106,8 +2106,20 @@ their corresponding top-level category object in your `settings.json` file.
 - **`experimental.extensionRegistryURI`** (string):
 
   - **Description:** The URI (web URL or local file path) of the extension
-    registry.
-  - **Default:** `"https://geminicli.com/extensions.json"`
+    registry. Deprecated in favor of `extensionRegistries`; if explicitly set,
+    it takes precedence over the list as the sole effective registry (named
+    "Custom").
+  - **Default:** `""`
+  - **Requires restart:** Yes
+
+- **`experimental.extensionRegistries`** (array):
+
+  - **Description:** Named extension marketplace sources to browse/search
+    together. Each entry is a web URL or local file path, e.g.
+    `{ "name": "OpenAgent", "uri": "https://geminicli.com/extensions.json" }`.
+    Manage these with `openagent extensions registry add|remove|list`.
+  - **Default:**
+    `[{ "name": "OpenAgent", "uri": "https://geminicli.com/extensions.json" }]`
   - **Requires restart:** Yes
 
 - **`experimental.extensionReloading`** (boolean):
