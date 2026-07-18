@@ -17,7 +17,7 @@ structure for complex projects.
 my-extension/
 ├── package.json
 ├── tsconfig.json
-├── gemini-extension.json
+├── open-agent-extension.json
 ├── src/
 │   ├── index.ts
 │   └── tools/
@@ -67,7 +67,7 @@ model broad access (such as full shell access) if restricted tools are
 sufficient.
 
 If your extension uses powerful tools like `run_shell_command`, restrict them in
-your `gemini-extension.json` file:
+your `open-agent-extension.json` file:
 
 ```json
 {
@@ -138,7 +138,7 @@ gemini extensions install github.com/user/repo --ref dev
 ### Clean artifacts
 
 When using GitHub Releases, ensure your archives only contain necessary files
-(such as `dist/`, `gemini-extension.json`, and `package.json`). Exclude
+(such as `dist/`, `open-agent-extension.json`, and `package.json`). Exclude
 `node_modules/` and `src/` to minimize download size.
 
 ## Test and verify
@@ -160,7 +160,7 @@ Use these tips to diagnose and fix common extension issues.
 
 If your extension doesn't appear in `/extensions list`:
 
-- **Check the manifest:** Ensure `gemini-extension.json` is in the root
+- **Check the manifest:** Ensure `open-agent-extension.json` is in the root
   directory and contains valid JSON.
 - **Verify the name:** The `name` field in the manifest must match the extension
   directory name exactly.

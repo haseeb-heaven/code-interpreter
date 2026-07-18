@@ -115,9 +115,51 @@ export function isKnownSafeCommand(args: string[]): boolean {
 }
 
 /**
- * Checks if a Windows command is explicitly dangerous.
+ * Absolute, non-overridable denials for Windows — return true even in YOLO
+ * mode. Mirrors the POSIX circuit breaker: catastrophic, almost-never-
+ * intentional patterns (wipe a whole drive, format the system volume,
+ * delete volume shadow copies used for backup/recovery).
  */
-export function isDangerousCommand(args: string[]): boolean {
+export function isCircuitBreakerCommand(args: string[]): boolean {
+  if (!args || args.length === 0) return false;
+  let cmd = args[0].toLowerCase();
+  if (cmd.endsWith('.exe')) {
+    cmd = cmd.slice(0, -4);
+  }
+  const rest = args.slice(1).map((a) => a.toLowerCase());
+
+  if (
+    cmd === 'format' &&
+    rest.some((a) => /^[a-z]:\\?$/.test(a) || a === 'c:')
+  ) {
+    return true;
+  }
+
+  if (
+    (cmd === 'rd' ||
+      cmd === 'rmdir' ||
+      cmd === 'del' ||
+      cmd === 'erase' ||
+      cmd === 'remove-item') &&
+    rest.some((a) => /^[a-z]:\\?$/.test(a) || a === '\\' || a === '/')
+  ) {
+    return true;
+  }
+
+  // vssadmin delete shadows /all destroys all restore points/backups
+  if (cmd === 'vssadmin' && rest[0] === 'delete' && rest[1] === 'shadows') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Legacy, narrower dangerous-command check for Windows, retained for
+ * approval modes that predate the broadened Auto-mode heuristics (DEFAULT,
+ * AUTO_EDIT).
+ */
+export function isDangerousCommandLegacy(args: string[]): boolean {
   if (!args || args.length === 0) return false;
   let cmd = args[0].toLowerCase();
   if (cmd.endsWith('.exe')) {
@@ -136,7 +178,7 @@ export function isDangerousCommand(args: string[]): boolean {
     'mklink',
     'takeown',
     'icacls',
-    'powershell', // prevent shell escapes
+    'powershell',
     'pwsh',
     'cmd',
     'remove-item',
@@ -147,4 +189,140 @@ export function isDangerousCommand(args: string[]): boolean {
   ]);
 
   return dangerous.has(cmd);
+}
+
+/**
+ * Checks if a Windows command is explicitly dangerous.
+ *
+ * @param strict - When false, only applies the legacy narrower rule set
+ *   (pre-Auto-mode behavior) instead of the full broadened check.
+ */
+export function isDangerousCommand(args: string[], strict = true): boolean {
+  if (!args || args.length === 0) return false;
+  if (isCircuitBreakerCommand(args)) return true;
+  if (!strict) return isDangerousCommandLegacy(args);
+  let cmd = args[0].toLowerCase();
+  if (cmd.endsWith('.exe')) {
+    cmd = cmd.slice(0, -4);
+  }
+  const rest = args.slice(1).map((a) => a.toLowerCase());
+
+  // Process/task killing can terminate the agent's own session or services
+  if (cmd === 'taskkill' && rest.includes('/f')) {
+    return true;
+  }
+
+  // wmic <alias> delete can bulk-delete processes, shares, startup entries, etc.
+  if (cmd === 'wmic' && rest.includes('delete')) {
+    return true;
+  }
+
+  // vssadmin (any subcommand touching shadow copies) is destructive to backups
+  if (cmd === 'vssadmin') {
+    return true;
+  }
+
+  // fsutil can zero/delete files and manipulate volume-level file data
+  if (cmd === 'fsutil') {
+    return true;
+  }
+
+  // Clears the Recycle Bin (permanent, unrecoverable deletion)
+  if (cmd === 'clear-recyclebin') {
+    return true;
+  }
+
+  // wevtutil cl clears event logs — anti-forensic / destroys audit trail
+  if (cmd === 'wevtutil' && rest[0] === 'cl') {
+    return true;
+  }
+
+  // Loosens PowerShell's script execution safety net for the whole machine
+  if (cmd === 'set-executionpolicy') {
+    return true;
+  }
+
+  // Deletes a local/domain user account
+  if (cmd === 'net' && rest[0] === 'user' && rest.includes('/delete')) {
+    return true;
+  }
+
+  const dangerous = new Set([
+    'del',
+    'erase',
+    'rd',
+    'rmdir',
+    'rm',
+    'unlink',
+    'net',
+    'reg',
+    'sc',
+    'format',
+    'mklink',
+    'takeown',
+    'icacls',
+    'powershell', // prevent shell escapes
+    'pwsh',
+    'cmd',
+    'remove-item',
+    'stop-process',
+    'stop-service',
+    'set-item',
+    'new-item',
+    'move-item',
+    'copy-item',
+    'rename-item',
+    'clear-content',
+    'clear-item',
+    'set-content',
+    'add-content',
+    'out-file',
+    'start-process',
+    'invoke-expression',
+    'iex',
+    'shutdown',
+    'diskpart',
+    'bcdedit',
+    'cipher',
+    'attrib',
+    'cacls',
+    'sdelete',
+  ]);
+
+  if (dangerous.has(cmd)) {
+    return true;
+  }
+
+  // Protect writes/moves into Windows system directories
+  if (
+    cmd === 'move' ||
+    cmd === 'copy' ||
+    cmd === 'xcopy' ||
+    cmd === 'robocopy'
+  ) {
+    const targets = args
+      .slice(1)
+      .filter((a) => !a.startsWith('/') && !a.startsWith('-'));
+    if (targets.length > 0) {
+      const dest = targets[targets.length - 1].replace(/\\/g, '/');
+      const systemPrefixes = [
+        'C:/Windows',
+        'C:/Program Files',
+        'C:/Program Files (x86)',
+        '/Windows',
+        '/Program Files',
+      ];
+      if (
+        systemPrefixes.some(
+          (prefix) =>
+            dest.toLowerCase() === prefix.toLowerCase() ||
+            dest.toLowerCase().startsWith(prefix.toLowerCase() + '/'),
+        )
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }

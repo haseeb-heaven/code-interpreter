@@ -31,6 +31,11 @@ export const ApprovalModeIndicator: React.FC<ApprovalModeIndicatorProps> = ({
     case ApprovalMode.AUTO_EDIT:
       textColor = theme.status.warning;
       textContent = 'auto-accept edits';
+      subText = `${cycleHint} to auto`;
+      break;
+    case ApprovalMode.AUTO:
+      textColor = theme.status.warning;
+      textContent = 'auto (safe)';
       subText = allowPlanMode
         ? `${cycleHint} to plan`
         : `${cycleHint} to manual`;

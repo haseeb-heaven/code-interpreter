@@ -429,12 +429,17 @@ modes = [ "autoEdit", "yolo" ]
     memfs.mkdirSync(dir, { recursive: true });
     memfs.writeFileSync(policyFile, existingContent);
 
-    // Now grant in DEFAULT mode, which should include [default, autoEdit, yolo]
+    // Now grant in DEFAULT mode, which should include [default, autoEdit, auto, yolo]
     await messageBus.publish({
       type: MessageBusType.UPDATE_POLICY,
       toolName: 'test_tool',
       persist: true,
-      modes: [ApprovalMode.DEFAULT, ApprovalMode.AUTO_EDIT, ApprovalMode.YOLO],
+      modes: [
+        ApprovalMode.DEFAULT,
+        ApprovalMode.AUTO_EDIT,
+        ApprovalMode.AUTO,
+        ApprovalMode.YOLO,
+      ],
     });
 
     await vi.advanceTimersByTimeAsync(100);
@@ -443,7 +448,9 @@ modes = [ "autoEdit", "yolo" ]
     // Should NOT have two [[rule]] entries for test_tool
     const ruleCount = (content.match(/\[\[rule\]\]/g) || []).length;
     expect(ruleCount).toBe(1);
-    expect(content).toContain('modes = [ "default", "autoEdit", "yolo" ]');
+    expect(content).toContain(
+      'modes = [ "default", "autoEdit", "auto", "yolo" ]',
+    );
   });
 
   it('should fall back to copy+unlink when rename fails with EBUSY', async () => {

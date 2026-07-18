@@ -105,16 +105,16 @@ Hands-on tutorials for daily workflows.
 
 ## Configuration
 
-| Topic                                         | Link                                                                |
-| --------------------------------------------- | ------------------------------------------------------------------- |
-| Settings file                                 | [Settings](./cli/settings.md)                                       |
-| Full settings / env reference                 | [Configuration reference](./reference/configuration.md)             |
-| Model registry (`configs/models.toml`)        | [Providers](./get-started/providers.md) · [Models.MD](../Models.MD) |
-| Project context (`GEMINI.md` / context files) | [Project context](./cli/gemini-md.md)                               |
-| Ignore patterns                               | [Ignore files](./cli/gemini-ignore.md)                              |
-| Custom slash commands                         | [Custom commands](./cli/custom-commands.md)                         |
-| System prompt override                        | [System prompt](./cli/system-prompt.md)                             |
-| Policy engine                                 | [Policy engine](./reference/policy-engine.md)                       |
+| Topic                                            | Link                                                                |
+| ------------------------------------------------ | ------------------------------------------------------------------- |
+| Settings file                                    | [Settings](./cli/settings.md)                                       |
+| Full settings / env reference                    | [Configuration reference](./reference/configuration.md)             |
+| Model registry (`configs/models.toml`)           | [Providers](./get-started/providers.md) · [Models.MD](../Models.MD) |
+| Project context (`OPENAGENT.md` / context files) | [Project context](./cli/gemini-md.md)                               |
+| Ignore patterns                                  | [Ignore files](./cli/gemini-ignore.md)                              |
+| Custom slash commands                            | [Custom commands](./cli/custom-commands.md)                         |
+| System prompt override                           | [System prompt](./cli/system-prompt.md)                             |
+| Policy engine                                    | [Policy engine](./reference/policy-engine.md)                       |
 
 ---
 

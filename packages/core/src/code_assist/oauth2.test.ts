@@ -19,6 +19,13 @@ import {
   afterEach,
   type Mock,
 } from 'vitest';
+
+// oauth2.ts reads GOOGLE_OAUTH_CLIENT_ID once at module load to validate
+// LOGIN_WITH_GOOGLE requests. A fallback value is set in test-setup.ts
+// (which vitest's setupFiles run before this file's imports resolve) so the
+// existing OAuth-flow tests below keep exercising the full flow unaffected
+// by that validation. The validation itself is covered separately further
+// down via vi.resetModules() + a fresh dynamic import with the var unset.
 import {
   getOauthClient,
   resetOauthClientForTesting,
@@ -1782,6 +1789,28 @@ describe('oauth2', () => {
         OAuthCredentialStorage.clearCredentials as Mock,
       ).toHaveBeenCalled();
       expect(fs.existsSync(credsPath)).toBe(true); // The unencrypted file should remain
+    });
+  });
+
+  describe('missing GOOGLE_OAUTH_CLIENT_ID', () => {
+    const originalClientId = process.env['GOOGLE_OAUTH_CLIENT_ID'];
+
+    afterEach(() => {
+      if (originalClientId === undefined) {
+        delete process.env['GOOGLE_OAUTH_CLIENT_ID'];
+      } else {
+        process.env['GOOGLE_OAUTH_CLIENT_ID'] = originalClientId;
+      }
+    });
+
+    it('throws an actionable FatalAuthenticationError for LOGIN_WITH_GOOGLE when unset', async () => {
+      delete process.env['GOOGLE_OAUTH_CLIENT_ID'];
+      vi.resetModules();
+      const freshOauth2 = await import('./oauth2.js');
+
+      await expect(
+        freshOauth2.getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig),
+      ).rejects.toThrow(/GOOGLE_OAUTH_CLIENT_ID/);
     });
   });
 });

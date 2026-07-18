@@ -26,6 +26,8 @@ import { RecordingContentGenerator } from './recordingContentGenerator.js';
 import { ModelRoutingContentGenerator } from '../providers/routingGenerator.js';
 import { resetVersionCache } from '../utils/version.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
+import { createMultiProviderGenerator } from '../providers/factory.js';
+import { getModelRegistry } from '../providers/modelRegistry.js';
 
 vi.mock('../code_assist/codeAssist.js');
 vi.mock('@google/genai');
@@ -34,6 +36,15 @@ vi.mock('./apiKeyCredentialStorage.js', () => ({
 }));
 
 vi.mock('./fakeContentGenerator.js');
+
+vi.mock('../providers/factory.js', () => ({
+  createMultiProviderGenerator: vi.fn(),
+  isMultiProviderModel: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock('../providers/modelRegistry.js', () => ({
+  getModelRegistry: vi.fn(),
+}));
 
 const mockConfig = {
   getModel: vi.fn().mockReturnValue('gemini-pro'),
@@ -157,7 +168,10 @@ describe('createContentGenerator', () => {
     expect(generator).toEqual(
       new ModelRoutingContentGenerator(
         new LoggingContentGenerator(
-          new ModelMappingContentGenerator(mockGenerator, CCPA_AI_MODEL_MAPPINGS),
+          new ModelMappingContentGenerator(
+            mockGenerator,
+            CCPA_AI_MODEL_MAPPINGS,
+          ),
           mockConfig,
         ),
         mockConfig,
@@ -180,7 +194,10 @@ describe('createContentGenerator', () => {
     expect(generator).toEqual(
       new ModelRoutingContentGenerator(
         new LoggingContentGenerator(
-          new ModelMappingContentGenerator(mockGenerator, CCPA_AI_MODEL_MAPPINGS),
+          new ModelMappingContentGenerator(
+            mockGenerator,
+            CCPA_AI_MODEL_MAPPINGS,
+          ),
           mockConfig,
         ),
         mockConfig,
@@ -220,7 +237,7 @@ describe('createContentGenerator', () => {
       httpOptions: expect.objectContaining({
         headers: expect.objectContaining({
           'User-Agent': expect.stringMatching(
-            /GeminiCLI\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
+            /OpenAgent\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
           ),
         }),
       }),
@@ -263,7 +280,7 @@ describe('createContentGenerator', () => {
         httpOptions: expect.objectContaining({
           headers: expect.objectContaining({
             'User-Agent': expect.stringMatching(
-              /GeminiCLI-a2a-server\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
+              /OpenAgent-a2a-server\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
             ),
           }),
         }),
@@ -339,7 +356,7 @@ describe('createContentGenerator', () => {
         httpOptions: expect.objectContaining({
           headers: expect.objectContaining({
             'User-Agent': expect.stringMatching(
-              /GeminiCLI-my-client\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
+              /OpenAgent-my-client\/1\.2\.3\/gemini-pro \(.*; .*; terminal\)/,
             ),
           }),
         }),
@@ -1405,6 +1422,58 @@ describe('createContentGenerator', () => {
       'prompt-id',
       'user',
     );
+  });
+
+  describe('MULTI_PROVIDER auth with the unresolvable "auto" alias', () => {
+    it('falls back to the registry default model instead of throwing', async () => {
+      const mockGenerator = {} as unknown as ContentGenerator;
+      const setModel = vi.fn();
+      const mockConfigAuto = {
+        getModel: vi.fn().mockReturnValue('auto'),
+        setModel,
+        getProxy: vi.fn().mockReturnValue(undefined),
+        getClientName: vi.fn().mockReturnValue(undefined),
+        getSessionId: vi.fn().mockReturnValue('test-session-id'),
+      } as unknown as Config;
+
+      vi.mocked(getModelRegistry).mockReturnValue({
+        defaultModelName: vi.fn().mockReturnValue('gpt-4o'),
+      } as never);
+      vi.mocked(createMultiProviderGenerator).mockReturnValue(
+        mockGenerator as never,
+      );
+
+      const generator = await createContentGenerator(
+        { authType: AuthType.MULTI_PROVIDER },
+        mockConfigAuto,
+      );
+
+      expect(createMultiProviderGenerator).toHaveBeenCalledWith('gpt-4o');
+      expect(setModel).toHaveBeenCalledWith('gpt-4o');
+      expect(generator).toBeDefined();
+    });
+
+    it('still throws when the registry has no usable default', async () => {
+      const mockConfigAuto = {
+        getModel: vi.fn().mockReturnValue('auto'),
+        setModel: vi.fn(),
+        getProxy: vi.fn().mockReturnValue(undefined),
+        getClientName: vi.fn().mockReturnValue(undefined),
+        getSessionId: vi.fn().mockReturnValue('test-session-id'),
+      } as unknown as Config;
+
+      vi.mocked(getModelRegistry).mockReturnValue({
+        defaultModelName: vi.fn().mockReturnValue(''),
+      } as never);
+      vi.mocked(createMultiProviderGenerator).mockReturnValue(undefined);
+
+      await expect(
+        createContentGenerator(
+          { authType: AuthType.MULTI_PROVIDER },
+          mockConfigAuto,
+        ),
+      ).rejects.toThrow('No provider route found for model "auto"');
+    });
   });
 });
 

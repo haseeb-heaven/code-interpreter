@@ -5,22 +5,20 @@
  */
 
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 
 import {
   type MCPServerConfig,
   debugLogger,
-  GEMINI_DIR,
   getErrorMessage,
   type TelemetrySettings,
-  homedir,
   checkPathTrust,
   isHeadlessMode,
+  Storage,
 } from '@open-agent/core';
 import stripJsonComments from 'strip-json-comments';
 
-export const USER_SETTINGS_DIR = path.join(homedir(), GEMINI_DIR);
-export const USER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'settings.json');
+export const USER_SETTINGS_DIR = Storage.getOpenAgentHomeDir();
+export const USER_SETTINGS_PATH = Storage.getGlobalSettingsPath();
 
 // TODO: Ensure full compatibility with V2 nested settings structure (settings.schema.json).
 // This involves updating the interface and implementing migration logic to support legacy V1 (flat) settings,
@@ -106,11 +104,9 @@ export function loadSettings(
     isTrusted = trustResult ?? false;
   }
 
-  const workspaceSettingsPath = path.join(
+  const workspaceSettingsPath = new Storage(
     workspaceDir,
-    GEMINI_DIR,
-    'settings.json',
-  );
+  ).getWorkspaceSettingsPath();
 
   // Load workspace settings only if trusted
   if (isTrusted) {

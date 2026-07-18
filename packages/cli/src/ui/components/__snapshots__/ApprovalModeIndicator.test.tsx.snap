@@ -1,12 +1,22 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`ApprovalModeIndicator > renders correctly for AUTO mode 1`] = `
+"auto (safe) Shift+Tab to manual
+"
+`;
+
+exports[`ApprovalModeIndicator > renders correctly for AUTO mode with plan enabled 1`] = `
+"auto (safe) Shift+Tab to plan
+"
+`;
+
 exports[`ApprovalModeIndicator > renders correctly for AUTO_EDIT mode 1`] = `
-"auto-accept edits Shift+Tab to manual
+"auto-accept edits Shift+Tab to auto
 "
 `;
 
 exports[`ApprovalModeIndicator > renders correctly for AUTO_EDIT mode with plan enabled 1`] = `
-"auto-accept edits Shift+Tab to plan
+"auto-accept edits Shift+Tab to auto
 "
 `;
 

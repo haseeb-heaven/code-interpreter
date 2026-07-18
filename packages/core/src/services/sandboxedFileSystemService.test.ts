@@ -46,6 +46,10 @@ class MockSandboxManager implements SandboxManager {
     return false;
   }
 
+  isCircuitBreakerCommand(): boolean {
+    return false;
+  }
+
   parseDenials(): undefined {
     return undefined;
   }

@@ -13,6 +13,7 @@ import {
   Config,
   ApprovalMode,
   GEMINI_DIR,
+  OPENAGENT_DIR,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   startupProfiler,
   PREVIEW_GEMINI_MODEL,
@@ -232,7 +233,11 @@ export function loadEnvironment(): void {
 function findEnvFile(startDir: string): string | null {
   let currentDir = path.resolve(startDir);
   while (true) {
-    // prefer gemini-specific .env under GEMINI_DIR
+    // prefer .openagent/.env, falling back to legacy .gemini/.env
+    const openAgentEnvPath = path.join(currentDir, OPENAGENT_DIR, '.env');
+    if (fs.existsSync(openAgentEnvPath)) {
+      return openAgentEnvPath;
+    }
     const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
     if (fs.existsSync(geminiEnvPath)) {
       return geminiEnvPath;
@@ -243,7 +248,15 @@ function findEnvFile(startDir: string): string | null {
     }
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir || !parentDir) {
-      // check .env under home as fallback, again preferring gemini-specific .env
+      // check .env under home as fallback, again preferring .openagent
+      const homeOpenAgentEnvPath = path.join(
+        process.cwd(),
+        OPENAGENT_DIR,
+        '.env',
+      );
+      if (fs.existsSync(homeOpenAgentEnvPath)) {
+        return homeOpenAgentEnvPath;
+      }
       const homeGeminiEnvPath = path.join(process.cwd(), GEMINI_DIR, '.env');
       if (fs.existsSync(homeGeminiEnvPath)) {
         return homeGeminiEnvPath;

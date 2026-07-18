@@ -113,6 +113,15 @@ async function initOauthClient(
   authType: AuthType,
   config: Config,
 ): Promise<AuthClient> {
+  if (authType === AuthType.LOGIN_WITH_GOOGLE && !OAUTH_CLIENT_ID) {
+    throw new FatalAuthenticationError(
+      'Google OAuth login was selected, but GOOGLE_OAUTH_CLIENT_ID is not set. ' +
+        'This fork does not ship Google OAuth credentials; set GOOGLE_OAUTH_CLIENT_ID ' +
+        '(and GOOGLE_OAUTH_CLIENT_SECRET, if your OAuth client requires one) in your ' +
+        'environment, or choose a different auth method (e.g. GEMINI_API_KEY).',
+    );
+  }
+
   const credentials = await fetchCachedCredentials();
 
   if (

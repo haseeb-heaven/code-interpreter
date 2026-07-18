@@ -55,6 +55,9 @@ describe('loadSandboxConfig', () => {
     process.env = { ...originalEnv };
     delete process.env['SANDBOX'];
     delete process.env['GEMINI_SANDBOX'];
+    delete process.env['OPENAGENT_SANDBOX'];
+    delete process.env['OPENAGENT_SANDBOX_IMAGE'];
+    delete process.env['GEMINI_SANDBOX_IMAGE'];
     mockedGetPackageJson.mockResolvedValue({
       config: { sandboxImageUri: 'default/image' },
     });
@@ -111,7 +114,7 @@ describe('loadSandboxConfig', () => {
       process.env['GEMINI_SANDBOX'] = 'docker';
       mockedCommandExistsSync.mockReturnValue(false);
       await expect(loadSandboxConfig({}, {})).rejects.toThrow(
-        "Missing sandbox command 'docker' (from GEMINI_SANDBOX)",
+        "Missing sandbox command 'docker' (from OPENAGENT_SANDBOX)",
       );
     });
 
@@ -133,8 +136,23 @@ describe('loadSandboxConfig', () => {
       process.env['GEMINI_SANDBOX'] = 'lxc';
       mockedCommandExistsSync.mockReturnValue(false);
       await expect(loadSandboxConfig({}, {})).rejects.toThrow(
-        "Missing sandbox command 'lxc' (from GEMINI_SANDBOX)",
+        "Missing sandbox command 'lxc' (from OPENAGENT_SANDBOX)",
       );
+    });
+
+    it('should prefer OPENAGENT_SANDBOX over the legacy GEMINI_SANDBOX alias', async () => {
+      process.env['OPENAGENT_SANDBOX'] = 'lxc';
+      process.env['GEMINI_SANDBOX'] = 'docker';
+      mockedCommandExistsSync.mockReturnValue(true);
+      const config = await loadSandboxConfig({}, {});
+      expect(config?.command).toBe('lxc');
+    });
+
+    it('should still honor GEMINI_SANDBOX when OPENAGENT_SANDBOX is unset', async () => {
+      process.env['GEMINI_SANDBOX'] = 'lxc';
+      mockedCommandExistsSync.mockReturnValue(true);
+      const config = await loadSandboxConfig({}, {});
+      expect(config?.command).toBe('lxc');
     });
   });
 
@@ -197,8 +215,8 @@ describe('loadSandboxConfig', () => {
       mockedOsPlatform.mockReturnValue('linux');
       mockedCommandExistsSync.mockReturnValue(false);
       await expect(loadSandboxConfig({}, { sandbox: true })).rejects.toThrow(
-        'GEMINI_SANDBOX is true but failed to determine command for sandbox; ' +
-          'install docker or podman or specify command in GEMINI_SANDBOX',
+        'OPENAGENT_SANDBOX is true but failed to determine command for sandbox; ' +
+          'install docker or podman or specify command in OPENAGENT_SANDBOX',
       );
     });
   });
@@ -222,7 +240,7 @@ describe('loadSandboxConfig', () => {
       await expect(
         loadSandboxConfig({}, { sandbox: 'podman' }),
       ).rejects.toThrow(
-        "Missing sandbox command 'podman' (from GEMINI_SANDBOX)",
+        "Missing sandbox command 'podman' (from OPENAGENT_SANDBOX)",
       );
     });
 
@@ -269,6 +287,36 @@ describe('loadSandboxConfig', () => {
       mockedCommandExistsSync.mockReturnValue(true);
       const config = await loadSandboxConfig({}, {});
       expect(config).toBeUndefined();
+    });
+
+    it('should prefer OPENAGENT_SANDBOX_IMAGE over the legacy GEMINI_SANDBOX_IMAGE alias', async () => {
+      process.env['OPENAGENT_SANDBOX_IMAGE'] = 'openagent/env-image';
+      process.env['GEMINI_SANDBOX_IMAGE'] = 'legacy/env-image';
+      process.env['GEMINI_SANDBOX'] = 'docker';
+      mockedCommandExistsSync.mockReturnValue(true);
+      const config = await loadSandboxConfig({}, {});
+      expect(config?.image).toBe('openagent/env-image');
+    });
+
+    it('should still honor GEMINI_SANDBOX_IMAGE when OPENAGENT_SANDBOX_IMAGE is unset', async () => {
+      process.env['GEMINI_SANDBOX_IMAGE'] = 'legacy/env-image';
+      process.env['GEMINI_SANDBOX'] = 'docker';
+      mockedCommandExistsSync.mockReturnValue(true);
+      const config = await loadSandboxConfig({}, {});
+      expect(config?.image).toBe('legacy/env-image');
+    });
+
+    it('should throw a clear error for docker/podman if the unpublished default image is selected', async () => {
+      mockedGetPackageJson.mockResolvedValue({
+        config: {
+          sandboxImageUri: 'ghcr.io/haseeb-heaven/open-agent-sandbox:4.0.0',
+        },
+      });
+      process.env['GEMINI_SANDBOX'] = 'docker';
+      mockedCommandExistsSync.mockReturnValue(true);
+      await expect(loadSandboxConfig({}, {})).rejects.toThrow(
+        /has not been published yet/,
+      );
     });
   });
 
@@ -486,7 +534,7 @@ describe('loadSandboxConfig', () => {
       mockedCommandExistsSync.mockReturnValue(false);
 
       await expect(loadSandboxConfig({}, { sandbox: 'runsc' })).rejects.toThrow(
-        "Missing sandbox command 'runsc' (from GEMINI_SANDBOX)",
+        "Missing sandbox command 'runsc' (from OPENAGENT_SANDBOX)",
       );
     });
 

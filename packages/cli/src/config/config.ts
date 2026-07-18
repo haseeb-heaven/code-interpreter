@@ -88,6 +88,8 @@ export interface CliArgs {
   worktree?: string;
 
   yolo: boolean | undefined;
+  /** Enable Auto mode (safe classifier) via --auto-mode */
+  autoMode: boolean | undefined;
   approvalMode: string | undefined;
   policy: string[] | undefined;
   adminPolicy: string[] | undefined;
@@ -261,6 +263,12 @@ export async function parseArguments(
       if (argv['yolo'] && argv['approvalMode']) {
         return 'Cannot use both --yolo (-y) and --approval-mode together. Use --approval-mode=yolo instead.';
       }
+      if (argv['autoMode'] && argv['approvalMode']) {
+        return 'Cannot use both --auto-mode and --approval-mode together. Use --approval-mode=auto instead.';
+      }
+      if (argv['yolo'] && argv['autoMode']) {
+        return 'Cannot use both --yolo (-y) and --auto-mode together. Choose one approval shortcut.';
+      }
 
       const outputFormat = argv['outputFormat'];
       if (
@@ -361,15 +369,21 @@ export async function parseArguments(
           alias: 'y',
           type: 'boolean',
           description:
-            'Automatically accept all actions (aka YOLO mode, see https://www.youtube.com/watch?v=xvFZjo5PgG0 for more details)?',
+            'Automatically accept all actions including dangerous ones (YOLO mode). Prefer --auto-mode for safe auto-approve.',
+          default: false,
+        })
+        .option('auto-mode', {
+          type: 'boolean',
+          description:
+            'Enable Auto mode: auto-approve safe tools; still prompt on dangerous commands, deletes, and system paths (Claude Code-style). Distinct from --yolo.',
           default: false,
         })
         .option('approval-mode', {
           type: 'string',
           nargs: 1,
-          choices: ['default', 'auto_edit', 'yolo', 'plan'],
+          choices: ['default', 'auto_edit', 'auto', 'yolo', 'plan'],
           description:
-            'Set the approval mode: default (prompt for approval), auto_edit (auto-approve edit tools), yolo (auto-approve all tools), plan (read-only mode)',
+            'Set the approval mode: default (prompt for approval), auto_edit (auto-approve edit tools), auto (same as --auto-mode), yolo (same as --yolo), plan (read-only mode)',
         })
         .option('policy', {
           type: 'array',
@@ -432,10 +446,10 @@ export async function parseArguments(
           // one, and not being passed at all.
           skipValidation: true,
           description:
-            'Resume a previous session. Use "latest" for most recent or index number (e.g. --resume 5)',
+            'Resume a previous session. Bare --resume (or --resume latest) resumes the most recent chat; also accepts index (e.g. --resume 5) or session UUID',
           coerce: (value: string): string => {
-            // When --resume passed with a value (`gemini --resume 123`): value = "123" (string)
-            // When --resume passed without a value (`gemini --resume`): value = "" (string)
+            // When --resume passed with a value (`openagent --resume 123`): value = "123" (string)
+            // When --resume passed without a value (`openagent --resume`): value = "" (string)
             // When --resume not passed at all: this `coerce` function is not called at all, and
             //   `yargsInstance.argv.resume` is undefined.
             const trimmed = value.trim();
@@ -722,10 +736,12 @@ export async function loadCliConfig(
   const question = argv.promptInteractive || argv.prompt || '';
 
   // Determine approval mode with backward compatibility
+  // Shortcuts: --yolo → yolo, --auto-mode → auto (mutually exclusive via parse check)
   let approvalMode: ApprovalMode;
   const rawApprovalMode =
     argv.approvalMode ||
     (argv.yolo ? 'yolo' : undefined) ||
+    (argv.autoMode ? 'auto' : undefined) ||
     ((settings.general?.defaultApprovalMode as string) !== 'yolo'
       ? settings.general?.defaultApprovalMode
       : undefined);
@@ -737,6 +753,9 @@ export async function loadCliConfig(
         break;
       case 'auto_edit':
         approvalMode = ApprovalMode.AUTO_EDIT;
+        break;
+      case 'auto':
+        approvalMode = ApprovalMode.AUTO;
         break;
       case 'plan':
         if (!(settings.general?.plan?.enabled ?? true)) {
@@ -753,7 +772,7 @@ export async function loadCliConfig(
         break;
       default:
         throw new Error(
-          `Invalid approval mode: ${rawApprovalMode}. Valid values are: yolo, auto_edit, plan, default`,
+          `Invalid approval mode: ${rawApprovalMode}. Valid values are: yolo, auto, auto_edit, plan, default`,
         );
     }
   } else {

@@ -23,8 +23,8 @@ To have your extension automatically discovered and listed:
 2.  **Add the GitHub topic:** Add the `gemini-cli-extension` topic to your
     repository's **About** section. Our crawler uses this topic to find new
     extensions.
-3.  **Place the manifest at the root:** Ensure your `gemini-extension.json` file
-    is in the absolute root of the repository or the release archive.
+3.  **Place the manifest at the root:** Ensure your `open-agent-extension.json`
+    file is in the absolute root of the repository or the release archive.
 
 Our system crawls tagged repositories daily. Once you tag your repository, your
 extension will appear in the gallery if it passes validation.
@@ -105,8 +105,8 @@ Use these values for the placeholders:
 
 #### Archive structure
 
-Archives must be fully contained extensions. The `gemini-extension.json` file
-must be at the root of the archive. The rest of the layout should match a
+Archives must be fully contained extensions. The `open-agent-extension.json`
+file must be at the root of the archive. The rest of the layout should match a
 standard extension structure.
 
 #### Example GitHub Actions workflow
@@ -157,13 +157,13 @@ jobs:
 ## Migrate an extension repository
 
 If you move your extension to a new repository or rename it, use the
-`migratedTo` property in `gemini-extension.json` to seamlessly transition your
-users.
+`migratedTo` property in `open-agent-extension.json` to seamlessly transition
+your users.
 
 1.  **Create the new repository:** Set up your extension in its new location.
 2.  **Update the old repository:** In your original repository, update the
-    `gemini-extension.json` file to include the `migratedTo` property pointing
-    to the new repository URL, and increment the version number.
+    `open-agent-extension.json` file to include the `migratedTo` property
+    pointing to the new repository URL, and increment the version number.
     ```json
     {
       "name": "my-extension",
@@ -185,7 +185,7 @@ the latest version.
 
 ### Sync manifest and tags
 
-For GitHub releases, always ensure the `version` in `gemini-extension.json`
+For GitHub releases, always ensure the `version` in `open-agent-extension.json`
 matches your GitHub release tag. While the CLI uses tags for update detection,
 it displays the manifest version in the UI. Keeping them in sync prevents
 confusion.

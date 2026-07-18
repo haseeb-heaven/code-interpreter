@@ -22,6 +22,15 @@ if (process.env.NO_COLOR !== undefined) {
   delete process.env.NO_COLOR;
 }
 
+// oauth2.ts reads GOOGLE_OAUTH_CLIENT_ID once at module load to validate
+// LOGIN_WITH_GOOGLE requests (see code_assist/oauth2.ts). Provide a fake
+// fallback so tests that exercise that flow don't need to stub it
+// individually; this runs before any test file's imports resolve.
+if (!process.env['GOOGLE_OAUTH_CLIENT_ID']) {
+  process.env['GOOGLE_OAUTH_CLIENT_ID'] =
+    'test-client-id.apps.googleusercontent.com';
+}
+
 import { setSimulate429 } from './src/utils/testUtils.js';
 import { vi, afterEach } from 'vitest';
 import { coreEvents } from './src/utils/events.js';

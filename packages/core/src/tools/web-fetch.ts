@@ -42,7 +42,7 @@ const URL_FETCH_TIMEOUT_MS = 10000;
 const MAX_CONTENT_LENGTH = 250000;
 const MAX_EXPERIMENTAL_FETCH_SIZE = 10 * 1024 * 1024; // 10MB
 const USER_AGENT =
-  'Mozilla/5.0 (compatible; Google-Gemini-CLI/1.0; +https://github.com/haseeb-heaven/open-agent)';
+  'Mozilla/5.0 (compatible; OpenAgent/4.0; +https://github.com/haseeb-heaven/open-agent)';
 const TRUNCATION_WARNING = '\n\n... [Content truncated due to size limit] ...';
 
 // Rate limiting configuration

@@ -65,9 +65,10 @@ import { maybeRequestConsentOrFail } from './extensions/consent.js';
 import { resolveEnvVarsInObject } from '../utils/envVarResolver.js';
 import { ExtensionStorage } from './extensions/storage.js';
 import {
-  EXTENSIONS_CONFIG_FILENAME,
+  EXTENSIONS_CONFIG_FILENAMES,
   INSTALL_METADATA_FILENAME,
   recursivelyHydrateStrings,
+  resolveExistingOrDefaultPath,
   type JsonObject,
   type VariableContext,
 } from './extensions/variables.js';
@@ -421,7 +422,7 @@ Would you like to attempt to install via "git clone" instead?`,
             .map((s) => s.name)
             .join(
               ', ',
-            )}. Please run "gemini extensions config ${newExtensionConfig.name} [setting-name]" to configure them.`;
+            )}. Please run "openagent extensions config ${newExtensionConfig.name} [setting-name]" to configure them.`;
           debugLogger.warn(message);
           coreEvents.emitFeedback('warning', message);
         }
@@ -1015,7 +1016,10 @@ Would you like to attempt to install via "git clone" instead?`,
   }
 
   async loadExtensionConfig(extensionDir: string): Promise<ExtensionConfig> {
-    const configFilePath = path.join(extensionDir, EXTENSIONS_CONFIG_FILENAME);
+    const configFilePath = resolveExistingOrDefaultPath(
+      extensionDir,
+      EXTENSIONS_CONFIG_FILENAMES,
+    );
     if (!fs.existsSync(configFilePath)) {
       throw new Error(`Configuration file not found at ${configFilePath}`);
     }

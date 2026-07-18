@@ -35,6 +35,7 @@ import {
 import {
   isKnownSafeCommand,
   isDangerousCommand,
+  isCircuitBreakerCommand,
   isStrictlyApproved,
 } from './commandSafety.js';
 import { verifySandboxOverrides } from '../utils/commandUtils.js';
@@ -59,7 +60,7 @@ const __dirname = path.dirname(__filename);
  * Uses a native C# helper to bypass PowerShell restrictions.
  */
 export class WindowsSandboxManager implements SandboxManager {
-  static readonly HELPER_EXE = 'GeminiSandbox.exe';
+  static readonly HELPER_EXE = 'OpenAgentSandbox.exe';
 
   private readonly helperPath: string;
   private readonly denialCache: SandboxDenialCache = createSandboxDenialCache();
@@ -80,8 +81,12 @@ export class WindowsSandboxManager implements SandboxManager {
     return isKnownSafeCommand(args);
   }
 
-  isDangerousCommand(args: string[]): boolean {
-    return isDangerousCommand(args);
+  isDangerousCommand(args: string[], strict = true): boolean {
+    return isDangerousCommand(args, strict);
+  }
+
+  isCircuitBreakerCommand(args: string[]): boolean {
+    return isCircuitBreakerCommand(args);
   }
 
   parseDenials(result: ShellExecutionResult): ParsedSandboxDenial | undefined {
@@ -228,7 +233,7 @@ export class WindowsSandboxManager implements SandboxManager {
     const command = req.command;
     const args = req.args;
 
-    // Native commands __read and __write are passed directly to GeminiSandbox.exe
+    // Native commands __read and __write are passed directly to OpenAgentSandbox.exe
 
     const isYolo = this.options.modeConfig?.yolo ?? false;
 
@@ -418,7 +423,7 @@ export class WindowsSandboxManager implements SandboxManager {
 
     // 5. Generate Manifests
     const tempDir = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), 'gemini-cli-sandbox-'),
+      path.join(os.tmpdir(), 'openagent-sandbox-'),
     );
 
     const forbiddenManifestPath = path.join(tempDir, 'forbidden.txt');

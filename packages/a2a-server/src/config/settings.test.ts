@@ -50,17 +50,17 @@ describe('loadSettings', () => {
     os.tmpdir(),
     `gemini-workspace-${mocks.suffix}`,
   );
-  const mockGeminiHomeDir = path.join(mockHomeDir, '.gemini');
-  const mockGeminiWorkspaceDir = path.join(mockWorkspaceDir, '.gemini');
+  const mockOpenAgentHomeDir = path.join(mockHomeDir, '.openagent');
+  const mockOpenAgentWorkspaceDir = path.join(mockWorkspaceDir, '.openagent');
 
   beforeEach(() => {
     vi.clearAllMocks();
     // Create the directories using the real fs
-    if (!fs.existsSync(mockGeminiHomeDir)) {
-      fs.mkdirSync(mockGeminiHomeDir, { recursive: true });
+    if (!fs.existsSync(mockOpenAgentHomeDir)) {
+      fs.mkdirSync(mockOpenAgentHomeDir, { recursive: true });
     }
-    if (!fs.existsSync(mockGeminiWorkspaceDir)) {
-      fs.mkdirSync(mockGeminiWorkspaceDir, { recursive: true });
+    if (!fs.existsSync(mockOpenAgentWorkspaceDir)) {
+      fs.mkdirSync(mockOpenAgentWorkspaceDir, { recursive: true });
     }
 
     // Clean up settings files before each test
@@ -68,7 +68,7 @@ describe('loadSettings', () => {
       fs.rmSync(USER_SETTINGS_PATH);
     }
     const workspaceSettingsPath = path.join(
-      mockGeminiWorkspaceDir,
+      mockOpenAgentWorkspaceDir,
       'settings.json',
     );
     if (fs.existsSync(workspaceSettingsPath)) {
@@ -144,7 +144,7 @@ describe('loadSettings', () => {
       },
     };
     const workspaceSettingsPath = path.join(
-      mockGeminiWorkspaceDir,
+      mockOpenAgentWorkspaceDir,
       'settings.json',
     );
     fs.writeFileSync(workspaceSettingsPath, JSON.stringify(workspaceSettings));
@@ -165,7 +165,7 @@ describe('loadSettings', () => {
 
       const workspaceSettings = { showMemoryUsage: true };
       const workspaceSettingsPath = path.join(
-        mockGeminiWorkspaceDir,
+        mockOpenAgentWorkspaceDir,
         'settings.json',
       );
       fs.writeFileSync(
@@ -188,7 +188,7 @@ describe('loadSettings', () => {
 
       const workspaceSettings = { showMemoryUsage: true };
       const workspaceSettingsPath = path.join(
-        mockGeminiWorkspaceDir,
+        mockOpenAgentWorkspaceDir,
         'settings.json',
       );
       fs.writeFileSync(
@@ -217,7 +217,7 @@ describe('loadSettings', () => {
         showMemoryUsage: true,
       };
       const workspaceSettingsPath = path.join(
-        mockGeminiWorkspaceDir,
+        mockOpenAgentWorkspaceDir,
         'settings.json',
       );
       fs.writeFileSync(

@@ -36,6 +36,12 @@ describe('approvalModeUtils', () => {
         'YOLO mode (all tool calls auto-approved)',
       );
     });
+
+    it('should return correct description for AUTO mode', () => {
+      expect(getApprovalModeDescription(ApprovalMode.AUTO)).toBe(
+        'Auto mode (safe actions auto-approved; dangerous ops require confirmation)',
+      );
+    });
   });
 
   describe('getPlanModeExitMessage', () => {

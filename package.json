@@ -14,7 +14,7 @@
     "url": "git+https://github.com/haseeb-heaven/open-agent.git"
   },
   "config": {
-    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:4.0.0"
+    "sandboxImageUri": "ghcr.io/haseeb-heaven/open-agent-sandbox:4.0.0"
   },
   "scripts": {
     "start": "cross-env NODE_ENV=development node scripts/start.js",
@@ -86,8 +86,7 @@
     "cross-spawn": "7.0.6"
   },
   "bin": {
-    "openagent": "bundle/openagent.js",
-    "gemini": "bundle/openagent.js"
+    "openagent": "bundle/openagent.js"
   },
   "files": [
     "bundle/",

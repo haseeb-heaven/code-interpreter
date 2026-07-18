@@ -14,6 +14,7 @@ import { ExtensionManager } from '../../config/extension-manager.js';
 import { requestConsentNonInteractive } from '../../config/extensions/consent.js';
 import { promptForSetting } from '../../config/extensions/extensionSettings.js';
 import { loadSettings } from '../../config/settings.js';
+import { EXTENSIONS_CONFIG_FILENAME } from '../../config/extensions/variables.js';
 import { exitCli } from '../utils.js';
 
 interface ValidateArgs {
@@ -61,7 +62,7 @@ async function validateExtension(args: ValidateArgs) {
     }
     if (missingContextFiles.length > 0) {
       errors.push(
-        `The following context files referenced in gemini-extension.json are missing: ${missingContextFiles}`,
+        `The following context files referenced in ${EXTENSIONS_CONFIG_FILENAME} are missing: ${missingContextFiles}`,
       );
     }
   }

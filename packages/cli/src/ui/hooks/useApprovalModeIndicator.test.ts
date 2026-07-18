@@ -176,6 +176,9 @@ describe('useApprovalModeIndicator', () => {
 
   it('should cycle the indicator and update config when Shift+Tab or Ctrl+Y is pressed', async () => {
     mockConfigInstance.getApprovalMode.mockReturnValue(ApprovalMode.DEFAULT);
+    mockConfigInstance.setApprovalMode.mockImplementation((mode) => {
+      mockConfigInstance.getApprovalMode.mockReturnValue(mode);
+    });
     const { result } = await renderHook(() =>
       useApprovalModeIndicator({
         config: mockConfigInstance as unknown as ActualConfigType,
@@ -184,7 +187,7 @@ describe('useApprovalModeIndicator', () => {
     );
     expect(result.current).toBe(ApprovalMode.DEFAULT);
 
-    // Shift+Tab cycles to AUTO_EDIT
+    // Shift+Tab cycles DEFAULT → AUTO_EDIT
     act(() => {
       capturedUseKeypressHandler({
         name: 'tab',
@@ -195,6 +198,18 @@ describe('useApprovalModeIndicator', () => {
       ApprovalMode.AUTO_EDIT,
     );
     expect(result.current).toBe(ApprovalMode.AUTO_EDIT);
+
+    // Shift+Tab cycles AUTO_EDIT → AUTO
+    act(() => {
+      capturedUseKeypressHandler({
+        name: 'tab',
+        shift: true,
+      } as Key);
+    });
+    expect(mockConfigInstance.setApprovalMode).toHaveBeenCalledWith(
+      ApprovalMode.AUTO,
+    );
+    expect(result.current).toBe(ApprovalMode.AUTO);
 
     act(() => {
       capturedUseKeypressHandler({ name: 'y', ctrl: true } as Key);
@@ -204,7 +219,7 @@ describe('useApprovalModeIndicator', () => {
     );
     expect(result.current).toBe(ApprovalMode.YOLO);
 
-    // Shift+Tab cycles back to AUTO_EDIT (from YOLO)
+    // Shift+Tab from YOLO steps down to AUTO (safe)
     act(() => {
       capturedUseKeypressHandler({
         name: 'tab',
@@ -212,9 +227,9 @@ describe('useApprovalModeIndicator', () => {
       } as Key);
     });
     expect(mockConfigInstance.setApprovalMode).toHaveBeenCalledWith(
-      ApprovalMode.AUTO_EDIT,
+      ApprovalMode.AUTO,
     );
-    expect(result.current).toBe(ApprovalMode.AUTO_EDIT);
+    expect(result.current).toBe(ApprovalMode.AUTO);
 
     // Ctrl+Y toggles YOLO
     act(() => {
@@ -225,7 +240,7 @@ describe('useApprovalModeIndicator', () => {
     );
     expect(result.current).toBe(ApprovalMode.YOLO);
 
-    // Shift+Tab from YOLO jumps to AUTO_EDIT
+    // Shift+Tab from YOLO jumps to AUTO
     act(() => {
       capturedUseKeypressHandler({
         name: 'tab',
@@ -233,9 +248,9 @@ describe('useApprovalModeIndicator', () => {
       } as Key);
     });
     expect(mockConfigInstance.setApprovalMode).toHaveBeenCalledWith(
-      ApprovalMode.AUTO_EDIT,
+      ApprovalMode.AUTO,
     );
-    expect(result.current).toBe(ApprovalMode.AUTO_EDIT);
+    expect(result.current).toBe(ApprovalMode.AUTO);
   });
 
   it('should not toggle if only one key or other keys combinations are pressed', async () => {
@@ -409,15 +424,47 @@ describe('useApprovalModeIndicator', () => {
       expect(mockConfigInstance.getApprovalMode()).toBe(ApprovalMode.DEFAULT);
     });
 
-    it('should disable AUTO_EDIT mode when Shift+Tab is pressed', async () => {
+    it('should cycle AUTO_EDIT to AUTO when Shift+Tab is pressed', async () => {
       mockConfigInstance.getApprovalMode.mockReturnValue(
         ApprovalMode.AUTO_EDIT,
       );
+      // Allow setApprovalMode to succeed and update the mock getter so subsequent
+      // reads see the new mode (mirrors real Config behavior).
+      mockConfigInstance.setApprovalMode.mockImplementation((mode) => {
+        mockConfigInstance.getApprovalMode.mockReturnValue(mode);
+      });
       const mockAddItem = vi.fn();
       await renderHook(() =>
         useApprovalModeIndicator({
           config: mockConfigInstance as unknown as ActualConfigType,
           addItem: mockAddItem,
+        }),
+      );
+
+      act(() => {
+        capturedUseKeypressHandler({
+          name: 'tab',
+          shift: true,
+        } as Key);
+      });
+
+      expect(mockConfigInstance.setApprovalMode).toHaveBeenCalledWith(
+        ApprovalMode.AUTO,
+      );
+      expect(mockConfigInstance.getApprovalMode()).toBe(ApprovalMode.AUTO);
+    });
+
+    it('should disable AUTO mode when Shift+Tab is pressed (no plan)', async () => {
+      mockConfigInstance.getApprovalMode.mockReturnValue(ApprovalMode.AUTO);
+      mockConfigInstance.setApprovalMode.mockImplementation((mode) => {
+        mockConfigInstance.getApprovalMode.mockReturnValue(mode);
+      });
+      const mockAddItem = vi.fn();
+      await renderHook(() =>
+        useApprovalModeIndicator({
+          config: mockConfigInstance as unknown as ActualConfigType,
+          addItem: mockAddItem,
+          allowPlanMode: false,
         }),
       );
 
@@ -681,7 +728,7 @@ describe('useApprovalModeIndicator', () => {
       capturedUseKeypressHandler({ name: 'y', ctrl: true } as Key);
     });
 
-    // Switch to AUTO_EDIT
+    // Switch to AUTO (safe) from YOLO via Shift+Tab
     act(() => {
       capturedUseKeypressHandler({ name: 'tab', shift: true } as Key);
     });
@@ -693,12 +740,15 @@ describe('useApprovalModeIndicator', () => {
     );
     expect(mockOnApprovalModeChange).toHaveBeenNthCalledWith(
       2,
-      ApprovalMode.AUTO_EDIT,
+      ApprovalMode.AUTO,
     );
   });
 
-  it('should cycle to PLAN when allowPlanMode is true', async () => {
+  it('should cycle AUTO_EDIT to AUTO then PLAN when allowPlanMode is true', async () => {
     mockConfigInstance.getApprovalMode.mockReturnValue(ApprovalMode.AUTO_EDIT);
+    mockConfigInstance.setApprovalMode.mockImplementation((mode) => {
+      mockConfigInstance.getApprovalMode.mockReturnValue(mode);
+    });
 
     await renderHook(() =>
       useApprovalModeIndicator({
@@ -708,7 +758,15 @@ describe('useApprovalModeIndicator', () => {
       }),
     );
 
-    // AUTO_EDIT -> PLAN
+    // AUTO_EDIT -> AUTO
+    act(() => {
+      capturedUseKeypressHandler({ name: 'tab', shift: true } as Key);
+    });
+    expect(mockConfigInstance.setApprovalMode).toHaveBeenCalledWith(
+      ApprovalMode.AUTO,
+    );
+
+    // AUTO -> PLAN
     act(() => {
       capturedUseKeypressHandler({ name: 'tab', shift: true } as Key);
     });
@@ -717,8 +775,8 @@ describe('useApprovalModeIndicator', () => {
     );
   });
 
-  it('should cycle to DEFAULT when allowPlanMode is false', async () => {
-    mockConfigInstance.getApprovalMode.mockReturnValue(ApprovalMode.AUTO_EDIT);
+  it('should cycle AUTO to DEFAULT when allowPlanMode is false', async () => {
+    mockConfigInstance.getApprovalMode.mockReturnValue(ApprovalMode.AUTO);
 
     await renderHook(() =>
       useApprovalModeIndicator({
@@ -728,7 +786,7 @@ describe('useApprovalModeIndicator', () => {
       }),
     );
 
-    // AUTO_EDIT -> DEFAULT
+    // AUTO -> DEFAULT
     act(() => {
       capturedUseKeypressHandler({ name: 'tab', shift: true } as Key);
     });

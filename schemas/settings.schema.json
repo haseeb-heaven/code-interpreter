@@ -89,16 +89,23 @@
         },
         "defaultApprovalMode": {
           "title": "Default Approval Mode",
-          "description": "The default approval mode for tool execution. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, and 'plan' is read-only mode. YOLO mode (auto-approve all actions) can only be enabled via command line (--yolo or --approval-mode=yolo).",
-          "markdownDescription": "The default approval mode for tool execution. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, and 'plan' is read-only mode. YOLO mode (auto-approve all actions) can only be enabled via command line (--yolo or --approval-mode=yolo).\n\n- Category: `General`\n- Requires restart: `no`\n- Default: `default`",
+          "description": "The default approval mode for tool execution. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, 'auto' auto-approves safe tools (prompts on dangerous commands/path escapes), and 'plan' is read-only mode. YOLO mode (auto-approve all actions including dangerous) can only be enabled via command line (--yolo or --approval-mode=yolo).",
+          "markdownDescription": "The default approval mode for tool execution. 'default' prompts for approval, 'auto_edit' auto-approves edit tools, 'auto' auto-approves safe tools (prompts on dangerous commands/path escapes), and 'plan' is read-only mode. YOLO mode (auto-approve all actions including dangerous) can only be enabled via command line (--yolo or --approval-mode=yolo).\n\n- Category: `General`\n- Requires restart: `no`\n- Default: `default`",
           "default": "default",
           "type": "string",
-          "enum": ["default", "auto_edit", "plan"]
+          "enum": ["default", "auto_edit", "auto", "plan"]
         },
         "devtools": {
           "title": "DevTools",
           "description": "Enable DevTools inspector on launch.",
           "markdownDescription": "Enable DevTools inspector on launch.\n\n- Category: `General`\n- Requires restart: `no`\n- Default: `false`",
+          "default": false,
+          "type": "boolean"
+        },
+        "setupWizardCompleted": {
+          "title": "Setup Wizard Completed",
+          "description": "Whether the first-run provider/model setup wizard has already run.",
+          "markdownDescription": "Whether the first-run provider/model setup wizard has already run.\n\n- Category: `General`\n- Requires restart: `no`\n- Default: `false`",
           "default": false,
           "type": "boolean"
         },
@@ -331,8 +338,8 @@
         },
         "showStatusInTitle": {
           "title": "Show Thoughts in Title",
-          "description": "Show Gemini CLI model thoughts in the terminal window title during the working phase",
-          "markdownDescription": "Show Gemini CLI model thoughts in the terminal window title during the working phase\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
+          "description": "Show open-agent model thoughts in the terminal window title during the working phase",
+          "markdownDescription": "Show open-agent model thoughts in the terminal window title during the working phase\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
           "default": false,
           "type": "boolean"
         },
@@ -345,8 +352,8 @@
         },
         "showHomeDirectoryWarning": {
           "title": "Show Home Directory Warning",
-          "description": "Show a warning when running Gemini CLI in the home directory.",
-          "markdownDescription": "Show a warning when running Gemini CLI in the home directory.\n\n- Category: `UI`\n- Requires restart: `yes`\n- Default: `true`",
+          "description": "Show a warning when running open-agent in the home directory.",
+          "markdownDescription": "Show a warning when running open-agent in the home directory.\n\n- Category: `UI`\n- Requires restart: `yes`\n- Default: `true`",
           "default": true,
           "type": "boolean"
         },
@@ -394,8 +401,8 @@
         },
         "hideContextSummary": {
           "title": "Hide Context Summary",
-          "description": "Hide the context summary (GEMINI.md, MCP servers) above the input.",
-          "markdownDescription": "Hide the context summary (GEMINI.md, MCP servers) above the input.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
+          "description": "Hide the context summary (OPENAGENT.md, MCP servers) above the input.",
+          "markdownDescription": "Hide the context summary (OPENAGENT.md, MCP servers) above the input.\n\n- Category: `UI`\n- Requires restart: `no`\n- Default: `false`",
           "default": false,
           "type": "boolean"
         },
@@ -2781,8 +2788,8 @@
         },
         "memoryBoundaryMarkers": {
           "title": "Memory Boundary Markers",
-          "description": "File or directory names that mark the boundary for GEMINI.md discovery. The upward traversal stops at the first directory containing any of these markers. An empty array disables parent traversal.",
-          "markdownDescription": "File or directory names that mark the boundary for GEMINI.md discovery. The upward traversal stops at the first directory containing any of these markers. An empty array disables parent traversal.\n\n- Category: `Context`\n- Requires restart: `yes`\n- Default: `[\n  \".git\"\n]`",
+          "description": "File or directory names that mark the boundary for OPENAGENT.md discovery. The upward traversal stops at the first directory containing any of these markers. An empty array disables parent traversal.",
+          "markdownDescription": "File or directory names that mark the boundary for OPENAGENT.md discovery. The upward traversal stops at the first directory containing any of these markers. An empty array disables parent traversal.\n\n- Category: `Context`\n- Requires restart: `yes`\n- Default: `[\n  \".git\"\n]`",
           "default": [".git"],
           "type": "array",
           "items": {
@@ -2801,8 +2808,8 @@
         },
         "loadMemoryFromIncludeDirectories": {
           "title": "Load Memory From Include Directories",
-          "description": "Controls how /memory reload loads GEMINI.md files. When true, include directories are scanned; when false, only the current directory is used.",
-          "markdownDescription": "Controls how /memory reload loads GEMINI.md files. When true, include directories are scanned; when false, only the current directory is used.\n\n- Category: `Context`\n- Requires restart: `no`\n- Default: `false`",
+          "description": "Controls how /memory reload loads OPENAGENT.md files. When true, include directories are scanned; when false, only the current directory is used.",
+          "markdownDescription": "Controls how /memory reload loads OPENAGENT.md files. When true, include directories are scanned; when false, only the current directory is used.\n\n- Category: `Context`\n- Requires restart: `no`\n- Default: `false`",
           "default": false,
           "type": "boolean"
         },
@@ -3462,8 +3469,8 @@
             },
             "autoStartServer": {
               "title": "Auto-start LiteRT Server",
-              "description": "Automatically start the LiteRT-LM server when Gemini CLI starts and the Gemma router is enabled.",
-              "markdownDescription": "Automatically start the LiteRT-LM server when Gemini CLI starts and the Gemma router is enabled.\n\n- Category: `Experimental`\n- Requires restart: `yes`\n- Default: `false`",
+              "description": "Automatically start the LiteRT-LM server when open-agent starts and the Gemma router is enabled.",
+              "markdownDescription": "Automatically start the LiteRT-LM server when open-agent starts and the Gemma router is enabled.\n\n- Category: `Experimental`\n- Requires restart: `yes`\n- Default: `false`",
               "default": false,
               "type": "boolean"
             },
@@ -4022,7 +4029,7 @@
         },
         "extension": {
           "type": "object",
-          "description": "Metadata describing the Gemini CLI extension that owns this MCP server.",
+          "description": "Metadata describing the open-agent extension that owns this MCP server.",
           "additionalProperties": {
             "type": ["string", "boolean", "number"]
           }
@@ -4124,7 +4131,7 @@
     },
     "TelemetrySettings": {
       "type": "object",
-      "description": "Telemetry configuration for Gemini CLI.",
+      "description": "Telemetry configuration for open-agent.",
       "additionalProperties": false,
       "properties": {
         "enabled": {
@@ -4221,7 +4228,7 @@
     },
     "CustomTheme": {
       "type": "object",
-      "description": "Custom theme definition used for styling Gemini CLI output. Colors are provided as hex strings or named ANSI colors.",
+      "description": "Custom theme definition used for styling open-agent output. Colors are provided as hex strings or named ANSI colors.",
       "additionalProperties": false,
       "properties": {
         "type": {

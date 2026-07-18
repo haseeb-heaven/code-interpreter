@@ -96,6 +96,9 @@ export class Storage {
   }
 
   static getTrustedFoldersPath(): string {
+    if (process.env['OPENAGENT_TRUSTED_FOLDERS_PATH']) {
+      return process.env['OPENAGENT_TRUSTED_FOLDERS_PATH'];
+    }
     if (process.env['GEMINI_CLI_TRUSTED_FOLDERS_PATH']) {
       return process.env['GEMINI_CLI_TRUSTED_FOLDERS_PATH'];
     }
@@ -448,7 +451,7 @@ export class Storage {
   }
 
   getExtensionsConfigPath(): string {
-    return path.join(this.getExtensionsDir(), 'gemini-extension.json');
+    return path.join(this.getExtensionsDir(), 'open-agent-extension.json');
   }
 
   getHistoryFilePath(): string {

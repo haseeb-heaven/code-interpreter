@@ -30,6 +30,7 @@ import {
 import {
   isKnownSafeCommand,
   isDangerousCommand,
+  isCircuitBreakerCommand,
 } from '../utils/commandSafety.js';
 import {
   verifySandboxOverrides,
@@ -57,8 +58,12 @@ export class MacOsSandboxManager implements SandboxManager {
     return isKnownSafeCommand(args);
   }
 
-  isDangerousCommand(args: string[]): boolean {
-    return isDangerousCommand(args);
+  isDangerousCommand(args: string[], strict = true): boolean {
+    return isDangerousCommand(args, strict);
+  }
+
+  isCircuitBreakerCommand(args: string[]): boolean {
+    return isCircuitBreakerCommand(args);
   }
 
   parseDenials(result: ShellExecutionResult): ParsedSandboxDenial | undefined {

@@ -151,8 +151,8 @@ Status: ${result.status} (expected ${expected})${
 }
 
 /**
- * On some non-admin Windows machines, GeminiSandbox.exe's Low-Integrity
- * mandatory-label ACL (`ApplyBulkAcls` in GeminiSandbox.cs) does not
+ * On some non-admin Windows machines, OpenAgentSandbox.exe's Low-Integrity
+ * mandatory-label ACL (`ApplyBulkAcls` in OpenAgentSandbox.cs) does not
  * propagate to files that already exist on disk before the sandbox process
  * applies it (Windows does not retroactively relabel pre-existing children
  * of a directory when a new inheritable mandatory label is set on it,
@@ -246,7 +246,7 @@ describe('SandboxManager Integration', () => {
         expect(result.stdout.trim()).toBe('sandbox test');
       });
 
-      // The Windows sandbox wrapper (GeminiSandbox.exe) uses standard pipes
+      // The Windows sandbox wrapper (OpenAgentSandbox.exe) uses standard pipes
       // for I/O interception, which breaks ConPTY pseudo-terminal inheritance.
       it.skipIf(Platform.isWindows)(
         'supports interactive terminals',

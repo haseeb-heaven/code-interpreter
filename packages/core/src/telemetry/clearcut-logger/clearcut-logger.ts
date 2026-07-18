@@ -244,6 +244,13 @@ function determineGHCustomTrackingId(): string | undefined {
 const CLEARCUT_URL = 'https://play.googleapis.com/log?format=json&hasfast=true';
 
 /**
+ * OpenAgent does not report usage back to Google's Clearcut pipeline.
+ * Kept as a hard-disabled flag (rather than deleting the logger) so call
+ * sites and tests stay intact; flushToClearcut() early-returns below.
+ */
+const CLEARCUT_ENABLED = false;
+
+/**
  * Interval in which buffered events are sent to clearcut.
  */
 const FLUSH_INTERVAL_MS = 1000 * 60;
@@ -525,6 +532,13 @@ export class ClearcutLogger {
   }
 
   async flushToClearcut(): Promise<LogResponse> {
+    if (!CLEARCUT_ENABLED) {
+      // Clearcut reporting is disabled for OpenAgent; drop any buffered
+      // events without making a network call.
+      this.events.clear();
+      this.lastFlushTime = Date.now();
+      return Promise.resolve({});
+    }
     if (this.flushing) {
       if (this.config?.getDebugMode()) {
         debugLogger.debug(

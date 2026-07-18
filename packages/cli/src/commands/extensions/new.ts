@@ -9,6 +9,7 @@ import { join, dirname, basename } from 'node:path';
 import type { CommandModule } from 'yargs';
 import { fileURLToPath } from 'node:url';
 import { debugLogger } from '@open-agent/core';
+import { EXTENSIONS_CONFIG_FILENAME } from '../../config/extensions/variables.js';
 import { exitCli } from '../utils.js';
 
 interface NewArgs {
@@ -63,7 +64,7 @@ async function handleNew(args: NewArgs) {
       version: '1.0.0',
     };
     await writeFile(
-      join(args.path, 'gemini-extension.json'),
+      join(args.path, EXTENSIONS_CONFIG_FILENAME),
       JSON.stringify(manifest, null, 2),
     );
     debugLogger.log(`Successfully created new extension at ${args.path}.`);

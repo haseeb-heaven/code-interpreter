@@ -436,15 +436,65 @@ function isValidSedNArg(arg: string | undefined): boolean {
 }
 
 /**
- * Checks if a command with its arguments is explicitly known to be dangerous
- * and should be blocked or require strict user confirmation. This catches
- * destructive commands like `rm -rf`, `sudo`, and commands with execution
- * flags like `find -exec`.
+ * Absolute, non-overridable denials — these return true even in YOLO mode.
+ * This is the "circuit breaker" tier: catastrophic, almost-never-intentional
+ * patterns (wipe the filesystem root/home, fork bombs, raw-device writes).
+ * Mirrors Claude Code auto mode's own hard-coded backstops (e.g. `rm -rf /`
+ * and `rm -rf ~` still prompt even with permissions bypassed).
  *
  * @param args - The command and its arguments.
- * @returns true if the command is identified as dangerous, false otherwise.
+ * @returns true if the command must never be auto-approved, in any mode.
  */
-export function isDangerousCommand(args: string[]): boolean {
+export function isCircuitBreakerCommand(args: string[]): boolean {
+  if (!args || args.length === 0) return false;
+
+  const rawCmd = args[0];
+  const cmd = path.basename(rawCmd);
+  const rest = args.slice(1);
+
+  const isRoot = (p: string) => {
+    const n = p.replace(/\\/g, '/').trim();
+    return n === '/' || n === '~' || n === '~/' || /^[A-Za-z]:\/?$/.test(n);
+  };
+
+  if (cmd === 'rm' || cmd === 'rmdir') {
+    const targets = rest.filter((a) => !a.startsWith('-'));
+    if (targets.some(isRoot)) return true;
+  }
+
+  if (cmd === 'dd') {
+    const of = rest.find((a) => a.startsWith('of='))?.slice(3);
+    if (of && /^\/dev\/(disk|sd|hd|nvme|rdisk)/.test(of)) return true;
+  }
+
+  if (
+    (cmd === 'mkfs' || cmd.startsWith('mkfs.') || cmd === 'wipefs') &&
+    rest.some((a) => /^\/dev\//.test(a))
+  ) {
+    return true;
+  }
+
+  // Classic bash fork bomb: :(){ :|:& };:
+  const joined = args.join(' ');
+  if (/:\(\)\s*\{\s*:\s*\|\s*:\s*&?\s*\}\s*;?\s*:/.test(joined)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Legacy, narrower dangerous-command check retained for approval modes that
+ * predate the broadened Auto-mode heuristics (DEFAULT, AUTO_EDIT). Only
+ * flags `rm -f`/`-rf`/`-fr`, unsafe `find`/`rg` flags, mutating `git` reads,
+ * and `base64 -o`. A leading `sudo` is not itself flagged; it is stripped
+ * and the check recurses into the sub-command, so `sudo <cmd>` is flagged
+ * only if `<cmd>` alone would be.
+ *
+ * @param args - The command and its arguments.
+ * @returns true if the command is identified as dangerous under the legacy rules.
+ */
+export function isDangerousCommandLegacy(args: string[]): boolean {
   if (!args || args.length === 0) {
     return false;
   }
@@ -456,7 +506,7 @@ export function isDangerousCommand(args: string[]): boolean {
   }
 
   if (cmd === 'sudo') {
-    return isDangerousCommand(args.slice(1));
+    return isDangerousCommandLegacy(args.slice(1));
   }
 
   if (cmd === 'find') {
@@ -533,4 +583,264 @@ export function isDangerousCommand(args: string[]): boolean {
   }
 
   return false;
+}
+
+/**
+ * Checks if a command with its arguments is explicitly known to be dangerous
+ * and should be blocked or require strict user confirmation. This catches
+ * destructive commands like `rm -rf`, `sudo`, and commands with execution
+ * flags like `find -exec`.
+ *
+ * @param args - The command and its arguments.
+ * @param strict - When false, only applies the legacy narrower rule set
+ *   (pre-Auto-mode behavior) instead of the full broadened check.
+ * @returns true if the command is identified as dangerous, false otherwise.
+ */
+export function isDangerousCommand(args: string[], strict = true): boolean {
+  if (!args || args.length === 0) {
+    return false;
+  }
+
+  if (isCircuitBreakerCommand(args)) {
+    return true;
+  }
+
+  if (!strict) {
+    return isDangerousCommandLegacy(args);
+  }
+
+  // Normalize basename for path-qualified commands (e.g. /bin/rm → rm)
+  const rawCmd = args[0];
+  const cmd = path.basename(rawCmd);
+
+  // Destructive filesystem ops always require confirmation outside YOLO.
+  // Any rm / rmdir (not only -rf) is treated as dangerous for Auto mode accuracy.
+  if (
+    cmd === 'rm' ||
+    cmd === 'rmdir' ||
+    cmd === 'unlink' ||
+    cmd === 'shred' ||
+    cmd === 'wipefs' ||
+    cmd === 'srm'
+  ) {
+    return true;
+  }
+
+  // truncate can silently zero out / shrink existing files
+  if (cmd === 'truncate') {
+    return true;
+  }
+
+  // Process termination can kill the agent's own session or unrelated services
+  if (
+    cmd === 'kill' ||
+    cmd === 'pkill' ||
+    cmd === 'killall' ||
+    cmd === 'taskkill'
+  ) {
+    return true;
+  }
+
+  // Wipes recurring jobs / shell history without a diff or confirmation
+  if (
+    (cmd === 'crontab' && args.slice(1).includes('-r')) ||
+    (cmd === 'history' && args.slice(1).includes('-c'))
+  ) {
+    return true;
+  }
+
+  // Container/volume prune-style commands are broad, irreversible deletes
+  if (
+    (cmd === 'docker' || cmd === 'podman') &&
+    args.slice(1).some((a) => a === 'rm' || a === 'prune')
+  ) {
+    return true;
+  }
+
+  // Privilege escalation and disk-level destructive tools
+  if (
+    cmd === 'sudo' ||
+    cmd === 'doas' ||
+    cmd === 'su' ||
+    cmd === 'dd' ||
+    cmd === 'mkfs' ||
+    cmd === 'mkfs.ext4' ||
+    cmd === 'mkfs.xfs' ||
+    cmd === 'mkfs.vfat' ||
+    cmd === 'fdisk' ||
+    cmd === 'parted' ||
+    cmd === 'shutdown' ||
+    cmd === 'reboot' ||
+    cmd === 'halt' ||
+    cmd === 'poweroff' ||
+    cmd === 'useradd' ||
+    cmd === 'userdel' ||
+    cmd === 'usermod' ||
+    cmd === 'passwd' ||
+    cmd === 'chpasswd' ||
+    cmd === 'visudo'
+  ) {
+    return true;
+  }
+
+  // Permission / ownership changes can lock out or escalate access
+  if (cmd === 'chmod' || cmd === 'chown' || cmd === 'chgrp') {
+    return true;
+  }
+
+  if (cmd === 'find') {
+    const unsafeOptions = new Set([
+      '-exec',
+      '-execdir',
+      '-ok',
+      '-okdir',
+      '-delete',
+      '-fls',
+      '-fprint',
+      '-fprint0',
+      '-fprintf',
+    ]);
+    return args.some((arg) => unsafeOptions.has(arg));
+  }
+
+  if (isRipgrepCommand(cmd) || isRipgrepCommand(rawCmd)) {
+    const unsafeWithArgs = new Set(['--pre', '--hostname-bin']);
+    const unsafeWithoutArgs = new Set(['--search-zip', '-z']);
+
+    return args.some((arg) => {
+      if (unsafeWithoutArgs.has(arg)) return true;
+      for (const opt of unsafeWithArgs) {
+        if (arg === opt || arg.startsWith(opt + '=')) return true;
+      }
+      return false;
+    });
+  }
+
+  if (cmd === 'git') {
+    if (gitHasConfigOverrideGlobalOption(args)) {
+      return true;
+    }
+
+    // Destructive / mutating git operations always require confirmation in Auto
+    const { idx, subcommand } = findGitSubcommand(args, [
+      'status',
+      'log',
+      'diff',
+      'show',
+      'branch',
+      'clean',
+      'reset',
+      'checkout',
+      'push',
+      'filter-branch',
+      'filter-repo',
+    ]);
+
+    if (
+      subcommand === 'clean' ||
+      subcommand === 'reset' ||
+      subcommand === 'filter-branch' ||
+      subcommand === 'filter-repo'
+    ) {
+      return true;
+    }
+
+    // force push
+    if (subcommand === 'push') {
+      return args
+        .slice(idx + 1)
+        .some(
+          (a) =>
+            a === '--force' || a === '-f' || a.startsWith('--force-with-lease'),
+        );
+    }
+
+    // checkout -f / --force can discard work
+    if (subcommand === 'checkout') {
+      return args.slice(idx + 1).some((a) => a === '-f' || a === '--force');
+    }
+
+    if (!subcommand) {
+      // It's a git command we don't recognize as explicitly safe.
+      return false;
+    }
+
+    const subcommandArgs = args.slice(idx + 1);
+
+    if (['status', 'log', 'diff', 'show'].includes(subcommand)) {
+      return !gitSubcommandArgsAreReadOnly(subcommandArgs);
+    }
+
+    if (subcommand === 'branch') {
+      return !(
+        gitSubcommandArgsAreReadOnly(subcommandArgs) &&
+        gitBranchIsReadOnly(subcommandArgs)
+      );
+    }
+
+    return false;
+  }
+
+  if (cmd === 'base64') {
+    const unsafeOptions = new Set(['-o', '--output']);
+    return args
+      .slice(1)
+      .some(
+        (arg) =>
+          unsafeOptions.has(arg) ||
+          arg.startsWith('--output=') ||
+          (arg.startsWith('-o') && arg !== '-o'),
+      );
+  }
+
+  // mv/cp into absolute system directories (/, /etc, /usr, /bin, /sbin, /boot, /sys, /proc)
+  if (cmd === 'mv' || cmd === 'cp') {
+    const targets = args.slice(1).filter((a) => !a.startsWith('-'));
+    if (targets.length > 0) {
+      const dest = targets[targets.length - 1];
+      if (isSystemPathTarget(dest)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * True when a path looks like a protected system location that should never be
+ * auto-approved for write/delete-style operations outside YOLO.
+ */
+function isSystemPathTarget(p: string): boolean {
+  if (!p || typeof p !== 'string') return false;
+  // Normalize separators for mixed environments
+  const normalized = p.replace(/\\/g, '/');
+  const systemPrefixes = [
+    '/etc',
+    '/usr',
+    '/bin',
+    '/sbin',
+    '/boot',
+    '/sys',
+    '/proc',
+    '/dev',
+    '/lib',
+    '/lib64',
+    '/var/log',
+    '/root',
+    'C:/Windows',
+    'C:/Program Files',
+    'C:/Program Files (x86)',
+  ];
+  // Exact root
+  if (normalized === '/' || /^[A-Za-z]:\/?$/.test(normalized)) {
+    return true;
+  }
+  return systemPrefixes.some(
+    (prefix) =>
+      normalized === prefix ||
+      normalized.startsWith(prefix + '/') ||
+      normalized.toLowerCase() === prefix.toLowerCase() ||
+      normalized.toLowerCase().startsWith(prefix.toLowerCase() + '/'),
+  );
 }

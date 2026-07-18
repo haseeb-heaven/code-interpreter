@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as path from 'node:path';
 import { z } from 'zod';
 import type { LocalAgentDefinition } from './types.js';
 import {
@@ -16,6 +17,10 @@ import {
   WRITE_FILE_TOOL_NAME,
 } from '../tools/tool-names.js';
 import { PREVIEW_GEMINI_FLASH_MODEL } from '../config/models.js';
+import {
+  DEFAULT_CONTEXT_FILENAME,
+  getGlobalMemoryFilePath,
+} from '../tools/memoryTool.js';
 
 const SkillExtractionSchema = z.object({
   response: z
@@ -27,6 +32,8 @@ const SkillExtractionSchema = z.object({
  * Builds the system prompt for the skill extraction agent.
  */
 function buildSystemPrompt(skillsDir: string, memoryDir: string): string {
+  const globalMemoryFilePath = getGlobalMemoryFilePath();
+  const globalHomeDir = path.dirname(globalMemoryFilePath);
   return [
     'You are an Auto Memory Extraction Agent.',
     '',
@@ -63,7 +70,7 @@ function buildSystemPrompt(skillsDir: string, memoryDir: string): string {
     '- private  -> targets must live under the project memory directory',
     `             (${memoryDir}). Use this for project-scoped private memory.`,
     '- global   -> the target MUST be exactly the single global personal memory',
-    '             file ~/.gemini/GEMINI.md. No other files in ~/.gemini/ are',
+    `             file ${globalMemoryFilePath}. No other files in ${globalHomeDir}/ are`,
     '             writeable; sibling .md files do not exist for the global tier.',
     '',
     'IMPORTANT — incremental updates:',
@@ -75,11 +82,11 @@ function buildSystemPrompt(skillsDir: string, memoryDir: string): string {
     '  in one canonical `extraction.patch` per kind.',
     '- If no: write a new `extraction.patch` with all your hunks.',
     '',
-    'Project/workspace shared instructions (GEMINI.md and similar files under the',
+    `Project/workspace shared instructions (${DEFAULT_CONTEXT_FILENAME} and similar files under the`,
     'project root) are NOT auto-extractable. They are managed by humans only; do',
     'not write patches that target files under the project root.',
     '',
-    'NEVER directly edit MEMORY.md, GEMINI.md, ~/.gemini/GEMINI.md, settings,',
+    `NEVER directly edit MEMORY.md, ${DEFAULT_CONTEXT_FILENAME}, ${globalMemoryFilePath}, settings,`,
     'credentials, or any file outside the memory work directory. The only way to',
     'update memory is via a `.patch` file in the appropriate `.inbox/<kind>/` folder.',
     '',

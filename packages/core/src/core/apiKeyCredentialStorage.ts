@@ -9,10 +9,12 @@ import type { OAuthCredentials } from '../mcp/token-storage/types.js';
 import { debugLogger } from '../utils/debugLogger.js';
 import { createCache } from '../utils/cache.js';
 
-const KEYCHAIN_SERVICE_NAME = 'gemini-cli-api-key';
+const KEYCHAIN_SERVICE_NAME = 'openagent-api-key';
+const LEGACY_KEYCHAIN_SERVICE_NAME = 'gemini-cli-api-key';
 const DEFAULT_API_KEY_ENTRY = 'default-api-key';
 
 const storage = new HybridTokenStorage(KEYCHAIN_SERVICE_NAME);
+const legacyStorage = new HybridTokenStorage(LEGACY_KEYCHAIN_SERVICE_NAME);
 
 // Cache to store the results of loadApiKey to avoid redundant keychain access.
 const apiKeyCache = createCache<string, Promise<string | null>>({
@@ -38,6 +40,24 @@ export async function loadApiKey(): Promise<string | null> {
 
       if (credentials?.token?.accessToken) {
         return credentials.token.accessToken;
+      }
+
+      // Fall back to a key saved under the pre-rebrand keychain service name
+      // and migrate it forward so future loads hit the new service directly.
+      const legacyCredentials = await legacyStorage.getCredentials(
+        DEFAULT_API_KEY_ENTRY,
+      );
+      if (legacyCredentials?.token?.accessToken) {
+        await saveApiKey(legacyCredentials.token.accessToken);
+        try {
+          await legacyStorage.deleteCredentials(DEFAULT_API_KEY_ENTRY);
+        } catch (error: unknown) {
+          debugLogger.warn(
+            'Failed to remove legacy API key after migration:',
+            error,
+          );
+        }
+        return legacyCredentials.token.accessToken;
       }
 
       return null;

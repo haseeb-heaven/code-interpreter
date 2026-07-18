@@ -1,7 +1,7 @@
 # Extension reference
 
 This guide covers the `gemini extensions` commands and the structure of the
-`gemini-extension.json` configuration file.
+`open-agent-extension.json` configuration file.
 
 ## Manage extensions
 
@@ -66,7 +66,7 @@ gemini extensions enable <name> [--scope <scope>]
 
 ### Update an extension
 
-Update an extension to the version specified in its `gemini-extension.json`
+Update an extension to the version specified in its `open-agent-extension.json`
 file.
 
 ```bash
@@ -103,10 +103,11 @@ gemini extensions link <path>
 
 ## Extension format
 
-OpenAgent CLI loads extensions from `<home>/.gemini/extensions`. Each extension
-must have a `gemini-extension.json` file in its root directory.
+OpenAgent CLI loads extensions from `<home>/.openagent/extensions`. Each
+extension must have an `open-agent-extension.json` file in its root directory
+(legacy `gemini-extension.json` files are still recognized).
 
-### `gemini-extension.json`
+### `open-agent-extension.json`
 
 The manifest file defines the extension's behavior and configuration.
 
@@ -219,8 +220,9 @@ Extensions **will not** inherit the user's full shell environment variables.
 They will only have access to:
 
 1. Standard safe variables (e.g., `HOME`, `PATH`, `TMPDIR`).
-2. Variables explicitly declared and requested in the `gemini-extension.json`
-   manifest via the `settings` array (using the `envVar` property).
+2. Variables explicitly declared and requested in the
+   `open-agent-extension.json` manifest via the `settings` array (using the
+   `envVar` property).
 
 If your extension requires specific environment variables (like an API key,
 custom host, or config path), you **must** declare them in the `settings` array
@@ -241,7 +243,7 @@ For an extension named `gcp`:
 
 Intercept and customize CLI behavior using [hooks](../hooks/index.md). Define
 hooks in a `hooks/hooks.json` file within your extension directory. Note that
-hooks are not defined in the `gemini-extension.json` manifest.
+hooks are not defined in the `open-agent-extension.json` manifest.
 
 ### Agent skills
 
@@ -301,7 +303,7 @@ required_context = ["environment"]
 ### Themes
 
 Extensions can provide custom themes to personalize the CLI UI. Themes are
-defined in the `themes` array in `gemini-extension.json`.
+defined in the `themes` array in `open-agent-extension.json`.
 
 **Example**
 
@@ -351,7 +353,7 @@ the extension name (for example, `/gcp.deploy`) using a dot separator.
 
 ## Variables
 
-OpenAgent CLI supports variable substitution in `gemini-extension.json` and
+OpenAgent CLI supports variable substitution in `open-agent-extension.json` and
 `hooks/hooks.json`.
 
 | Variable           | Description                                     |

@@ -234,13 +234,15 @@ const SETTINGS_SCHEMA = {
         description: oneLine`
           The default approval mode for tool execution.
           'default' prompts for approval, 'auto_edit' auto-approves edit tools,
-          and 'plan' is read-only mode. YOLO mode (auto-approve all actions) can
-          only be enabled via command line (--yolo or --approval-mode=yolo).
+          'auto' auto-approves safe tools (prompts on dangerous commands/path escapes),
+          and 'plan' is read-only mode. YOLO mode (auto-approve all actions including
+          dangerous) can only be enabled via command line (--yolo or --approval-mode=yolo).
         `,
         showInDialog: true,
         options: [
           { value: 'default', label: 'Default' },
           { value: 'auto_edit', label: 'Auto Edit' },
+          { value: 'auto', label: 'Auto (safe)' },
           { value: 'plan', label: 'Plan' },
         ],
       },
@@ -669,7 +671,7 @@ const SETTINGS_SCHEMA = {
         requiresRestart: false,
         default: false,
         description:
-          'Hide the context summary (GEMINI.md, MCP servers) above the input.',
+          'Hide the context summary (OPENAGENT.md, MCP servers) above the input.',
         showInDialog: true,
       },
       footer: {
@@ -1448,7 +1450,7 @@ const SETTINGS_SCHEMA = {
         requiresRestart: true,
         default: ['.git'] as string[],
         description:
-          'File or directory names that mark the boundary for GEMINI.md discovery. ' +
+          'File or directory names that mark the boundary for OPENAGENT.md discovery. ' +
           'The upward traversal stops at the first directory containing any of these markers. ' +
           'An empty array disables parent traversal.',
         showInDialog: false,
@@ -1475,7 +1477,7 @@ const SETTINGS_SCHEMA = {
         requiresRestart: false,
         default: false,
         description: oneLine`
-          Controls how /memory reload loads GEMINI.md files.
+          Controls how /memory reload loads OPENAGENT.md files.
           When true, include directories are scanned; when false, only the current directory is used.
         `,
         showInDialog: true,

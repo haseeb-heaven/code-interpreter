@@ -31,6 +31,7 @@ import {
   validateParsedSkillPatchHeaders,
 } from '../services/memoryPatchUtils.js';
 import { readExtractionState } from '../services/memoryService.js';
+import { DEFAULT_CONTEXT_FILENAME } from '../tools/memoryTool.js';
 import type { MessageActionReturn } from './types.js';
 
 export type { InboxMemoryPatchKind } from '../services/memoryPatchUtils.js';
@@ -83,11 +84,11 @@ export function listMemoryFiles(config: Config): MessageActionReturn {
   let content: string;
 
   if (fileCount > 0) {
-    content = `There are ${fileCount} GEMINI.md file(s) in use:\n\n${filePaths.join(
+    content = `There are ${fileCount} ${DEFAULT_CONTEXT_FILENAME} file(s) in use:\n\n${filePaths.join(
       '\n',
     )}`;
   } else {
-    content = 'No GEMINI.md files in use.';
+    content = `No ${DEFAULT_CONTEXT_FILENAME} files in use.`;
   }
 
   return {
@@ -259,7 +260,7 @@ export async function moveInboxSkill(
   await fs.rm(sourcePath, { recursive: true, force: true });
 
   const label =
-    destination === 'global' ? '~/.gemini/skills' : '.gemini/skills';
+    destination === 'global' ? '~/.openagent/skills' : '.openagent/skills';
   return {
     success: true,
     message: `Moved "${dirName}" to ${label}.`,

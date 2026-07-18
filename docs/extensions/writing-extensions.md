@@ -41,7 +41,7 @@ This creates a directory with the following structure:
 ```
 my-first-extension/
 ├── example.js
-├── gemini-extension.json
+├── open-agent-extension.json
 └── package.json
 ```
 
@@ -49,7 +49,7 @@ my-first-extension/
 
 Your new extension contains several key files that define its behavior.
 
-### `gemini-extension.json`
+### `open-agent-extension.json`
 
 The manifest file tells open-agent how to load and use your extension.
 
@@ -133,7 +133,7 @@ and scripts for your extension.
 Some extensions need configuration, such as API keys or user preferences. Let's
 add a setting for an API key.
 
-1.  Open `gemini-extension.json`.
+1.  Open `open-agent-extension.json`.
 2.  Add a `settings` array to the configuration:
 
     ```json
@@ -240,7 +240,7 @@ information.
     posts, use the `fetch_posts` tool. Be concise in your responses.
     ```
 
-2.  Update your `gemini-extension.json` to load this file:
+2.  Update your `open-agent-extension.json` to load this file:
 
     ```json
     {

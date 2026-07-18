@@ -644,6 +644,7 @@ describe('Composer', () => {
     it.each([
       [ApprovalMode.DEFAULT],
       [ApprovalMode.AUTO_EDIT],
+      [ApprovalMode.AUTO],
       [ApprovalMode.PLAN],
       [ApprovalMode.YOLO],
     ])(

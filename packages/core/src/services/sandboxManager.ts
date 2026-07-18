@@ -10,10 +10,12 @@ import path from 'node:path';
 import {
   isKnownSafeCommand as isMacSafeCommand,
   isDangerousCommand as isMacDangerousCommand,
+  isCircuitBreakerCommand as isMacCircuitBreakerCommand,
 } from '../sandbox/utils/commandSafety.js';
 import {
   isKnownSafeCommand as isWindowsSafeCommand,
   isDangerousCommand as isWindowsDangerousCommand,
+  isCircuitBreakerCommand as isWindowsCircuitBreakerCommand,
 } from '../sandbox/windows/commandSafety.js';
 import {
   sanitizeEnvironment,
@@ -172,8 +174,19 @@ export interface SandboxManager {
 
   /**
    * Checks if a command with its arguments is explicitly known to be dangerous for this sandbox.
+   *
+   * @param strict - When false, applies only the legacy narrower rule set
+   *   (pre-Auto-mode behavior) instead of the full broadened check.
    */
-  isDangerousCommand(args: string[]): boolean;
+  isDangerousCommand(args: string[], strict?: boolean): boolean;
+
+  /**
+   * Checks if a command matches an absolute, non-overridable denial
+   * (a "circuit breaker" pattern like `rm -rf /` or `format C:`). These
+   * patterns must be blocked in every approval mode, including YOLO/bypass,
+   * and cannot be relaxed by policy rules.
+   */
+  isCircuitBreakerCommand(args: string[]): boolean;
 
   /**
    * Parses the output of a command to detect sandbox denials.
@@ -313,10 +326,16 @@ export class NoopSandboxManager implements SandboxManager {
       : isMacSafeCommand(args);
   }
 
-  isDangerousCommand(args: string[]): boolean {
+  isDangerousCommand(args: string[], strict = true): boolean {
     return os.platform() === 'win32'
-      ? isWindowsDangerousCommand(args)
-      : isMacDangerousCommand(args);
+      ? isWindowsDangerousCommand(args, strict)
+      : isMacDangerousCommand(args, strict);
+  }
+
+  isCircuitBreakerCommand(args: string[]): boolean {
+    return os.platform() === 'win32'
+      ? isWindowsCircuitBreakerCommand(args)
+      : isMacCircuitBreakerCommand(args);
   }
 
   parseDenials(): undefined {
@@ -346,8 +365,14 @@ export class LocalSandboxManager implements SandboxManager {
     return false;
   }
 
-  isDangerousCommand(_args: string[]): boolean {
+  isDangerousCommand(_args: string[], _strict = true): boolean {
     return false;
+  }
+
+  isCircuitBreakerCommand(args: string[]): boolean {
+    return os.platform() === 'win32'
+      ? isWindowsCircuitBreakerCommand(args)
+      : isMacCircuitBreakerCommand(args);
   }
 
   parseDenials(): undefined {

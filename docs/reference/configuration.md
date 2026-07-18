@@ -61,7 +61,7 @@ four locations for these files:
     have controls over users' OpenAgent CLI setups.
 
 **Note on environment variables in settings:** String values within your
-`settings.json` and `gemini-extension.json` files can reference environment
+`settings.json` and `open-agent-extension.json` files can reference environment
 variables using `$VAR_NAME`, `${VAR_NAME}`, or `${VAR_NAME:-DEFAULT_VALUE}`
 syntax. These variables will be automatically resolved when the settings are
 loaded. For example, if you have an environment variable `MY_API_TOKEN`, you
@@ -130,15 +130,23 @@ their corresponding top-level category object in your `settings.json` file.
 - **`general.defaultApprovalMode`** (enum):
 
   - **Description:** The default approval mode for tool execution. 'default'
-    prompts for approval, 'auto_edit' auto-approves edit tools, and 'plan' is
-    read-only mode. YOLO mode (auto-approve all actions) can only be enabled via
-    command line (--yolo or --approval-mode=yolo).
+    prompts for approval, 'auto_edit' auto-approves edit tools, 'auto'
+    auto-approves safe tools (prompts on dangerous commands/path escapes), and
+    'plan' is read-only mode. YOLO mode (auto-approve all actions including
+    dangerous) can only be enabled via command line (--yolo or
+    --approval-mode=yolo).
   - **Default:** `"default"`
-  - **Values:** `"default"`, `"auto_edit"`, `"plan"`
+  - **Values:** `"default"`, `"auto_edit"`, `"auto"`, `"plan"`
 
 - **`general.devtools`** (boolean):
 
   - **Description:** Enable DevTools inspector on launch.
+  - **Default:** `false`
+
+- **`general.setupWizardCompleted`** (boolean):
+
+  - **Description:** Whether the first-run provider/model setup wizard has
+    already run.
   - **Default:** `false`
 
 - **`general.enableAutoUpdate`** (boolean):
@@ -292,8 +300,8 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.showStatusInTitle`** (boolean):
 
-  - **Description:** Show OpenAgent CLI model thoughts in the terminal window
-    title during the working phase
+  - **Description:** Show open-agent model thoughts in the terminal window title
+    during the working phase
   - **Default:** `false`
 
 - **`ui.dynamicWindowTitle`** (boolean):
@@ -304,7 +312,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.showHomeDirectoryWarning`** (boolean):
 
-  - **Description:** Show a warning when running OpenAgent CLI in the home
+  - **Description:** Show a warning when running open-agent in the home
     directory.
   - **Default:** `true`
   - **Requires restart:** Yes
@@ -344,8 +352,8 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`ui.hideContextSummary`** (boolean):
 
-  - **Description:** Hide the context summary (GEMINI.md, MCP servers) above the
-    input.
+  - **Description:** Hide the context summary (OPENAGENT.md, MCP servers) above
+    the input.
   - **Default:** `false`
 
 - **`ui.footer.items`** (array):
@@ -1650,7 +1658,7 @@ their corresponding top-level category object in your `settings.json` file.
 - **`context.memoryBoundaryMarkers`** (array):
 
   - **Description:** File or directory names that mark the boundary for
-    GEMINI.md discovery. The upward traversal stops at the first directory
+    OPENAGENT.md discovery. The upward traversal stops at the first directory
     containing any of these markers. An empty array disables parent traversal.
   - **Default:**
 
@@ -1668,7 +1676,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`context.loadMemoryFromIncludeDirectories`** (boolean):
 
-  - **Description:** Controls how /memory reload loads GEMINI.md files. When
+  - **Description:** Controls how /memory reload loads OPENAGENT.md files. When
     true, include directories are scanned; when false, only the current
     directory is used.
   - **Default:** `false`
@@ -2154,7 +2162,7 @@ their corresponding top-level category object in your `settings.json` file.
 
 - **`experimental.gemmaModelRouter.autoStartServer`** (boolean):
 
-  - **Description:** Automatically start the LiteRT-LM server when OpenAgent CLI
+  - **Description:** Automatically start the LiteRT-LM server when open-agent
     starts and the Gemma router is enabled.
   - **Default:** `false`
   - **Requires restart:** Yes
@@ -2827,14 +2835,17 @@ for that specific session.
     - `default`: Prompt for approval on each tool call (default behavior)
     - `auto_edit`: Automatically approve edit tools (replace, write_file) while
       prompting for others
-    - `yolo`: Automatically approve all tool calls (equivalent to `--yolo`)
+    - `auto`: Auto-approve safe tools; still prompt on dangerous commands,
+      deletes, and system paths (equivalent to `--auto-mode`)
+    - `yolo`: Automatically approve all tool calls including dangerous
+      (equivalent to `--yolo`)
     - `plan`: Read-only mode for tool calls (requires experimental planning to
       be enabled).
       > **Note:** This mode is currently under development and not yet fully
       > functional.
-  - Cannot be used together with `--yolo`. Use `--approval-mode=yolo` instead of
-    `--yolo` for the new unified approach.
-  - Example: `gemini --approval-mode auto_edit`
+  - Cannot be used together with `--yolo` or `--auto-mode`. Prefer the shortcut
+    flags for common cases.
+  - Example: `openagent --approval-mode auto`
 - **`--debug`** (**`-d`**):
   - Enables debug mode for this session, providing more verbose output. Open the
     debug console with F12 to see the additional logging.
@@ -2892,9 +2903,11 @@ for that specific session.
 - **`--resume [session_id]`** (**`-r [session_id]`**):
   - Resume a previous chat session. Use "latest" for the most recent session,
     provide a session index number, or provide a full session UUID.
-  - If no session_id is provided, defaults to "latest".
-  - Example: `gemini --resume 5` or `gemini --resume latest` or
-    `gemini --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890` or `gemini --resume`
+  - If no session_id is provided, defaults to "latest" (resume the most recent
+    chat).
+  - Example: `openagent --resume` or `openagent --resume latest` or
+    `openagent --resume 5` or
+    `openagent --resume a1b2c3d4-e5f6-7890-abcd-ef1234567890`
   - See [Session Management](../cli/session-management.md) for more details.
 - **`--sandbox`** (**`-s`**):
   - Enables sandbox mode for this session.
@@ -2903,20 +2916,27 @@ for that specific session.
     with screen readers.
 - **`--version`**:
   - Displays the version of the CLI.
-- **`--yolo`**:
-  - Enables YOLO mode, which automatically approves all tool calls.
+- **`--auto-mode`**:
+  - Enables Auto mode (safe classifier): auto-approve safe tools; still prompt
+    on dangerous shell commands, deletes, and system directory writes.
+  - Equivalent to `--approval-mode=auto`. Distinct from `--yolo`.
+  - Example: `openagent --auto-mode`
+- **`--yolo`** (**`-y`**):
+  - Enables YOLO mode, which automatically approves **all** tool calls including
+    dangerous ones. Prefer `--auto-mode` for day-to-day use.
+  - Example: `openagent --yolo`
 
 ## Context files (hierarchical instructional context)
 
 While not strictly configuration for the CLI's _behavior_, context files
-(defaulting to `GEMINI.md` but configurable via the `context.fileName` setting)
-are crucial for configuring the _instructional context_ (also referred to as
-"memory") provided to the Gemini model. This powerful feature lets you give
-project-specific instructions, coding style guides, or any relevant background
-information to the AI, making its responses more tailored and accurate to your
-needs. The CLI includes UI elements, such as an indicator in the footer showing
-the number of loaded context files, to keep you informed about the active
-context.
+(defaulting to `OPENAGENT.md`, with `AGENTS.md`/`GEMINI.md` recognized as
+fallbacks, and configurable via the `context.fileName` setting) are crucial for
+configuring the _instructional context_ (also referred to as "memory") provided
+to the Gemini model. This powerful feature lets you give project-specific
+instructions, coding style guides, or any relevant background information to the
+AI, making its responses more tailored and accurate to your needs. The CLI
+includes UI elements, such as an indicator in the footer showing the number of
+loaded context files, to keep you informed about the active context.
 
 - **Purpose:** These Markdown files contain instructions, guidelines, or context
   that you want the Gemini model to be aware of during your interactions. The
@@ -2970,8 +2990,8 @@ conventions and context.
   general). The exact concatenation order and final context can be inspected
   using the `/memory show` command. The typical loading order is:
   1.  **Global context file:**
-      - Location: `~/.gemini/<configured-context-filename>` (for example,
-        `~/.gemini/GEMINI.md` in your user home directory).
+      - Location: `~/.openagent/<configured-context-filename>` (for example,
+        `~/.openagent/OPENAGENT.md` in your user home directory).
       - Scope: Provides default instructions for all your projects.
   2.  **Project root and ancestors context files:**
       - Location: The CLI searches for the configured context file in the
