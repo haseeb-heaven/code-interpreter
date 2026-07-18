@@ -14,7 +14,7 @@ import {
   ProjectIdRequiredError,
 } from '@open-agent/core';
 import { AuthState } from '../types.js';
-import type { LoadedSettings } from '../../config/settings.js';
+import { SettingScope, type LoadedSettings } from '../../config/settings.js';
 
 // Mock dependencies
 const mockLoadApiKey = vi.fn();
@@ -120,6 +120,7 @@ describe('useAuth', () => {
   describe('useAuthCommand', () => {
     const mockConfig = {
       refreshAuth: vi.fn(),
+      getModel: vi.fn().mockReturnValue('gemini-2.5-pro'),
     } as unknown as Config;
 
     const createSettings = (selectedType?: AuthType) =>
@@ -131,7 +132,8 @@ describe('useAuth', () => {
             },
           },
         },
-      }) as LoadedSettings;
+        setValue: vi.fn(),
+      }) as unknown as LoadedSettings;
 
     let deferredRefreshAuth: {
       resolve: () => void;
@@ -161,28 +163,52 @@ describe('useAuth', () => {
       expect(result.current.authState).toBe(AuthState.Authenticated);
     });
 
-    it('should set error if no auth type is selected and no env key', async () => {
+    it('should auto-resolve multi-provider auth when no auth type is selected and no env key', async () => {
+      const settings = createSettings(undefined);
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(undefined), mockConfig),
+        useAuthCommand(settings, mockConfig),
       );
 
-      // This happens synchronously, no deferred promise
-      expect(result.current.authError).toBe(
-        'No authentication method selected.',
+      expect(settings.setValue).toHaveBeenCalledWith(
+        SettingScope.User,
+        'security.auth.selectedType',
+        AuthType.MULTI_PROVIDER,
       );
-      expect(result.current.authState).toBe(AuthState.Updating);
+
+      await act(async () => {
+        deferredRefreshAuth.resolve();
+      });
+
+      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
+        AuthType.MULTI_PROVIDER,
+      );
+      expect(result.current.authState).toBe(AuthState.Authenticated);
     });
 
-    it('should set error if no auth type is selected but env key exists', async () => {
+    it('should still auto-resolve multi-provider auth when no auth type is selected even if GEMINI_API_KEY exists', async () => {
+      // OpenAgent always treats local providers (Ollama/LM Studio) as an
+      // available path, so a bare GEMINI_API_KEY does not override the
+      // multi-provider default the way it would in upstream Gemini CLI.
       process.env['GEMINI_API_KEY'] = 'env-key';
+      const settings = createSettings(undefined);
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(undefined), mockConfig),
+        useAuthCommand(settings, mockConfig),
       );
 
-      expect(result.current.authError).toContain(
-        'Existing API key detected (GEMINI_API_KEY)',
+      expect(settings.setValue).toHaveBeenCalledWith(
+        SettingScope.User,
+        'security.auth.selectedType',
+        AuthType.MULTI_PROVIDER,
       );
-      expect(result.current.authState).toBe(AuthState.Updating);
+
+      await act(async () => {
+        deferredRefreshAuth.resolve();
+      });
+
+      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
+        AuthType.MULTI_PROVIDER,
+      );
+      expect(result.current.authState).toBe(AuthState.Authenticated);
     });
 
     it('should transition to AwaitingApiKeyInput if USE_GEMINI and no key found', async () => {
