@@ -2953,7 +2953,7 @@ project might contain:
 - When generating new TypeScript code, follow the existing coding style.
 - Ensure all new functions and classes have JSDoc comments.
 - Prefer functional programming paradigms where appropriate.
-- All code should be compatible with TypeScript 5.0 and Node.js 20+.
+- All code should be compatible with TypeScript 5.0 and Node.js 22+.
 
 ## Coding Style:
 

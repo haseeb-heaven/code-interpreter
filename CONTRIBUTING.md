@@ -204,11 +204,11 @@ development setup of this project.
 **Prerequisites:**
 
 1.  **Node.js**:
-    - **Development:** Please use Node.js `~20.19.0`. This specific version is
-      required due to an upstream development dependency issue. You can use a
-      tool like [nvm](https://github.com/nvm-sh/nvm) to manage Node.js versions.
+    - **Development:** Please use the Node.js version pinned in `.nvmrc`
+      (currently `22`). You can use a tool like
+      [nvm](https://github.com/nvm-sh/nvm) to manage Node.js versions.
     - **Production:** For running the CLI in a production environment, any
-      version of Node.js `>=20` is acceptable.
+      version of Node.js `>=22` is acceptable.
 2.  **Git**
 
 ### Build process
