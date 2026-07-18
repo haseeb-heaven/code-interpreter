@@ -12,11 +12,11 @@ import type {
   SlashCommandActionReturn,
 } from './types.js';
 import { CommandKind } from './types.js';
-import { performInit } from '@open-agent/core';
+import { performInit, DEFAULT_CONTEXT_FILENAME } from '@open-agent/core';
 
 export const initCommand: SlashCommand = {
   name: 'init',
-  description: 'Analyzes the project and creates a tailored GEMINI.md file',
+  description: `Analyzes the project and creates a tailored ${DEFAULT_CONTEXT_FILENAME} file`,
   kind: CommandKind.BUILT_IN,
   autoExecute: true,
   action: async (
@@ -31,18 +31,18 @@ export const initCommand: SlashCommand = {
       };
     }
     const targetDir = context.services.agentContext.config.getTargetDir();
-    const geminiMdPath = path.join(targetDir, 'GEMINI.md');
+    const contextFilePath = path.join(targetDir, DEFAULT_CONTEXT_FILENAME);
 
-    const result = performInit(fs.existsSync(geminiMdPath));
+    const result = performInit(fs.existsSync(contextFilePath));
 
     if (result.type === 'submit_prompt') {
-      // Create an empty GEMINI.md file
-      fs.writeFileSync(geminiMdPath, '', 'utf8');
+      // Create an empty context file
+      fs.writeFileSync(contextFilePath, '', 'utf8');
 
       context.ui.addItem(
         {
           type: 'info',
-          text: 'Empty GEMINI.md created. Now analyzing the project to populate it.',
+          text: `Empty ${DEFAULT_CONTEXT_FILENAME} created. Now analyzing the project to populate it.`,
         },
         Date.now(),
       );
