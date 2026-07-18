@@ -168,7 +168,7 @@ BYOK usage.
     `glob`.
   - **Cause:** These warnings occur because some dependencies (or their
     sub-dependencies, like `google-auth-library`) rely on older package
-    versions. Since OpenAgent CLI requires Node.js 20 or higher, the platform's
+    versions. Since OpenAgent CLI requires Node.js 22 or higher, the platform's
     native features (like the native `DOMException`) are used, making these
     warnings purely informational.
   - **Solution:** These warnings are harmless and can be safely ignored. Your

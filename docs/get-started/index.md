@@ -8,7 +8,7 @@ Get from zero to a working OpenAgent session in a few minutes.
 
 | Requirement         | Notes                                                             |
 | ------------------- | ----------------------------------------------------------------- |
-| **Node.js 20+**     | Required for the CLI packages                                     |
+| **Node.js 22+**     | Required for the CLI packages                                     |
 | **A model backend** | One of: Ollama (local), a free-tier API key, or any BYOK provider |
 | **Terminal**        | Bash, Zsh, or PowerShell                                          |
 

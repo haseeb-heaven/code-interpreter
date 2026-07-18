@@ -151,7 +151,6 @@ jobs:
     strategy:
       matrix:
         node-version:
-          - '20.x'
           - '22.x'
           - '24.x'
         shard:
@@ -248,7 +247,6 @@ jobs:
     strategy:
       matrix:
         node-version:
-          - '20.x'
           - '22.x'
           - '24.x'
         shard:
@@ -402,10 +400,10 @@ jobs:
           persist-credentials: false
           ref: '${{ github.event.inputs.branch_ref || github.ref }}'
 
-      - name: 'Set up Node.js 20.x'
+      - name: 'Set up Node.js 22.x'
         uses: 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020' # ratchet:actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
           cache: 'npm'
 
       - name: 'Configure Windows Defender exclusions'

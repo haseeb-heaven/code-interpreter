@@ -116,7 +116,7 @@ unlock Groq models.
 | Shell        | `powershell.exe -NoProfile -Command <command>`           |
 | Paths        | Prefer workspace-relative paths; quote paths with spaces |
 | Line endings | Tools tolerate CRLF; prefer UTF-8 files                  |
-| Node         | Node.js **20+** required                                 |
+| Node         | Node.js **22+** required                                 |
 
 ---
 

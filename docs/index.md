@@ -24,7 +24,7 @@ frontier APIs. No vendor lock-in. No required account.
 ## Start in 60 seconds
 
 ```bash
-# From a clone of this repo (Node.js 20+)
+# From a clone of this repo (Node.js 22+)
 npm install
 npm run build
 

@@ -25,7 +25,7 @@ npm start -- --free "analyze sales.csv and plot top 10 customers"
 
 ## Install
 
-Node.js 20+. Latest multi-provider work is on **`feature`**:
+Node.js 22+. Latest multi-provider work is on **`feature`**:
 
 ```bash
 git clone --branch feature https://github.com/haseeb-heaven/open-agent.git
