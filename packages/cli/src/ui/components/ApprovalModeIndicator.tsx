@@ -36,25 +36,23 @@ export const ApprovalModeIndicator: React.FC<ApprovalModeIndicatorProps> = ({
     case ApprovalMode.AUTO:
       textColor = theme.status.warning;
       textContent = 'auto (safe)';
-      subText = allowPlanMode
-        ? `${cycleHint} to plan`
-        : `${cycleHint} to manual`;
+      subText = allowPlanMode ? `${cycleHint} to plan` : `${cycleHint} to YOLO`;
       break;
     case ApprovalMode.PLAN:
       textColor = theme.status.success;
       textContent = 'plan';
-      subText = `${cycleHint} to manual`;
+      subText = `${cycleHint} to YOLO`;
       break;
     case ApprovalMode.YOLO:
       textColor = theme.status.error;
       textContent = 'YOLO';
-      subText = yoloHint;
+      subText = `${cycleHint} to manual (${yoloHint} to toggle)`;
       break;
     case ApprovalMode.DEFAULT:
     default:
       textColor = theme.text.accent;
-      textContent = '';
-      subText = `${cycleHint} to accept edits`;
+      textContent = 'manual';
+      subText = `${cycleHint} to auto-accept edits`;
       break;
   }
 

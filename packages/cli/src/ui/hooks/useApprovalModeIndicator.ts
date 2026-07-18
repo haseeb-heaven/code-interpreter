@@ -72,8 +72,7 @@ export function useApprovalModeIndicator({
             ? ApprovalMode.DEFAULT
             : ApprovalMode.YOLO;
       } else if (keyMatchers[Command.CYCLE_APPROVAL_MODE](key)) {
-        // Cycle: default → auto-edit → auto (safe) → plan? → default
-        // YOLO stays on Ctrl+Y; Shift+Tab from YOLO steps down to Auto.
+        // Cycle: default → auto-edit → auto (safe) → plan? → yolo? → default
         const currentMode = config.getApprovalMode();
         switch (currentMode) {
           case ApprovalMode.DEFAULT:
@@ -85,15 +84,23 @@ export function useApprovalModeIndicator({
           case ApprovalMode.AUTO:
             nextApprovalMode = allowPlanMode
               ? ApprovalMode.PLAN
-              : ApprovalMode.DEFAULT;
+              : ApprovalMode.YOLO;
             break;
           case ApprovalMode.PLAN:
-            nextApprovalMode = ApprovalMode.DEFAULT;
+            nextApprovalMode = ApprovalMode.YOLO;
             break;
           case ApprovalMode.YOLO:
-            nextApprovalMode = ApprovalMode.AUTO;
+            nextApprovalMode = ApprovalMode.DEFAULT;
             break;
           default:
+        }
+
+        if (
+          nextApprovalMode === ApprovalMode.YOLO &&
+          config.isYoloModeDisabled()
+        ) {
+          // Skip the disabled YOLO step and land on the mode after it.
+          nextApprovalMode = ApprovalMode.DEFAULT;
         }
       }
 
