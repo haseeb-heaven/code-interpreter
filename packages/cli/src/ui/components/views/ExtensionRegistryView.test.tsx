@@ -50,6 +50,7 @@ const mockExtensions: RegistryExtension[] = [
     hasCustomCommands: false,
     isGoogleOwned: false,
     licenseKey: 'mit',
+    registryName: 'OpenAgent',
   },
   {
     id: 'ext2',
@@ -70,7 +71,13 @@ const mockExtensions: RegistryExtension[] = [
     hasCustomCommands: true,
     isGoogleOwned: true,
     licenseKey: 'apache-2.0',
+    registryName: 'OpenAgent',
   },
+];
+
+const multiSourceExtensions: RegistryExtension[] = [
+  mockExtensions[0],
+  { ...mockExtensions[1], registryName: 'Other' },
 ];
 
 describe('ExtensionRegistryView', () => {
@@ -117,6 +124,7 @@ describe('ExtensionRegistryView', () => {
             lines: [''],
             cursor: [0, 0] as [number, number],
             selectionAnchor: undefined,
+            handleInput: () => false,
           } as unknown as TextBuffer,
           searchQuery: '',
           setSearchQuery: vi.fn(),
@@ -184,6 +192,7 @@ describe('ExtensionRegistryView', () => {
             lines: ['test query'],
             cursor: [0, 10] as [number, number],
             selectionAnchor: undefined,
+            handleInput: () => false,
           } as unknown as TextBuffer,
           searchQuery: 'test query',
           setSearchQuery: vi.fn(),
@@ -268,6 +277,70 @@ describe('ExtensionRegistryView', () => {
     await waitFor(() => {
       expect(lastFrame()).toContain('[Updating...]');
       expect(lastFrame()).not.toContain('[Installed]');
+    });
+  });
+
+  describe('multi-source filtering', () => {
+    beforeEach(() => {
+      vi.mocked(useExtensionRegistry).mockReturnValue({
+        extensions: multiSourceExtensions,
+        loading: false,
+        error: null,
+        search: mockSearch,
+      });
+    });
+
+    it('should tag each extension with its registry source', async () => {
+      const { lastFrame } = await renderView();
+
+      await waitFor(() => {
+        expect(lastFrame()).toContain('OpenAgent');
+        expect(lastFrame()).toContain('Other');
+      });
+    });
+
+    it('should show the source filter header when multiple sources are present', async () => {
+      const { lastFrame } = await renderView();
+
+      await waitFor(() => {
+        expect(lastFrame()).toContain('Tab to cycle');
+      });
+    });
+
+    it('should cycle the source filter on Tab and hide non-matching extensions', async () => {
+      const { stdin, lastFrame } = await renderView();
+
+      await waitFor(() => {
+        expect(lastFrame()).toContain('Test Extension 1');
+        expect(lastFrame()).toContain('Test Extension 2');
+      });
+
+      await React.act(async () => {
+        stdin.write('\t');
+      });
+
+      await waitFor(() => {
+        expect(lastFrame()).toContain('Test Extension 1');
+        expect(lastFrame()).not.toContain('Test Extension 2');
+      });
+
+      await React.act(async () => {
+        stdin.write('\t');
+      });
+
+      await waitFor(() => {
+        expect(lastFrame()).not.toContain('Test Extension 1');
+        expect(lastFrame()).toContain('Test Extension 2');
+      });
+
+      await React.act(async () => {
+        stdin.write('\t');
+      });
+
+      await waitFor(() => {
+        expect(lastFrame()).toContain('Test Extension 1');
+        expect(lastFrame()).toContain('Test Extension 2');
+      });
     });
   });
 });

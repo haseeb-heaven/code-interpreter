@@ -20,9 +20,14 @@ import { useExtensionUpdates } from '../../hooks/useExtensionUpdates.js';
 import { useConfig } from '../../contexts/ConfigContext.js';
 import type { ExtensionManager } from '../../../config/extension-manager.js';
 import { useRegistrySearch } from '../../hooks/useRegistrySearch.js';
+import { useKeypress } from '../../hooks/useKeypress.js';
+import { Command } from '../../key/keyMatchers.js';
+import { useKeyMatchers } from '../../hooks/useKeyMatchers.js';
 
 import { useUIState } from '../../contexts/UIStateContext.js';
 import { ExtensionDetails } from './ExtensionDetails.js';
+
+const ALL_SOURCES_FILTER = 'all';
 
 export interface ExtensionRegistryViewProps {
   onSelect?: (
@@ -48,13 +53,40 @@ export function ExtensionRegistryView({
   extensionManager,
 }: ExtensionRegistryViewProps): React.JSX.Element {
   const config = useConfig();
+  const registrySources = config.getExtensionRegistrySources();
   const { extensions, loading, error, search } = useExtensionRegistry(
     '',
-    config.getExtensionRegistryURI(),
+    registrySources,
   );
   const { terminalHeight, staticExtraHeight, historyManager } = useUIState();
   const [selectedExtension, setSelectedExtension] =
     useState<RegistryExtension | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<string>(ALL_SOURCES_FILTER);
+  const keyMatchers = useKeyMatchers();
+
+  const sourceNames = useMemo(
+    () => Array.from(new Set(extensions.map((ext) => ext.registryName))),
+    [extensions],
+  );
+
+  useKeypress(
+    (key) => {
+      if (
+        sourceNames.length > 1 &&
+        !selectedExtension &&
+        keyMatchers[Command.DIALOG_NEXT](key)
+      ) {
+        setSourceFilter((current) => {
+          const options = [ALL_SOURCES_FILTER, ...sourceNames];
+          const index = options.indexOf(current);
+          return options[(index + 1) % options.length];
+        });
+        return true;
+      }
+      return false;
+    },
+    { isActive: !selectedExtension },
+  );
 
   const { extensionsUpdateState, dispatchExtensionStateUpdate } =
     useExtensionUpdates(
@@ -69,13 +101,19 @@ export function ExtensionRegistryView({
 
   const items: ExtensionItem[] = useMemo(
     () =>
-      extensions.map((ext) => ({
-        key: ext.id,
-        label: ext.extensionName,
-        description: ext.extensionDescription || ext.repoDescription,
-        extension: ext,
-      })),
-    [extensions],
+      extensions
+        .filter(
+          (ext) =>
+            sourceFilter === ALL_SOURCES_FILTER ||
+            ext.registryName === sourceFilter,
+        )
+        .map((ext) => ({
+          key: ext.id,
+          label: ext.extensionName,
+          description: ext.extensionDescription || ext.repoDescription,
+          extension: ext,
+        })),
+    [extensions, sourceFilter],
   );
 
   const handleSelect = useCallback((item: ExtensionItem) => {
@@ -185,6 +223,13 @@ export function ExtensionRegistryView({
                 {item.description}
               </Text>
             </Box>
+            {sourceNames.length > 1 && (
+              <Box flexShrink={0} marginLeft={1}>
+                <Text color={theme.text.secondary} dimColor>
+                  [{item.extension.registryName}]
+                </Text>
+              </Box>
+            )}
           </Box>
           <Box flexShrink={0} marginLeft={2} width={8} flexDirection="row">
             <Text color={theme.status.warning}>⭐</Text>
@@ -198,7 +243,7 @@ export function ExtensionRegistryView({
         </Box>
       );
     },
-    [installedExtensions, extensionsUpdateState],
+    [installedExtensions, extensionsUpdateState, sourceNames],
   );
 
   const header = useMemo(
@@ -206,7 +251,9 @@ export function ExtensionRegistryView({
       <Box flexDirection="row" justifyContent="space-between" width="100%">
         <Box flexShrink={1}>
           <Text color={theme.text.secondary} wrap="truncate">
-            Browse and search extensions from the registry.
+            {sourceNames.length > 1
+              ? `Source: ${sourceFilter === ALL_SOURCES_FILTER ? 'All' : sourceFilter} (Tab to cycle)`
+              : 'Browse and search extensions from the registry.'}
           </Text>
         </Box>
         <Box flexShrink={0} marginLeft={2}>
@@ -217,7 +264,7 @@ export function ExtensionRegistryView({
         </Box>
       </Box>
     ),
-    [installedExtensions.length],
+    [installedExtensions.length, sourceNames, sourceFilter],
   );
 
   const footer = useCallback(
