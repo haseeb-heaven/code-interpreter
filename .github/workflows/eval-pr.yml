@@ -25,7 +25,7 @@ permissions:
 jobs:
   detect-changes:
     name: 'Detect Steering Changes'
-    runs-on: 'gemini-cli-ubuntu-16-core'
+    runs-on: 'ubuntu-latest'
     # Security: pull_request_target allows secrets, so we must gate carefully.
     # Detection should not run code from the fork.
     if: "github.repository == 'haseeb-heaven/open-agent' && github.event.pull_request.draft == false"
@@ -90,7 +90,7 @@ jobs:
     if: "needs.detect-changes.outputs.SHOULD_RUN == 'true'"
     # Manual approval gate via environment
     environment: 'eval-gate'
-    runs-on: 'gemini-cli-ubuntu-16-core'
+    runs-on: 'ubuntu-latest'
     env:
       # CENTRALIZED MODEL LIST
       MODEL_LIST: 'gemini-3-flash-preview'

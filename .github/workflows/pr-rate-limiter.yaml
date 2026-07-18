@@ -12,7 +12,7 @@ on:
 
 jobs:
   limit:
-    runs-on: 'gemini-cli-ubuntu-16-core'
+    runs-on: 'ubuntu-latest'
     permissions:
       contents: 'read'
       pull-requests: 'write'
