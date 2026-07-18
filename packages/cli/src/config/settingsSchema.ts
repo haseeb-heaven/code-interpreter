@@ -23,6 +23,7 @@ import {
   type CustomTheme,
   type SandboxConfig,
   type VertexAiRoutingConfig,
+  type RegistrySource,
 } from '@open-agent/core';
 import type { SessionRetentionSettings } from './settings.js';
 import { DEFAULT_MIN_RETENTION } from '../utils/sessionCleanup.js';
@@ -2285,10 +2286,27 @@ const SETTINGS_SCHEMA = {
         label: 'Extension Registry URI',
         category: 'Experimental',
         requiresRestart: true,
-        default: 'https://geminicli.com/extensions.json',
+        default: '',
         description:
-          'The URI (web URL or local file path) of the extension registry.',
+          'The URI (web URL or local file path) of the extension registry. ' +
+          'Deprecated in favor of `extensionRegistries`; if explicitly set, ' +
+          'it takes precedence over the list as the sole effective registry ' +
+          '(named "Custom").',
         showInDialog: false,
+      },
+      extensionRegistries: {
+        type: 'array',
+        label: 'Extension Registries',
+        category: 'Experimental',
+        requiresRestart: true,
+        default: [
+          { name: 'OpenAgent', uri: 'https://geminicli.com/extensions.json' },
+        ] as RegistrySource[],
+        description:
+          'Named extension marketplace sources to browse/search together. ' +
+          'Each entry is a web URL or local file path.',
+        showInDialog: false,
+        items: { type: 'object' },
       },
       extensionReloading: {
         type: 'boolean',

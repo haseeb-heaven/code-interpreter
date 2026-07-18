@@ -134,6 +134,9 @@ aliases may still appear for compatibility):
 | `openagent extensions link <path>`                    | Link local extension for development         | `openagent extensions link /path/to/extension`                                    |
 | `openagent extensions new <path>`                     | Create new extension from template           | `openagent extensions new ./my-extension`                                         |
 | `openagent extensions validate <path>`                | Validate extension structure                 | `openagent extensions validate ./my-extension`                                    |
+| `openagent extensions registry add <name> <uri>`      | Add a named extension registry source        | `openagent extensions registry add acme https://acme.example/extensions.json`     |
+| `openagent extensions registry remove <name>`         | Remove a named extension registry source     | `openagent extensions registry remove acme`                                       |
+| `openagent extensions registry list`                  | List configured extension registry sources   | `openagent extensions registry list`                                              |
 
 See [Extensions Documentation](../extensions/index.md) for more details.
 

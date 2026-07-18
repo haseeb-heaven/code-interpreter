@@ -592,6 +592,12 @@ export interface WorktreeSettings {
   baseSha: string;
 }
 
+/** A named extension marketplace/registry source (web URL or local file path). */
+export interface RegistrySource {
+  name: string;
+  uri: string;
+}
+
 export interface ConfigParameters {
   sessionId: string;
   clientName?: string;
@@ -675,7 +681,7 @@ export interface ConfigParameters {
   skipNextSpeakerCheck?: boolean;
   shellExecutionConfig?: ShellExecutionConfig;
   extensionManagement?: boolean;
-  extensionRegistryURI?: string;
+  extensionRegistrySources?: RegistrySource[];
   truncateToolOutputThreshold?: number;
   eventEmitter?: EventEmitter;
   useWriteTodos?: boolean;
@@ -898,7 +904,7 @@ export class Config implements McpContext, AgentLoopContext {
   private readonly useRenderProcess: boolean;
   private shellExecutionConfig: ShellExecutionConfig;
   private readonly extensionManagement: boolean = true;
-  private readonly extensionRegistryURI: string | undefined;
+  private readonly extensionRegistrySources: RegistrySource[];
   private readonly truncateToolOutputThreshold: number;
   private compressionTruncationCounter = 0;
   private initialized = false;
@@ -1301,7 +1307,7 @@ export class Config implements McpContext, AgentLoopContext {
     this.shellToolInactivityTimeout =
       (params.shellToolInactivityTimeout ?? 300) * 1000; // 5 minutes
     this.extensionManagement = params.extensionManagement ?? true;
-    this.extensionRegistryURI = params.extensionRegistryURI;
+    this.extensionRegistrySources = params.extensionRegistrySources ?? [];
     this.enableExtensionReloading = params.enableExtensionReloading ?? false;
     this.storage = new Storage(this.targetDir, this._sessionId);
     this.storage.setCustomPlansDir(params.planSettings?.directory);
@@ -2491,8 +2497,8 @@ export class Config implements McpContext, AgentLoopContext {
     return this.extensionsEnabled;
   }
 
-  getExtensionRegistryURI(): string | undefined {
-    return this.extensionRegistryURI;
+  getExtensionRegistrySources(): RegistrySource[] {
+    return this.extensionRegistrySources;
   }
 
   getMcpClientManager(): McpClientManager | undefined {

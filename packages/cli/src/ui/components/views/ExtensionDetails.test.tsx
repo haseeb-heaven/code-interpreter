@@ -31,6 +31,7 @@ const mockExtension: RegistryExtension = {
   hasCustomCommands: true,
   isGoogleOwned: true,
   licenseKey: 'Apache-2.0',
+  registryName: 'OpenAgent',
 };
 
 const linkableExtension: RegistryExtension = {

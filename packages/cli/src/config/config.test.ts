@@ -2025,6 +2025,57 @@ describe('loadCliConfig folderTrust', () => {
   });
 });
 
+describe('loadCliConfig extensionRegistrySources', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(os.homedir).mockReturnValue('/mock/home/user');
+    vi.stubEnv('GEMINI_API_KEY', 'test-api-key');
+    vi.spyOn(ExtensionManager.prototype, 'getExtensions').mockReturnValue([]);
+    delete process.env['GEMINI_CLI_EXTENSION_REGISTRY_URI'];
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it('uses the configured custom registries when the folder is trusted', async () => {
+    vi.mocked(isWorkspaceTrusted).mockReturnValue({
+      isTrusted: true,
+      source: 'file',
+    });
+    process.argv = ['node', 'script.js'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const settings = createTestMergedSettings({
+      experimental: {
+        extensionRegistries: [{ name: 'MyRegistry', uri: 'https://example.com/registry.json' }],
+      },
+    });
+    const config = await loadCliConfig(settings, 'test-session', argv);
+    expect(config.getExtensionRegistrySources()).toEqual([
+      { name: 'MyRegistry', uri: 'https://example.com/registry.json' },
+    ]);
+  });
+
+  it('falls back to the default registry (not empty) when the folder is untrusted, ignoring configured custom registries', async () => {
+    vi.mocked(isWorkspaceTrusted).mockReturnValue({
+      isTrusted: false,
+      source: 'file',
+    });
+    process.argv = ['node', 'script.js'];
+    const argv = await parseArguments(createTestMergedSettings());
+    const settings = createTestMergedSettings({
+      experimental: {
+        extensionRegistries: [{ name: 'MyRegistry', uri: 'https://example.com/registry.json' }],
+      },
+    });
+    const config = await loadCliConfig(settings, 'test-session', argv);
+    const sources = config.getExtensionRegistrySources();
+    expect(sources).not.toEqual([]);
+    expect(sources.some((s) => s.name === 'MyRegistry')).toBe(false);
+  });
+});
+
 describe('loadCliConfig with includeDirectories', () => {
   beforeEach(() => {
     vi.resetAllMocks();

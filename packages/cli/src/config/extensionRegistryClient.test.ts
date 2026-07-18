@@ -16,6 +16,7 @@ import {
 import * as fs from 'node:fs/promises';
 import {
   ExtensionRegistryClient,
+  MultiRegistryClient,
   type RegistryExtension,
 } from './extensionRegistryClient.js';
 import { fetchWithTimeout, resolveToRealPath } from '@open-agent/core';
@@ -32,7 +33,7 @@ vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(),
 }));
 
-const mockExtensions: RegistryExtension[] = [
+const mockExtensions: Array<Omit<RegistryExtension, 'registryName'>> = [
   {
     id: 'ext1',
     rank: 1,
@@ -100,7 +101,6 @@ describe('ExtensionRegistryClient', () => {
   let fetchMock: Mock;
 
   beforeEach(() => {
-    ExtensionRegistryClient.resetCache();
     client = new ExtensionRegistryClient();
     fetchMock = fetchWithTimeout as Mock;
     fetchMock.mockReset();
@@ -208,7 +208,10 @@ describe('ExtensionRegistryClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should share the fetch result across instances', async () => {
+  it('should not share the fetch result across instances', async () => {
+    // Each instance now owns its own fetch cache (fetchPromise is an
+    // instance field, not static), so two different-URI clients running
+    // concurrently no longer collide on a single shared cache.
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => mockExtensions,
@@ -220,7 +223,7 @@ describe('ExtensionRegistryClient', () => {
     await client1.getExtensions();
     await client2.getExtensions();
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('should throw an error if fetch fails', async () => {
@@ -315,5 +318,142 @@ describe('ExtensionRegistryClient', () => {
       resolveToRealPath(fileUrl),
       'utf-8',
     );
+  });
+});
+
+describe('MultiRegistryClient', () => {
+  let fetchMock: Mock;
+
+  beforeEach(() => {
+    fetchMock = fetchWithTimeout as Mock;
+    fetchMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should aggregate extensions across multiple sources and stamp registryName', async () => {
+    fetchMock.mockImplementation(async (uri: string) => {
+      if (uri === 'https://a.example.com/extensions.json') {
+        return {
+          ok: true,
+          json: async () => [mockExtensions[0], mockExtensions[1]],
+        };
+      }
+      return {
+        ok: true,
+        json: async () => [mockExtensions[2]],
+      };
+    });
+
+    const client = new MultiRegistryClient([
+      { name: 'SourceA', uri: 'https://a.example.com/extensions.json' },
+      { name: 'SourceB', uri: 'https://b.example.com/extensions.json' },
+    ]);
+
+    const result = await client.getExtensions(1, 10);
+    expect(result.total).toBe(3);
+    const byId = new Map(result.extensions.map((ext) => [ext.id, ext]));
+    expect(byId.get('ext1')?.registryName).toBe('SourceA');
+    expect(byId.get('ext2')?.registryName).toBe('SourceA');
+    expect(byId.get('ext3')?.registryName).toBe('SourceB');
+  });
+
+  it('should dedupe extensions by id, first-seen source wins', async () => {
+    fetchMock.mockImplementation(async (uri: string) => {
+      if (uri === 'https://a.example.com/extensions.json') {
+        return {
+          ok: true,
+          json: async () => [mockExtensions[0]],
+        };
+      }
+      return {
+        // Same id ('ext1') from a second source; should be dropped since
+        // SourceA is listed first.
+        ok: true,
+        json: async () => [{ ...mockExtensions[0] }],
+      };
+    });
+
+    const client = new MultiRegistryClient([
+      { name: 'SourceA', uri: 'https://a.example.com/extensions.json' },
+      { name: 'SourceB', uri: 'https://b.example.com/extensions.json' },
+    ]);
+
+    const result = await client.getExtensions(1, 10);
+    expect(result.total).toBe(1);
+    expect(result.extensions[0].registryName).toBe('SourceA');
+  });
+
+  it('should tolerate a single source failing without affecting the others', async () => {
+    fetchMock.mockImplementation(async (uri: string) => {
+      if (uri === 'https://a.example.com/extensions.json') {
+        throw new Error('network error');
+      }
+      return {
+        ok: true,
+        json: async () => [mockExtensions[2]],
+      };
+    });
+
+    const client = new MultiRegistryClient([
+      { name: 'SourceA', uri: 'https://a.example.com/extensions.json' },
+      { name: 'SourceB', uri: 'https://b.example.com/extensions.json' },
+    ]);
+
+    const result = await client.getExtensions(1, 10);
+    expect(result.total).toBe(1);
+    expect(result.extensions[0].id).toBe('ext3');
+    expect(result.extensions[0].registryName).toBe('SourceB');
+  });
+
+  it('should search across all sources', async () => {
+    fetchMock.mockImplementation(async (uri: string) => {
+      if (uri === 'https://a.example.com/extensions.json') {
+        return {
+          ok: true,
+          json: async () => [mockExtensions[0]],
+        };
+      }
+      return {
+        ok: true,
+        json: async () => [mockExtensions[1]],
+      };
+    });
+
+    const client = new MultiRegistryClient([
+      { name: 'SourceA', uri: 'https://a.example.com/extensions.json' },
+      { name: 'SourceB', uri: 'https://b.example.com/extensions.json' },
+    ]);
+
+    const results = await client.searchExtensions('Second');
+    expect(results).toHaveLength(1);
+    expect(results[0].id).toBe('ext2');
+    expect(results[0].registryName).toBe('SourceB');
+  });
+
+  it('should get a single extension by id across sources', async () => {
+    fetchMock.mockImplementation(async (uri: string) => {
+      if (uri === 'https://a.example.com/extensions.json') {
+        return {
+          ok: true,
+          json: async () => [mockExtensions[0]],
+        };
+      }
+      return {
+        ok: true,
+        json: async () => [mockExtensions[1]],
+      };
+    });
+
+    const client = new MultiRegistryClient([
+      { name: 'SourceA', uri: 'https://a.example.com/extensions.json' },
+      { name: 'SourceB', uri: 'https://b.example.com/extensions.json' },
+    ]);
+
+    const result = await client.getExtension('ext2');
+    expect(result).toBeDefined();
+    expect(result?.registryName).toBe('SourceB');
   });
 });

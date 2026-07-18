@@ -45,8 +45,10 @@ import {
   type HookDefinition,
   type HookEventName,
   type OutputFormat,
+  type RegistrySource,
   detectIdeFromEnv,
 } from '@open-agent/core';
+import { ExtensionRegistryClient } from './extensionRegistryClient.js';
 import {
   type Settings,
   type MergedSettings,
@@ -720,14 +722,41 @@ export async function loadCliConfig(
     ?.getExtensions()
     ?.find((ext) => ext.isActive && ext.plan?.directory)?.plan;
 
-  let extensionRegistryURI =
-    process.env['GEMINI_CLI_EXTENSION_REGISTRY_URI'] ??
-    (trustedFolder ? settings.experimental?.extensionRegistryURI : undefined);
+  const legacyExtensionRegistryURI =
+    process.env['GEMINI_CLI_EXTENSION_REGISTRY_URI'] ||
+    (trustedFolder
+      ? settings.experimental?.extensionRegistryURI?.trim()
+      : undefined);
 
-  if (extensionRegistryURI && !extensionRegistryURI.startsWith('http')) {
-    extensionRegistryURI = resolveToRealPath(
-      path.resolve(cwd, resolvePath(extensionRegistryURI)),
-    );
+  let extensionRegistrySources: RegistrySource[];
+  if (legacyExtensionRegistryURI) {
+    let uri = legacyExtensionRegistryURI;
+    if (!uri.startsWith('http')) {
+      uri = resolveToRealPath(path.resolve(cwd, resolvePath(uri)));
+    }
+    extensionRegistrySources = [{ name: 'Custom', uri }];
+  } else {
+    extensionRegistrySources = (
+      (trustedFolder
+        ? settings.experimental?.extensionRegistries
+        : undefined) ?? []
+    ).map((source) => {
+      if (source.uri.startsWith('http')) {
+        return source;
+      }
+      return {
+        name: source.name,
+        uri: resolveToRealPath(path.resolve(cwd, resolvePath(source.uri))),
+      };
+    });
+    if (extensionRegistrySources.length === 0) {
+      extensionRegistrySources = [
+        {
+          name: ExtensionRegistryClient.DEFAULT_REGISTRY_NAME,
+          uri: ExtensionRegistryClient.DEFAULT_REGISTRY_URL,
+        },
+      ];
+    }
   }
 
   const finalExtensionLoader =
@@ -1087,7 +1116,7 @@ export async function loadCliConfig(
     deleteSession: argv.deleteSession,
     enabledExtensions: argv.extensions,
     extensionLoader: finalExtensionLoader,
-    extensionRegistryURI,
+    extensionRegistrySources,
     enableExtensionReloading: settings.experimental?.extensionReloading,
     enableAgents: settings.experimental?.enableAgents,
     plan: settings.general?.plan?.enabled ?? true,
