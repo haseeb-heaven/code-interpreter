@@ -1,11 +1,18 @@
 ## Unreleased
 
+## v4.1.0 (2026-07-20)
+
 - fix(tui): rename the interactive model picker command to `/models` (with
   `/model` retained as a compatibility alias); unavailable paid-provider models
   now offer their provider-specific `.env` key setup directly in the dialog
 - fix(providers): preserve unique registry-key routing and endpoint overrides
   when aliases share a LiteLLM model id; free sessions now rotate through the
   fallback catalog after rate-limit or free-router failures
+- fix(providers): stop crashing on first-run auth when zero API keys are
+  configured
+- fix(tests): eliminate a homedir-mock bypass in the extension manager and
+  related suites that let tests leak real developer-machine state (`~/.gemini` /
+  `~/.openagent`) instead of the mocked temp home
 - test(providers): add fallback-chain coverage and validate OpenRouter's
   `openai/gpt-oss-20b:free` with both complete and streaming live requests
 - docs: update the branch-specific clone command; document `/models`,
