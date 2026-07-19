@@ -643,7 +643,7 @@ export const commandDescriptions: Readonly<Record<Command, string>> = {
   [Command.TOGGLE_MOUSE_MODE]: 'Toggle mouse mode (scrolling and clicking).',
   [Command.TOGGLE_YOLO]: 'Toggle YOLO (auto-approval) mode for tool calls.',
   [Command.CYCLE_APPROVAL_MODE]:
-    'Cycle through approval modes: default (prompt), auto_edit (auto-approve edits), and plan (read-only). Plan mode is skipped when the agent is busy.',
+    'Cycle through approval modes: default (prompt), auto (auto-approve safe actions), and plan (read-only). Plan mode is skipped when the agent is busy.',
   [Command.SHOW_MORE_LINES]:
     'Expand and collapse blocks of content when not in alternate buffer mode.',
   [Command.EXPAND_PASTE]:

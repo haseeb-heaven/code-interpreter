@@ -193,6 +193,14 @@ temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
+[models."claude-fable-5"]
+model = "claude-fable-5"
+provider = "anthropic"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "Claude Fable 5 (current-gen Anthropic flagship, July 2026)"
+
 [models."claude-haiku-4-5"]
 model = "claude-haiku-4-5"
 provider = "anthropic"
@@ -207,12 +215,28 @@ temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
+[models."claude-opus-4-8"]
+model = "claude-opus-4-8"
+provider = "anthropic"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "Claude Opus 4.8 (current-gen Anthropic, July 2026)"
+
 [models."claude-sonnet-4-6"]
 model = "claude-sonnet-4-6"
 provider = "anthropic"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
+
+[models."claude-sonnet-5"]
+model = "claude-sonnet-5"
+provider = "anthropic"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "Claude Sonnet 5 (current-gen Anthropic, July 2026)"
 
 [models."code-llama"]
 model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
@@ -397,6 +421,27 @@ temperature = 0.1
 max_tokens = 2048
 tier = "paid"
 
+[models."gpt-5.6-luna"]
+model = "gpt-5.6-luna"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "GPT-5.6 Luna (fastest/cheapest tier, everyday tasks; $1/$6 per 1M, GA 2026-07-09)"
+
+[models."gpt-5.6-sol"]
+model = "gpt-5.6-sol"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "GPT-5.6 Sol (flagship reasoning/coding tier; $5/$30 per 1M, GA 2026-07-09)"
+
+[models."gpt-5.6-terra"]
+model = "gpt-5.6-terra"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "GPT-5.6 Terra (balanced/high-volume tier; $2.50/$15 per 1M, GA 2026-07-09)"
+
 [models."gpt-o1-mini"]
 model = "o1"
 temperature = 0.1
@@ -579,6 +624,15 @@ max_tokens = 4096
 tier = "free"
 notes = "GPT-OSS 20B via OpenRouter :free"
 
+[models."openrouter-kimi-k3"]
+model = "moonshotai/kimi-k3"
+provider = "openrouter"
+api_base = "https://openrouter.ai/api/v1"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "Moonshot Kimi K3 (2.8T MoE, 1M context, released 2026-07-16) via OpenRouter"
+
 [models."openrouter-llama-3.3-70b-free"]
 model = "meta-llama/llama-3.3-70b-instruct:free"
 provider = "openrouter"
@@ -612,6 +666,15 @@ temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
+[models."openrouter-minimax-m2-7"]
+model = "minimax/minimax-m2.7"
+provider = "openrouter"
+api_base = "https://openrouter.ai/api/v1"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "MiniMax M2.7 (agentic multi-agent workflows, 204K context) via OpenRouter"
+
 [models."openrouter-nemotron-3-super-free"]
 model = "nvidia/nemotron-3-nano-30b-a3b:free"
 provider = "openrouter"
@@ -637,6 +700,24 @@ temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
+[models."openrouter-qwen3-7-max"]
+model = "qwen/qwen3.7-max"
+provider = "openrouter"
+api_base = "https://openrouter.ai/api/v1"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "Qwen3.7-Max (flagship agentic model, 1M context) via OpenRouter"
+
+[models."openrouter-qwen3-7-plus"]
+model = "qwen/qwen3.7-plus"
+provider = "openrouter"
+api_base = "https://openrouter.ai/api/v1"
+temperature = 0.1
+max_tokens = 4096
+tier = "paid"
+notes = "Qwen3.7-Plus (multimodal agentic model, 1M context) via OpenRouter"
+
 [models."openrouter-qwen3-coder"]
 model = "qwen/qwen3-coder:free"
 provider = "openrouter"
@@ -653,6 +734,15 @@ api_base = "https://openrouter.ai/api/v1"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
+
+[models."openrouter-tencent-hy3-free"]
+model = "tencent/hy3:free"
+provider = "openrouter"
+api_base = "https://openrouter.ai/api/v1"
+temperature = 0.1
+max_tokens = 4096
+tier = "free"
+notes = "Tencent Hy3 (295B MoE, Apache 2.0, released 2026-07-06) via OpenRouter :free promo through 2026-07-21"
 
 [models."star-chat"]
 model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
@@ -677,6 +767,14 @@ tier = "paid"
 # -----------------------------------------------------------------------------
 # Free / cheap catalog rotation (curated presets for --free / --gemini-style)
 # -----------------------------------------------------------------------------
+
+[[free_catalog]]
+id = "openrouter-tencent-hy3-free"
+model_key = "openrouter-tencent-hy3-free"
+provider = "openrouter"
+env_key = "OPENROUTER_API_KEY"
+tier = "free"
+notes = "Tencent Hy3 via OpenRouter :free promo through 2026-07-21 (top-ranked July 2026)"
 
 [[free_catalog]]
 id = "openrouter-gpt-oss-20b-free"

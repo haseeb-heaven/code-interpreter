@@ -543,6 +543,14 @@ describe('generateContentResponseUtilities', () => {
         ]),
       ).toBeUndefined();
     });
+    it('should strip stray LLM tool call closing tags', () => {
+      expect(
+        getResponseTextFromParts([mockTextPart('>"}</function>')]),
+      ).toBeUndefined();
+      expect(
+        getResponseTextFromParts([mockTextPart('Done >"}</function_call>')]),
+      ).toBe('Done');
+    });
   });
 
   describe('getFunctionCalls', () => {

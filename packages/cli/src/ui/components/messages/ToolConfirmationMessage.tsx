@@ -474,9 +474,7 @@ export const ToolConfirmationMessage: React.FC<
       const containsRedirection = commandsToDisplay.some((cmd) =>
         hasRedirection(cmd),
       );
-      const isAutoEdit =
-        config.getApprovalMode() === ApprovalMode.YOLO ||
-        config.getApprovalMode() === ApprovalMode.AUTO_EDIT;
+      const isAutoEdit = config.getApprovalMode() === ApprovalMode.YOLO;
       if (containsRedirection && !isAutoEdit) {
         extraInfoLines = 1; // Warning line
       }
@@ -708,9 +706,7 @@ export const ToolConfirmationMessage: React.FC<
         const containsRedirection = commandsToDisplay.some((cmd) =>
           hasRedirection(cmd),
         );
-        const isAutoEdit =
-          config.getApprovalMode() === ApprovalMode.YOLO ||
-          config.getApprovalMode() === ApprovalMode.AUTO_EDIT;
+        const isAutoEdit = config.getApprovalMode() === ApprovalMode.YOLO;
 
         let warnings: React.ReactNode = null;
         if (containsRedirection && !isAutoEdit) {

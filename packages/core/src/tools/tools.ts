@@ -188,14 +188,6 @@ export abstract class BaseToolInvocation<
     abortSignal: AbortSignal,
     forcedDecision?: ForcedToolDecision,
   ): Promise<ToolCallConfirmationDetails | false> {
-    if (
-      this.respectsAutoEdit &&
-      this.getApprovalMode() === ApprovalMode.AUTO_EDIT &&
-      forcedDecision !== 'ask_user'
-    ) {
-      return false;
-    }
-
     const decision =
       forcedDecision ?? (await this.getMessageBusDecision(abortSignal));
     if (decision === 'allow') {

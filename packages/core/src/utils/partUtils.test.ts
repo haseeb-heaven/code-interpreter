@@ -196,6 +196,36 @@ describe('partUtils', () => {
       };
       expect(getResponseText(response)).toBeNull();
     });
+
+    it('should strip stray LLM tool-call closing tags from the tail', () => {
+      const result = mockResponse([{ text: 'Done >"}</function_call>' }]);
+      expect(getResponseText(result)).toBe('Done');
+    });
+
+    it('should return null when text is only a stray tool-call artifact', () => {
+      const result = mockResponse([{ text: '>"}</function>' }]);
+      expect(getResponseText(result)).toBeNull();
+    });
+
+    it('should not trim whitespace at chunk boundaries when called per streaming chunk', () => {
+      // getResponseText is invoked once per streamed GenerateContentResponse
+      // chunk (see Turn's streaming loop). A blanket .trim() here would
+      // silently eat a space/newline that lands at a chunk boundary,
+      // corrupting the reassembled message (e.g. merging markdown table
+      // rows or words together).
+      const chunk1 = mockResponse([{ text: '|level1|2|\n' }]);
+      const chunk2 = mockResponse([{ text: '|level1\\ai|37|\n' }]);
+      const joined =
+        (getResponseText(chunk1) ?? '') + (getResponseText(chunk2) ?? '');
+      expect(joined).toBe('|level1|2|\n|level1\\ai|37|\n');
+
+      const wordChunk1 = mockResponse([{ text: 'Hello ' }]);
+      const wordChunk2 = mockResponse([{ text: 'world' }]);
+      const joinedWords =
+        (getResponseText(wordChunk1) ?? '') +
+        (getResponseText(wordChunk2) ?? '');
+      expect(joinedWords).toBe('Hello world');
+    });
   });
 
   describe('flatMapTextParts', () => {

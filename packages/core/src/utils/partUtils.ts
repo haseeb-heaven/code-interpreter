@@ -128,10 +128,27 @@ export function getResponseText(
       candidate.content.parts &&
       candidate.content.parts.length > 0
     ) {
-      return candidate.content.parts
+      const text = candidate.content.parts
         .filter((part) => part.text && !part.thought)
         .map((part) => part.text)
         .join('');
+      if (!text) return null;
+      // NOTE: do not .trim() here — this runs once per streamed response
+      // chunk (see Turn's streaming loop in core/turn.ts), and trimming
+      // would silently eat whitespace/newlines that happen to fall at a
+      // chunk boundary (e.g. between markdown table rows), corrupting the
+      // reassembled message. The regexes below already consume the
+      // whitespace they need via their own `\s*` patterns.
+      const cleaned = text
+        .replace(
+          /^(?:\s*>?"?\}?<\/(?:function_call|function|tool_call|tool)>)+$/gi,
+          '',
+        )
+        .replace(
+          /\s*>?"?\}?<\/(?:function_call|function|tool_call|tool)>/gi,
+          '',
+        );
+      return cleaned.length > 0 ? cleaned : null;
     }
   }
   return null;

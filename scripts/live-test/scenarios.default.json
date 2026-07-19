@@ -1,0 +1,59 @@
+{
+  "prompts": [
+    {
+      "id": "list-documents",
+      "category": "basic",
+      "text": "List every file inside \"{{MEDIA_DIR}}/documents\" and tell me how many there are."
+    },
+    {
+      "id": "list-documents-alt-phrasing",
+      "category": "basic",
+      "text": "Show me what's inside the \"{{MEDIA_DIR}}/documents\" folder and give me a total count of the files there."
+    },
+    {
+      "id": "count-images",
+      "category": "basic",
+      "text": "Count how many image files are in \"{{MEDIA_DIR}}/images\" and list their names."
+    },
+    {
+      "id": "total-file-count",
+      "category": "basic",
+      "text": "Look across every subfolder inside \"{{MEDIA_DIR}}\" and tell me the total number of files, like a total downloads count."
+    },
+    {
+      "id": "list-text-like-files",
+      "category": "basic",
+      "text": "Search inside \"{{MEDIA_DIR}}\" and list every file whose name ends in a text-like extension (.txt, .md, .json, .csv, .xml, .ini)."
+    },
+    {
+      "id": "find-by-keyword",
+      "category": "real-world",
+      "text": "Find any files inside \"{{MEDIA_DIR}}\" whose name contains \"sample\" or \"demo\", as if I were looking for a previous document I saved."
+    },
+    {
+      "id": "summarize-document",
+      "category": "complex",
+      "text": "Read one file from \"{{MEDIA_DIR}}/documents\" and summarize its contents in two sentences."
+    },
+    {
+      "id": "inspect-code-languages",
+      "category": "complex",
+      "text": "Look inside \"{{MEDIA_DIR}}/code\" and tell me what programming languages are used there."
+    },
+    {
+      "id": "analyze-chart-script",
+      "category": "complex",
+      "text": "Open \"{{MEDIA_DIR}}/data\" and explain what the chart-generation script(s) in there do, in plain English."
+    },
+    {
+      "id": "archive-inventory",
+      "category": "real-world",
+      "text": "List the archive files in \"{{MEDIA_DIR}}/archives\" along with what compression format each one uses."
+    },
+    {
+      "id": "web-search-node-lts",
+      "category": "real-world",
+      "text": "Search the web for the current Node.js LTS version and tell me what it is."
+    }
+  ]
+}

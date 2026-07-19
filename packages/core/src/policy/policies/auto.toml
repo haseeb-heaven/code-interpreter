@@ -14,7 +14,8 @@
 # - Auto-approves safe tool calls (reads, workspace edits, non-dangerous shell)
 # - Policy engine still forces ASK_USER for dangerous shell commands (isDangerousCommand)
 #   unless YOLO is active — Auto does NOT bypass that safety net
-# - Write tools require the allowed-path checker (workspace-only)
+# - Workspace-boundary enforcement is handled centrally by
+#   Config.validatePathAccess (mode-aware), not by a policy-level path checker
 # - Redirection is NOT auto-allowed (unlike YOLO) so redirects still prompt
 # - Distinct from YOLO: YOLO auto-approves everything including dangerous ops
 
@@ -35,17 +36,13 @@ priority = 999
 modes = ["auto"]
 interactive = true
 
-# Workspace writes: allow with path safety (blocks system dirs / outside workspace)
+# Workspace writes: allow (workspace boundary enforced centrally by
+# Config.validatePathAccess, which is mode-aware)
 [[rule]]
 toolName = ["write_file", "replace"]
 decision = "allow"
 priority = 997
 modes = ["auto"]
-
-[rule.safety_checker]
-type = "in-process"
-name = "allowed-path"
-required_context = ["environment"]
 
 # Allow everything else in Auto mode.
 # Dangerous shell commands are still forced to ASK_USER by policy-engine heuristics

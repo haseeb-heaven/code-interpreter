@@ -1741,7 +1741,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   }, [shouldShowSuggestions, onSuggestionsVisibilityChange]);
 
   const showAutoAcceptStyling =
-    !shellModeActive && approvalMode === ApprovalMode.AUTO_EDIT;
+    !shellModeActive && approvalMode === ApprovalMode.AUTO;
   const showYoloStyling =
     !shellModeActive && approvalMode === ApprovalMode.YOLO;
   const showPlanStyling =

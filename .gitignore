@@ -2,6 +2,15 @@
 .env
 .env~
 
+# Live-testing harness reports (scripts/live-test) — local debugging only,
+# never committed since they contain real prompts/outputs from real API calls.
+/.live-test-reports/
+
+# Windows sandbox helper is compiled from OpenAgentSandbox.cs by
+# packages/core/scripts/compile-windows-sandbox.js — never commit the binary.
+packages/core/src/sandbox/windows/OpenAgentSandbox.exe
+packages/core/dist/src/sandbox/windows/OpenAgentSandbox.exe
+
 # OpenAgent settings
 # We want to keep the .openagent in the root of the repo and ignore any
 # .openagent in subdirectories. In our root .openagent we want to allow for

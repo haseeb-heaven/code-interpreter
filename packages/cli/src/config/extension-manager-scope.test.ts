@@ -48,6 +48,11 @@ describe('ExtensionManager Settings Scope', () => {
     currentTempHome = fs.mkdtempSync(
       path.join(os.tmpdir(), 'gemini-cli-test-home-'),
     );
+    // ensureOpenAgentHomeDir() calls its own module-local homedir(), which
+    // bypasses the `homedir` mock on the @open-agent/core export below (that
+    // mock only affects other modules' imports of it). GEMINI_CLI_HOME is
+    // checked first inside homedir() itself, so this actually redirects it.
+    vi.stubEnv('GEMINI_CLI_HOME', currentTempHome);
     tempWorkspace = fs.mkdtempSync(
       path.join(os.tmpdir(), 'gemini-cli-test-workspace-'),
     );
@@ -88,6 +93,7 @@ describe('ExtensionManager Settings Scope', () => {
     await cleanupTmpDir(currentTempHome);
     await cleanupTmpDir(tempWorkspace);
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('should prioritize workspace settings over user settings and report correct scope', async () => {

@@ -509,9 +509,16 @@ export class ShellToolInvocation extends BaseToolInvocation<
       );
 
       const cwd = this.params.dir_path
-        ? path.resolve(this.context.config.getTargetDir(), this.params.dir_path)
+        ? path.isAbsolute(this.params.dir_path)
+          ? this.params.dir_path
+          : path.resolve(
+              this.context.config.getTargetDir(),
+              this.params.dir_path,
+            )
         : this.context.config.getTargetDir();
 
+      // validatePathAccess is mode-aware (relaxes the workspace boundary for
+      // YOLO/AUTO/PLAN as appropriate), so no per-mode branching is needed here.
       const validationError = this.context.config.validatePathAccess(cwd);
       if (validationError) {
         return {
@@ -1127,10 +1134,9 @@ export class ShellTool extends BaseDeclarativeTool<
     }
 
     if (params.dir_path) {
-      const resolvedPath = path.resolve(
-        this.context.config.getTargetDir(),
-        params.dir_path,
-      );
+      const resolvedPath = path.isAbsolute(params.dir_path)
+        ? params.dir_path
+        : path.resolve(this.context.config.getTargetDir(), params.dir_path);
       return this.context.config.validatePathAccess(resolvedPath);
     }
     return null;

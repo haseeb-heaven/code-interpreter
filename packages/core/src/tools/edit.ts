@@ -841,7 +841,7 @@ class EditToolInvocation
       originalContent: editData.currentContent,
       newContent: editData.newContent,
       onConfirm: async (_outcome: ToolConfirmationOutcome) => {
-        // Mode transitions (e.g. AUTO_EDIT) and policy updates are now
+        // Mode transitions (e.g. to AUTO) and policy updates are now
         // handled centrally by the scheduler.
 
         if (ideConfirmation) {

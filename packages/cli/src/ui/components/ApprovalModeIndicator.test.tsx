@@ -10,23 +10,6 @@ import { describe, it, expect } from 'vitest';
 import { ApprovalMode } from '@open-agent/core';
 
 describe('ApprovalModeIndicator', () => {
-  it('renders correctly for AUTO_EDIT mode', async () => {
-    const { lastFrame } = await render(
-      <ApprovalModeIndicator approvalMode={ApprovalMode.AUTO_EDIT} />,
-    );
-    expect(lastFrame()).toMatchSnapshot();
-  });
-
-  it('renders correctly for AUTO_EDIT mode with plan enabled', async () => {
-    const { lastFrame } = await render(
-      <ApprovalModeIndicator
-        approvalMode={ApprovalMode.AUTO_EDIT}
-        allowPlanMode={true}
-      />,
-    );
-    expect(lastFrame()).toMatchSnapshot();
-  });
-
   it('renders correctly for AUTO mode', async () => {
     const { lastFrame } = await render(
       <ApprovalModeIndicator approvalMode={ApprovalMode.AUTO} />,

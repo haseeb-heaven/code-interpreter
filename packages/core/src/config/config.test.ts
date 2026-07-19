@@ -2135,14 +2135,6 @@ describe('setApprovalMode with folder trust', () => {
     );
   });
 
-  it('should throw an error when setting AUTO_EDIT mode in an untrusted folder', () => {
-    const config = new Config(baseParams);
-    vi.spyOn(config, 'isTrustedFolder').mockReturnValue(false);
-    expect(() => config.setApprovalMode(ApprovalMode.AUTO_EDIT)).toThrow(
-      'Cannot enable privileged approval modes in an untrusted folder.',
-    );
-  });
-
   it('should NOT throw an error when setting DEFAULT mode in an untrusted folder', () => {
     const config = new Config(baseParams);
     vi.spyOn(config, 'isTrustedFolder').mockReturnValue(false);
@@ -2159,7 +2151,6 @@ describe('setApprovalMode with folder trust', () => {
     const config = new Config(baseParams);
     vi.spyOn(config, 'isTrustedFolder').mockReturnValue(true);
     expect(() => config.setApprovalMode(ApprovalMode.YOLO)).not.toThrow();
-    expect(() => config.setApprovalMode(ApprovalMode.AUTO_EDIT)).not.toThrow();
     expect(() => config.setApprovalMode(ApprovalMode.DEFAULT)).not.toThrow();
   });
 
@@ -2167,7 +2158,6 @@ describe('setApprovalMode with folder trust', () => {
     const config = new Config(baseParams);
     vi.spyOn(config, 'isTrustedFolder').mockReturnValue(true); // isTrustedFolder defaults to true
     expect(() => config.setApprovalMode(ApprovalMode.YOLO)).not.toThrow();
-    expect(() => config.setApprovalMode(ApprovalMode.AUTO_EDIT)).not.toThrow();
     expect(() => config.setApprovalMode(ApprovalMode.DEFAULT)).not.toThrow();
   });
 
@@ -2224,7 +2214,7 @@ describe('setApprovalMode with folder trust', () => {
     vi.spyOn(config, 'isTrustedFolder').mockReturnValue(true);
     const updateSpy = vi.spyOn(config, 'updateSystemInstructionIfInitialized');
 
-    config.setApprovalMode(ApprovalMode.AUTO_EDIT);
+    config.setApprovalMode(ApprovalMode.AUTO);
 
     expect(updateSpy).not.toHaveBeenCalled();
   });
@@ -3544,6 +3534,84 @@ describe('Config Quota & Preview Model Access', () => {
       } else {
         expect(result).toBeNull();
       }
+    });
+
+    describe('approval-mode-aware workspace boundary relaxation', () => {
+      const outOfWorkspacePath = path.resolve(
+        path.sep,
+        'completely',
+        'unrelated',
+        'dir',
+        'file.txt',
+      );
+
+      const makeInitializedConfig = () => {
+        const config = new Config(baseParams);
+        vi.spyOn(config.storage, 'getProjectMemoryTempDir').mockReturnValue(
+          path.resolve(path.sep, 'fake-project-memory-temp-dir'),
+        );
+        vi.spyOn(config.storage, 'getProjectTempDir').mockReturnValue(
+          path.resolve(path.sep, 'fake-project-temp-dir'),
+        );
+        vi.spyOn(config, 'isTrustedFolder').mockReturnValue(true);
+        return config;
+      };
+
+      it('DEFAULT mode denies reads outside the workspace', () => {
+        const config = makeInitializedConfig();
+        config.setApprovalMode(ApprovalMode.DEFAULT);
+        const result = config.validatePathAccess(outOfWorkspacePath, 'read');
+        expect(result).toContain('Path not in workspace');
+      });
+
+      it('DEFAULT mode denies writes outside the workspace', () => {
+        const config = makeInitializedConfig();
+        config.setApprovalMode(ApprovalMode.DEFAULT);
+        const result = config.validatePathAccess(outOfWorkspacePath, 'write');
+        expect(result).toContain('Path not in workspace');
+      });
+
+      it('YOLO mode allows reads outside the workspace', () => {
+        const config = makeInitializedConfig();
+        config.setApprovalMode(ApprovalMode.YOLO);
+        const result = config.validatePathAccess(outOfWorkspacePath, 'read');
+        expect(result).toBeNull();
+      });
+
+      it('YOLO mode allows writes outside the workspace', () => {
+        const config = makeInitializedConfig();
+        config.setApprovalMode(ApprovalMode.YOLO);
+        const result = config.validatePathAccess(outOfWorkspacePath, 'write');
+        expect(result).toBeNull();
+      });
+
+      it('AUTO mode allows reads outside the workspace', () => {
+        const config = makeInitializedConfig();
+        config.setApprovalMode(ApprovalMode.AUTO);
+        const result = config.validatePathAccess(outOfWorkspacePath, 'read');
+        expect(result).toBeNull();
+      });
+
+      it('AUTO mode allows writes outside the workspace', () => {
+        const config = makeInitializedConfig();
+        config.setApprovalMode(ApprovalMode.AUTO);
+        const result = config.validatePathAccess(outOfWorkspacePath, 'write');
+        expect(result).toBeNull();
+      });
+
+      it('PLAN mode allows reads outside the workspace', () => {
+        const config = makeInitializedConfig();
+        config.setApprovalMode(ApprovalMode.PLAN);
+        const result = config.validatePathAccess(outOfWorkspacePath, 'read');
+        expect(result).toBeNull();
+      });
+
+      it('PLAN mode still denies writes outside the workspace', () => {
+        const config = makeInitializedConfig();
+        config.setApprovalMode(ApprovalMode.PLAN);
+        const result = config.validatePathAccess(outOfWorkspacePath, 'write');
+        expect(result).toContain('Path not in workspace');
+      });
     });
   });
 });

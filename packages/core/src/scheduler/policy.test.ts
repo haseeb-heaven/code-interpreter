@@ -239,7 +239,7 @@ describe('policy.ts', () => {
   });
 
   describe('updatePolicy', () => {
-    it('should set AUTO_EDIT mode for auto-edit transition tools and publish policy update', async () => {
+    it('should set AUTO mode for auto-edit transition tools and publish policy update', async () => {
       const mockConfig = {
         getApprovalMode: vi.fn().mockReturnValue(ApprovalMode.DEFAULT),
         setApprovalMode: vi.fn(),
@@ -264,7 +264,7 @@ describe('policy.ts', () => {
       );
 
       expect(mockConfig.setApprovalMode).toHaveBeenCalledWith(
-        ApprovalMode.AUTO_EDIT,
+        ApprovalMode.AUTO,
       );
       expect(mockMessageBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -275,7 +275,7 @@ describe('policy.ts', () => {
       );
     });
 
-    it('should preserve the original mode set when a session allow triggers AUTO_EDIT', async () => {
+    it('should preserve the original mode set when a session allow triggers AUTO', async () => {
       let currentMode = ApprovalMode.DEFAULT;
       const mockConfig = {
         getApprovalMode: vi.fn(() => currentMode),
@@ -300,19 +300,14 @@ describe('policy.ts', () => {
       );
 
       expect(mockConfig.setApprovalMode).toHaveBeenCalledWith(
-        ApprovalMode.AUTO_EDIT,
+        ApprovalMode.AUTO,
       );
       expect(mockMessageBus.publish).toHaveBeenCalledWith(
         expect.objectContaining({
           type: MessageBusType.UPDATE_POLICY,
           toolName: 'replace',
           persist: false,
-          modes: [
-            ApprovalMode.DEFAULT,
-            ApprovalMode.AUTO_EDIT,
-            ApprovalMode.AUTO,
-            ApprovalMode.YOLO,
-          ],
+          modes: [ApprovalMode.DEFAULT, ApprovalMode.AUTO, ApprovalMode.YOLO],
         }),
       );
     });
@@ -955,22 +950,11 @@ describe('Plan Mode Denial Consistency', () => {
         currentMode: ApprovalMode.DEFAULT,
         expectedModes: [
           ApprovalMode.DEFAULT,
-          ApprovalMode.AUTO_EDIT,
           ApprovalMode.AUTO,
           ApprovalMode.YOLO,
         ],
         description:
           'include current and more permissive modes in DEFAULT mode',
-      },
-      {
-        currentMode: ApprovalMode.AUTO_EDIT,
-        expectedModes: [
-          ApprovalMode.AUTO_EDIT,
-          ApprovalMode.AUTO,
-          ApprovalMode.YOLO,
-        ],
-        description:
-          'include current and more permissive modes in AUTO_EDIT mode',
       },
       {
         currentMode: ApprovalMode.AUTO,
@@ -987,7 +971,6 @@ describe('Plan Mode Denial Consistency', () => {
         expectedModes: [
           ApprovalMode.PLAN,
           ApprovalMode.DEFAULT,
-          ApprovalMode.AUTO_EDIT,
           ApprovalMode.AUTO,
           ApprovalMode.YOLO,
         ],

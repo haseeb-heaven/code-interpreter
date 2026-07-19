@@ -17,6 +17,6 @@ export const REDIRECTION_WARNING_NOTE_TEXT =
   'Command contains redirection which can be undesirable.';
 export const REDIRECTION_WARNING_TIP_LABEL = 'Tip:  '; // Padded to align with "Note: "
 export const getRedirectionWarningTipText = (shiftTabHint: string) =>
-  `Toggle auto-edit (${shiftTabHint}) to allow redirection in the future.`;
+  `Toggle auto (${shiftTabHint}) to allow redirection in the future.`;
 
 export const GENERIC_WORKING_LABEL = 'Working...';

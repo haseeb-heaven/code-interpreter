@@ -175,18 +175,6 @@ describe('Configuration Integration Tests', () => {
 
     it.each([
       {
-        description: 'should parse --approval-mode=auto_edit correctly',
-        argv: [
-          'node',
-          'script.js',
-          '--approval-mode',
-          'auto_edit',
-          '-p',
-          'test',
-        ],
-        expected: { approvalMode: 'auto_edit', prompt: 'test', yolo: false },
-      },
-      {
         description: 'should parse --approval-mode=auto correctly',
         argv: ['node', 'script.js', '--approval-mode', 'auto', '-p', 'test'],
         expected: {

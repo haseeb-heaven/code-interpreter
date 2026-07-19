@@ -222,7 +222,7 @@ Read and follow the plan strictly during implementation.`,
       expect(mockConfig.setApprovedPlanPath).toHaveBeenCalledWith(expectedPath);
     });
 
-    it('should return approval message when plan is approved with AUTO_EDIT mode', async () => {
+    it('should return approval message when plan is approved with AUTO mode', async () => {
       const planRelativePath = createPlanFile('test.md', '# Content');
       const invocation = tool.build({ plan_filename: planRelativePath });
 
@@ -234,7 +234,7 @@ Read and follow the plan strictly during implementation.`,
 
       await confirmDetails.onConfirm(ToolConfirmationOutcome.ProceedOnce, {
         approved: true,
-        approvalMode: ApprovalMode.AUTO_EDIT,
+        approvalMode: ApprovalMode.AUTO,
       });
 
       const result = await invocation.execute({
@@ -243,14 +243,14 @@ Read and follow the plan strictly during implementation.`,
       const expectedPath = path.join(mockPlansDir, 'test.md');
 
       expect(result).toEqual({
-        llmContent: `Plan approved. Switching to Auto-Edit mode (edits will be applied automatically).
+        llmContent: `Plan approved. Switching to Auto mode (safe actions auto-approved; dangerous ops require confirmation).
 
 The approved implementation plan is stored at: ${expectedPath}
 Read and follow the plan strictly during implementation.`,
         returnDisplay: `Plan approved: ${expectedPath}`,
       });
       expect(mockConfig.setApprovalMode).toHaveBeenCalledWith(
-        ApprovalMode.AUTO_EDIT,
+        ApprovalMode.AUTO,
       );
       expect(mockConfig.setApprovedPlanPath).toHaveBeenCalledWith(expectedPath);
     });
@@ -323,7 +323,7 @@ Ask the user for specific feedback on how to improve the plan.`,
 
       await confirmDetails.onConfirm(ToolConfirmationOutcome.ProceedOnce, {
         approved: true,
-        approvalMode: ApprovalMode.AUTO_EDIT,
+        approvalMode: ApprovalMode.AUTO,
       });
 
       await invocation.execute({ abortSignal: new AbortController().signal });
@@ -331,7 +331,7 @@ Ask the user for specific feedback on how to improve the plan.`,
       expect(loggers.logPlanExecution).toHaveBeenCalledWith(
         mockConfig,
         expect.objectContaining({
-          approval_mode: ApprovalMode.AUTO_EDIT,
+          approval_mode: ApprovalMode.AUTO,
         }),
       );
     });
@@ -439,8 +439,8 @@ Ask the user for specific feedback on how to improve the plan.`,
       };
 
       await testMode(
-        ApprovalMode.AUTO_EDIT,
-        'Auto-Edit mode (edits will be applied automatically)',
+        ApprovalMode.AUTO,
+        'Auto mode (safe actions auto-approved; dangerous ops require confirmation)',
       );
       await testMode(
         ApprovalMode.DEFAULT,
@@ -496,20 +496,23 @@ Ask the user for specific feedback on how to improve the plan.`,
       expect(result).toContain('Plan file does not exist');
     });
 
-    it.skipIf(!canSymlink)('should reject symbolic links pointing outside the plans directory', () => {
-      const outsideFile = path.join(tempRootDir, 'outside.txt');
-      fs.writeFileSync(outsideFile, 'secret');
-      const maliciousPath = path.join(mockPlansDir, 'malicious.md');
-      fs.symlinkSync(outsideFile, maliciousPath);
+    it.skipIf(!canSymlink)(
+      'should reject symbolic links pointing outside the plans directory',
+      () => {
+        const outsideFile = path.join(tempRootDir, 'outside.txt');
+        fs.writeFileSync(outsideFile, 'secret');
+        const maliciousPath = path.join(mockPlansDir, 'malicious.md');
+        fs.symlinkSync(outsideFile, maliciousPath);
 
-      const result = tool.validateToolParams({
-        plan_filename: 'malicious.md',
-      });
+        const result = tool.validateToolParams({
+          plan_filename: 'malicious.md',
+        });
 
-      expect(result).toBe(
-        `Access denied: plan path (malicious.md) must be within the designated plans directory (${mockPlansDir}).`,
-      );
-    });
+        expect(result).toBe(
+          `Access denied: plan path (malicious.md) must be within the designated plans directory (${mockPlansDir}).`,
+        );
+      },
+    );
 
     it('should accept valid path within plans directory', () => {
       createPlanFile('valid.md', '# Content');

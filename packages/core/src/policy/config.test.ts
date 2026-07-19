@@ -478,18 +478,6 @@ describe('createPolicyEngineConfig', () => {
     expect(rule?.priority).toBeCloseTo(1.996, 5);
   });
 
-  it('should allow edit tool in AUTO_EDIT mode', async () => {
-    const config = await createPolicyEngineConfig({}, ApprovalMode.AUTO_EDIT);
-    const rule = config.rules?.find(
-      (r) =>
-        r.toolName === 'replace' &&
-        r.decision === PolicyDecision.ALLOW &&
-        r.modes?.includes(ApprovalMode.AUTO_EDIT),
-    );
-    expect(rule).toBeDefined();
-    expect(rule?.priority).toBeCloseTo(1.015, 5);
-  });
-
   it('should prioritize exclude over allow', async () => {
     const config = await createPolicyEngineConfig(
       {

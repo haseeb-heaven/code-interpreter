@@ -3301,19 +3301,11 @@ export class Config implements McpContext, AgentLoopContext {
     // main agent must NOT drop files into it directly (that would let the
     // model bypass review). Deny first, even if the path also satisfies the
     // workspace or project-temp allowlists below.
-    const inboxRoot = path.join(
-      this.storage.getProjectMemoryTempDir(),
-      '.inbox',
-    );
-    const resolvedInboxRoot = resolveToRealPath(inboxRoot);
-    const normalizedPath = path.resolve(absolutePath);
-    const normalizedInboxRoot = path.resolve(inboxRoot);
-    if (
-      resolvedPath === resolvedInboxRoot ||
-      isSubpath(resolvedInboxRoot, resolvedPath) ||
-      normalizedPath === normalizedInboxRoot ||
-      isSubpath(normalizedInboxRoot, normalizedPath)
-    ) {
+    if (this.isInDeniedMemoryInbox(absolutePath, resolvedPath)) {
+      const inboxRoot = path.join(
+        this.storage.getProjectMemoryTempDir(),
+        '.inbox',
+      );
       if (
         this.isScopedMemoryInboxPatchPathAllowed(
           absolutePath,
@@ -3352,6 +3344,30 @@ export class Config implements McpContext, AgentLoopContext {
     }
 
     return false;
+  }
+
+  /**
+   * Whether `absolutePath` falls inside the auto-memory inbox subtree
+   * (`<projectMemoryDir>/.inbox/`). This carve-out is a security boundary
+   * independent of approval mode — even YOLO/AUTO must not bypass it.
+   */
+  private isInDeniedMemoryInbox(
+    absolutePath: string,
+    resolvedPath: string = resolveToRealPath(absolutePath),
+  ): boolean {
+    const inboxRoot = path.join(
+      this.storage.getProjectMemoryTempDir(),
+      '.inbox',
+    );
+    const resolvedInboxRoot = resolveToRealPath(inboxRoot);
+    const normalizedPath = path.resolve(absolutePath);
+    const normalizedInboxRoot = path.resolve(inboxRoot);
+    return (
+      resolvedPath === resolvedInboxRoot ||
+      isSubpath(resolvedInboxRoot, resolvedPath) ||
+      normalizedPath === normalizedInboxRoot ||
+      isSubpath(normalizedInboxRoot, normalizedPath)
+    );
   }
 
   /**
@@ -3415,6 +3431,21 @@ export class Config implements McpContext, AgentLoopContext {
     // Then check standard allowed paths (Workspace + Temp)
     // This covers 'write' checks and acts as a fallback/temp-dir check for 'read'
     if (this.isPathAllowed(absolutePath)) {
+      return null;
+    }
+
+    // YOLO and AUTO relax the workspace boundary entirely (both read and
+    // write); PLAN relaxes it for reads only (writes stay workspace-scoped,
+    // enforced by plan.toml's rules as defense in depth). The auto-memory
+    // inbox deny carve-out above is a security boundary independent of
+    // approval mode, so it still applies even when the mode would otherwise
+    // relax the check.
+    const approvalMode = this.getApprovalMode();
+    const relaxWorkspaceBoundary =
+      approvalMode === ApprovalMode.YOLO ||
+      approvalMode === ApprovalMode.AUTO ||
+      (approvalMode === ApprovalMode.PLAN && checkType === 'read');
+    if (relaxWorkspaceBoundary && !this.isInDeniedMemoryInbox(absolutePath)) {
       return null;
     }
 

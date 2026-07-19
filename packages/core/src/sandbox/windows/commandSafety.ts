@@ -156,8 +156,7 @@ export function isCircuitBreakerCommand(args: string[]): boolean {
 
 /**
  * Legacy, narrower dangerous-command check for Windows, retained for
- * approval modes that predate the broadened Auto-mode heuristics (DEFAULT,
- * AUTO_EDIT).
+ * approval modes that predate the broadened Auto-mode heuristics (DEFAULT).
  */
 export function isDangerousCommandLegacy(args: string[]): boolean {
   if (!args || args.length === 0) return false;

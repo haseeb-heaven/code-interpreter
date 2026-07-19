@@ -381,7 +381,7 @@ describe('SandboxManager Integration', () => {
       it.skipIf(!canSandboxAccessExistingFiles)(
         'allows workspace writes after exiting plan mode',
         async () => {
-          // Upon exiting Plan Mode, the sandbox transitions to autoEdit/accepting_edits
+          // Upon exiting Plan Mode, the sandbox transitions to accepting_edits
           // which sets readonly: false, allowOverrides: true
           const editManager = createSandboxManager(
             { enabled: true },

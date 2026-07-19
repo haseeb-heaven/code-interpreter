@@ -10,7 +10,7 @@ import { MessageType } from '../types.js';
 
 interface CategorizedRules {
   normal: PolicyRule[];
-  autoEdit: PolicyRule[];
+  auto: PolicyRule[];
   yolo: PolicyRule[];
   plan: PolicyRule[];
 }
@@ -20,7 +20,7 @@ const categorizeRulesByMode = (
 ): CategorizedRules => {
   const result: CategorizedRules = {
     normal: [],
-    autoEdit: [],
+    auto: [],
     yolo: [],
     plan: [],
   };
@@ -29,7 +29,7 @@ const categorizeRulesByMode = (
     const modes = rule.modes?.length ? rule.modes : ALL_MODES;
     const modeSet = new Set(modes);
     if (modeSet.has(ApprovalMode.DEFAULT)) result.normal.push(rule);
-    if (modeSet.has(ApprovalMode.AUTO_EDIT)) result.autoEdit.push(rule);
+    if (modeSet.has(ApprovalMode.AUTO)) result.auto.push(rule);
     if (modeSet.has(ApprovalMode.YOLO)) result.yolo.push(rule);
     if (modeSet.has(ApprovalMode.PLAN)) result.plan.push(rule);
   });
@@ -80,7 +80,7 @@ const listPoliciesCommand: SlashCommand = {
 
     const categorized = categorizeRulesByMode(rules);
     const normalRulesSet = new Set(categorized.normal);
-    const uniqueAutoEdit = categorized.autoEdit.filter(
+    const uniqueAuto = categorized.auto.filter(
       (rule) => !normalRulesSet.has(rule),
     );
     const uniqueYolo = categorized.yolo.filter(
@@ -93,8 +93,8 @@ const listPoliciesCommand: SlashCommand = {
     let content = '**Active Policies**\n\n';
     content += formatSection('Normal Mode Policies', categorized.normal);
     content += formatSection(
-      'Auto Edit Mode Policies (combined with normal mode policies)',
-      uniqueAutoEdit,
+      'Auto Mode Policies (combined with normal mode policies)',
+      uniqueAuto,
     );
     content += formatSection(
       'Yolo Mode Policies (combined with normal mode policies)',

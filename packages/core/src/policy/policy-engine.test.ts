@@ -387,7 +387,7 @@ describe('PolicyEngine', () => {
           toolName: 'edit',
           decision: PolicyDecision.ALLOW,
           priority: 20,
-          modes: [ApprovalMode.AUTO_EDIT],
+          modes: [ApprovalMode.AUTO],
         },
       ];
 
@@ -398,10 +398,10 @@ describe('PolicyEngine', () => {
         PolicyDecision.ASK_USER,
       );
 
-      // Switch to autoEdit mode
+      // Switch to auto mode
       engine = new PolicyEngine({
         rules,
-        approvalMode: ApprovalMode.AUTO_EDIT,
+        approvalMode: ApprovalMode.AUTO,
         sandboxManager: new LocalSandboxManager(),
       });
       expect((await engine.check({ name: 'edit' }, undefined)).decision).toBe(
@@ -1781,33 +1781,6 @@ describe('PolicyEngine', () => {
       expect(result.decision).toBe(PolicyDecision.ASK_USER);
     });
 
-    it('should allow redirected shell commands in AUTO_EDIT mode if individual commands are allowed', async () => {
-      const rules: PolicyRule[] = [
-        {
-          toolName: 'run_shell_command',
-          argsPattern: /"command":"echo\b/,
-          decision: PolicyDecision.ALLOW,
-          priority: 20,
-        },
-      ];
-
-      engine = new PolicyEngine({
-        rules,
-        sandboxManager: new LocalSandboxManager(),
-      });
-      engine.setApprovalMode(ApprovalMode.AUTO_EDIT);
-
-      const result = await engine.check(
-        {
-          name: 'run_shell_command',
-          args: { command: 'echo "hello" > test.txt' },
-        },
-        undefined,
-      );
-
-      expect(result.decision).toBe(PolicyDecision.ALLOW);
-    });
-
     it('should allow compound commands with safe operators (&&, ||) if individual commands are allowed', async () => {
       const rules: PolicyRule[] = [
         {
@@ -1939,31 +1912,6 @@ describe('PolicyEngine', () => {
 
       engine = new PolicyEngine({
         approvalMode: ApprovalMode.DEFAULT,
-        sandboxManager: mockSandboxManager,
-      });
-
-      await engine.check(
-        {
-          name: 'run_shell_command',
-          args: { command: 'chmod 777 file' },
-        },
-        undefined,
-      );
-
-      expect(isDangerousCommandSpy).toHaveBeenCalledWith(
-        expect.any(Array),
-        false,
-      );
-    });
-
-    it('should use the narrow legacy dangerous-command check in AUTO_EDIT mode', async () => {
-      const mockSandboxManager = new NoopSandboxManager();
-      const isDangerousCommandSpy = vi.fn().mockReturnValue(false);
-      mockSandboxManager.isDangerousCommand = isDangerousCommandSpy;
-      mockSandboxManager.isKnownSafeCommand = vi.fn().mockReturnValue(false);
-
-      engine = new PolicyEngine({
-        approvalMode: ApprovalMode.AUTO_EDIT,
         sandboxManager: mockSandboxManager,
       });
 
@@ -4083,10 +4031,10 @@ describe('PolicyEngine', () => {
           {
             toolName: 'run_shell_command',
             decision: PolicyDecision.ALLOW,
-            modes: [ApprovalMode.AUTO_EDIT],
+            modes: [ApprovalMode.AUTO],
           },
         ],
-        approvalMode: ApprovalMode.AUTO_EDIT,
+        approvalMode: ApprovalMode.AUTO,
         sandboxManager: mockSandboxManager,
       });
     });

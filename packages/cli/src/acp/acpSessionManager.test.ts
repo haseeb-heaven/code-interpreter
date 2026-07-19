@@ -182,11 +182,6 @@ describe('AcpSessionManager', () => {
       availableModes: [
         { id: 'default', name: 'Default', description: 'Prompts for approval' },
         {
-          id: 'autoEdit',
-          name: 'Auto Edit',
-          description: 'Auto-approves edit tools',
-        },
-        {
           id: 'auto',
           name: 'Auto',
           description:
@@ -265,11 +260,6 @@ describe('AcpSessionManager', () => {
     expect(response.modes).toEqual({
       availableModes: [
         { id: 'default', name: 'Default', description: 'Prompts for approval' },
-        {
-          id: 'autoEdit',
-          name: 'Auto Edit',
-          description: 'Auto-approves edit tools',
-        },
         {
           id: 'auto',
           name: 'Auto',

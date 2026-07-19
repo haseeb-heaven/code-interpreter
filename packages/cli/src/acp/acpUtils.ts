@@ -229,11 +229,6 @@ export function buildAvailableModes(isPlanEnabled: boolean): acp.SessionMode[] {
       description: 'Prompts for approval',
     },
     {
-      id: ApprovalMode.AUTO_EDIT,
-      name: 'Auto Edit',
-      description: 'Auto-approves edit tools',
-    },
-    {
       id: ApprovalMode.AUTO,
       name: 'Auto',
       description:

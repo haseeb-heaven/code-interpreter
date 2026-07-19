@@ -268,7 +268,7 @@ describe('Telemetry Metrics', () => {
     it('records a plan execution event when initialized', () => {
       const config = makeFakeConfig({});
       initializeMetricsModule(config);
-      recordPlanExecutionModule(config, { approval_mode: 'autoEdit' });
+      recordPlanExecutionModule(config, { approval_mode: 'default' });
 
       // Called for session, then for plan execution
       expect(mockCounterAddFn).toHaveBeenCalledTimes(2);
@@ -276,7 +276,7 @@ describe('Telemetry Metrics', () => {
         'session.id': 'test-session-id',
         'installation.id': 'test-installation-id',
         'user.email': 'test@example.com',
-        approval_mode: 'autoEdit',
+        approval_mode: 'default',
       });
     });
   });

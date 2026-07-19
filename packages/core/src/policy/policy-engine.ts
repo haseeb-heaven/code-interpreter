@@ -288,12 +288,9 @@ export class PolicyEngine {
     if (allowRedirection) return false;
     if (!hasRedirection(command)) return false;
 
-    // Do not downgrade (do not ask user) if in AUTO_EDIT or YOLO mode.
-    // These modes trust the agent's actions (YOLO) or specific task (AUTO_EDIT).
-    if (
-      this.approvalMode === ApprovalMode.AUTO_EDIT ||
-      this.approvalMode === ApprovalMode.YOLO
-    ) {
+    // Do not downgrade (do not ask user) if in YOLO mode.
+    // YOLO trusts the agent's actions completely, including redirection.
+    if (this.approvalMode === ApprovalMode.YOLO) {
       return false;
     }
 
@@ -309,7 +306,20 @@ export class PolicyEngine {
   ): Promise<PolicyDecision> {
     await initializeShellParsers();
     try {
-      const parsedObjArgs = shellParse(command);
+      // Unwrap known shell wrappers (e.g. `powershell -Command "..."`,
+      // `bash -c "..."`) before checking the dangerous-command heuristic.
+      // The wrapper's own command name (powershell/pwsh/bash/etc.) is itself
+      // in the dangerous set — by design, to catch a command escaping into a
+      // nested shell mid-pipeline — but on Windows the shell tool's own
+      // invocations are legitimately expressed this way (it's the standard
+      // way to run a multi-cmdlet pipeline). Without unwrapping first, every
+      // such invocation is forced to ASK_USER regardless of how safe the
+      // actual wrapped command is. Wrappers with unparseable payloads (e.g.
+      // `-EncodedCommand <base64>`) aren't matched by stripShellWrapper, so
+      // they still fall through to the raw dangerous-root check below.
+      const unwrapped = stripShellWrapper(command);
+      const commandToCheck = unwrapped !== command ? unwrapped : command;
+      const parsedObjArgs = shellParse(commandToCheck);
       const parsedArgs = parsedObjArgs.map(extractStringFromParseEntry);
 
       // Absolute circuit breaker: these patterns are catastrophic and
@@ -324,9 +334,9 @@ export class PolicyEngine {
       }
 
       // The broadened dangerous-command heuristics (Auto mode) only gate
-      // AUTO and YOLO. DEFAULT and AUTO_EDIT keep the narrower, pre-existing
-      // rule set so this doesn't introduce new confirmation prompts for
-      // approval modes that predate Auto mode.
+      // AUTO and YOLO. DEFAULT keeps the narrower, pre-existing rule set so
+      // this doesn't introduce new confirmation prompts for approval modes
+      // that predate Auto mode.
       const useBroadDangerousCheck =
         this.approvalMode === ApprovalMode.AUTO ||
         this.approvalMode === ApprovalMode.YOLO;

@@ -304,26 +304,74 @@ describe('Policy Engine Integration Tests', () => {
       ).toBe(PolicyDecision.DENY);
     });
 
-    it('should handle AUTO_EDIT mode correctly', async () => {
+    it('should allow AUTO mode writes regardless of path (workspace boundary enforced by Config, not the policy engine)', async () => {
       const settings: Settings = {};
 
       const config = await createPolicyEngineConfig(
         settings,
-        ApprovalMode.AUTO_EDIT,
+        ApprovalMode.AUTO,
       );
       const engine = new PolicyEngine(config);
 
-      // Edit tools should be allowed in AUTO_EDIT mode
+      // The policy engine no longer attaches a path-based safety checker to
+      // AUTO mode's write_file/replace rule — that workspace-boundary
+      // enforcement now lives centrally in Config.validatePathAccess, which is
+      // mode-aware and relaxes the boundary for AUTO. At the policy-engine
+      // layer, an out-of-workspace path should still resolve to ALLOW.
+      const outOfWorkspacePath = '/completely/unrelated/dir/file.txt';
       expect(
-        (await engine.check({ name: 'replace' }, undefined)).decision,
+        (
+          await engine.check(
+            { name: 'write_file', args: { file_path: outOfWorkspacePath } },
+            undefined,
+          )
+        ).decision,
       ).toBe(PolicyDecision.ALLOW);
       expect(
-        (await engine.check({ name: 'write_file' }, undefined)).decision,
+        (
+          await engine.check(
+            { name: 'replace', args: { file_path: outOfWorkspacePath } },
+            undefined,
+          )
+        ).decision,
+      ).toBe(PolicyDecision.ALLOW);
+    });
+
+    it("should auto-approve a safe command wrapped in the shell tool's own powershell -Command idiom in AUTO mode", async () => {
+      const settings: Settings = {};
+      const config = await createPolicyEngineConfig(
+        settings,
+        ApprovalMode.AUTO,
+      );
+      const engine = new PolicyEngine(config);
+
+      // On Windows the shell tool always expresses multi-cmdlet pipelines as
+      // `powershell -NoProfile -NonInteractive -Command "..."`. powershell/pwsh
+      // are intentionally in the dangerous-root set (to catch a genuine
+      // shell-escape), but that must not force ASK_USER for the CLI's own
+      // standard, safe invocation wrapper.
+      const safeWrapped =
+        'powershell -NoProfile -NonInteractive -Command "Get-ChildItem -Filter *.qvm -Recurse | Group-Object Extension | Sort-Object Count | Format-Table"';
+      expect(
+        (
+          await engine.check(
+            { name: 'run_shell_command', args: { command: safeWrapped } },
+            undefined,
+          )
+        ).decision,
       ).toBe(PolicyDecision.ALLOW);
 
-      // Other tools should follow normal rules
+      // A genuinely dangerous inner command must still ask, even through the
+      // same wrapper.
+      const dangerousWrapped =
+        'powershell -NoProfile -NonInteractive -Command "Remove-Item -Recurse -Force C:\\Windows\\System32"';
       expect(
-        (await engine.check({ name: 'run_shell_command' }, undefined)).decision,
+        (
+          await engine.check(
+            { name: 'run_shell_command', args: { command: dangerousWrapped } },
+            undefined,
+          )
+        ).decision,
       ).toBe(PolicyDecision.ASK_USER);
     });
 

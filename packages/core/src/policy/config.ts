@@ -438,7 +438,6 @@ export async function createPolicyEngineConfig(
 
   const nonPlanModes = [
     ApprovalMode.DEFAULT,
-    ApprovalMode.AUTO_EDIT,
     ApprovalMode.AUTO,
     ApprovalMode.YOLO,
   ];

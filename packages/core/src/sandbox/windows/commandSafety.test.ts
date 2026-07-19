@@ -119,7 +119,7 @@ describe('Windows commandSafety', () => {
     });
   });
 
-  describe('isDangerousCommand with strict=false (legacy DEFAULT/AUTO_EDIT rule set)', () => {
+  describe('isDangerousCommand with strict=false (legacy DEFAULT rule set)', () => {
     it('should still flag the original dangerous command list', () => {
       expect(isDangerousCommand(['del', 'file.txt'], false)).toBe(true);
       expect(

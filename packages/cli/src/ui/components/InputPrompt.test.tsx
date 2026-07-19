@@ -4053,7 +4053,7 @@ describe('InputPrompt', () => {
     });
 
     it('should render correctly when accepting edits', async () => {
-      props.approvalMode = ApprovalMode.AUTO_EDIT;
+      props.approvalMode = ApprovalMode.AUTO;
       const { stdout, unmount } = await renderWithProviders(
         <TestInputPrompt {...props} />,
       );

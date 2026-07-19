@@ -349,7 +349,7 @@ class WriteFileToolInvocation extends BaseToolInvocation<
       originalContent,
       newContent: correctedContent,
       onConfirm: async (_outcome: ToolConfirmationOutcome) => {
-        // Mode transitions (e.g. AUTO_EDIT) and policy updates are now
+        // Mode transitions (e.g. to AUTO) and policy updates are now
         // handled centrally by the scheduler.
 
         if (ideConfirmation) {

@@ -186,7 +186,6 @@ export function renderPreamble(options?: PreambleOptions): string {
   let modeStr = 'Default';
   if (options.approvalMode === 'plan') modeStr = 'Plan';
   if (options.approvalMode === 'yolo') modeStr = 'YOLO';
-  if (options.approvalMode === 'autoEdit') modeStr = 'Auto-Edit';
   if (options.approvalMode === 'auto') modeStr = 'Auto';
 
   const base = options.interactive

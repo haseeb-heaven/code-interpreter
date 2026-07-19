@@ -26,8 +26,6 @@ import {
   debugLogger,
   runInDevTraceSpan,
   EDIT_TOOL_NAMES,
-  SHELL_TOOL_NAME,
-  hasRedirection,
   processRestorableToolCalls,
   recordToolCallInteractions,
   ToolErrorType,
@@ -1811,32 +1809,11 @@ export const useGeminiStream = (
       previousApprovalModeRef.current = newApprovalMode;
 
       // Auto-approve pending tool calls when switching to auto-approval modes
-      if (
-        newApprovalMode === ApprovalMode.YOLO ||
-        newApprovalMode === ApprovalMode.AUTO_EDIT
-      ) {
-        let awaitingApprovalCalls = toolCalls.filter(
+      if (newApprovalMode === ApprovalMode.YOLO) {
+        const awaitingApprovalCalls = toolCalls.filter(
           (call): call is TrackedWaitingToolCall =>
             call.status === 'awaiting_approval' && !call.request.forcedAsk,
         );
-
-        // For AUTO_EDIT mode, only approve edit tools (replace, write_file)
-        // or shell commands with redirection (which act as edits).
-        if (newApprovalMode === ApprovalMode.AUTO_EDIT) {
-          awaitingApprovalCalls = awaitingApprovalCalls.filter((call) => {
-            if (EDIT_TOOL_NAMES.has(call.request.name)) {
-              return true;
-            }
-
-            if (call.request.name === SHELL_TOOL_NAME) {
-              const command = (call.request.args as { command?: string })
-                .command;
-              return command && hasRedirection(command);
-            }
-
-            return false;
-          });
-        }
 
         // Process pending tool calls sequentially to reduce UI chaos
         for (const call of awaitingApprovalCalls) {

@@ -10,23 +10,13 @@ exports[`ApprovalModeIndicator > renders correctly for AUTO mode with plan enabl
 "
 `;
 
-exports[`ApprovalModeIndicator > renders correctly for AUTO_EDIT mode 1`] = `
-"auto-accept edits Shift+Tab to auto
-"
-`;
-
-exports[`ApprovalModeIndicator > renders correctly for AUTO_EDIT mode with plan enabled 1`] = `
-"auto-accept edits Shift+Tab to auto
-"
-`;
-
 exports[`ApprovalModeIndicator > renders correctly for DEFAULT mode 1`] = `
-"manual Shift+Tab to auto-accept edits
+"manual Shift+Tab to auto
 "
 `;
 
 exports[`ApprovalModeIndicator > renders correctly for DEFAULT mode with plan enabled 1`] = `
-"manual Shift+Tab to auto-accept edits
+"manual Shift+Tab to auto
 "
 `;
 

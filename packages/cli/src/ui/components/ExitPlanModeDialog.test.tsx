@@ -207,7 +207,7 @@ Implement a comprehensive authentication system with multiple providers.
         expect(lastFrame()).toMatchSnapshot();
       });
 
-      it('calls onApprove with AUTO_EDIT when first option is selected', async () => {
+      it('calls onApprove with AUTO when first option is selected', async () => {
         const { stdin, lastFrame } = await act(async () =>
           renderDialog({ useAlternateBuffer }),
         );
@@ -223,7 +223,7 @@ Implement a comprehensive authentication system with multiple providers.
         writeKey(stdin, '\r');
 
         await waitFor(() => {
-          expect(onApprove).toHaveBeenCalledWith(ApprovalMode.AUTO_EDIT);
+          expect(onApprove).toHaveBeenCalledWith(ApprovalMode.AUTO);
         });
       });
 

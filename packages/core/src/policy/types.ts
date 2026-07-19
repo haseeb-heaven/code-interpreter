@@ -47,7 +47,6 @@ export function getHookSource(input: Record<string, unknown>): HookSource {
 
 export enum ApprovalMode {
   DEFAULT = 'default',
-  AUTO_EDIT = 'autoEdit',
   /**
    * Auto mode (Claude Code-style): auto-approve safe tool calls; still prompt
    * on dangerous shell commands, path escapes, and other high-risk actions.
@@ -66,7 +65,6 @@ export enum ApprovalMode {
 export const MODES_BY_PERMISSIVENESS = [
   ApprovalMode.PLAN,
   ApprovalMode.DEFAULT,
-  ApprovalMode.AUTO_EDIT,
   ApprovalMode.AUTO,
   ApprovalMode.YOLO,
 ];

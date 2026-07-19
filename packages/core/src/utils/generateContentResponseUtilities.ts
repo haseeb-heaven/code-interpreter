@@ -191,10 +191,15 @@ export function getResponseTextFromParts(parts: Part[]): string | undefined {
     .map((part) => part.text)
     .filter((text): text is string => typeof text === 'string');
 
-  if (textSegments.length === 0) {
-    return undefined;
-  }
-  return textSegments.join('');
+  const fullText = textSegments.join('');
+  const cleaned = fullText
+    .replace(
+      /^(?:\s*>?"?\}?<\/(?:function_call|function|tool_call|tool)>)+$/gi,
+      '',
+    )
+    .replace(/\s*>?"?\}?<\/(?:function_call|function|tool_call|tool)>/gi, '')
+    .trim();
+  return cleaned.length > 0 ? cleaned : undefined;
 }
 
 export function getFunctionCalls(

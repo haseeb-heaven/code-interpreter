@@ -316,7 +316,7 @@ denyMessage = "Deletion is permanent"
 toolName = "tier4-tool"
 decision = "allow"
 priority = 100
-modes = ["autoEdit"]
+modes = ["auto"]
 `,
       );
 
@@ -325,7 +325,7 @@ modes = ["autoEdit"]
 
       expect(result4.rules).toHaveLength(1);
       expect(result4.rules[0].toolName).toBe('tier4-tool');
-      expect(result4.rules[0].modes).toEqual(['autoEdit']);
+      expect(result4.rules[0].modes).toEqual(['auto']);
       expect(result4.rules[0].source).toBe('User: tier4.toml');
 
       const getPolicyTier2 = (_dir: string) => 2; // Tier 2 (Extension)

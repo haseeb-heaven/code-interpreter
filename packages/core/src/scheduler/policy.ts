@@ -121,9 +121,9 @@ export async function updatePolicy(
 ): Promise<void> {
   const currentMode = context.config.getApprovalMode();
 
-  // Mode Transitions (AUTO_EDIT)
+  // Mode Transitions (Auto)
   if (isAutoEditTransition(tool, outcome)) {
-    context.config.setApprovalMode(ApprovalMode.AUTO_EDIT);
+    context.config.setApprovalMode(ApprovalMode.AUTO);
   }
 
   // Determine persist scope if we are persisting.
@@ -185,13 +185,13 @@ export async function updatePolicy(
 
 /**
  * Returns true if the user's 'Always Allow' selection for a specific tool
- * should trigger a session-wide transition to AUTO_EDIT mode.
+ * should trigger a session-wide transition to AUTO mode.
  */
 function isAutoEditTransition(
   tool: AnyDeclarativeTool,
   outcome: ToolConfirmationOutcome,
 ): boolean {
-  // TODO: This is a temporary fix to enable AUTO_EDIT mode for specific
+  // TODO: This is a temporary fix to enable AUTO mode for specific
   // tools. We should refactor this so that callbacks can be removed from
   // tools.
   return (

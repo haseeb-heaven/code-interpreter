@@ -150,9 +150,9 @@ export class SandboxPolicyManager {
       };
     }
     if (mode === 'plan') return this.config.modes.plan;
-    // Auto (safe classifier) and Auto-Edit both allow workspace writes;
-    // dangerous ops are still gated by policy-engine (not YOLO).
-    if (mode === 'accepting_edits' || mode === 'autoEdit' || mode === 'auto')
+    // Auto (safe classifier) allows workspace writes; dangerous ops are still
+    // gated by policy-engine (not YOLO).
+    if (mode === 'accepting_edits' || mode === 'auto')
       return this.config.modes.accepting_edits;
     if (mode === 'default') return this.config.modes.default;
 

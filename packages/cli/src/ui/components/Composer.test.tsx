@@ -643,7 +643,6 @@ describe('Composer', () => {
 
     it.each([
       [ApprovalMode.DEFAULT],
-      [ApprovalMode.AUTO_EDIT],
       [ApprovalMode.AUTO],
       [ApprovalMode.PLAN],
       [ApprovalMode.YOLO],
@@ -697,10 +696,6 @@ describe('Composer', () => {
     it.each([
       { mode: ApprovalMode.YOLO, label: '● YOLO' },
       { mode: ApprovalMode.PLAN, label: '● plan' },
-      {
-        mode: ApprovalMode.AUTO_EDIT,
-        label: '● auto edit',
-      },
     ])(
       'shows minimal mode badge "$mode" when clean UI details are hidden',
       async ({ mode, label }) => {

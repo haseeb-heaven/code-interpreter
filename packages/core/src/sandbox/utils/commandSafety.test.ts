@@ -72,7 +72,7 @@ describe('commandSafety', () => {
     });
   });
 
-  describe('isDangerousCommand with strict=false (legacy DEFAULT/AUTO_EDIT rule set)', () => {
+  describe('isDangerousCommand with strict=false (legacy DEFAULT rule set)', () => {
     it('should only flag rm -f/-rf/-fr, not bare rm/rmdir/unlink', () => {
       expect(isDangerousCommand(['rm', '-rf', '/tmp/x'], false)).toBe(true);
       expect(isDangerousCommand(['rm', 'file.txt'], false)).toBe(false);

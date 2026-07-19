@@ -702,7 +702,7 @@ export class TestRig {
     args?: string | string[];
     stdin?: string;
     stdinDoesNotEnd?: boolean;
-    approvalMode?: 'default' | 'auto_edit' | 'auto' | 'yolo' | 'plan';
+    approvalMode?: 'default' | 'auto' | 'yolo' | 'plan';
     timeout?: number;
     env?: Record<string, string | undefined>;
   }): Promise<string> {
@@ -1624,7 +1624,7 @@ export class TestRig {
 
   async runInteractive(options?: {
     args?: string | string[];
-    approvalMode?: 'default' | 'auto_edit' | 'auto' | 'yolo' | 'plan';
+    approvalMode?: 'default' | 'auto' | 'yolo' | 'plan';
     env?: Record<string, string | undefined>;
   }): Promise<InteractiveRun> {
     const approvalMode = options?.approvalMode ?? 'yolo';

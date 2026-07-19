@@ -19,12 +19,6 @@ describe('approvalModeUtils', () => {
       );
     });
 
-    it('should return correct description for AUTO_EDIT mode', () => {
-      expect(getApprovalModeDescription(ApprovalMode.AUTO_EDIT)).toBe(
-        'Auto-Edit mode (edits will be applied automatically)',
-      );
-    });
-
     it('should return correct description for PLAN mode', () => {
       expect(getApprovalModeDescription(ApprovalMode.PLAN)).toBe(
         'Plan mode (read-only planning)',
@@ -52,8 +46,8 @@ describe('approvalModeUtils', () => {
     });
 
     it('should return manual message when manual is true', () => {
-      expect(getPlanModeExitMessage(ApprovalMode.AUTO_EDIT, true)).toBe(
-        'User has manually exited Plan Mode. Switching to Auto-Edit mode (edits will be applied automatically).',
+      expect(getPlanModeExitMessage(ApprovalMode.AUTO, true)).toBe(
+        'User has manually exited Plan Mode. Switching to Auto mode (safe actions auto-approved; dangerous ops require confirmation).',
       );
     });
 

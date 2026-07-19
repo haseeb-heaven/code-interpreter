@@ -12,7 +12,6 @@ import {
   normalizeUrl,
 } from './web-fetch.js';
 import type { Config } from '../config/config.js';
-import { ApprovalMode } from '../policy/types.js';
 import { ToolConfirmationOutcome } from './tools.js';
 import { ToolErrorType } from './tool-error.js';
 import {
@@ -732,20 +731,6 @@ describe('WebFetchTool', () => {
         ],
         onConfirm: expect.any(Function),
       });
-    });
-
-    it('should return false if approval mode is AUTO_EDIT', async () => {
-      vi.spyOn(mockConfig, 'getApprovalMode').mockReturnValue(
-        ApprovalMode.AUTO_EDIT,
-      );
-      const tool = new WebFetchTool(mockConfig, bus);
-      const params = { prompt: 'fetch https://example.com' };
-      const invocation = tool.build(params);
-      const confirmationDetails = await invocation.shouldConfirmExecute(
-        new AbortController().signal,
-      );
-
-      expect(confirmationDetails).toBe(false);
     });
 
     it('should NOT call setApprovalMode when onConfirm is called with ProceedAlways (now handled by scheduler)', async () => {
