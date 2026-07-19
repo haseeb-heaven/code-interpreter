@@ -9,6 +9,7 @@ import {
   IdeClient,
   IdeConnectionEvent,
   IdeConnectionType,
+  isMultiProviderModel,
   logIdeConnection,
   type Config,
   StartSessionEvent,
@@ -50,10 +51,14 @@ export async function initializeApp(
   let authType = settings.merged.security.auth.selectedType;
   if (
     authType === undefined ||
-    // Stale Gemini-only selection while the active model is multi-provider
-    // (e.g. nvidia-nemotron) — re-resolve so auth matches the model.
+    // Stale Gemini-only selection while the active model is itself a
+    // multi-provider id (e.g. nvidia-nemotron) — re-resolve so auth matches
+    // the model. Checked against the model directly (not
+    // resolveOpenAgentDefaultAuth's ambient-env heuristic), so an explicit
+    // `--provider gemini` pin isn't clobbered just because unrelated BYOK
+    // keys (OPENAI_API_KEY, etc.) also happen to be set in the environment.
     (authType === AuthType.USE_GEMINI &&
-      resolveOpenAgentDefaultAuth(config.getModel()) === AuthType.MULTI_PROVIDER)
+      isMultiProviderModel(config.getModel()))
   ) {
     authType = resolveOpenAgentDefaultAuth(config.getModel());
     settings.setValue(

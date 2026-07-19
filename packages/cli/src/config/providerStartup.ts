@@ -165,8 +165,8 @@ export async function applyProviderRouting(
   // First-run / no model: open the Ink multi-model picker (same UI as /model),
   // not a console single-key textbox and not the Gemini auth dialog.
   const isFirstRunCandidate =
-    !Boolean(argv.provider) &&
-    !Boolean(argv.free) &&
+    !argv.provider &&
+    !argv.free &&
     (argv.model === undefined || argv.model === '') &&
     Boolean(process.stdin.isTTY) &&
     settings !== undefined &&
@@ -266,6 +266,22 @@ export async function applyProviderRouting(
       'security.auth.selectedType',
       AuthType.MULTI_PROVIDER,
     );
+  } else {
+    // A prior session may have persisted MULTI_PROVIDER auth (e.g. from
+    // --provider ollama). Routing back to gemini must clear that, or
+    // contentGenerator sees authType === MULTI_PROVIDER with a bare
+    // "gemini/..." model id and throws "No provider route found" (the
+    // multi-provider factory deliberately refuses to route gemini ids).
+    delete process.env['OPENAGENT_CLI_PROVIDER'];
+    if (
+      settings?.merged?.security?.auth?.selectedType === AuthType.MULTI_PROVIDER
+    ) {
+      settings.setValue(
+        SettingScope.User,
+        'security.auth.selectedType',
+        AuthType.USE_GEMINI,
+      );
+    }
   }
   if (argv.free) {
     // Arms the runtime free-model fallback chain in the generator factory.
