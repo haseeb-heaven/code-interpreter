@@ -97,7 +97,7 @@ export const useAuthCommand = (
       // The first-run multi-model picker is open: let the user pick a
       // provider/model and paste a key before attempting auth. Attempting
       // refreshAuth() here would race ahead of that choice and fail against
-      // whatever default (e.g. an unconfigured gpt-4o) resolves first.
+      // whatever default (the local/Ollama route) resolves first.
       if (isModelSetupDialogOpen) {
         return;
       }

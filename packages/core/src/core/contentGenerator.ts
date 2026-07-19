@@ -290,7 +290,7 @@ export async function createContentGenerator(
       if (config.authType === AuthType.MULTI_PROVIDER) {
         throw new Error(
           `No provider route found for model "${routedModel}". ` +
-            'Use --pick to list models or --provider to pin a provider.',
+            'Use --models to list models or --provider to pin a provider.',
         );
       }
     }

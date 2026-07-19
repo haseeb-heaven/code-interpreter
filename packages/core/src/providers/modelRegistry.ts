@@ -21,8 +21,12 @@ import TOML from '@iarna/toml';
 /** Default location of the single-file model registry. */
 export const DEFAULT_REGISTRY_PATH = path.join('configs', 'models.toml');
 
-/** Hard fallback when nothing else resolves (kept in sync with models.toml). */
-export const FALLBACK_DEFAULT_MODEL = 'gpt-4o';
+/**
+ * Hard fallback when nothing else resolves (kept in sync with models.toml).
+ * Must be a model that needs no API key (the local/Ollama route), since this
+ * is what backs the zero-key "Free / open-source / local models" auth choice.
+ */
+export const FALLBACK_DEFAULT_MODEL = 'local-model';
 
 export interface RegistryModelConfig {
   /** LiteLLM-style model id, e.g. "gemini/gemini-2.5-flash". */

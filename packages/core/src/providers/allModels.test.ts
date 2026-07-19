@@ -130,7 +130,11 @@ describe('configs/models.toml (real registry)', () => {
       expect(registry.defaultModelName({ [env]: 'x' })).toBe(expected);
       expect(registry.hasModel(expected)).toBe(true);
     }
-    expect(registry.defaultModelName({})).toBe('gpt-4o');
+    // Zero API keys configured -> the local, no-key-required route, not a
+    // paid cloud model (picking "Free / open-source / local models" with no
+    // keys set must not require gpt-4o's OPENAI_API_KEY).
+    expect(registry.defaultModelName({})).toBe('local-model');
+    expect(registry.hasModel('local-model')).toBe(true);
   });
 
   it.each(
@@ -159,8 +163,10 @@ describe('configs/models.toml (real registry)', () => {
       // for a gemini model - that shim doesn't reproduce native Gemini
       // behavior (thought signatures, grounding metadata, Vertex headers).
       const generator = createMultiProviderGenerator(name, ALL_KEYS, registry);
-      expect(generator, `${name} must NOT produce a multi-provider generator`)
-        .toBeUndefined();
+      expect(
+        generator,
+        `${name} must NOT produce a multi-provider generator`,
+      ).toBeUndefined();
     },
   );
 

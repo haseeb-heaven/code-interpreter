@@ -35,7 +35,11 @@
 # =============================================================================
 
 schema_version = 1
-default_model = "gpt-4o"
+# No env key configured at all -> route to the local, no-key-required model
+# (Ollama's OpenAI-compat endpoint) instead of a paid cloud model. Selecting
+# "Free / open-source / local models" with zero API keys set must not crash
+# by trying to auth against gpt-4o.
+default_model = "local-model"
 
 [[default_priority]]
 env = "OPENAI_API_KEY"
