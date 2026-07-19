@@ -31,7 +31,7 @@
     "express": "5.1.0",
     "fs-extra": "11.3.0",
     "strip-json-comments": "3.1.1",
-    "tar": "7.5.8",
+    "tar": "7.5.20",
     "uuid": "13.0.0",
     "winston": "3.17.0"
   },
@@ -44,7 +44,7 @@
     "dotenv": "16.4.5",
     "supertest": "7.1.4",
     "typescript": "5.8.3",
-    "vitest": "3.2.4"
+    "vitest": "3.2.7"
   },
   "engines": {
     "node": ">=22.0.0"
