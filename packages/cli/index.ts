@@ -17,6 +17,21 @@ import {
 
 // --- Global Entry Point ---
 
+// Forcing process.exit() while another async handle (e.g. an in-flight
+// network socket, MCP child process pipe, or fetch AbortController) is
+// mid-teardown races libuv's own handle-close bookkeeping on Windows,
+// observed as a native "Assertion failed: !(handle->flags &
+// UV_HANDLE_CLOSING), file src\win\async.c, line 76" that aborts the
+// process instead of exiting cleanly. Setting exitCode and letting the
+// event loop drain naturally gives libuv time to close handles in the
+// normal order; process.exit() is only used as a last resort if the loop
+// doesn't drain on its own within the grace period.
+function exitProcess(code: number): void {
+  process.exitCode = code;
+  const forceExitTimer = setTimeout(() => process.exit(code), 2000);
+  forceExitTimer.unref();
+}
+
 // Suppress known race condition error in node-pty on Windows and Linux
 // Tracking bug: https://github.com/microsoft/node-pty/issues/827
 process.on('uncaughtException', (error) => {
@@ -44,7 +59,7 @@ process.on('uncaughtException', (error) => {
   } else {
     process.stderr.write(String(error) + '\n');
   }
-  process.exit(1);
+  exitProcess(1);
 });
 
 async function getMemoryNodeArgs(): Promise<string[]> {
@@ -155,14 +170,16 @@ async function run() {
     // --- Heavy Child Process ---
     // Now we can safely import everything.
     const { main } = await import('./src/gemini.js');
-    const { FatalError, writeToStderr } = await import('@open-agent/core');
+    const { FatalError, writeToStderr, parseAndFormatApiError } = await import(
+      '@open-agent/core'
+    );
     const { runExitCleanup } = await import('./src/utils/cleanup.js');
 
     main().catch(async (error: unknown) => {
       // Set a timeout to force exit if cleanup hangs
       const cleanupTimeout = setTimeout(() => {
         writeToStderr('Cleanup timed out, forcing exit...\n');
-        process.exit(1);
+        exitProcess(1);
       }, 5000);
 
       try {
@@ -181,16 +198,17 @@ async function run() {
           errorMessage = `\x1b[31m${errorMessage}\x1b[0m`;
         }
         writeToStderr(errorMessage + '\n');
-        process.exit(error.exitCode);
+        exitProcess(error.exitCode);
+        return;
       }
 
-      writeToStderr('An unexpected critical error occurred:');
-      if (error instanceof Error) {
-        writeToStderr(error.stack + '\n');
-      } else {
-        writeToStderr(String(error) + '\n');
-      }
-      process.exit(1);
+      // Most uncaught rejections reaching here are unwrapped API errors
+      // (nonInteractiveCli's handleError re-throws in TEXT mode so callers
+      // can format/exit themselves). Use the same formatter errors.ts uses
+      // so the user sees a readable message instead of a raw stack dump
+      // (or "[object Object]" when the rejection isn't even an Error).
+      writeToStderr(parseAndFormatApiError(error) + '\n');
+      exitProcess(1);
     });
   }
 }

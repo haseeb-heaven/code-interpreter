@@ -383,9 +383,9 @@ export async function parseArguments(
         .option('approval-mode', {
           type: 'string',
           nargs: 1,
-          choices: ['default', 'auto_edit', 'auto', 'yolo', 'plan'],
+          choices: ['default', 'auto', 'yolo', 'plan'],
           description:
-            'Set the approval mode: default (prompt for approval), auto_edit (auto-approve edit tools), auto (same as --auto-mode), yolo (same as --yolo), plan (read-only mode)',
+            'Set the approval mode: default (prompt for approval), auto (same as --auto-mode), yolo (same as --yolo), plan (read-only mode)',
         })
         .option('policy', {
           type: 'array',
@@ -780,9 +780,6 @@ export async function loadCliConfig(
       case 'yolo':
         approvalMode = ApprovalMode.YOLO;
         break;
-      case 'auto_edit':
-        approvalMode = ApprovalMode.AUTO_EDIT;
-        break;
       case 'auto':
         approvalMode = ApprovalMode.AUTO;
         break;
@@ -801,7 +798,7 @@ export async function loadCliConfig(
         break;
       default:
         throw new Error(
-          `Invalid approval mode: ${rawApprovalMode}. Valid values are: yolo, auto, auto_edit, plan, default`,
+          `Invalid approval mode: ${rawApprovalMode}. Valid values are: yolo, auto, plan, default`,
         );
     }
   } else {
@@ -948,7 +945,13 @@ export async function loadCliConfig(
       ? argv.screenReader
       : (settings.ui?.accessibility?.screenReader ?? false);
 
-  const ptyInfo = await getPty();
+  // Loading the native pty binding (node-pty/@lydell/node-pty) registers
+  // libuv handles that can be mishandled during process shutdown on Windows
+  // (observed as a native "UV_HANDLE_CLOSING" assertion crash). ptyInfo only
+  // matters for isInteractiveShellEnabled(), which is unconditionally false
+  // when `interactive` is false, so skip the load entirely in non-interactive
+  // (-p/--prompt, ACP) runs instead of paying for it on every startup.
+  const ptyInfo = interactive ? await getPty() : null;
 
   const mcpEnabled = settings.admin?.mcp?.enabled ?? true;
   const extensionsEnabled = settings.admin?.extensions?.enabled ?? true;
