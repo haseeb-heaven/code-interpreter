@@ -891,6 +891,43 @@ describe('classifyGoogleError', () => {
     expect(result).toBeInstanceOf(RetryableQuotaError);
   });
 
+  it('should return TerminalQuotaError for a free-tier "check your plan and billing" message with only a Help detail and no retry delay', () => {
+    const apiError: GoogleApiError = {
+      code: 429,
+      message:
+        'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. ',
+      details: [
+        {
+          '@type': 'type.googleapis.com/google.rpc.Help',
+          links: [
+            {
+              description: 'Learn more about Gemini API quotas',
+              url: 'https://ai.google.dev/gemini-api/docs/rate-limits',
+            },
+          ],
+        },
+      ],
+    };
+    vi.spyOn(errorParser, 'parseGoogleApiError').mockReturnValue(apiError);
+    const result = classifyGoogleError(new Error());
+    expect(result).toBeInstanceOf(TerminalQuotaError);
+  });
+
+  it('should return TerminalQuotaError for a free-tier "check your plan and billing" message with empty details and no retry delay', () => {
+    const errorWithEmptyDetails = {
+      error: {
+        code: 429,
+        message:
+          'You exceeded your current quota, please check your plan and billing details.',
+        details: [],
+      },
+    };
+
+    const result = classifyGoogleError(errorWithEmptyDetails);
+
+    expect(result).toBeInstanceOf(TerminalQuotaError);
+  });
+
   it('should fall back to "Model not found" for 404 error with plain object', () => {
     vi.spyOn(errorParser, 'parseGoogleApiError').mockReturnValue(null);
     const result = classifyGoogleError({ status: 404 });

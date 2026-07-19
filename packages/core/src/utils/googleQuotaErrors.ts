@@ -116,6 +116,21 @@ function parseDurationInSeconds(duration: string): number | null {
 const MAX_RETRYABLE_DELAY_SECONDS = 300; // 5 minutes
 
 /**
+ * Detects the free-tier "exceeded your current quota, please check your plan
+ * and billing details" phrasing Google returns for RESOURCE_EXHAUSTED errors
+ * that carry no structured QuotaFailure/ErrorInfo/RetryInfo detail (often just
+ * a bare `google.rpc.Help` link). Retrying this without a plan/billing change
+ * can never succeed, so it must be classified as terminal rather than falling
+ * through to the generic "assume transient" default.
+ */
+function isPlanBillingQuotaMessage(lowerMessage: string): boolean {
+  return (
+    lowerMessage.includes('exceeded your current quota') &&
+    lowerMessage.includes('plan and billing')
+  );
+}
+
+/**
  * Valid Cloud Code API domains for VALIDATION_REQUIRED errors.
  */
 const CLOUDCODE_DOMAINS = [
@@ -271,16 +286,17 @@ export function classifyGoogleError(error: unknown): unknown {
         return new RetryableQuotaError(errorMessage, cause, retryDelaySeconds);
       }
     } else if (status === 429 || status === 499 || status === 503) {
+      const cause = googleApiError ?? {
+        code: status,
+        message: errorMessage,
+        details: [],
+      };
+      if (isPlanBillingQuotaMessage(lowerMessage)) {
+        return new TerminalQuotaError(errorMessage, cause);
+      }
       // Fallback: If it is a 429, 499, or 503 but doesn't have a specific "retry in" message,
       // assume it is a temporary rate limit and retry.
-      return new RetryableQuotaError(
-        errorMessage,
-        googleApiError ?? {
-          code: status,
-          message: errorMessage,
-          details: [],
-        },
-      );
+      return new RetryableQuotaError(errorMessage, cause);
     }
 
     return error; // Not a retryable error we can handle with structured details or a parsable retry message.
@@ -403,7 +419,12 @@ export function classifyGoogleError(error: unknown): unknown {
   }
 
   // If we reached this point, the status is 429, 499, or 503 and we have details,
-  // but no specific violation was matched. We return a generic retryable error.
+  // but no specific violation was matched. A billing-tied "check your plan"
+  // message means retrying is futile, so treat it as terminal; otherwise fall
+  // back to a generic retryable error.
+  if (isPlanBillingQuotaMessage(lowerMessage)) {
+    return new TerminalQuotaError(errorMessage, googleApiError);
+  }
   return new RetryableQuotaError(errorMessage, googleApiError);
 }
 
