@@ -20,13 +20,9 @@ import {
 import { createExtension } from '../test-utils/createExtension.js';
 import { ExtensionManager } from './extension-manager.js';
 import { themeManager, DEFAULT_THEME } from '../ui/themes/theme-manager.js';
-import {
-  GEMINI_DIR,
-  type Config,
-  tmpdir,
-  NoopSandboxManager,
-} from '@open-agent/core';
+import { type Config, tmpdir, NoopSandboxManager } from '@open-agent/core';
 import { createTestMergedSettings, SettingScope } from './settings.js';
+import { EXTENSIONS_DIRECTORY_NAME } from './extensions/variables.js';
 
 describe('ExtensionManager theme loading', () => {
   let extensionManager: ExtensionManager;
@@ -46,8 +42,8 @@ describe('ExtensionManager theme loading', () => {
   });
 
   beforeEach(() => {
-    process.env['GEMINI_CLI_HOME'] = tempHomeDir;
-    userExtensionsDir = path.join(tempHomeDir, GEMINI_DIR, 'extensions');
+    process.env['OPENAGENT_HOME'] = tempHomeDir;
+    userExtensionsDir = path.join(tempHomeDir, EXTENSIONS_DIRECTORY_NAME);
     // Ensure userExtensionsDir is clean for each test
     fs.rmSync(userExtensionsDir, { recursive: true, force: true });
     fs.mkdirSync(userExtensionsDir, { recursive: true });
@@ -70,7 +66,7 @@ describe('ExtensionManager theme loading', () => {
   });
 
   afterEach(() => {
-    delete process.env['GEMINI_CLI_HOME'];
+    delete process.env['OPENAGENT_HOME'];
   });
 
   it('should register themes from an extension when started', async () => {

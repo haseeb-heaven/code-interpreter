@@ -41,7 +41,7 @@ describe('skillUtils', () => {
       expect(skills.length).toBe(1);
       expect(skills[0].name).toBe('test-skill');
 
-      const linkedPath = path.join(tempDir, '.gemini/skills', 'test-skill');
+      const linkedPath = path.join(tempDir, '.openagent/skills', 'test-skill');
       const stats = await fs.lstat(linkedPath);
       expect(stats.isSymbolicLink()).toBe(true);
 
@@ -58,7 +58,7 @@ describe('skillUtils', () => {
         '---\nname: test-skill\ndescription: test\n---\nbody',
       );
 
-      const targetDir = path.join(tempDir, '.gemini/skills');
+      const targetDir = path.join(tempDir, '.openagent/skills');
       await fs.mkdir(targetDir, { recursive: true });
       const existingPath = path.join(targetDir, 'test-skill');
       await fs.mkdir(existingPath);
@@ -88,7 +88,7 @@ describe('skillUtils', () => {
       expect(requestConsent).toHaveBeenCalled();
 
       // Verify it was NOT linked
-      const linkedPath = path.join(tempDir, '.gemini/skills', 'test-skill');
+      const linkedPath = path.join(tempDir, '.openagent/skills', 'test-skill');
       const exists = await fs.lstat(linkedPath).catch(() => null);
       expect(exists).toBeNull();
     });
@@ -135,7 +135,11 @@ describe('skillUtils', () => {
     expect(skills[0].name).toBe('weather-skill');
 
     // Verify it was copied to the workspace skills dir
-    const installedPath = path.join(tempDir, '.gemini/skills', 'weather-skill');
+    const installedPath = path.join(
+      tempDir,
+      '.openagent/skills',
+      'weather-skill',
+    );
     const installedExists = await fs.stat(installedPath).catch(() => null);
     expect(installedExists?.isDirectory()).toBe(true);
 
@@ -164,7 +168,7 @@ describe('skillUtils', () => {
     expect(skills.length).toBe(1);
     expect(skills[0].name).toBe('test-skill');
 
-    const installedPath = path.join(tempDir, '.gemini/skills', 'test-skill');
+    const installedPath = path.join(tempDir, '.openagent/skills', 'test-skill');
     const installedExists = await fs.stat(installedPath).catch(() => null);
     expect(installedExists?.isDirectory()).toBe(true);
   });
@@ -193,14 +197,14 @@ describe('skillUtils', () => {
     expect(requestConsent).toHaveBeenCalled();
 
     // Verify it was NOT copied
-    const installedPath = path.join(tempDir, '.gemini/skills', 'test-skill');
+    const installedPath = path.join(tempDir, '.openagent/skills', 'test-skill');
     const installedExists = await fs.stat(installedPath).catch(() => null);
     expect(installedExists).toBeNull();
   });
 
   describe('uninstallSkill', () => {
     it('should successfully uninstall an existing skill', async () => {
-      const skillsDir = path.join(tempDir, '.gemini/skills');
+      const skillsDir = path.join(tempDir, '.openagent/skills');
       const skillDir = path.join(skillsDir, 'test-skill');
       await fs.mkdir(skillDir, { recursive: true });
       await fs.writeFile(
@@ -231,7 +235,7 @@ describe('skillUtils', () => {
       );
 
       // 2. Link it
-      const skillsDir = path.join(tempDir, '.gemini/skills');
+      const skillsDir = path.join(tempDir, '.openagent/skills');
       await fs.mkdir(skillsDir, { recursive: true });
       const destPath = path.join(skillsDir, 'original-name');
       await fs.symlink(
@@ -256,7 +260,7 @@ describe('skillUtils', () => {
     });
 
     it('should successfully uninstall a skill by directory name if metadata is missing (fallback)', async () => {
-      const skillsDir = path.join(tempDir, '.gemini/skills');
+      const skillsDir = path.join(tempDir, '.openagent/skills');
       const skillDir = path.join(skillsDir, 'test-skill-dir');
       await fs.mkdir(skillDir, { recursive: true });
       // No SKILL.md here
@@ -269,10 +273,10 @@ describe('skillUtils', () => {
     });
 
     it('should prevent path traversal in fallback uninstallation (e.g. sibling directories)', async () => {
-      const skillsDir = path.join(tempDir, '.gemini/skills');
+      const skillsDir = path.join(tempDir, '.openagent/skills');
       await fs.mkdir(skillsDir, { recursive: true });
 
-      const siblingDir = path.join(tempDir, '.gemini/skills-attacker');
+      const siblingDir = path.join(tempDir, '.openagent/skills-attacker');
       await fs.mkdir(siblingDir, { recursive: true });
 
       // Attempt to uninstall the sibling directory using path traversal
@@ -349,7 +353,7 @@ describe('skillUtils', () => {
       expect(installed[0].name).toBe('-tmp-exploit');
 
       const destPath = installed[0].location;
-      const resolvedTarget = path.resolve(tempDir, '.gemini/skills');
+      const resolvedTarget = path.resolve(tempDir, '.openagent/skills');
       expect(destPath.startsWith(resolvedTarget + path.sep)).toBe(true);
     });
 
@@ -372,7 +376,7 @@ describe('skillUtils', () => {
       expect(installed[0].name).toBe(' ..-..-exploit ');
 
       const destPath = installed[0].location;
-      const resolvedTarget = path.resolve(tempDir, '.gemini/skills');
+      const resolvedTarget = path.resolve(tempDir, '.openagent/skills');
       expect(destPath.startsWith(resolvedTarget + path.sep)).toBe(true);
     });
 
@@ -395,7 +399,7 @@ describe('skillUtils', () => {
       expect(installed[0].name).toBe('..-foo');
 
       const destPath = installed[0].location;
-      const resolvedTarget = path.resolve(tempDir, '.gemini/skills');
+      const resolvedTarget = path.resolve(tempDir, '.openagent/skills');
       expect(destPath.startsWith(resolvedTarget + path.sep)).toBe(true);
     });
   });

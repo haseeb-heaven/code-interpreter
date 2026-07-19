@@ -22,7 +22,7 @@ import { Storage } from '../config/storage.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
-import { GEMINI_DIR, homedir as pathsHomedir } from '../utils/paths.js';
+import { OPENAGENT_DIR } from '../utils/paths.js';
 import { spawnAsync } from '../utils/shell-utils.js';
 
 const PROJECT_SLUG = 'project-slug';
@@ -57,23 +57,6 @@ vi.mock('../utils/gitUtils.js', () => ({
   isGitRepository: hoistedIsGitRepositoryMock,
 }));
 
-const hoistedMockHomedir = vi.hoisted(() => vi.fn());
-vi.mock('node:os', async (importOriginal) => {
-  const actual = await importOriginal<typeof os>();
-  return {
-    ...actual,
-    homedir: hoistedMockHomedir,
-  };
-});
-
-vi.mock('../utils/paths.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../utils/paths.js')>();
-  return {
-    ...actual,
-    homedir: vi.fn(),
-  };
-});
-
 const hoistedMockDebugLogger = vi.hoisted(() => ({
   debug: vi.fn(),
   warn: vi.fn(),
@@ -103,8 +86,7 @@ describe('GitService', () => {
       stderr: '',
     });
 
-    hoistedMockHomedir.mockReturnValue(homedir);
-    (pathsHomedir as Mock).mockReturnValue(homedir);
+    process.env['OPENAGENT_HOME'] = homedir;
 
     hoistedMockEnv.mockImplementation(() => ({
       checkIsRepo: hoistedMockCheckIsRepo,
@@ -134,6 +116,7 @@ describe('GitService', () => {
   });
 
   afterEach(async () => {
+    delete process.env['OPENAGENT_HOME'];
     vi.restoreAllMocks();
     await fs.rm(testRootDir, { recursive: true, force: true });
   });
@@ -181,7 +164,7 @@ describe('GitService', () => {
     let gitConfigPath: string;
 
     beforeEach(async () => {
-      repoDir = path.join(homedir, GEMINI_DIR, 'history', PROJECT_SLUG);
+      repoDir = path.join(homedir, OPENAGENT_DIR, 'history', PROJECT_SLUG);
       gitConfigPath = path.join(repoDir, '.gitconfig');
     });
 

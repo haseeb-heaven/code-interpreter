@@ -22,6 +22,7 @@ import {
   ExitCodes,
   coreEvents,
 } from '@open-agent/core';
+import * as core from '@open-agent/core';
 import type { Config } from '@open-agent/core';
 import * as auth from './config/auth.js';
 import { type LoadedSettings } from './config/settings.js';
@@ -38,6 +39,7 @@ describe('validateNonInterActiveAuth', () => {
   let originalEnvGcp: string | undefined;
   let debugLoggerErrorSpy: ReturnType<typeof vi.spyOn>;
   let coreEventsEmitFeedbackSpy: MockInstance;
+  let writeToStdoutSpy: MockInstance;
   let processExitSpy: MockInstance;
   let mockSettings: LoadedSettings;
 
@@ -54,6 +56,9 @@ describe('validateNonInterActiveAuth', () => {
     coreEventsEmitFeedbackSpy = vi
       .spyOn(coreEvents, 'emitFeedback')
       .mockImplementation(() => {});
+    writeToStdoutSpy = vi
+      .spyOn(core, 'writeToStdout')
+      .mockImplementation(() => true);
     processExitSpy = vi
       .spyOn(process, 'exit')
       .mockImplementation((code?: string | number | null | undefined) => {
@@ -385,8 +390,8 @@ describe('validateNonInterActiveAuth', () => {
       expect(thrown?.message).toBe(
         `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
       );
-      // Checking coreEventsEmitFeedbackSpy arguments
-      const errorArg = coreEventsEmitFeedbackSpy.mock.calls[0]?.[1] as string;
+      // Checking writeToStdoutSpy arguments
+      const errorArg = writeToStdoutSpy.mock.calls[0]?.[0] as string;
       const payload = JSON.parse(errorArg);
       expect(payload.error.type).toBe('Error');
       expect(payload.error.code).toBe(ExitCodes.FATAL_AUTHENTICATION_ERROR);
@@ -420,8 +425,8 @@ describe('validateNonInterActiveAuth', () => {
         `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
       );
       {
-        // Checking coreEventsEmitFeedbackSpy arguments
-        const errorArg = coreEventsEmitFeedbackSpy.mock.calls[0]?.[1] as string;
+        // Checking writeToStdoutSpy arguments
+        const errorArg = writeToStdoutSpy.mock.calls[0]?.[0] as string;
         const payload = JSON.parse(errorArg);
         expect(payload.error.type).toBe('Error');
         expect(payload.error.code).toBe(ExitCodes.FATAL_AUTHENTICATION_ERROR);
@@ -458,8 +463,8 @@ describe('validateNonInterActiveAuth', () => {
         `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
       );
       {
-        // Checking coreEventsEmitFeedbackSpy arguments
-        const errorArg = coreEventsEmitFeedbackSpy.mock.calls[0]?.[1] as string;
+        // Checking writeToStdoutSpy arguments
+        const errorArg = writeToStdoutSpy.mock.calls[0]?.[0] as string;
         const payload = JSON.parse(errorArg);
         expect(payload.error.type).toBe('Error');
         expect(payload.error.code).toBe(ExitCodes.FATAL_AUTHENTICATION_ERROR);

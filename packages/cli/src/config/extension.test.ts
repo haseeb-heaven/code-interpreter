@@ -209,6 +209,7 @@ describe('extension tests', () => {
     mockPromptForSettings.mockResolvedValue('');
     fs.mkdirSync(userExtensionsDir, { recursive: true });
     vi.mocked(os.homedir).mockReturnValue(tempHomeDir);
+    process.env['OPENAGENT_HOME'] = tempHomeDir;
     vi.mocked(isWorkspaceTrusted).mockReturnValue({
       isTrusted: true,
       source: undefined,
@@ -227,6 +228,7 @@ describe('extension tests', () => {
   });
 
   afterEach(() => {
+    delete process.env['OPENAGENT_HOME'];
     fs.rmSync(tempHomeDir, { recursive: true, force: true });
     fs.rmSync(tempWorkspaceDir, { recursive: true, force: true });
     vi.restoreAllMocks();

@@ -5,6 +5,7 @@
  */
 
 import { act } from 'react';
+import * as os from 'node:os';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   Config,
@@ -763,6 +764,7 @@ describe('InboxDialog', () => {
 
     it('shows Windows patch entries with a basename and origin tag', async () => {
       vi.stubEnv('USERPROFILE', 'C:\\Users\\sandy');
+      vi.stubEnv('OPENAGENT_HOME', os.tmpdir());
       mockListInboxSkills.mockResolvedValue([]);
       mockListInboxPatches.mockResolvedValue([windowsGlobalPatch]);
 

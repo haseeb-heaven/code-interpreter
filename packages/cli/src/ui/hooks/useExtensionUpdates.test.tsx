@@ -10,11 +10,8 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { createExtension } from '../../test-utils/createExtension.js';
 import { useExtensionUpdates } from './useExtensionUpdates.js';
-import {
-  GEMINI_DIR,
-  loadAgentsFromDirectory,
-  loadSkillsFromDir,
-} from '@open-agent/core';
+import { loadAgentsFromDirectory, loadSkillsFromDir } from '@open-agent/core';
+import { EXTENSIONS_DIRECTORY_NAME } from '../../config/extensions/variables.js';
 import { render } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
 import { MessageType } from '../types.js';
@@ -71,11 +68,12 @@ describe('useExtensionUpdates', () => {
       path.join(os.tmpdir(), 'gemini-cli-test-home-'),
     );
     vi.mocked(os.homedir).mockReturnValue(tempHomeDir);
+    process.env['OPENAGENT_HOME'] = tempHomeDir;
     tempWorkspaceDir = fs.mkdtempSync(
       path.join(tempHomeDir, 'gemini-cli-test-workspace-'),
     );
     vi.spyOn(process, 'cwd').mockReturnValue(tempWorkspaceDir);
-    userExtensionsDir = path.join(tempHomeDir, GEMINI_DIR, 'extensions');
+    userExtensionsDir = path.join(tempHomeDir, EXTENSIONS_DIRECTORY_NAME);
     fs.mkdirSync(userExtensionsDir, { recursive: true });
     vi.mocked(checkForAllExtensionUpdates).mockReset();
     vi.mocked(updateExtension).mockReset();
@@ -88,6 +86,7 @@ describe('useExtensionUpdates', () => {
   });
 
   afterEach(() => {
+    delete process.env['OPENAGENT_HOME'];
     fs.rmSync(tempHomeDir, { recursive: true, force: true });
   });
 

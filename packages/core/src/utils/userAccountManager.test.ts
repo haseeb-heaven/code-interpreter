@@ -4,47 +4,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  vi,
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  type Mock,
-} from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { UserAccountManager } from './userAccountManager.js';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import path from 'node:path';
-import { GEMINI_DIR, homedir as pathsHomedir } from './paths.js';
+import { OPENAGENT_DIR } from './paths.js';
 import { debugLogger } from './debugLogger.js';
-
-vi.mock('./paths.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./paths.js')>();
-  return {
-    ...actual,
-    homedir: vi.fn(),
-  };
-});
 
 describe('UserAccountManager', () => {
   let tempHomeDir: string;
   let userAccountManager: UserAccountManager;
   let accountsFile: () => string;
+  let originalOpenAgentHome: string | undefined;
+  let originalGeminiCliHome: string | undefined;
 
   beforeEach(() => {
     tempHomeDir = fs.mkdtempSync(
       path.join(os.tmpdir(), 'gemini-cli-test-home-'),
     );
-    (pathsHomedir as Mock).mockReturnValue(tempHomeDir);
+    originalOpenAgentHome = process.env['OPENAGENT_HOME'];
+    originalGeminiCliHome = process.env['GEMINI_CLI_HOME'];
+    process.env['OPENAGENT_HOME'] = tempHomeDir;
+    delete process.env['GEMINI_CLI_HOME'];
     accountsFile = () =>
-      path.join(tempHomeDir, GEMINI_DIR, 'google_accounts.json');
+      path.join(tempHomeDir, OPENAGENT_DIR, 'google_accounts.json');
     userAccountManager = new UserAccountManager();
   });
 
   afterEach(() => {
     fs.rmSync(tempHomeDir, { recursive: true, force: true });
+    if (originalOpenAgentHome === undefined) {
+      delete process.env['OPENAGENT_HOME'];
+    } else {
+      process.env['OPENAGENT_HOME'] = originalOpenAgentHome;
+    }
+    if (originalGeminiCliHome === undefined) {
+      delete process.env['GEMINI_CLI_HOME'];
+    } else {
+      process.env['GEMINI_CLI_HOME'] = originalGeminiCliHome;
+    }
     vi.clearAllMocks();
   });
 

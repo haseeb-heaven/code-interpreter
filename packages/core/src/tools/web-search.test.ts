@@ -32,6 +32,16 @@ describe('WebSearchTool', () => {
   let tool: WebSearchTool;
 
   beforeEach(() => {
+    // Force the Gemini grounding path regardless of real provider keys that
+    // may be present in the developer's local .env (loaded by test-setup.ts
+    // for live websearch probes) — otherwise planWebSearchRoute prefers a
+    // real HTTP backend (Brave/Tavily/…) and these tests hit the network.
+    vi.stubEnv('BRAVE_API_KEY', '');
+    vi.stubEnv('TAVILY_API_KEY', '');
+    vi.stubEnv('SERPER_API_KEY', '');
+    vi.stubEnv('EXA_API_KEY', '');
+    vi.stubEnv('WEB_SEARCH_PROVIDER', '');
+
     const mockConfigInstance = {
       getGeminiClient: () => mockGeminiClient,
       get geminiClient() {

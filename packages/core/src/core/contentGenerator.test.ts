@@ -64,6 +64,24 @@ const mockConfig = {
 describe('getAuthTypeFromEnv', () => {
   beforeEach(() => {
     vi.stubEnv('GEMINI_API_KEY', '');
+    vi.stubEnv('OPENAGENT_CLI_PROVIDER', '');
+    vi.stubEnv('GEMINI_CLI_PROVIDER', '');
+    for (const key of [
+      'OPENAI_API_KEY',
+      'ANTHROPIC_API_KEY',
+      'GROQ_API_KEY',
+      'DEEPSEEK_API_KEY',
+      'NVIDIA_API_KEY',
+      'TOGETHER_API_KEY',
+      'OPENROUTER_API_KEY',
+      'CEREBRAS_API_KEY',
+      'Z_AI_API_KEY',
+      'HF_TOKEN',
+      'HUGGINGFACE_API_KEY',
+      'BROWSER_USE_API_KEY',
+    ]) {
+      vi.stubEnv(key, '');
+    }
   });
 
   afterEach(() => {

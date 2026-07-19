@@ -87,6 +87,7 @@ describe('ExtensionManager', () => {
       path.join(tempHomeDir, 'gemini-cli-test-workspace-'),
     );
     mockHomedir.mockReturnValue(tempHomeDir);
+    process.env['OPENAGENT_HOME'] = tempHomeDir;
     userExtensionsDir = path.join(tempHomeDir, EXTENSIONS_DIRECTORY_NAME);
     fs.mkdirSync(userExtensionsDir, { recursive: true });
 
@@ -101,6 +102,7 @@ describe('ExtensionManager', () => {
 
   afterEach(() => {
     themeManager.clearExtensionThemes();
+    delete process.env['OPENAGENT_HOME'];
     try {
       fs.rmSync(tempHomeDir, { recursive: true, force: true });
     } catch {

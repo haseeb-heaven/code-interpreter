@@ -51,7 +51,8 @@ describe('GeneralistAgent', () => {
     expect(agent.toolConfig?.tools).toBeDefined();
     expect(agent.toolConfig?.tools).toContain('agent-tool');
     expect(agent.toolConfig?.tools).toContain('tool1');
-    expect(agent.promptConfig.systemPrompt).toContain('CLI agent');
+    expect(agent.promptConfig.systemPrompt).toContain('OpenAgent');
+    expect(agent.promptConfig.systemPrompt).toContain('Computer Agent');
     // Ensure it's non-interactive
     expect(agent.promptConfig.systemPrompt).toContain('non-interactive');
   });

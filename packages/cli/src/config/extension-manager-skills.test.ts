@@ -58,6 +58,7 @@ describe('ExtensionManager skills validation', () => {
 
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gemini-test-'));
     mockHomedir.mockReturnValue(tempDir);
+    process.env['OPENAGENT_HOME'] = tempDir;
 
     // Create the extensions directory that ExtensionManager expects
     extensionsDir = path.join(tempDir, EXTENSIONS_DIRECTORY_NAME);
@@ -75,6 +76,7 @@ describe('ExtensionManager skills validation', () => {
   });
 
   afterEach(() => {
+    delete process.env['OPENAGENT_HOME'];
     try {
       fs.rmSync(tempDir, { recursive: true, force: true });
     } catch {
