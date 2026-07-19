@@ -47,6 +47,7 @@ import {
 } from './utils/errors.js';
 import { TextOutput } from './ui/utils/textOutput.js';
 import { runNonInteractive as runNonInteractiveAgentSession } from './nonInteractiveCliAgentSession.js';
+import { ProcessExitSignal } from './utils/cleanup.js';
 
 interface RunNonInteractiveParams {
   config: Config;
@@ -647,6 +648,9 @@ export async function runNonInteractive(
         }
       }
     } catch (error) {
+      if (error instanceof ProcessExitSignal) {
+        throw error;
+      }
       errorToHandle = error;
     } finally {
       // Cleanup stdin cancellation before other cleanup

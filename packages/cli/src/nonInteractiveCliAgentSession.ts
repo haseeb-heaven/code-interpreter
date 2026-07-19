@@ -50,6 +50,7 @@ import { ConsolePatcher } from './ui/utils/ConsolePatcher.js';
 import { handleAtCommand } from './ui/hooks/atCommandProcessor.js';
 import { handleError, handleToolError } from './utils/errors.js';
 import { TextOutput } from './ui/utils/textOutput.js';
+import { ProcessExitSignal } from './utils/cleanup.js';
 
 interface RunNonInteractiveParams {
   config: Config;
@@ -634,6 +635,9 @@ export async function runNonInteractive({
         }
       }
     } catch (error) {
+      if (error instanceof ProcessExitSignal) {
+        throw error;
+      }
       errorToHandle = error;
     } finally {
       // Cleanup stdin cancellation before other cleanup

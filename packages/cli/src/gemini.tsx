@@ -72,6 +72,7 @@ import {
   runExitCleanup,
   registerTelemetryConfig,
   setupSignalHandlers,
+  exitProcess,
 } from './utils/cleanup.js';
 import { setupWorktree } from './utils/worktreeSetup.js';
 import {
@@ -889,7 +890,7 @@ export async function main() {
     });
     // Call cleanup before process.exit, which causes cleanup to not run
     await runExitCleanup();
-    process.exit(ExitCodes.SUCCESS);
+    exitProcess(ExitCodes.SUCCESS);
   }
 }
 

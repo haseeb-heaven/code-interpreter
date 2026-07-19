@@ -15,7 +15,7 @@ import {
 import { USER_SETTINGS_PATH, type LoadedSettings } from './config/settings.js';
 import { validateAuthMethod } from './config/auth.js';
 import { handleError } from './utils/errors.js';
-import { runExitCleanup } from './utils/cleanup.js';
+import { runExitCleanup, terminateProcess } from './utils/cleanup.js';
 
 export async function validateNonInteractiveAuth(
   configuredAuthType: AuthType | undefined,
@@ -59,7 +59,7 @@ export async function validateNonInteractiveAuth(
     } else {
       debugLogger.error(error instanceof Error ? error.message : String(error));
       await runExitCleanup();
-      process.exit(ExitCodes.FATAL_AUTHENTICATION_ERROR);
+      terminateProcess(ExitCodes.FATAL_AUTHENTICATION_ERROR);
     }
   }
 }

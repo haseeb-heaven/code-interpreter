@@ -65,6 +65,50 @@ export function runSyncCleanup() {
 }
 
 /**
+ * Forcing process.exit() while another async handle (e.g. an in-flight
+ * network socket, MCP child process pipe, or fetch AbortController) is
+ * mid-teardown races libuv's own handle-close bookkeeping on Windows,
+ * observed as a native "Assertion failed: !(handle->flags &
+ * UV_HANDLE_CLOSING), file src\win\async.c, line 76" that aborts the
+ * process instead of exiting cleanly. Setting exitCode and letting the
+ * event loop drain naturally gives libuv time to close handles in the
+ * normal order; process.exit() is only used as a last resort if the loop
+ * doesn't drain on its own within the grace period.
+ */
+export function exitProcess(code: number): void {
+  process.exitCode = code;
+  const forceExitTimer = setTimeout(() => process.exit(code), 2000);
+  forceExitTimer.unref();
+}
+
+/**
+ * Thrown by terminateProcess() to unwind synchronously out of whatever
+ * loop/handler is currently running, after the deferred exit has already
+ * been scheduled via exitProcess(). Callers that catch generic errors
+ * (e.g. to route them through handleError) must check for this signal and
+ * rethrow it rather than treating it as an application error.
+ */
+export class ProcessExitSignal extends Error {
+  constructor(readonly code: number) {
+    super('__process_exit_signal__');
+    this.name = 'ProcessExitSignal';
+  }
+}
+
+/**
+ * Schedules a safe deferred exit (see exitProcess) and then throws to halt
+ * synchronous execution, matching the previous behavior of a raw
+ * process.exit() call without the Windows libuv crash risk. Callers
+ * upstream (nonInteractiveCli's error catch, index.ts's top-level catch)
+ * must recognize ProcessExitSignal and let it propagate rather than
+ * re-handling it as an application error.
+ */
+export function terminateProcess(code: number): never {
+  exitProcess(code);
+  throw new ProcessExitSignal(code);
+}
+
+/**
  * Register the config instance for telemetry shutdown.
  * This must be called early in the application lifecycle.
  */

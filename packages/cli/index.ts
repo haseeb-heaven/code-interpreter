@@ -173,9 +173,21 @@ async function run() {
     const { FatalError, writeToStderr, parseAndFormatApiError } = await import(
       '@open-agent/core'
     );
-    const { runExitCleanup } = await import('./src/utils/cleanup.js');
+    const { runExitCleanup, ProcessExitSignal } = await import(
+      './src/utils/cleanup.js'
+    );
 
     main().catch(async (error: unknown) => {
+      // terminateProcess() (used by handleError/handleCancellationError/etc.
+      // for JSON/stream-json output) throws this after already scheduling a
+      // safe deferred exit via exitProcess() - the exit code and any output
+      // formatting were already handled there, so just let the process exit
+      // as scheduled instead of re-running cleanup or reformatting it as a
+      // generic uncaught error.
+      if (error instanceof ProcessExitSignal) {
+        return;
+      }
+
       // Set a timeout to force exit if cleanup hangs
       const cleanupTimeout = setTimeout(() => {
         writeToStderr('Cleanup timed out, forcing exit...\n');

@@ -22,7 +22,7 @@ import {
   getErrorMessage,
   writeToStdout,
 } from '@open-agent/core';
-import { runSyncCleanup } from './cleanup.js';
+import { runSyncCleanup, terminateProcess } from './cleanup.js';
 
 interface ErrorWithCode extends Error {
   exitCode?: number;
@@ -91,7 +91,7 @@ export function handleError(
     });
 
     runSyncCleanup();
-    process.exit(getNumericExitCode(errorCode));
+    terminateProcess(getNumericExitCode(errorCode));
   } else if (config.getOutputFormat() === OutputFormat.JSON) {
     const formatter = new JsonFormatter();
     const errorCode = customErrorCode ?? extractErrorCode(error);
@@ -104,7 +104,7 @@ export function handleError(
 
     writeToStdout(formattedError + '\n');
     runSyncCleanup();
-    process.exit(getNumericExitCode(errorCode));
+    terminateProcess(getNumericExitCode(errorCode));
   } else {
     throw error;
   }
@@ -158,7 +158,7 @@ export function handleToolError(
       coreEvents.emitFeedback('error', errorMessage);
     }
     runSyncCleanup();
-    process.exit(toolExecutionError.exitCode);
+    terminateProcess(toolExecutionError.exitCode);
   }
 
   // Non-fatal: log and continue
@@ -185,7 +185,7 @@ export function handleCancellationError(config: Config): never {
       stats: streamFormatter.convertToStreamStats(metrics, 0),
     });
     runSyncCleanup();
-    process.exit(cancellationError.exitCode);
+    terminateProcess(cancellationError.exitCode);
   } else if (config.getOutputFormat() === OutputFormat.JSON) {
     const formatter = new JsonFormatter();
     const formattedError = formatter.formatError(
@@ -196,11 +196,11 @@ export function handleCancellationError(config: Config): never {
 
     writeToStdout(formattedError + '\n');
     runSyncCleanup();
-    process.exit(cancellationError.exitCode);
+    terminateProcess(cancellationError.exitCode);
   } else {
     coreEvents.emitFeedback('error', cancellationError.message);
     runSyncCleanup();
-    process.exit(cancellationError.exitCode);
+    terminateProcess(cancellationError.exitCode);
   }
 }
 
@@ -226,7 +226,7 @@ export function handleMaxTurnsExceededError(config: Config): never {
       stats: streamFormatter.convertToStreamStats(metrics, 0),
     });
     runSyncCleanup();
-    process.exit(maxTurnsError.exitCode);
+    terminateProcess(maxTurnsError.exitCode);
   } else if (config.getOutputFormat() === OutputFormat.JSON) {
     const formatter = new JsonFormatter();
     const formattedError = formatter.formatError(
@@ -237,10 +237,10 @@ export function handleMaxTurnsExceededError(config: Config): never {
 
     writeToStdout(formattedError + '\n');
     runSyncCleanup();
-    process.exit(maxTurnsError.exitCode);
+    terminateProcess(maxTurnsError.exitCode);
   } else {
     coreEvents.emitFeedback('error', maxTurnsError.message);
     runSyncCleanup();
-    process.exit(maxTurnsError.exitCode);
+    terminateProcess(maxTurnsError.exitCode);
   }
 }
