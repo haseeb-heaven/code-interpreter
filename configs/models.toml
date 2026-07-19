@@ -228,6 +228,7 @@ tier = "paid"
 
 [models."deepseek-chat"]
 model = "deepseek-chat"
+provider = "deepseek"
 temperature = 0.1
 max_tokens = 4096
 timeout_seconds = 120
@@ -243,12 +244,14 @@ cooldown_seconds = 120
 
 [models."deepseek-coder"]
 model = "deepseek-chat"
+provider = "deepseek"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."deepseek-reasoner"]
 model = "deepseek-reasoner"
+provider = "deepseek"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
