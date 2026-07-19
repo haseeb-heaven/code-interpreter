@@ -19,6 +19,7 @@ import {
   FatalInputError,
   debugLogger,
   coreEvents,
+  writeToStdout,
 } from '@open-agent/core';
 import {
   handleError,
@@ -84,6 +85,7 @@ vi.mock('@open-agent/core', async (importOriginal) => {
     coreEvents: {
       emitFeedback: vi.fn(),
     },
+    writeToStdout: vi.fn(),
     FatalToolExecutionError: class extends Error {
       constructor(message: string) {
         super(message);
@@ -109,6 +111,7 @@ describe('errors', () => {
   let debugLoggerErrorSpy: MockInstance;
   let debugLoggerWarnSpy: MockInstance;
   let coreEventsEmitFeedbackSpy: MockInstance;
+  let writeToStdoutSpy: MockInstance;
   let runSyncCleanupSpy: MockInstance;
 
   const TEST_SESSION_ID = 'test-session-123';
@@ -127,6 +130,7 @@ describe('errors', () => {
 
     // Mock coreEvents
     coreEventsEmitFeedbackSpy = vi.mocked(coreEvents.emitFeedback);
+    writeToStdoutSpy = vi.mocked(writeToStdout);
 
     // Mock runSyncCleanup
     runSyncCleanupSpy = vi.mocked(runSyncCleanup);
@@ -184,16 +188,15 @@ describe('errors', () => {
         ).mockReturnValue(OutputFormat.JSON);
       });
 
-      it('should format error as JSON, emit feedback exactly once, and exit with default code', () => {
+      it('should format error as JSON, write it to stdout exactly once, and exit with default code', () => {
         const testError = new Error('Test error');
 
         expect(() => {
           handleError(testError, mockConfig);
         }).toThrow('process.exit called with code: 1');
 
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledTimes(1);
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledWith(
-          'error',
+        expect(writeToStdoutSpy).toHaveBeenCalledTimes(1);
+        expect(writeToStdoutSpy).toHaveBeenCalledWith(
           JSON.stringify(
             {
               session_id: TEST_SESSION_ID,
@@ -205,8 +208,9 @@ describe('errors', () => {
             },
             null,
             2,
-          ),
+          ) + '\n',
         );
+        expect(coreEventsEmitFeedbackSpy).not.toHaveBeenCalled();
         expect(debugLoggerErrorSpy).not.toHaveBeenCalled();
         expect(runSyncCleanupSpy).toHaveBeenCalled();
       });
@@ -218,9 +222,8 @@ describe('errors', () => {
           handleError(testError, mockConfig, 42);
         }).toThrow('process.exit called with code: 42');
 
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledTimes(1);
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledWith(
-          'error',
+        expect(writeToStdoutSpy).toHaveBeenCalledTimes(1);
+        expect(writeToStdoutSpy).toHaveBeenCalledWith(
           JSON.stringify(
             {
               session_id: TEST_SESSION_ID,
@@ -232,7 +235,7 @@ describe('errors', () => {
             },
             null,
             2,
-          ),
+          ) + '\n',
         );
         expect(debugLoggerErrorSpy).not.toHaveBeenCalled();
       });
@@ -244,9 +247,8 @@ describe('errors', () => {
           handleError(fatalError, mockConfig);
         }).toThrow('process.exit called with code: 42');
 
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledTimes(1);
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledWith(
-          'error',
+        expect(writeToStdoutSpy).toHaveBeenCalledTimes(1);
+        expect(writeToStdoutSpy).toHaveBeenCalledWith(
           JSON.stringify(
             {
               session_id: TEST_SESSION_ID,
@@ -258,7 +260,7 @@ describe('errors', () => {
             },
             null,
             2,
-          ),
+          ) + '\n',
         );
         expect(debugLoggerErrorSpy).not.toHaveBeenCalled();
       });
@@ -284,8 +286,7 @@ describe('errors', () => {
           handleError(errorWithStatus, mockConfig);
         }).toThrow('process.exit called with code: 1'); // string codes become 1
 
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledWith(
-          'error',
+        expect(writeToStdoutSpy).toHaveBeenCalledWith(
           JSON.stringify(
             {
               session_id: TEST_SESSION_ID,
@@ -297,7 +298,7 @@ describe('errors', () => {
             },
             null,
             2,
-          ),
+          ) + '\n',
         );
       });
     });
@@ -458,9 +459,8 @@ describe('errors', () => {
             handleToolError(toolName, toolError, mockConfig, 'no_space_left');
           }).toThrow('process.exit called with code: 54');
 
-          expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledTimes(1);
-          expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledWith(
-            'error',
+          expect(writeToStdoutSpy).toHaveBeenCalledTimes(1);
+          expect(writeToStdoutSpy).toHaveBeenCalledWith(
             JSON.stringify(
               {
                 session_id: TEST_SESSION_ID,
@@ -472,8 +472,9 @@ describe('errors', () => {
               },
               null,
               2,
-            ),
+            ) + '\n',
           );
+          expect(coreEventsEmitFeedbackSpy).not.toHaveBeenCalled();
           expect(debugLoggerErrorSpy).not.toHaveBeenCalled();
           expect(runSyncCleanupSpy).toHaveBeenCalled();
         });
@@ -540,9 +541,8 @@ describe('errors', () => {
           handleCancellationError(mockConfig);
         }).toThrow('process.exit called with code: 130');
 
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledTimes(1);
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledWith(
-          'error',
+        expect(writeToStdoutSpy).toHaveBeenCalledTimes(1);
+        expect(writeToStdoutSpy).toHaveBeenCalledWith(
           JSON.stringify(
             {
               session_id: TEST_SESSION_ID,
@@ -554,8 +554,9 @@ describe('errors', () => {
             },
             null,
             2,
-          ),
+          ) + '\n',
         );
+        expect(coreEventsEmitFeedbackSpy).not.toHaveBeenCalled();
         expect(debugLoggerErrorSpy).not.toHaveBeenCalled();
       });
     });
@@ -611,9 +612,8 @@ describe('errors', () => {
           handleMaxTurnsExceededError(mockConfig);
         }).toThrow('process.exit called with code: 53');
 
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledTimes(1);
-        expect(coreEventsEmitFeedbackSpy).toHaveBeenCalledWith(
-          'error',
+        expect(writeToStdoutSpy).toHaveBeenCalledTimes(1);
+        expect(writeToStdoutSpy).toHaveBeenCalledWith(
           JSON.stringify(
             {
               session_id: TEST_SESSION_ID,
@@ -626,8 +626,9 @@ describe('errors', () => {
             },
             null,
             2,
-          ),
+          ) + '\n',
         );
+        expect(coreEventsEmitFeedbackSpy).not.toHaveBeenCalled();
         expect(debugLoggerErrorSpy).not.toHaveBeenCalled();
       });
     });

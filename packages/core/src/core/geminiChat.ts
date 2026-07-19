@@ -221,7 +221,8 @@ export class InvalidStreamError extends Error {
     | 'NO_FINISH_REASON'
     | 'NO_RESPONSE_TEXT'
     | 'MALFORMED_FUNCTION_CALL'
-    | 'UNEXPECTED_TOOL_CALL';
+    | 'UNEXPECTED_TOOL_CALL'
+    | 'TEXT_DESCRIBES_TOOL_CALL';
 
   constructor(
     message: string,
@@ -229,7 +230,8 @@ export class InvalidStreamError extends Error {
       | 'NO_FINISH_REASON'
       | 'NO_RESPONSE_TEXT'
       | 'MALFORMED_FUNCTION_CALL'
-      | 'UNEXPECTED_TOOL_CALL',
+      | 'UNEXPECTED_TOOL_CALL'
+      | 'TEXT_DESCRIBES_TOOL_CALL',
   ) {
     super(message);
     this.name = 'InvalidStreamError';
@@ -626,6 +628,29 @@ export class GeminiChat {
                   error: errorType,
                   model,
                 });
+                if (
+                  isContentError &&
+                  error.type === 'TEXT_DESCRIBES_TOOL_CALL'
+                ) {
+                  // A bare retry (same request, higher temperature) tends to
+                  // reproduce the same narrated-not-invoked response on
+                  // models that don't reliably use structured tool calling.
+                  // Make the correction explicit so the retry has a real
+                  // chance of actually calling the tool. This is scoped to
+                  // this generation's request only, not persisted to the
+                  // durable chat history.
+                  requestHistory.push({
+                    id: `retry-tool-call-nudge-${attempt}`,
+                    content: {
+                      role: 'user',
+                      parts: [
+                        {
+                          text: 'Your previous reply described calling a tool as plain text instead of actually invoking it. Do not write out the function call as text or code — invoke the tool directly using the tool-calling mechanism now.',
+                        },
+                      ],
+                    },
+                  });
+                }
                 await new Promise((res) => setTimeout(res, delayMs));
                 continue;
               }
@@ -1108,6 +1133,33 @@ export class GeminiChat {
     }
   }
 
+  /**
+   * Returns the name of a declared tool if `responseText` appears to
+   * narrate a call to it (e.g. `run_shell_command(command='...')` or "Here
+   * is the function call: read_file(...)") rather than actually invoking it
+   * through the model's structured tool-calling mechanism. Only matches
+   * against tools that were actually offered in this chat, so it can't
+   * false-positive on unrelated prose.
+   */
+  private detectUnexecutedToolCallText(
+    responseText: string,
+  ): string | undefined {
+    if (!responseText) {
+      return undefined;
+    }
+    const toolNames = this.tools
+      .flatMap((tool) => tool.functionDeclarations ?? [])
+      .map((fd) => fd.name)
+      .filter((name): name is string => !!name && name.length > 3);
+
+    for (const name of toolNames) {
+      if (new RegExp(`\\b${name}\\s*\\(`).test(responseText)) {
+        return name;
+      }
+    }
+    return undefined;
+  }
+
   private async *processStreamResponse(
     model: string,
     streamResponse: AsyncGenerator<GenerateContentResponse>,
@@ -1349,6 +1401,22 @@ export class GeminiChat {
         throw new InvalidStreamError(
           'Model stream ended with empty response text.',
           'NO_RESPONSE_TEXT',
+        );
+      }
+      // Some providers/models (typically weaker or free-tier ones reached
+      // through the OpenAI-compatible generator) don't reliably populate the
+      // structured tool_calls field even when tools were offered. Instead
+      // they narrate the call as plain text (e.g. "run_shell_command(...)"
+      // or "Here is the function call: ..."). A 200 OK with prose and a
+      // normal finish reason passes every check above, so it would
+      // otherwise be silently accepted as the final answer even though the
+      // requested action never ran. Detect that pattern here so it goes
+      // through the same retry path as a malformed function call instead.
+      const describedTool = this.detectUnexecutedToolCallText(responseText);
+      if (describedTool) {
+        throw new InvalidStreamError(
+          `Model described a call to "${describedTool}" as text instead of invoking it.`,
+          'TEXT_DESCRIBES_TOOL_CALL',
         );
       }
     }

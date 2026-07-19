@@ -55,6 +55,7 @@ const mockCoreEvents = vi.hoisted(() => ({
 }));
 
 const mockSchedulerSchedule = vi.hoisted(() => vi.fn());
+const mockWriteToStdout = vi.hoisted(() => vi.fn());
 
 vi.mock('@open-agent/core', async (importOriginal) => {
   const original = await importOriginal<typeof import('@open-agent/core')>();
@@ -83,6 +84,7 @@ vi.mock('@open-agent/core', async (importOriginal) => {
       stdout: process.stdout,
       stderr: process.stderr,
     })),
+    writeToStdout: mockWriteToStdout,
   };
 });
 
@@ -889,8 +891,7 @@ describe('runNonInteractive', () => {
     // Should throw because of mocked process.exit
     expect(thrownError?.message).toBe('process.exit(1) called');
 
-    expect(mockCoreEvents.emitFeedback).toHaveBeenCalledWith(
-      'error',
+    expect(mockWriteToStdout).toHaveBeenCalledWith(
       JSON.stringify(
         {
           session_id: 'test-session-id',
@@ -902,7 +903,7 @@ describe('runNonInteractive', () => {
         },
         null,
         2,
-      ),
+      ) + '\n',
     );
   });
 
@@ -931,8 +932,7 @@ describe('runNonInteractive', () => {
     // Should throw because of mocked process.exit with custom exit code
     expect(thrownError?.message).toBe('process.exit(42) called');
 
-    expect(mockCoreEvents.emitFeedback).toHaveBeenCalledWith(
-      'error',
+    expect(mockWriteToStdout).toHaveBeenCalledWith(
       JSON.stringify(
         {
           session_id: 'test-session-id',
@@ -944,7 +944,7 @@ describe('runNonInteractive', () => {
         },
         null,
         2,
-      ),
+      ) + '\n',
     );
   });
 

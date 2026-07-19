@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   ApiError,
   ThinkingLevel,
+  Type,
   type Content,
   type GenerateContentResponse,
   type Part,
@@ -1113,6 +1114,140 @@ describe('GeminiChat', () => {
               'Success after retry',
         ),
       ).toBe(true);
+    });
+
+    it('should throw InvalidStreamError when response text describes a tool call instead of invoking it', async () => {
+      const chatWithTools = new GeminiChat(mockConfig, '', [
+        {
+          functionDeclarations: [
+            {
+              name: 'run_shell_command',
+              description: 'Runs a shell command.',
+              parameters: { type: Type.OBJECT, properties: {} },
+            },
+          ],
+        },
+      ]);
+
+      // A fresh generator factory is required (not a single pre-built
+      // generator instance): TEXT_DESCRIBES_TOOL_CALL is retryable, so
+      // streamWithRetries will call generateContentStream again on retry.
+      // A single exhausted generator would yield 0 chunks on the retry,
+      // masking the type under test with a NO_FINISH_REASON error instead.
+      vi.mocked(mockContentGenerator.generateContentStream).mockImplementation(
+        async () =>
+          (async function* () {
+            yield {
+              candidates: [
+                {
+                  content: {
+                    role: 'model',
+                    parts: [{ text: "run_shell_command(command='ls -la')" }],
+                  },
+                  finishReason: 'STOP',
+                },
+              ],
+            } as unknown as GenerateContentResponse;
+          })(),
+      );
+
+      const stream = await chatWithTools.sendMessageStream(
+        { model: 'gemini-2.5-pro' },
+        'list files',
+        'prompt-id-narrated-tool-call',
+        new AbortController().signal,
+        LlmRole.MAIN,
+      );
+
+      let caughtError: unknown;
+      try {
+        for await (const _ of stream) {
+          // consume stream
+        }
+      } catch (error) {
+        caughtError = error;
+      }
+
+      expect(caughtError).toBeInstanceOf(InvalidStreamError);
+      expect(
+        (caughtError as InstanceType<typeof InvalidStreamError>).type,
+      ).toBe('TEXT_DESCRIBES_TOOL_CALL');
+    });
+
+    it('should retry and inject a corrective nudge when text describes a tool call', async () => {
+      const chatWithTools = new GeminiChat(mockConfig, '', [
+        {
+          functionDeclarations: [
+            {
+              name: 'run_shell_command',
+              description: 'Runs a shell command.',
+              parameters: { type: Type.OBJECT, properties: {} },
+            },
+          ],
+        },
+      ]);
+
+      vi.mocked(mockContentGenerator.generateContentStream)
+        .mockImplementationOnce(async () =>
+          (async function* () {
+            yield {
+              candidates: [
+                {
+                  content: {
+                    role: 'model',
+                    parts: [{ text: "run_shell_command(command='ls -la')" }],
+                  },
+                  finishReason: 'STOP',
+                },
+              ],
+            } as unknown as GenerateContentResponse;
+          })(),
+        )
+        .mockImplementationOnce(async () =>
+          (async function* () {
+            yield {
+              candidates: [
+                {
+                  content: {
+                    role: 'model',
+                    parts: [
+                      {
+                        functionCall: {
+                          name: 'run_shell_command',
+                          args: { command: 'ls -la' },
+                        },
+                      },
+                    ],
+                  },
+                  finishReason: 'STOP',
+                },
+              ],
+            } as unknown as GenerateContentResponse;
+          })(),
+        );
+
+      const stream = await chatWithTools.sendMessageStream(
+        { model: 'gemini-2.5-pro' },
+        'list files',
+        'prompt-id-retry-narrated-tool-call',
+        new AbortController().signal,
+        LlmRole.MAIN,
+      );
+      const events: StreamEvent[] = [];
+      for await (const event of stream) {
+        events.push(event);
+      }
+
+      expect(mockContentGenerator.generateContentStream).toHaveBeenCalledTimes(
+        2,
+      );
+      expect(events.some((e) => e.type === StreamEventType.RETRY)).toBe(true);
+
+      const secondCallArgs = vi.mocked(
+        mockContentGenerator.generateContentStream,
+      ).mock.calls[1];
+      const secondCallContents = JSON.stringify(secondCallArgs);
+      expect(secondCallContents).toContain('invoke the tool directly');
     });
 
     it('should call generateContentStream with the correct parameters', async () => {

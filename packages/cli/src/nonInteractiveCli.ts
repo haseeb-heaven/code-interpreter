@@ -32,7 +32,7 @@ import {
   ROOT_SCHEDULER_ID,
 } from '@open-agent/core';
 
-import type { Content, Part } from '@google/genai';
+import { type Content, type Part, FinishReason } from '@google/genai';
 import readline from 'node:readline';
 import stripAnsi from 'strip-ansi';
 
@@ -432,6 +432,43 @@ export async function runNonInteractive(
               });
             }
             warnings.push(blockMessage);
+          } else if (event.type === GeminiEventType.Thought) {
+            // Silently ignore model thinking/reasoning — it must never appear
+            // in the user-visible output in non-interactive mode.
+          } else if (event.type === GeminiEventType.Finished) {
+            // Handle terminal finish reasons (MAX_TOKENS, SAFETY, etc.).
+            // FinishReason.STOP is the normal end-of-turn and needs no warning.
+            const reason = event.value?.reason;
+            if (reason && reason !== FinishReason.STOP) {
+              const finishMessages: Partial<Record<FinishReason, string>> = {
+                [FinishReason.MAX_TOKENS]:
+                  'Response truncated due to token limits.',
+                [FinishReason.SAFETY]:
+                  'Response stopped due to safety reasons.',
+                [FinishReason.RECITATION]:
+                  'Response stopped due to recitation policy.',
+                [FinishReason.LANGUAGE]:
+                  'Response stopped due to unsupported language.',
+                [FinishReason.OTHER]: 'Response stopped for other reasons.',
+                [FinishReason.MALFORMED_FUNCTION_CALL]:
+                  'Response stopped due to malformed function call.',
+              };
+              const msg =
+                finishMessages[reason] ??
+                `Response stopped (reason: ${reason}).`;
+              process.stderr.write(`[WARNING] ${msg}\n`);
+              if (streamFormatter) {
+                streamFormatter.emitEvent({
+                  type: JsonStreamEventType.ERROR,
+                  timestamp: new Date().toISOString(),
+                  severity: 'warning',
+                  message: msg,
+                });
+              }
+              // Stop processing this turn — do not continue with a truncated stream.
+              toolCallRequests.length = 0;
+              break;
+            }
           } else if (event.type === GeminiEventType.InvalidStream) {
             invalidStreamError =
               'Invalid stream: The model returned an empty response or malformed tool call.';
@@ -480,6 +517,26 @@ export async function runNonInteractive(
                     }
                   : undefined,
               });
+            } else if (
+              !toolResponse.error &&
+              config.getOutputFormat() === OutputFormat.TEXT
+            ) {
+              // In TEXT mode, write tool output directly to stdout so the user
+              // can see the result of shell commands and other tool executions.
+              const display = toolResponse.resultDisplay;
+              if (typeof display === 'string' && display.length > 0) {
+                const isRaw =
+                  config.getRawOutput() || config.getAcceptRawOutputRisk();
+                textOutput.writeOnNewLine(isRaw ? display : stripAnsi(display));
+              } else if (Array.isArray(display)) {
+                // AnsiOutput = AnsiLine[] = AnsiToken[][] — join each line's tokens
+                const lines = (display as Array<Array<{ text: string }>>)
+                  .map((line) => line.map((tok) => tok.text).join(''))
+                  .join('\n');
+                if (lines.length > 0) {
+                  textOutput.writeOnNewLine(lines);
+                }
+              }
             }
 
             if (toolResponse.error) {

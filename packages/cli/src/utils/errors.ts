@@ -20,6 +20,7 @@ import {
   coreEvents,
   getErrorType,
   getErrorMessage,
+  writeToStdout,
 } from '@open-agent/core';
 import { runSyncCleanup } from './cleanup.js';
 
@@ -101,7 +102,7 @@ export function handleError(
       config.getSessionId(),
     );
 
-    coreEvents.emitFeedback('error', formattedError);
+    writeToStdout(formattedError + '\n');
     runSyncCleanup();
     process.exit(getNumericExitCode(errorCode));
   } else {
@@ -152,7 +153,7 @@ export function handleToolError(
         errorType ?? toolExecutionError.exitCode,
         config.getSessionId(),
       );
-      coreEvents.emitFeedback('error', formattedError);
+      writeToStdout(formattedError + '\n');
     } else {
       coreEvents.emitFeedback('error', errorMessage);
     }
@@ -193,7 +194,7 @@ export function handleCancellationError(config: Config): never {
       config.getSessionId(),
     );
 
-    coreEvents.emitFeedback('error', formattedError);
+    writeToStdout(formattedError + '\n');
     runSyncCleanup();
     process.exit(cancellationError.exitCode);
   } else {
@@ -234,7 +235,7 @@ export function handleMaxTurnsExceededError(config: Config): never {
       config.getSessionId(),
     );
 
-    coreEvents.emitFeedback('error', formattedError);
+    writeToStdout(formattedError + '\n');
     runSyncCleanup();
     process.exit(maxTurnsError.exitCode);
   } else {
