@@ -127,4 +127,22 @@ if (existsSync(extensionExamplesSrc)) {
   console.log('Copied extension examples to bundle/examples/');
 }
 
+// 7. Copy Windows sandbox helper source (and precompiled exe, if present)
+// WindowsSandboxManager resolves both paths relative to its own running
+// module's directory (import.meta.url), which after bundling is bundle/
+// itself - without these here, ensureHelperCompiled() finds neither the
+// exe nor the .cs source to auto-compile from, and every sandboxed
+// command fails with "File not found: bundle\OpenAgentSandbox.exe".
+const windowsSandboxSrcDir = join(root, 'packages/core/src/sandbox/windows');
+const windowsSandboxCsSrc = join(windowsSandboxSrcDir, 'OpenAgentSandbox.cs');
+const windowsSandboxExeSrc = join(windowsSandboxSrcDir, 'OpenAgentSandbox.exe');
+if (existsSync(windowsSandboxCsSrc)) {
+  copyFileSync(windowsSandboxCsSrc, join(bundleDir, 'OpenAgentSandbox.cs'));
+  console.log('Copied OpenAgentSandbox.cs to bundle/');
+}
+if (existsSync(windowsSandboxExeSrc)) {
+  copyFileSync(windowsSandboxExeSrc, join(bundleDir, 'OpenAgentSandbox.exe'));
+  console.log('Copied precompiled OpenAgentSandbox.exe to bundle/');
+}
+
 console.log('Assets copied to bundle/');
