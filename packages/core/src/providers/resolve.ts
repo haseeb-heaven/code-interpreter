@@ -87,11 +87,17 @@ function inferProviderForConfig(
   fallbackModelId: string,
 ): ProviderDefinition | undefined {
   if (cfg.provider) {
-    return getProvider(cfg.provider) ?? (cfg.provider === 'local' ? getProvider('ollama') : undefined);
+    return (
+      getProvider(cfg.provider) ??
+      (cfg.provider === 'local' ? getProvider('ollama') : undefined)
+    );
   }
   const modelId = (cfg.model ?? fallbackModelId).trim();
   const { provider } = splitModelId(modelId);
-  return provider ?? (cfg.api_base ? getProvider('openrouter') : getProvider('openai'));
+  return (
+    provider ??
+    (cfg.api_base ? getProvider('openrouter') : getProvider('openai'))
+  );
 }
 
 function routeFromRegistry(
@@ -171,21 +177,59 @@ export async function resolveProviderRoute(
     if (provider.id === 'lmstudio') {
       return detectLMStudioRoute(options, options.model);
     }
-    if (!options.allowUnavailable && !isProviderAvailable(provider, env)) return undefined;
-    const model =
-      options.model ??
-      registry
+    if (!options.allowUnavailable && !isProviderAvailable(provider, env))
+      return undefined;
+    // options.model may be a registry key (e.g. "groq-llama-3.1-8b") rather
+    // than the provider-specific model id it maps to (e.g.
+    // "llama-3.1-8b-instant"); resolve it through the registry first so the
+    // real id (and any api_base/temperature/max_tokens override) reaches the
+    // API instead of the literal key.
+    let resolvedKey: string | undefined;
+    let resolvedCfg: ReturnType<typeof registry.getModel> | undefined;
+    let model = options.model;
+    if (model) {
+      const key = registry.resolveModelKey(model);
+      if (key) {
+        const cfg = registry.getModel(key);
+        if (cfg?.model) {
+          resolvedKey = key;
+          resolvedCfg = cfg;
+          model = cfg.model;
+        }
+      }
+    } else {
+      const found = registry
         .listModelNames()
         .map((key) => ({ key, cfg: registry.getModel(key) }))
         .find(
           ({ key, cfg }) =>
             cfg && inferProviderForConfig(cfg, key)?.id === provider.id,
-        )?.cfg?.model;
+        );
+      if (found) {
+        resolvedKey = found.key;
+        resolvedCfg = found.cfg;
+        model = found.cfg?.model;
+      }
+    }
     if (!model) return undefined;
     const bare = splitModelId(model).provider
       ? model
       : `${provider.id}/${model}`;
-    return { modelId: bare, provider, source: 'explicit' };
+    return {
+      modelId: bare,
+      configKey: resolvedKey,
+      provider,
+      apiBase: resolvedCfg?.api_base ? String(resolvedCfg.api_base) : undefined,
+      temperature:
+        typeof resolvedCfg?.temperature === 'number'
+          ? resolvedCfg.temperature
+          : undefined,
+      maxTokens:
+        typeof resolvedCfg?.max_tokens === 'number'
+          ? resolvedCfg.max_tokens
+          : undefined,
+      source: 'explicit',
+    };
   }
 
   // --model alone: registry key / free id / LiteLLM id / local model.
@@ -202,7 +246,10 @@ export async function resolveProviderRoute(
     if (provider?.id === 'lmstudio') {
       return detectLMStudioRoute(options, options.model);
     }
-    if (provider && (options.allowUnavailable || isProviderAvailable(provider, env))) {
+    if (
+      provider &&
+      (options.allowUnavailable || isProviderAvailable(provider, env))
+    ) {
       return { modelId: options.model, provider, source: 'explicit' };
     }
     return undefined;
@@ -232,6 +279,10 @@ export async function resolveProviderRoute(
 
   const defaultKey = registry.defaultModelName(env);
   const route = routeFromRegistry(defaultKey, registry, 'default-priority');
-  if (route && (options.allowUnavailable || isProviderAvailable(route.provider, env))) return route;
+  if (
+    route &&
+    (options.allowUnavailable || isProviderAvailable(route.provider, env))
+  )
+    return route;
   return undefined;
 }

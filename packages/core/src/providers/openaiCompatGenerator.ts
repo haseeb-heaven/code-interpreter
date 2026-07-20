@@ -135,7 +135,13 @@ export function toOpenAIMessages(
           id: part.functionResponse.id ?? part.functionResponse.name ?? '',
           output: JSON.stringify(part.functionResponse.response ?? {}),
         });
-      } else if (part.inlineData?.data) {
+      } else if (
+        part.inlineData?.data &&
+        (part.inlineData.mimeType ?? 'image/png').startsWith('image/')
+      ) {
+        // OpenAI-compatible chat-completions APIs only accept image/* as
+        // image_url content; non-image attachments (e.g. PDFs) sent this way
+        // get rejected outright by stricter backends (Cerebras, Groq).
         imageParts.push({
           type: 'image_url',
           image_url: {
@@ -156,7 +162,7 @@ export function toOpenAIMessages(
     if (toolCalls.length > 0) {
       messages.push({
         role: 'assistant',
-        content: textParts.length > 0 ? textParts.join('\n') : null,
+        content: textParts.length > 0 ? textParts.join('\n') : '',
         tool_calls: toolCalls,
       });
     } else if (imageParts.length > 0) {
@@ -263,8 +269,16 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
 
   constructor(options: OpenAICompatOptions) {
     this.provider = options.provider;
-    const { model } = splitModelId(options.modelId);
-    this.model = model;
+    // NVIDIA's own catalog ids are themselves "publisher/model" (e.g.
+    // "nvidia/nemotron-3-super-120b-a12b", "meta/llama-3.1-70b-instruct"),
+    // which collides with our routing-prefix convention when the publisher
+    // happens to be "nvidia" — splitModelId would strip it as if it were
+    // our provider prefix, sending a 404-ing bare model id. Keep the id
+    // intact for this provider.
+    this.model =
+      options.provider.id === 'nvidia'
+        ? options.modelId
+        : splitModelId(options.modelId).model;
     this.apiBase = (options.apiBase ?? options.provider.apiBase).replace(
       /\/+$/,
       '',

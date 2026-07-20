@@ -132,71 +132,6 @@ max_tokens = 4096
 tier = "free_tier"
 notes = "Cerebras Z.ai GLM 4.7 355B (preview, reasoning, ~1000 tok/s, free public endpoint)"
 
-[models."claude-2"]
-model = "claude-sonnet-4-6"
-provider = "anthropic"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."claude-2.1"]
-model = "claude-sonnet-4-6"
-provider = "anthropic"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."claude-3-5-sonnet"]
-model = "claude-sonnet-4-6"
-provider = "anthropic"
-temperature = 0.1
-max_tokens = 4096
-timeout_seconds = 120
-tier = "paid"
-
-[models."claude-3-5-sonnet".rate_limits]
-rpm = 60
-burst = 10
-
-[models."claude-3-5-sonnet".circuit_breaker]
-threshold = 3
-cooldown_seconds = 120
-
-[models."claude-3-7-sonnet"]
-model = "claude-sonnet-4-6"
-provider = "anthropic"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."claude-3-opus"]
-model = "claude-opus-4-6"
-provider = "anthropic"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."claude-3-sonnet"]
-model = "claude-sonnet-4-6"
-provider = "anthropic"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."claude-4-6-opus"]
-model = "claude-opus-4-6"
-provider = "anthropic"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."claude-4-6-sonnet"]
-model = "claude-sonnet-4-6"
-provider = "anthropic"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
 [models."claude-fable-5"]
 model = "claude-fable-5"
 provider = "anthropic"
@@ -242,18 +177,6 @@ max_tokens = 4096
 tier = "paid"
 notes = "Claude Sonnet 5 (current-gen Anthropic, July 2026)"
 
-[models."code-llama"]
-model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."code-llama-phind"]
-model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
 [models."deepseek-chat"]
 model = "deepseek-chat"
 provider = "deepseek"
@@ -282,19 +205,6 @@ model = "deepseek-reasoner"
 provider = "deepseek"
 temperature = 0.1
 max_tokens = 4096
-tier = "paid"
-
-[models."gemini-1.5-flash"]
-model = "gemini/gemini-2.5-flash"
-temperature = 0.1
-max_tokens = 3072
-tier = "free_tier"
-notes = "Gemini 1.5 Flash (free tier)"
-
-[models."gemini-1.5-pro"]
-model = "gemini/gemini-2.5-pro"
-temperature = 0.1
-max_tokens = 3072
 tier = "paid"
 
 [models."gemini-2.5-flash"]
@@ -342,36 +252,6 @@ tier = "paid"
 model = "gemini/gemini-3.1-pro-preview"
 temperature = 0.1
 max_tokens = 3072
-tier = "paid"
-
-[models."gemini-flash-latest"]
-model = "gemini/gemini-2.5-flash"
-temperature = 0.1
-max_tokens = 3072
-tier = "paid"
-
-[models."gemini-pro"]
-model = "gemini/gemini-2.5-pro"
-temperature = 0.1
-max_tokens = 3072
-tier = "paid"
-
-[models."gemini-pro-latest"]
-model = "gemini/gemini-2.5-pro"
-temperature = 0.1
-max_tokens = 3072
-tier = "paid"
-
-[models."gpt-3.5-turbo"]
-model = "gpt-4o-mini"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."gpt-4"]
-model = "gpt-4.1"
-temperature = 0.1
-max_tokens = 4096
 tier = "paid"
 
 [models."gpt-4.1-mini"]
@@ -446,18 +326,6 @@ max_tokens = 4096
 tier = "paid"
 notes = "GPT-5.6 Terra (balanced/high-volume tier; $2.50/$15 per 1M, GA 2026-07-09)"
 
-[models."gpt-o1-mini"]
-model = "o1"
-temperature = 0.1
-max_tokens = 3072
-tier = "paid"
-
-[models."gpt-o1-preview"]
-model = "o1"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
 [models."groq-gemma"]
 model = "groq/openai/gpt-oss-20b"
 temperature = 0.1
@@ -506,18 +374,6 @@ temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
-[models."groq-llama2"]
-model = "groq/llama-3.1-8b-instant"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."groq-mixtral"]
-model = "groq/llama-3.3-70b-versatile"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
 [models."hf-meta-llama-3"]
 model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
 temperature = 0.1
@@ -534,14 +390,8 @@ max_tokens = 2048
 tier = "local"
 notes = "First-class Ollama via --ollama / --local (auto-detect installed models)"
 
-[models."mistral-7b"]
-model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
 [models."nvidia-nemotron"]
-model = "nvidia/nvidia/nemotron-3-super-120b-a12b"
+model = "nvidia/nemotron-3-super-120b-a12b"
 provider = "nvidia"
 api_base = "https://integrate.api.nvidia.com/v1"
 temperature = 0.1
@@ -748,18 +598,6 @@ max_tokens = 4096
 tier = "free"
 notes = "Tencent Hy3 (295B MoE, Apache 2.0, released 2026-07-06) via OpenRouter :free promo through 2026-07-21"
 
-[models."star-chat"]
-model = "huggingface/meta-llama/Llama-3.1-8B-Instruct"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."wizard-coder"]
-model = "huggingface/Qwen/Qwen2.5-Coder-7B-Instruct"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
 [models."z-ai-glm-5"]
 model = "glm-5"
 provider = "z-ai"
@@ -891,14 +729,6 @@ provider = "gemini"
 env_key = "GEMINI_API_KEY"
 tier = "free_tier"
 notes = "Gemini 2.5 Flash-Lite (fast free tier)"
-
-[[free_catalog]]
-id = "gemini-1.5-flash"
-model_key = "gemini-1.5-flash"
-provider = "gemini"
-env_key = "GEMINI_API_KEY"
-tier = "free_tier"
-notes = "Gemini 1.5 Flash (free tier)"
 
 [[free_catalog]]
 id = "hf-meta-llama-3"
