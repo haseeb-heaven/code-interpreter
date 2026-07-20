@@ -246,6 +246,42 @@ export type HistoryItemToolStats = HistoryItemBase & {
   type: 'tool_stats';
 };
 
+export interface UsageProviderRow {
+  id: string;
+  displayName: string;
+  requestCount: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  lastUsedAt: string;
+}
+
+export interface OpenRouterCreditsInfo {
+  remainingFraction: number;
+  totalCredits: number;
+  totalUsage: number;
+}
+
+export type HistoryItemUsageStats = HistoryItemBase & {
+  type: 'usage_stats';
+  providers: UsageProviderRow[];
+  openRouterCredits?: OpenRouterCreditsInfo;
+  openRouterKeyMissing?: boolean;
+};
+
+export interface FreeModelsListRow {
+  id: string;
+  provider: string;
+  tier: string;
+  available: boolean;
+  notes: string;
+}
+
+export type HistoryItemFreeModelsList = HistoryItemBase & {
+  type: 'free_models_list';
+  entries: FreeModelsListRow[];
+};
+
 export type HistoryItemModel = HistoryItemBase & {
   type: 'model';
   model: string;
@@ -434,6 +470,8 @@ export type HistoryItemWithoutId =
   | HistoryItemStats
   | HistoryItemModelStats
   | HistoryItemToolStats
+  | HistoryItemUsageStats
+  | HistoryItemFreeModelsList
   | HistoryItemModel
   | HistoryItemQuit
   | HistoryItemCompression
@@ -462,6 +500,8 @@ export enum MessageType {
   STATS = 'stats',
   MODEL_STATS = 'model_stats',
   TOOL_STATS = 'tool_stats',
+  USAGE_STATS = 'usage_stats',
+  FREE_MODELS_LIST = 'free_models_list',
   QUIT = 'quit',
   GEMINI = 'gemini',
   COMPRESSION = 'compression',

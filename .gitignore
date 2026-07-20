@@ -44,6 +44,20 @@ Thumbs.db
 
 # Ignore built ts files
 dist
+build
+out
+
+# Stray compiled output that can end up sitting next to TS sources instead of
+# inside dist/ (e.g. from an accidental in-place `tsc` run). If left in place
+# these shadow the real .ts/.tsx source during esbuild's module resolution.
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+integration-tests/**/*.js
+integration-tests/**/*.js.map
+integration-tests/**/*.d.ts
+integration-tests/**/*.d.ts.map
 
 # Docker folder to help skip auth refreshes
 .docker

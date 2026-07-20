@@ -25,6 +25,8 @@ import { AboutBox } from './AboutBox.js';
 import { StatsDisplay } from './StatsDisplay.js';
 import { ModelStatsDisplay } from './ModelStatsDisplay.js';
 import { ToolStatsDisplay } from './ToolStatsDisplay.js';
+import { UsageStatsDisplay } from './UsageStatsDisplay.js';
+import { FreeModelsDisplay } from './FreeModelsDisplay.js';
 import { SessionSummaryDisplay } from './SessionSummaryDisplay.js';
 import { Help } from './Help.js';
 import type { SlashCommand } from '../commands/types.js';
@@ -180,6 +182,16 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         />
       )}
       {itemForDisplay.type === 'tool_stats' && <ToolStatsDisplay />}
+      {itemForDisplay.type === 'usage_stats' && (
+        <UsageStatsDisplay
+          providers={itemForDisplay.providers}
+          openRouterCredits={itemForDisplay.openRouterCredits}
+          openRouterKeyMissing={itemForDisplay.openRouterKeyMissing}
+        />
+      )}
+      {itemForDisplay.type === 'free_models_list' && (
+        <FreeModelsDisplay entries={itemForDisplay.entries} />
+      )}
       {itemForDisplay.type === 'model' && (
         <ModelMessage model={itemForDisplay.model} />
       )}

@@ -268,6 +268,47 @@ async function restartAction(
   }
 }
 
+function openRegistryView(
+  context: CommandContext,
+): SlashCommandActionReturn | void {
+  const extensionManager =
+    context.services.agentContext?.config.getExtensionLoader();
+  if (extensionManager instanceof ExtensionManager) {
+    return {
+      type: 'custom_dialog' as const,
+      component: React.createElement(ExtensionRegistryView, {
+        onSelect: async (extension, requestConsentOverride) => {
+          debugLogger.log(`Selected extension: ${extension.extensionName}`);
+          await installAction(context, extension.url, requestConsentOverride);
+          context.ui.removeComponent();
+        },
+        onLink: async (extension, requestConsentOverride) => {
+          debugLogger.log(`Linking extension: ${extension.extensionName}`);
+          await linkAction(context, extension.url, requestConsentOverride);
+          context.ui.removeComponent();
+        },
+        onClose: () => context.ui.removeComponent(),
+        extensionManager,
+      }),
+    };
+  }
+  return undefined;
+}
+
+async function marketAction(
+  context: CommandContext,
+): Promise<SlashCommandActionReturn | void> {
+  const result = openRegistryView(context);
+  if (result) {
+    return result;
+  }
+  context.ui.addItem({
+    type: MessageType.ERROR,
+    text: 'Extension marketplace is unavailable in this session.',
+  });
+  return undefined;
+}
+
 async function exploreAction(
   context: CommandContext,
 ): Promise<SlashCommandActionReturn | void> {
@@ -275,26 +316,9 @@ async function exploreAction(
   const useRegistryUI = settings.experimental?.extensionRegistry;
 
   if (useRegistryUI) {
-    const extensionManager =
-      context.services.agentContext?.config.getExtensionLoader();
-    if (extensionManager instanceof ExtensionManager) {
-      return {
-        type: 'custom_dialog' as const,
-        component: React.createElement(ExtensionRegistryView, {
-          onSelect: async (extension, requestConsentOverride) => {
-            debugLogger.log(`Selected extension: ${extension.extensionName}`);
-            await installAction(context, extension.url, requestConsentOverride);
-            context.ui.removeComponent();
-          },
-          onLink: async (extension, requestConsentOverride) => {
-            debugLogger.log(`Linking extension: ${extension.extensionName}`);
-            await linkAction(context, extension.url, requestConsentOverride);
-            context.ui.removeComponent();
-          },
-          onClose: () => context.ui.removeComponent(),
-          extensionManager,
-        }),
-      };
+    const result = openRegistryView(context);
+    if (result) {
+      return result;
     }
   }
 
@@ -855,6 +879,15 @@ const exploreExtensionsCommand: SlashCommand = {
   action: exploreAction,
 };
 
+const marketExtensionsCommand: SlashCommand = {
+  name: 'market',
+  description: 'Browse and pick an extensions marketplace/registry',
+  kind: CommandKind.BUILT_IN,
+  autoExecute: true,
+  takesArgs: false,
+  action: marketAction,
+};
+
 const reloadCommand: SlashCommand = {
   name: 'reload',
   altNames: ['restart'],
@@ -892,6 +925,7 @@ export function extensionsCommand(
     listExtensionsCommand,
     updateExtensionsCommand,
     exploreExtensionsCommand,
+    marketExtensionsCommand,
     reloadCommand,
     ...conditionalCommands,
   ];

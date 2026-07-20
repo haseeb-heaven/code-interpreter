@@ -8,57 +8,17 @@ import {
   getProvider,
   getProviderUsage,
   fetchOpenRouterCredits,
-  type ProviderUsageStore,
 } from '@open-agent/core';
 import {
   type CommandContext,
   CommandKind,
   type SlashCommand,
 } from './types.js';
-import { MessageType } from '../types.js';
-
-async function usageTable(
-  store: ProviderUsageStore,
-  env: NodeJS.ProcessEnv,
-): Promise<string> {
-  const providerIds = Object.keys(store).sort();
-  if (providerIds.length === 0) {
-    return 'No provider usage recorded yet. Usage accumulates as you use the CLI.';
-  }
-
-  const lines = ['Cross-provider usage (accumulated across sessions):', ''];
-  for (const providerId of providerIds) {
-    const entry = store[providerId];
-    const displayName = getProvider(providerId)?.displayName ?? providerId;
-    lines.push(`${displayName}`);
-    lines.push(
-      `  requests: ${entry.requestCount}   tokens: ${entry.totalTokens} (prompt ${entry.promptTokens} / completion ${entry.completionTokens})`,
-    );
-    lines.push(`  last used: ${entry.lastUsedAt || 'unknown'}`);
-
-    if (providerId === 'openrouter') {
-      const apiKey = env['OPENROUTER_API_KEY'];
-      const credits = apiKey ? await fetchOpenRouterCredits(apiKey) : undefined;
-      if (credits) {
-        lines.push(
-          `  remaining balance: ${(credits.remainingFraction * 100).toFixed(1)}% (${(
-            credits.totalCredits - credits.totalUsage
-          ).toFixed(2)} of ${credits.totalCredits.toFixed(2)} credits)`,
-        );
-      } else {
-        lines.push(
-          '  remaining balance: unavailable (set OPENROUTER_API_KEY, or the credits API is unreachable)',
-        );
-      }
-    } else if (providerId === 'openai' || providerId === 'anthropic') {
-      lines.push(
-        '  remaining balance: not available via API — showing accumulated local usage only',
-      );
-    }
-    lines.push('');
-  }
-  return lines.join('\n').trimEnd();
-}
+import {
+  MessageType,
+  type UsageProviderRow,
+  type HistoryItemUsageStats,
+} from '../types.js';
 
 export const usageCommand: SlashCommand = {
   name: 'usage',
@@ -67,8 +27,37 @@ export const usageCommand: SlashCommand = {
   action: async (context: CommandContext): Promise<void> => {
     try {
       const store = getProviderUsage();
-      const text = await usageTable(store, process.env);
-      context.ui.addItem({ type: MessageType.INFO, text }, Date.now());
+      const providers: UsageProviderRow[] = Object.keys(store).map(
+        (providerId) => {
+          const entry = store[providerId];
+          return {
+            id: providerId,
+            displayName: getProvider(providerId)?.displayName ?? providerId,
+            requestCount: entry.requestCount,
+            promptTokens: entry.promptTokens,
+            completionTokens: entry.completionTokens,
+            totalTokens: entry.totalTokens,
+            lastUsedAt: entry.lastUsedAt,
+          };
+        },
+      );
+
+      const openRouterApiKey = process.env['OPENROUTER_API_KEY'];
+      const hasOpenRouterUsage = 'openrouter' in store;
+      const openRouterCredits =
+        hasOpenRouterUsage && openRouterApiKey
+          ? await fetchOpenRouterCredits(openRouterApiKey)
+          : undefined;
+
+      context.ui.addItem(
+        {
+          type: MessageType.USAGE_STATS,
+          providers,
+          openRouterCredits,
+          openRouterKeyMissing: hasOpenRouterUsage && !openRouterApiKey,
+        } as HistoryItemUsageStats,
+        Date.now(),
+      );
     } catch (error) {
       context.ui.addItem(
         {
