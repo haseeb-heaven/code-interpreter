@@ -500,15 +500,6 @@ max_tokens = 4096
 tier = "paid"
 notes = "Moonshot Kimi K3 (2.8T MoE, 1M context, released 2026-07-16) via OpenRouter"
 
-[models."openrouter-llama-3.3-70b-free"]
-model = "meta-llama/llama-3.3-70b-instruct:free"
-provider = "openrouter"
-api_base = "https://openrouter.ai/api/v1"
-temperature = 0.1
-max_tokens = 4096
-tier = "free"
-notes = "Llama 3.3 70B Instruct via OpenRouter :free"
-
 [models."openrouter-mimo-v2-flash-free"]
 model = "google/gemma-4-31b-it:free"
 provider = "openrouter"
@@ -559,14 +550,6 @@ max_tokens = 4096
 tier = "free"
 notes = "Nemotron 3 Nano 30B via OpenRouter :free"
 
-[models."openrouter-qwen3-6-plus-free"]
-model = "meta-llama/llama-3.3-70b-instruct:free"
-provider = "openrouter"
-api_base = "https://openrouter.ai/api/v1"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
 [models."openrouter-qwen3-7-max"]
 model = "qwen/qwen3.7-max"
 provider = "openrouter"
@@ -585,32 +568,6 @@ max_tokens = 4096
 tier = "paid"
 notes = "Qwen3.7-Plus (multimodal agentic model, 1M context) via OpenRouter"
 
-[models."openrouter-qwen3-coder"]
-model = "qwen/qwen3-coder:free"
-provider = "openrouter"
-api_base = "https://openrouter.ai/api/v1"
-temperature = 0.1
-max_tokens = 4096
-tier = "free"
-notes = "Qwen3 Coder via OpenRouter :free (coding)"
-
-[models."openrouter-qwen3-coder-480b-free"]
-model = "qwen/qwen3-coder:free"
-provider = "openrouter"
-api_base = "https://openrouter.ai/api/v1"
-temperature = 0.1
-max_tokens = 4096
-tier = "paid"
-
-[models."openrouter-tencent-hy3-free"]
-model = "tencent/hy3:free"
-provider = "openrouter"
-api_base = "https://openrouter.ai/api/v1"
-temperature = 0.1
-max_tokens = 4096
-tier = "free"
-notes = "Tencent Hy3 (295B MoE, Apache 2.0, released 2026-07-06) via OpenRouter :free promo through 2026-07-21"
-
 [models."z-ai-glm-5"]
 model = "glm-5"
 provider = "z-ai"
@@ -622,14 +579,6 @@ tier = "paid"
 # -----------------------------------------------------------------------------
 # Free / cheap catalog rotation (curated presets for --free / --gemini-style)
 # -----------------------------------------------------------------------------
-
-[[free_catalog]]
-id = "openrouter-tencent-hy3-free"
-model_key = "openrouter-tencent-hy3-free"
-provider = "openrouter"
-env_key = "OPENROUTER_API_KEY"
-tier = "free"
-notes = "Tencent Hy3 via OpenRouter :free promo through 2026-07-21 (top-ranked July 2026)"
 
 [[free_catalog]]
 id = "openrouter-gpt-oss-20b-free"
@@ -646,22 +595,6 @@ provider = "openrouter"
 env_key = "OPENROUTER_API_KEY"
 tier = "free"
 notes = "OpenRouter free tool-capable (gpt-oss-20b:free) — safe default for /model free"
-
-[[free_catalog]]
-id = "openrouter-qwen3-coder"
-model_key = "openrouter-qwen3-coder"
-provider = "openrouter"
-env_key = "OPENROUTER_API_KEY"
-tier = "free"
-notes = "Qwen3 Coder via OpenRouter :free (coding)"
-
-[[free_catalog]]
-id = "openrouter-llama-3.3-70b-free"
-model_key = "openrouter-llama-3.3-70b-free"
-provider = "openrouter"
-env_key = "OPENROUTER_API_KEY"
-tier = "free"
-notes = "Llama 3.3 70B Instruct via OpenRouter :free"
 
 [[free_catalog]]
 id = "openrouter-gemma-4-31b-free"

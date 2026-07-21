@@ -47,16 +47,15 @@ This document lists all supported models in **OpenAgent**. The catalog lives in 
 
 ## OpenRouter (OpenAI-compatible API)
 - `openrouter-free` -> `openrouter/free`
-- `openrouter-qwen3-coder` -> `qwen/qwen3-coder:free`
 - `openrouter-claude-opus-4-6` -> `anthropic/claude-opus-4.6`
 - `openrouter-mimo-v2-pro` -> `xiaomi/mimo-v2-pro`
 - `openrouter-gpt-5-4` -> `openai/gpt-5.4`
 - `openrouter-deepseek-v3-2` -> `deepseek/deepseek-v3.2`
-- `openrouter-llama-3.3-70b-free` -> `meta-llama/llama-3.3-70b-instruct:free`
 - `openrouter-gpt-oss-20b-free` -> `openai/gpt-oss-20b:free`
 - `openrouter-gemma-4-31b-free` -> `google/gemma-4-31b-it:free`
 - `openrouter-nemotron-nano-free` -> `nvidia/nemotron-3-nano-30b-a3b:free`
-- Legacy aliases (retargeted to valid `:free` ids): `openrouter-qwen3-coder-480b-free`, `openrouter-mimo-v2-flash-free`, `openrouter-nemotron-3-super-free`, `openrouter-minimax-m2-5-free`, `openrouter-qwen3-6-plus-free`
+- Legacy aliases (retargeted to valid `:free` ids): `openrouter-mimo-v2-flash-free`, `openrouter-nemotron-3-super-free`, `openrouter-minimax-m2-5-free`
+- Removed 2026-07-22 (OpenRouter now returns 404 for these ids): `qwen/qwen3-coder:free`, `meta-llama/llama-3.3-70b-instruct:free`, `tencent/hy3:free` (free promo ended 2026-07-21)
 
 ## Cerebras (free public endpoints, rate-limited)
 - `cerebras-gpt-oss-120b`, `cerebras-gemma-4-31b`, `cerebras-zai-glm-4.7`.

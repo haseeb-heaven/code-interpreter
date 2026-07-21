@@ -51,8 +51,10 @@ const ALL_KEYS: NodeJS.ProcessEnv = {
 
 describe('configs/models.toml (real registry)', () => {
   it('loads the full catalog from the repository', () => {
-    expect(modelNames.length).toBeGreaterThanOrEqual(60);
-    expect(catalog.length).toBeGreaterThanOrEqual(19);
+    // Floors last adjusted 2026-07-22 after pruning models OpenRouter 404s
+    // (tencent/hy3:free, qwen/qwen3-coder:free, llama-3.3-70b-instruct:free).
+    expect(modelNames.length).toBeGreaterThanOrEqual(55);
+    expect(catalog.length).toBeGreaterThanOrEqual(16);
   });
 
   it.each(modelNames)('[models."%s"] is complete and well-formed', (name) => {

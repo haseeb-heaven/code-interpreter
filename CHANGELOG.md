@@ -1,5 +1,27 @@
 ## Unreleased
 
+## v4.1.2 (2026-07-22) — Session resume & free-fallback fixes
+
+- fix(core): resuming a session (`--resume`) no longer breaks strict
+  OpenAI-compat providers (Cerebras) with "Tool call with id ... was not found
+  in the messages" — resumed history now re-derives functionCall parts from the
+  persisted `toolCalls` records and synthesizes declarations for responses to
+  unregistered/hallucinated tools
+- fix(core): tool-call id prefix stripping is now decided once per id and
+  applied to both the call and its response, so pairs whose names diverge
+  (nameless hallucinated call vs arg-shape-recovered response) stay paired
+- fix(core): nameless hallucinated tool calls now get the `generic_tool`
+  fallback name written back into history, fixing Gemini's
+  "function_response.name: Name cannot be empty" rejection
+- fix(providers): when every free-fallback model fails, the error now lists each
+  model with an actionable reason (rate limited, out of credits, request too
+  large, invalid key, server down) instead of only the last candidate's error —
+  which was always lmstudio's meaningless "connection refused" and masked the
+  real failures
+- fix(catalog): removed models OpenRouter now 404s — `tencent/hy3:free` (free
+  promo ended 2026-07-21), `qwen/qwen3-coder:free`,
+  `meta-llama/llama-3.3-70b-instruct:free`
+
 ## v4.1.1 (2026-07-21) — Post-release fixes
 
 Bugfix release layered on v4.1.0's free-model picker and extensions marketplace
