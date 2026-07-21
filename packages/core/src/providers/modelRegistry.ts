@@ -97,7 +97,11 @@ function resolveRegistryPath(registryPath?: string): string {
   if (fromEnv && fromEnv.trim()) return asRegistryFile(fromEnv.trim());
   // 1. Project-local override in the current working directory.
   if (fs.existsSync(DEFAULT_REGISTRY_PATH)) return DEFAULT_REGISTRY_PATH;
-  // 2. The registry shipped with the install (next to this module/bundle).
+  // 2. Walk upward from cwd — handles running from a subdirectory of a repo
+  // whose root has a fresher `configs/models.toml` than any bundled copy.
+  const fromCwd = findRegistryUpward(process.cwd());
+  if (fromCwd) return fromCwd;
+  // 3. The registry shipped with the install (next to this module/bundle).
   const moduleDir =
     typeof __dirname === 'string'
       ? __dirname

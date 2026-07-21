@@ -1,5 +1,33 @@
 ## Unreleased
 
+## v4.1.1 (2026-07-21) — Post-release fixes
+
+Bugfix release layered on v4.1.0's free-model picker and extensions marketplace
+features. Note on numbering: `origin/main` already has an unrelated v4.1.0
+(provider crash / homedir-mock fixes) that never merged into `develop` — this
+avoids perpetuating that collision rather than reusing `4.1.0` on `develop` for
+a second, different release.
+
+- fix(tui): `/free-models` key-entry dialog now rejects structurally-invalid
+  input (leftover slash-command keystrokes, strings under 16 chars) before
+  writing to `.env`, instead of silently persisting garbage as an API key
+- fix(providers): `resolveRegistryPath` now walks upward from `cwd` for
+  `configs/models.toml` before falling back to a bundle-relative search, so
+  running from a repo subdirectory no longer risks pinning a stale
+  `bundle/configs/models.toml` copy for the process lifetime
+- fix(test): resolve a hanging/flaky kitty-protocol test suite in
+  `gemini.test.tsx` — mock out `interactiveCli.js`'s heavy Ink render for tests
+  that only assert on pre-render terminal setup, and extend timeouts for tests
+  that legitimately pay the cold-import transform cost
+- fix(test): clear the `cleanup.ts` force-exit timer on test teardown
+  (`resetCleanupForTesting`) so it can no longer fire after a test's mocked
+  `process.exit` has been restored, which was surfacing as unhandled
+  `process.exit unexpectedly called` exceptions in unrelated test runs
+- fix(scripts): live-test harness (`run-live-tests.mjs`) retries once on timeout
+  before grading a scenario FAIL, and flags scenarios whose prompt references a
+  `LIVE_TEST_MEDIA_DIR` subfolder that doesn't exist, so an environment gap no
+  longer reads as a silent false "OK"
+
 ## v4.1.0 (2026-07-21) — Free-model picker & extension marketplace
 
 - feat(tui): `/free-models` is now an interactive picker dialog (was a static

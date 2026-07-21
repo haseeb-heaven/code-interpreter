@@ -527,6 +527,14 @@ describe('gemini.tsx main function kitty protocol', () => {
   });
 
   it('should call setRawMode and detectCapabilities when isInteractive is true', async () => {
+    vi.doMock('./interactiveCli.js', () => ({
+      startInteractiveUI: vi.fn().mockResolvedValue(undefined),
+    }));
+    const processExitSpy = vi
+      .spyOn(process, 'exit')
+      .mockImplementation((code) => {
+        throw new MockProcessExitError(code);
+      });
     vi.mocked(loadCliConfig).mockResolvedValue(
       createMockConfig({
         isInteractive: () => true,
@@ -534,6 +542,7 @@ describe('gemini.tsx main function kitty protocol', () => {
         getSandbox: () => undefined,
       }),
     );
+    vi.mocked(loadSandboxConfig).mockResolvedValue(undefined);
     vi.mocked(loadSettings).mockReturnValue(
       createMockSettings({
         merged: {
@@ -577,16 +586,30 @@ describe('gemini.tsx main function kitty protocol', () => {
     });
 
     await act(async () => {
-      await main();
+      try {
+        await main();
+      } catch (e) {
+        if (!(e instanceof MockProcessExitError)) throw e;
+      }
     });
 
     expect(setRawModeSpy).toHaveBeenCalledWith(true);
     expect(terminalCapabilityManager.detectCapabilities).toHaveBeenCalledTimes(
       1,
     );
+    processExitSpy.mockRestore();
+    vi.doUnmock('./interactiveCli.js');
   });
 
   it('should call process.stdin.resume when isInteractive is true to protect against implicit Node pause', async () => {
+    vi.doMock('./interactiveCli.js', () => ({
+      startInteractiveUI: vi.fn().mockResolvedValue(undefined),
+    }));
+    const processExitSpy = vi
+      .spyOn(process, 'exit')
+      .mockImplementation((code) => {
+        throw new MockProcessExitError(code);
+      });
     const resumeSpy = vi.spyOn(process.stdin, 'resume');
     vi.mocked(loadCliConfig).mockResolvedValue(
       createMockConfig({
@@ -595,6 +618,7 @@ describe('gemini.tsx main function kitty protocol', () => {
         getSandbox: () => undefined,
       }),
     );
+    vi.mocked(loadSandboxConfig).mockResolvedValue(undefined);
     vi.mocked(loadSettings).mockReturnValue(
       createMockSettings({
         merged: {
@@ -638,11 +662,17 @@ describe('gemini.tsx main function kitty protocol', () => {
     });
 
     await act(async () => {
-      await main();
+      try {
+        await main();
+      } catch (e) {
+        if (!(e instanceof MockProcessExitError)) throw e;
+      }
     });
 
     expect(resumeSpy).toHaveBeenCalledTimes(1);
     resumeSpy.mockRestore();
+    processExitSpy.mockRestore();
+    vi.doUnmock('./interactiveCli.js');
   });
 
   it.each([
@@ -894,9 +924,12 @@ describe('gemini.tsx main function kitty protocol', () => {
     expect(processExitSpy).toHaveBeenCalledWith(42);
     processExitSpy.mockRestore();
     emitFeedbackSpy.mockRestore();
-  });
+  }, 30000);
 
   it('should start normally with a warning when no sessions found for resume', async () => {
+    vi.doMock('./interactiveCli.js', () => ({
+      startInteractiveUI: vi.fn().mockResolvedValue(undefined),
+    }));
     // eslint-disable-next-line prefer-arrow-callback
     vi.mocked(SessionSelector).mockImplementation(function () {
       return {
@@ -913,6 +946,7 @@ describe('gemini.tsx main function kitty protocol', () => {
       });
     const emitFeedbackSpy = vi.spyOn(coreEvents, 'emitFeedback');
 
+    vi.mocked(loadSandboxConfig).mockResolvedValue(undefined);
     vi.mocked(loadSettings).mockReturnValue(
       createMockSettings({
         merged: { advanced: {}, security: { auth: {} }, ui: { theme: 'test' } },
@@ -948,6 +982,7 @@ describe('gemini.tsx main function kitty protocol', () => {
     );
     processExitSpy.mockRestore();
     emitFeedbackSpy.mockRestore();
+    vi.doUnmock('./interactiveCli.js');
   });
 
   it.skip('should log error when cleanupExpiredSessions fails', async () => {
@@ -1407,7 +1442,7 @@ describe('gemini.tsx main function exit codes', () => {
     } finally {
       delete process.env['GEMINI_API_KEY'];
     }
-  });
+  }, 30000);
 
   it('should exit with 42 for no input provided', async () => {
     vi.mocked(loadCliConfig).mockResolvedValue(
@@ -1732,7 +1767,7 @@ describe('startInteractiveUI', () => {
 
     // Verify React element structure is valid (but don't deep dive into JSX internals)
     expect(reactElement).toBeDefined();
-  });
+  }, 30000);
 
   it('should enable mouse events when alternate buffer is enabled', async () => {
     const { enableMouseEvents } = await import('@open-agent/core');

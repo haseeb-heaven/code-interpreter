@@ -133,12 +133,31 @@ function renderPrompt(template) {
   return template.replaceAll('{{MEDIA_DIR}}', mediaDir);
 }
 
+// A scenario's prompt often names a specific subfolder of the media dir
+// (e.g. "{{MEDIA_DIR}}/images"). If that subfolder doesn't actually exist,
+// a model reporting "0 files found" is environmentally correct but useless
+// as a signal — flag it instead of letting it read as a silent OK/FAIL.
+const MEDIA_SUBDIR_PATTERN = /\{\{MEDIA_DIR\}\}\/([\w.-]+)/g;
+
+function mediaDirNoteFor(template) {
+  const missing = [];
+  for (const match of template.matchAll(MEDIA_SUBDIR_PATTERN)) {
+    const subdir = match[1];
+    const candidate = join(mediaDir, subdir);
+    if (!existsSync(candidate) && !missing.includes(subdir)) {
+      missing.push(subdir);
+    }
+  }
+  if (missing.length === 0) return null;
+  return `Referenced media subdir(s) not found under LIVE_TEST_MEDIA_DIR: ${missing.join(', ')} — a model reporting "0 found" here reflects a missing fixture, not a real failure.`;
+}
+
 // Heuristic: flag responses that describe a tool call as prose instead of
 // invoking it (the regression this whole harness exists to catch).
 const NARRATION_PATTERN =
   /\b(run_shell_command|read_file|write_file|list_directory|glob|search_file_content|read_many_files|web_search|web_fetch)\s*\(/;
 
-function runOne(model, prompt) {
+function runOnce(model, prompt) {
   return new Promise((resolvePromise) => {
     const promptText = renderPrompt(prompt.text);
     const args = [
@@ -211,28 +230,44 @@ function runOne(model, prompt) {
         warnings: parsed?.warnings ?? [],
         parseError: parseError ?? null,
         possibleToolCallNarration: narrationMatch ? narrationMatch[1] : null,
+        note: mediaDirNoteFor(prompt.text),
         rawStdout: stdout,
         rawStderr: stderr,
       };
 
-      const scenarioDir = join(
-        runDir,
-        prompt.id.replace(/[^a-zA-Z0-9._-]/g, '_'),
-      );
-      mkdirSync(scenarioDir, { recursive: true });
-      const fileName = `${model.provider}__${model.key}.json`.replace(
-        /[^a-zA-Z0-9._-]/g,
-        '_',
-      );
-      writeFileSync(
-        join(scenarioDir, fileName),
-        JSON.stringify(report, null, 2),
-        'utf8',
-      );
-
       resolvePromise(report);
     });
   });
+}
+
+// A single slow free-tier response shouldn't be graded as a hard FAIL
+// indistinguishable from a real crash — retry once on timeout before
+// finalizing, and record that a retry happened so the report stays honest
+// about flake vs. a genuine repeated failure.
+async function runOne(model, prompt) {
+  let report = await runOnce(model, prompt);
+  let attempts = 1;
+  if (report.timedOut) {
+    const retryReport = await runOnce(model, prompt);
+    attempts = 2;
+    report = retryReport;
+  }
+  report.attempts = attempts;
+  report.retried = attempts > 1;
+
+  const scenarioDir = join(runDir, prompt.id.replace(/[^a-zA-Z0-9._-]/g, '_'));
+  mkdirSync(scenarioDir, { recursive: true });
+  const fileName = `${model.provider}__${model.key}.json`.replace(
+    /[^a-zA-Z0-9._-]/g,
+    '_',
+  );
+  writeFileSync(
+    join(scenarioDir, fileName),
+    JSON.stringify(report, null, 2),
+    'utf8',
+  );
+
+  return report;
 }
 
 function statusOf(report) {
@@ -271,7 +306,9 @@ async function main() {
       const flag = report.possibleToolCallNarration
         ? ` (narrated "${report.possibleToolCallNarration}" instead of calling it!)`
         : '';
-      console.log(`${status}${flag}`);
+      const retryFlag = report.retried ? ' (retried after timeout)' : '';
+      const noteFlag = report.note ? ' [note: missing media fixture]' : '';
+      console.log(`${status}${flag}${retryFlag}${noteFlag}`);
       scenarioResults.push(report);
       allResults.push(report);
     }
@@ -294,6 +331,8 @@ async function main() {
         output: r.output,
         possibleToolCallNarration: r.possibleToolCallNarration,
         cliError: r.cliError,
+        retried: r.retried,
+        note: r.note,
       })),
     };
     writeFileSync(
@@ -312,13 +351,17 @@ async function main() {
       '| --- | --- | --- | --- | --- | --- |',
       ...comparison.models.map((m) => {
         const flag = m.possibleToolCallNarration ? ' ⚠️ narrated' : '';
+        const retryFlag = m.retried ? ' 🔁 retried' : '';
         const tokenSummary = m.tokens ? JSON.stringify(m.tokens) : '';
         const outputPreview = (m.output || m.cliError?.message || '')
           .toString()
           .replace(/\n/g, ' ')
           .slice(0, 200);
-        return `| ${m.provider} | ${m.modelKey} | ${m.status}${flag} | ${m.durationMs} | ${tokenSummary} | ${outputPreview} |`;
+        return `| ${m.provider} | ${m.modelKey} | ${m.status}${flag}${retryFlag} | ${m.durationMs} | ${tokenSummary} | ${outputPreview} |`;
       }),
+      ...(comparison.models.some((m) => m.note)
+        ? ['', `> Note: ${comparison.models.find((m) => m.note).note}`]
+        : []),
     ];
     writeFileSync(
       join(scenarioDir, '_comparison.md'),

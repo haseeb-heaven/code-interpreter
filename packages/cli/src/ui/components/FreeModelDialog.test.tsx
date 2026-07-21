@@ -9,10 +9,30 @@ import { renderWithProviders } from '../../test-utils/render.js';
 import { waitFor } from '../../test-utils/async.js';
 import { makeFakeConfig } from '@open-agent/core';
 import { describe, it, expect, vi } from 'vitest';
-import { FreeModelDialog } from './FreeModelDialog.js';
+import { FreeModelDialog, isPlausibleApiKey } from './FreeModelDialog.js';
 
 const ENTER = String.fromCharCode(13);
 const ESCAPE = String.fromCharCode(27);
+
+describe('isPlausibleApiKey', () => {
+  it('rejects leftover slash-command text like "/free-models"', () => {
+    expect(isPlausibleApiKey('/free-models')).toBe(false);
+  });
+
+  it('rejects any value starting with "/"', () => {
+    expect(isPlausibleApiKey('/something-typed-by-accident')).toBe(false);
+  });
+
+  it('rejects short garbage strings', () => {
+    expect(isPlausibleApiKey('abc')).toBe(false);
+  });
+
+  it('accepts plausible-length key values', () => {
+    expect(isPlausibleApiKey('sk-abcdefghijklmnopqrstuvwxyz0123456789')).toBe(
+      true,
+    );
+  });
+});
 
 describe('FreeModelDialog', () => {
   it('renders the free-model picker with the real free catalog', async () => {

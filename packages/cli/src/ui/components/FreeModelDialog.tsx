@@ -44,6 +44,16 @@ interface DialogEntry {
   provider?: ProviderDefinition;
 }
 
+/**
+ * Guards against leftover slash-command keystrokes (e.g. "/free-models")
+ * landing in the key-entry TextInput and being written to .env as if they
+ * were a real API key. Real provider keys are all well over 16 chars and
+ * never start with "/".
+ */
+export function isPlausibleApiKey(value: string): boolean {
+  return value.length >= 16 && !value.startsWith('/');
+}
+
 function tierLabel(tier: string): string {
   switch (tier) {
     case 'free':
@@ -184,6 +194,13 @@ export function FreeModelDialog({
       if (!apiKey) {
         setNotice(
           `${dialogEntry.provider?.displayName ?? dialogEntry.entry.provider} requires ${envKey}. Paste your API key and press Enter.`,
+        );
+        return;
+      }
+
+      if (typed && !isPlausibleApiKey(typed)) {
+        setNotice(
+          `That doesn't look like a valid ${envKey} — API keys are longer and don't start with "/". Paste your API key and press Enter.`,
         );
         return;
       }

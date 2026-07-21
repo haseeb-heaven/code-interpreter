@@ -116,4 +116,36 @@ describe('ModelRegistry', () => {
     clearModelRegistryCache();
     expect(getModelRegistry(configsDir)).not.toBe(first);
   });
+
+  describe('resolveRegistryPath cwd-upward fallback', () => {
+    let originalCwd: string;
+    let originalEnv: string | undefined;
+
+    beforeEach(() => {
+      originalCwd = process.cwd();
+      originalEnv = process.env['OPENAGENT_MODELS_TOML'];
+      delete process.env['OPENAGENT_MODELS_TOML'];
+    });
+
+    afterEach(() => {
+      process.chdir(originalCwd);
+      if (originalEnv !== undefined) {
+        process.env['OPENAGENT_MODELS_TOML'] = originalEnv;
+      } else {
+        delete process.env['OPENAGENT_MODELS_TOML'];
+      }
+      clearModelRegistryCache();
+    });
+
+    it('finds a repo-root registry by walking upward from a nested cwd, not just checking cwd itself', () => {
+      const nested = path.join(dir, 'a', 'b', 'c');
+      fs.mkdirSync(nested, { recursive: true });
+      process.chdir(nested);
+      clearModelRegistryCache();
+
+      const registry = getModelRegistry();
+      expect(registry.hasModel('gpt-4o')).toBe(true);
+      expect(registry.path).toBe(path.join(dir, 'configs', 'models.toml'));
+    });
+  });
 });

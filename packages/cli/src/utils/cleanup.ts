@@ -19,6 +19,7 @@ const cleanupFunctions: Array<(() => void) | (() => Promise<void>)> = [];
 const syncCleanupFunctions: Array<() => void> = [];
 let configForTelemetry: Config | null = null;
 let isShuttingDown = false;
+let pendingForceExitTimer: ReturnType<typeof setTimeout> | null = null;
 
 export function registerCleanup(fn: (() => void) | (() => Promise<void>)) {
   cleanupFunctions.push(fn);
@@ -51,6 +52,10 @@ export function resetCleanupForTesting() {
   syncCleanupFunctions.length = 0;
   configForTelemetry = null;
   isShuttingDown = false;
+  if (pendingForceExitTimer) {
+    clearTimeout(pendingForceExitTimer);
+    pendingForceExitTimer = null;
+  }
 }
 
 export function runSyncCleanup() {
@@ -77,8 +82,11 @@ export function runSyncCleanup() {
  */
 export function exitProcess(code: number): void {
   process.exitCode = code;
-  const forceExitTimer = setTimeout(() => process.exit(code), 2000);
-  forceExitTimer.unref();
+  if (pendingForceExitTimer) {
+    clearTimeout(pendingForceExitTimer);
+  }
+  pendingForceExitTimer = setTimeout(() => process.exit(code), 2000);
+  pendingForceExitTimer.unref();
 }
 
 /**

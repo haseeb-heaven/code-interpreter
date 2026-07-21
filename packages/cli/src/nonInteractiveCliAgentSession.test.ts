@@ -25,7 +25,7 @@ import {
 } from '@open-agent/core';
 import type { Part } from '@google/genai';
 import { runNonInteractive } from './nonInteractiveCliAgentSession.js';
-import { ProcessExitSignal } from './utils/cleanup.js';
+import { ProcessExitSignal, resetCleanupForTesting } from './utils/cleanup.js';
 import {
   describe,
   it,
@@ -235,6 +235,7 @@ describe('runNonInteractive', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     process.exitCode = undefined;
+    resetCleanupForTesting();
   });
 
   async function* createStreamFromEvents(
