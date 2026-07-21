@@ -8,7 +8,11 @@
   "workspaces": [
     "packages/*"
   ],
-  "private": "true",
+  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/haseeb-heaven/open-agent.git"

@@ -1,0 +1,23 @@
+{
+  "version": "<VERSION>",
+  "description": "Open-source terminal agent — natural language to task execution",
+  "homepage": "https://github.com/haseeb-heaven/open-agent",
+  "license": "Apache-2.0",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/haseeb-heaven/open-agent/releases/download/v<VERSION>/openagent-win-x64.exe",
+      "hash": "<SHA256_OF_EXE>"
+    }
+  },
+  "bin": "openagent-win-x64.exe",
+  "checkver": {
+    "github": "https://github.com/haseeb-heaven/open-agent"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/haseeb-heaven/open-agent/releases/download/v$version/openagent-win-x64.exe"
+      }
+    }
+  }
+}

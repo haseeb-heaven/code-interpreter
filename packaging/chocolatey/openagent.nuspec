@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>openagent</id>
+    <version><VERSION></version>
+    <title>OpenAgent</title>
+    <authors>Haseeb Heaven</authors>
+    <projectUrl>https://github.com/haseeb-heaven/open-agent</projectUrl>
+    <licenseUrl>https://github.com/haseeb-heaven/open-agent/blob/main/LICENSE</licenseUrl>
+    <description>Open-source terminal agent — natural language to task execution</description>
+    <tags>ai agent terminal cli</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

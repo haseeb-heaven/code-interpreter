@@ -1,0 +1,125 @@
+name: 'Release: Public Packages'
+
+# Publishes to the public npm registry, Docker Hub, and uploads platform binaries
+# to the matching GitHub Release. Distinct from the release-* workflows inherited
+# from upstream, which publish via Google-internal "wombat" tokens this fork does
+# not have — those are unrelated to this workflow.
+#
+# All steps are gated on the relevant secret being present, so this workflow is a
+# no-op until NPM_TOKEN / DOCKERHUB_USERNAME+DOCKERHUB_TOKEN are configured in the
+# repo's GitHub Actions secrets. See docs/RELEASING.md and issue #242.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — build and pack everything but skip npm publish, docker push, and GitHub release upload'
+        required: true
+        type: boolean
+        default: true
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  npm-publish:
+    if: "github.repository == 'haseeb-heaven/open-agent'"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run bundle
+      - name: npm publish
+        if: "${{ github.event_name == 'push' || github.event.inputs.dry_run == 'false' }}"
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  build-binaries:
+    if: "github.repository == 'haseeb-heaven/open-agent'"
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_name: openagent-linux-x64
+          - os: macos-latest
+            asset_name: openagent-macos-x64
+          - os: windows-latest
+            asset_name: openagent-win-x64.exe
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: '.nvmrc'
+      - run: npm ci
+      - run: npm run bundle
+      - run: npm run build:binary
+      - name: Rename binary (non-Windows)
+        if: runner.os != 'Windows'
+        run: |
+          arch=$(node -p "process.arch")
+          cp "dist/$(node -p process.platform)-$arch/gemini" "${{ matrix.asset_name }}"
+      - name: Rename binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $arch = node -p "process.arch"
+          Copy-Item "dist/win32-$arch/gemini.exe" "${{ matrix.asset_name }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+
+  github-release:
+    if: "github.repository == 'haseeb-heaven/open-agent' && (github.event_name == 'push' || github.event.inputs.dry_run == 'false')"
+    needs: [build-binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Upload binaries to the release matching this tag
+        run: gh release upload "${{ github.ref_name }}" artifacts/* --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker-publish:
+    if: "github.repository == 'haseeb-heaven/open-agent'"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - name: Determine tags
+        id: tags
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION:-dev}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - name: Docker Hub login
+        if: "${{ github.event_name == 'push' || github.event.inputs.dry_run == 'false' }}"
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+          push: "${{ github.event_name == 'push' || github.event.inputs.dry_run == 'false' }}"
+          tags: |
+            haseebheaven/openagent:latest
+            haseebheaven/openagent:${{ steps.tags.outputs.version }}

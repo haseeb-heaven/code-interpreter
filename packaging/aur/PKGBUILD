@@ -1,0 +1,15 @@
+# Maintainer: Haseeb Heaven
+pkgname=openagent
+pkgver=<VERSION>
+pkgrel=1
+pkgdesc="Open-source terminal agent — natural language to task execution"
+arch=('x86_64')
+url="https://github.com/haseeb-heaven/open-agent"
+license=('Apache')
+depends=('nodejs')
+source=("https://github.com/haseeb-heaven/open-agent/releases/download/v${pkgver}/openagent-linux-x64")
+sha256sums=('<SHA256_HASH>')
+
+package() {
+  install -Dm755 "${srcdir}/openagent-linux-x64" "${pkgdir}/usr/bin/openagent"
+}
