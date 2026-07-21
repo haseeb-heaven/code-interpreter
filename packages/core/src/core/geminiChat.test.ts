@@ -308,6 +308,78 @@ describe('GeminiChat', () => {
       expect(finalHistory).toHaveLength(1);
       expect(finalHistory[0].id).toBe('summary-1');
     });
+
+    it('reconstructs functionCall parts from toolCalls when resuming from disk', () => {
+      // Regression test: 'gemini' message records store tool-call metadata
+      // in a separate `toolCalls` field, not in `content` (content only
+      // ever holds the model's text — see ChatRecordingService.recordToolCalls).
+      // Resuming a session used to rebuild `parts` from `content` alone,
+      // silently dropping every functionCall the model made while the
+      // matching functionResponse (on the following 'user' message)
+      // survived — orphaning the tool response and causing OpenAI-compat
+      // providers (e.g. Cerebras) to reject the next request with
+      // "tool call id ... was not found in the messages".
+      const resumedSessionData = {
+        conversation: {
+          messages: [
+            {
+              id: 'u1',
+              type: 'user',
+              content: [{ text: 'show system info' }],
+              create_time: new Date(),
+            },
+            {
+              id: 'g1',
+              type: 'gemini',
+              content: '',
+              toolCalls: [
+                {
+                  id: 'run_shell_command__abc123',
+                  name: 'run_shell_command',
+                  args: { command: 'systeminfo' },
+                  status: 'success',
+                },
+              ],
+              create_time: new Date(),
+            },
+            {
+              id: 'u2',
+              type: 'user',
+              content: [
+                {
+                  functionResponse: {
+                    id: 'run_shell_command__abc123',
+                    name: 'run_shell_command',
+                    response: { output: 'OS Name: Windows' },
+                  },
+                },
+              ],
+              create_time: new Date(),
+            },
+          ],
+        },
+      } as unknown as ResumedSessionData;
+
+      const chat = new GeminiChat(mockConfig, '', [], [], resumedSessionData);
+
+      const finalHistory = chat.getHistoryTurns();
+      expect(finalHistory).toHaveLength(3);
+
+      const modelTurn = finalHistory[1];
+      expect(modelTurn.content.role).toBe('model');
+      expect(modelTurn.content.parts).toContainEqual({
+        functionCall: {
+          id: 'run_shell_command__abc123',
+          name: 'run_shell_command',
+          args: { command: 'systeminfo' },
+        },
+      });
+
+      const responseTurn = finalHistory[2];
+      const responseId = responseTurn.content.parts?.[0]?.functionResponse
+        ?.id as string;
+      expect(responseId).toBe('run_shell_command__abc123');
+    });
   });
 
   describe('setHistory', () => {

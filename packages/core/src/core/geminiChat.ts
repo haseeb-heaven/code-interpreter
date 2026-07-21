@@ -299,18 +299,70 @@ export class GeminiChat {
       );
     } else if (resumedSessionData) {
       // Otherwise, if resuming from disk, build from the persisted record.
+      //
+      // 'gemini' message records store tool-call metadata in a separate
+      // `toolCalls` field, not in `content` (see
+      // ChatRecordingService.recordToolCalls) — `content` only ever holds
+      // the model's text. Reconstructing `parts` from `content` alone
+      // therefore drops every functionCall the model made, while the
+      // matching functionResponse (recorded on the following 'user'
+      // message) survives untouched. That orphans the tool response: an
+      // OpenAI-compat provider (e.g. Cerebras) then rejects the request
+      // with "tool call id ... was not found in the messages" because no
+      // assistant message ever declared that tool_call id. Re-derive the
+      // functionCall parts from `toolCalls` so resumed history stays
+      // paired.
       initialHistory = resumedSessionData.conversation.messages
         .filter((m) => m.type === 'user' || m.type === 'gemini')
-        .map((m) => ({
-          id: m.id,
-          content: {
-            role: m.type === 'user' ? 'user' : 'model',
-            parts: Array.isArray(m.content)
-              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-                (m.content as Part[])
-              : [{ text: String(m.content) }],
-          },
-        }));
+        .map((m) => {
+          const contentParts: Part[] = Array.isArray(m.content)
+            ? // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+              (m.content as Part[])
+            : m.content
+              ? [{ text: String(m.content) }]
+              : [];
+          const toolCallParts: Part[] =
+            m.type === 'gemini' && m.toolCalls
+              ? m.toolCalls.map((tc) => ({
+                  functionCall: { id: tc.id, name: tc.name, args: tc.args },
+                }))
+              : [];
+          return {
+            id: m.id,
+            content: {
+              role: m.type === 'user' ? 'user' : 'model',
+              parts: [...contentParts, ...toolCallParts],
+            },
+          };
+        });
+      // `toolCalls` only records calls the scheduler actually ran. A call
+      // the model made to an unregistered/hallucinated tool (e.g.
+      // "generic_tool") errors out before recording, yet its error
+      // functionResponse still lands in the next 'user' record — leaving an
+      // orphaned response with no declaring functionCall. Synthesize the
+      // missing functionCall in the preceding model turn so every response
+      // stays paired (strict providers reject unpaired tool_call ids).
+      const declaredIds = new Set<string>();
+      for (const turn of initialHistory) {
+        for (const part of turn.content.parts ?? []) {
+          if (part.functionCall?.id) declaredIds.add(part.functionCall.id);
+        }
+      }
+      for (let i = 0; i < initialHistory.length; i++) {
+        const turn = initialHistory[i];
+        if (turn.content.role !== 'user') continue;
+        for (const part of turn.content.parts ?? []) {
+          const resp = part.functionResponse;
+          if (!resp?.id || declaredIds.has(resp.id)) continue;
+          declaredIds.add(resp.id);
+          const prev = i > 0 ? initialHistory[i - 1] : undefined;
+          if (prev?.content.role === 'model') {
+            (prev.content.parts ??= []).push({
+              functionCall: { id: resp.id, name: resp.name, args: {} },
+            });
+          }
+        }
+      }
     } else {
       initialHistory = [];
     }
@@ -1510,29 +1562,52 @@ export function isInvalidArgumentError(errorMessage: string): boolean {
 }
 
 export function stripToolCallIdPrefixes(contents: Content[]): Content[] {
+  // Ids are minted as `${toolName}__${rawId}`. The paired functionCall and
+  // functionResponse can carry DIFFERENT names for the same id (e.g. the
+  // model emits a nameless call that falls back to "generic_tool" while the
+  // scheduler's arg-shape recovery renames the response to
+  // "run_shell_command"). Deciding the strip per-part from that part's own
+  // name then transforms only one side of the pair, and strict providers
+  // (Cerebras) reject the request with "tool call id ... was not found in
+  // the messages". So decide once PER ID — if any name associated with the
+  // id matches its prefix, strip — and apply that decision uniformly to
+  // every part sharing the id.
+  const strippedIds = new Map<string, string>();
+  const considerName = (
+    id: string | undefined,
+    rawName: string | undefined,
+  ) => {
+    if (!id || strippedIds.has(id)) return;
+    const name = rawName?.trim() || 'generic_tool';
+    if (id.startsWith(`${name}__`)) {
+      strippedIds.set(id, id.substring(name.length + 2));
+    }
+  };
+  for (const content of contents) {
+    for (const part of content.parts || []) {
+      considerName(part.functionCall?.id, part.functionCall?.name);
+      considerName(part.functionResponse?.id, part.functionResponse?.name);
+    }
+  }
   return contents.map((content) => ({
     ...content,
     parts: (content.parts || []).map((part) => {
       const newPart = { ...part };
       if (newPart.functionCall) {
         const fc = newPart.functionCall;
-        const name = fc.name?.trim() || 'generic_tool';
-        if (fc.id && fc.id.startsWith(`${name}__`)) {
-          newPart.functionCall = {
-            name: fc.name,
-            args: fc.args,
-            id: fc.id.substring(name.length + 2),
-          };
+        const stripped = fc.id ? strippedIds.get(fc.id) : undefined;
+        if (stripped !== undefined) {
+          newPart.functionCall = { name: fc.name, args: fc.args, id: stripped };
         }
       }
       if (newPart.functionResponse) {
         const fr = newPart.functionResponse;
-        const name = fr.name?.trim() || 'generic_tool';
-        if (fr.id && fr.id.startsWith(`${name}__`)) {
+        const stripped = fr.id ? strippedIds.get(fr.id) : undefined;
+        if (stripped !== undefined) {
           newPart.functionResponse = {
             name: fr.name,
             response: fr.response,
-            id: fr.id.substring(name.length + 2),
+            id: stripped,
           };
         }
       }
