@@ -51,7 +51,7 @@ const ALL_KEYS: NodeJS.ProcessEnv = {
 
 describe('configs/models.toml (real registry)', () => {
   it('loads the full catalog from the repository', () => {
-    expect(modelNames.length).toBeGreaterThanOrEqual(76);
+    expect(modelNames.length).toBeGreaterThanOrEqual(60);
     expect(catalog.length).toBeGreaterThanOrEqual(19);
   });
 
@@ -82,15 +82,14 @@ describe('configs/models.toml (real registry)', () => {
     const declared = cfg.provider ? getProvider(cfg.provider) : undefined;
     const local = cfg.provider === 'local';
     const hasApiBase = Boolean(cfg.api_base);
-    // Every entry must be routable: a known provider prefix, an explicit
-    // provider tag, a custom api_base, or a bare id (OpenAI-compatible
-    // default, e.g. gpt-4o / claude-sonnet / deepseek-chat / bu-max).
+    // Every entry must be routable through createMultiProviderGenerator:
+    // a known provider prefix on the model id, or an explicit `provider`
+    // tag on the registry entry. A bare id with neither (e.g. "gpt-4o"
+    // with no provider tag) is NOT routable — createMultiProviderGenerator
+    // returns undefined and contentGenerator throws "No provider route
+    // found" at runtime, so this must not be treated as a routable case.
     const routable =
-      Boolean(prefixed) ||
-      Boolean(declared) ||
-      local ||
-      hasApiBase ||
-      !modelId.includes('/');
+      Boolean(prefixed) || Boolean(declared) || local || hasApiBase;
     expect(routable, `${name} (${modelId}) must be routable`).toBe(true);
   });
 
@@ -140,7 +139,9 @@ describe('configs/models.toml (real registry)', () => {
   it.each(
     modelNames.filter((name) => {
       const cfg = registry.getModel(name)!;
-      const provider = splitModelId(cfg.model).provider;
+      const prefixed = splitModelId(cfg.model).provider;
+      const declared = cfg.provider ? getProvider(cfg.provider) : undefined;
+      const provider = declared ?? prefixed;
       return Boolean(provider) && provider!.id !== 'gemini';
     }),
   )('"%s" builds a working multi-provider generator', (name) => {
@@ -222,6 +223,6 @@ describe('configs/models.toml (real registry)', () => {
       expect(ids, `picker must include ${expected}`).toContain(expected);
     }
     const totalShown = groups.reduce((n, g) => n + g.models.length, 0);
-    expect(totalShown).toBeGreaterThanOrEqual(70);
+    expect(totalShown).toBeGreaterThanOrEqual(55);
   });
 });

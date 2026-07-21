@@ -14,6 +14,7 @@ import {
   type MockInstance,
 } from 'vitest';
 import { validateNonInteractiveAuth } from './validateNonInterActiveAuth.js';
+import { ProcessExitSignal } from './utils/cleanup.js';
 import {
   AuthType,
   OutputFormat,
@@ -103,6 +104,7 @@ describe('validateNonInterActiveAuth', () => {
       delete process.env['GOOGLE_GENAI_USE_GCA'];
     }
     vi.restoreAllMocks();
+    process.exitCode = undefined;
   });
 
   it('exits if no auth type is configured or env vars set', async () => {
@@ -121,16 +123,15 @@ describe('validateNonInterActiveAuth', () => {
       );
       expect.fail('Should have exited');
     } catch (e) {
-      expect((e as Error).message).toContain(
-        `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
+      expect(e).toBeInstanceOf(ProcessExitSignal);
+      expect((e as ProcessExitSignal).code).toBe(
+        ExitCodes.FATAL_AUTHENTICATION_ERROR,
       );
     }
     expect(debugLoggerErrorSpy).toHaveBeenCalledWith(
       expect.stringContaining('Please set an Auth method'),
     );
-    expect(processExitSpy).toHaveBeenCalledWith(
-      ExitCodes.FATAL_AUTHENTICATION_ERROR,
-    );
+    expect(process.exitCode).toBe(ExitCodes.FATAL_AUTHENTICATION_ERROR);
   });
 
   it('uses LOGIN_WITH_GOOGLE if GOOGLE_GENAI_USE_GCA is set', async () => {
@@ -268,14 +269,13 @@ describe('validateNonInterActiveAuth', () => {
       );
       expect.fail('Should have exited');
     } catch (e) {
-      expect((e as Error).message).toContain(
-        `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
+      expect(e).toBeInstanceOf(ProcessExitSignal);
+      expect((e as ProcessExitSignal).code).toBe(
+        ExitCodes.FATAL_AUTHENTICATION_ERROR,
       );
     }
     expect(debugLoggerErrorSpy).toHaveBeenCalledWith('Auth error!');
-    expect(processExitSpy).toHaveBeenCalledWith(
-      ExitCodes.FATAL_AUTHENTICATION_ERROR,
-    );
+    expect(process.exitCode).toBe(ExitCodes.FATAL_AUTHENTICATION_ERROR);
   });
 
   it('skips validation if useExternalAuth is true', async () => {
@@ -327,16 +327,15 @@ describe('validateNonInterActiveAuth', () => {
       );
       expect.fail('Should have exited');
     } catch (e) {
-      expect((e as Error).message).toContain(
-        `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
+      expect(e).toBeInstanceOf(ProcessExitSignal);
+      expect((e as ProcessExitSignal).code).toBe(
+        ExitCodes.FATAL_AUTHENTICATION_ERROR,
       );
     }
     expect(debugLoggerErrorSpy).toHaveBeenCalledWith(
       "The enforced authentication type is 'oauth-personal', but the current type is 'gemini-api-key'. Please re-authenticate with the correct type.",
     );
-    expect(processExitSpy).toHaveBeenCalledWith(
-      ExitCodes.FATAL_AUTHENTICATION_ERROR,
-    );
+    expect(process.exitCode).toBe(ExitCodes.FATAL_AUTHENTICATION_ERROR);
   });
 
   it('exits if auth from env var does not match enforcedType', async () => {
@@ -354,16 +353,15 @@ describe('validateNonInterActiveAuth', () => {
       );
       expect.fail('Should have exited');
     } catch (e) {
-      expect((e as Error).message).toContain(
-        `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
+      expect(e).toBeInstanceOf(ProcessExitSignal);
+      expect((e as ProcessExitSignal).code).toBe(
+        ExitCodes.FATAL_AUTHENTICATION_ERROR,
       );
     }
     expect(debugLoggerErrorSpy).toHaveBeenCalledWith(
       "The enforced authentication type is 'oauth-personal', but the current type is 'gemini-api-key'. Please re-authenticate with the correct type.",
     );
-    expect(processExitSpy).toHaveBeenCalledWith(
-      ExitCodes.FATAL_AUTHENTICATION_ERROR,
-    );
+    expect(process.exitCode).toBe(ExitCodes.FATAL_AUTHENTICATION_ERROR);
   });
 
   describe('JSON output mode', () => {
@@ -387,8 +385,9 @@ describe('validateNonInterActiveAuth', () => {
         thrown = e as Error;
       }
 
-      expect(thrown?.message).toBe(
-        `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
+      expect(thrown).toBeInstanceOf(ProcessExitSignal);
+      expect((thrown as unknown as ProcessExitSignal)?.code).toBe(
+        ExitCodes.FATAL_AUTHENTICATION_ERROR,
       );
       // Checking writeToStdoutSpy arguments
       const errorArg = writeToStdoutSpy.mock.calls[0]?.[0] as string;
@@ -421,8 +420,9 @@ describe('validateNonInterActiveAuth', () => {
         thrown = e as Error;
       }
 
-      expect(thrown?.message).toBe(
-        `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
+      expect(thrown).toBeInstanceOf(ProcessExitSignal);
+      expect((thrown as unknown as ProcessExitSignal)?.code).toBe(
+        ExitCodes.FATAL_AUTHENTICATION_ERROR,
       );
       {
         // Checking writeToStdoutSpy arguments
@@ -459,8 +459,9 @@ describe('validateNonInterActiveAuth', () => {
         thrown = e as Error;
       }
 
-      expect(thrown?.message).toBe(
-        `process.exit(${ExitCodes.FATAL_AUTHENTICATION_ERROR}) called`,
+      expect(thrown).toBeInstanceOf(ProcessExitSignal);
+      expect((thrown as unknown as ProcessExitSignal)?.code).toBe(
+        ExitCodes.FATAL_AUTHENTICATION_ERROR,
       );
       {
         // Checking writeToStdoutSpy arguments

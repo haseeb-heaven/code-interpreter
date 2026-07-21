@@ -149,7 +149,7 @@ describe('Checkpointing Integration', () => {
       },
     );
 
-    expect(logOutput).toBe('Gemini CLI <gemini-cli@google.com>');
+    expect(logOutput).toBe('OpenAgent <gemini-cli@google.com>');
     expect(logOutput).not.toContain('Global User');
   });
 });

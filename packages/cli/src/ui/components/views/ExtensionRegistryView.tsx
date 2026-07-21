@@ -7,6 +7,7 @@
 import type React from 'react';
 import { useMemo, useCallback, useState } from 'react';
 import { Box, Text } from 'ink';
+import type { RegistrySource } from '@open-agent/core';
 import type { RegistryExtension } from '../../../config/extensionRegistryClient.js';
 import {
   SearchableList,
@@ -40,6 +41,8 @@ export interface ExtensionRegistryViewProps {
   ) => void | Promise<void>;
   onClose?: () => void;
   extensionManager: ExtensionManager;
+  /** Override the registry sources to browse. Defaults to `config.getExtensionRegistrySources()`. */
+  sources?: RegistrySource[];
 }
 
 interface ExtensionItem extends GenericListItem {
@@ -51,9 +54,10 @@ export function ExtensionRegistryView({
   onLink,
   onClose,
   extensionManager,
+  sources,
 }: ExtensionRegistryViewProps): React.JSX.Element {
   const config = useConfig();
-  const registrySources = config.getExtensionRegistrySources();
+  const registrySources = sources ?? config.getExtensionRegistrySources();
   const { extensions, loading, error, search } = useExtensionRegistry(
     '',
     registrySources,

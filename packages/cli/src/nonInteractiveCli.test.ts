@@ -25,6 +25,7 @@ import {
 } from '@open-agent/core';
 import type { Part } from '@google/genai';
 import { runNonInteractive } from './nonInteractiveCli.js';
+import { ProcessExitSignal } from './utils/cleanup.js';
 import {
   describe,
   it,
@@ -226,6 +227,7 @@ describe('runNonInteractive', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    process.exitCode = undefined;
   });
 
   async function* createStreamFromEvents(
@@ -625,14 +627,20 @@ describe('runNonInteractive', () => {
 
   it('should exit when max session turns are exceeded', async () => {
     vi.mocked(mockConfig.getMaxSessionTurns).mockReturnValue(0);
-    await expect(
-      runNonInteractive({
+    let thrownError: unknown;
+    try {
+      await runNonInteractive({
         config: mockConfig,
         settings: mockSettings,
         input: 'Trigger loop',
         prompt_id: 'prompt-id-6',
-      }),
-    ).rejects.toThrow('process.exit(53) called');
+      });
+      expect.fail('Expected process exit');
+    } catch (error) {
+      thrownError = error;
+    }
+    expect(thrownError).toBeInstanceOf(ProcessExitSignal);
+    expect((thrownError as ProcessExitSignal).code).toBe(53);
   });
 
   it('should preprocess @include commands before sending to the model', async () => {
@@ -888,8 +896,9 @@ describe('runNonInteractive', () => {
       thrownError = error as Error;
     }
 
-    // Should throw because of mocked process.exit
-    expect(thrownError?.message).toBe('process.exit(1) called');
+    // Should throw ProcessExitSignal via terminateProcess
+    expect(thrownError).toBeInstanceOf(ProcessExitSignal);
+    expect((thrownError as unknown as ProcessExitSignal)?.code).toBe(1);
 
     expect(mockWriteToStdout).toHaveBeenCalledWith(
       JSON.stringify(
@@ -929,8 +938,9 @@ describe('runNonInteractive', () => {
       thrownError = error as Error;
     }
 
-    // Should throw because of mocked process.exit with custom exit code
-    expect(thrownError?.message).toBe('process.exit(42) called');
+    // Should throw ProcessExitSignal via terminateProcess with custom exit code
+    expect(thrownError).toBeInstanceOf(ProcessExitSignal);
+    expect((thrownError as unknown as ProcessExitSignal)?.code).toBe(42);
 
     expect(mockWriteToStdout).toHaveBeenCalledWith(
       JSON.stringify(

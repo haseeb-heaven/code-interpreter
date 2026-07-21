@@ -11,11 +11,21 @@ import {
   isPrivateIp,
 } from '@open-agent/core';
 import { AsyncFzf } from 'fzf';
+import {
+  adaptClaudeCodeMarketplace,
+  adaptCodexMarketplace,
+  type ClaudeCodeMarketplaceJson,
+  type CodexMarketplaceJson,
+} from './marketplaceAdapters.js';
 
 export interface RegistryExtension {
   id: string;
   rank: number;
   url: string;
+  /** Git ref (branch/tag/sha) to check out, when the source requires one other than the default. */
+  installRef?: string;
+  /** Subdirectory within the cloned repo where the extension actually lives. */
+  installSubdir?: string;
   fullName: string;
   repoDescription: string;
   stars: number;
@@ -33,6 +43,42 @@ export interface RegistryExtension {
   licenseKey: string;
   /** Name of the registry source this extension was fetched from. */
   registryName: string;
+}
+
+function adaptRegistryResponse(
+  raw: unknown,
+): Array<Omit<RegistryExtension, 'registryName'>> {
+  if (Array.isArray(raw)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    return raw as Array<Omit<RegistryExtension, 'registryName'>>;
+  }
+
+  if (
+    raw &&
+    typeof raw === 'object' &&
+    Array.isArray((raw as { plugins?: unknown }).plugins)
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const plugins = (raw as { plugins: unknown[] }).plugins;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+    const first = plugins[0] as Record<string, unknown> | undefined;
+    if (first && 'pluginPath' in first && 'repository' in first) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      return adaptCodexMarketplace(raw as CodexMarketplaceJson);
+    }
+    if (first && 'source' in first) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      return adaptClaudeCodeMarketplace(raw as ClaudeCodeMarketplaceJson);
+    }
+    if (!first) {
+      // Empty plugin list; nothing to adapt either way.
+      return [];
+    }
+  }
+
+  throw new Error(
+    'Invalid extension registry response: expected an array of extensions or a recognized marketplace format.',
+  );
 }
 
 export class ExtensionRegistryClient {
@@ -91,7 +137,7 @@ export class ExtensionRegistryClient {
     const uri = this.registryURI;
     this.fetchPromise = (async () => {
       try {
-        let extensions: Array<Omit<RegistryExtension, 'registryName'>>;
+        let raw: unknown;
         if (uri.startsWith('http')) {
           if (isPrivateIp(uri)) {
             throw new Error(
@@ -108,19 +154,14 @@ export class ExtensionRegistryClient {
             );
           }
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-          extensions = (await response.json()) as Array<
-            Omit<RegistryExtension, 'registryName'>
-          >;
+          raw = await response.json();
         } else {
           // Handle local file path
           const filePath = resolveToRealPath(uri);
           const content = await fs.readFile(filePath, 'utf-8');
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-          extensions = JSON.parse(content) as Array<
-            Omit<RegistryExtension, 'registryName'>
-          >;
+          raw = JSON.parse(content);
         }
+        const extensions = adaptRegistryResponse(raw);
         return extensions.map((ext) => ({
           ...ext,
           registryName: this.registryName,

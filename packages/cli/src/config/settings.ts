@@ -561,9 +561,11 @@ function findEnvFile(
   isTrusted: boolean,
   ignoreLocalEnv: boolean,
 ): string | null {
+  const home = homedir();
+
   // 1) Canonical OpenAgent home (keys always written here)
   try {
-    const openAgentEnv = path.join(homedir(), '.openagent', '.env');
+    const openAgentEnv = path.join(home, '.openagent', '.env');
     if (fs.existsSync(openAgentEnv)) {
       return openAgentEnv;
     }
@@ -584,20 +586,32 @@ function findEnvFile(
     }
     const envPath = path.join(currentDir, '.env');
     if (fs.existsSync(envPath)) {
-      if (!ignoreLocalEnv || currentDir === homedir()) {
+      if (!ignoreLocalEnv || currentDir === home) {
         return envPath;
       }
     }
+
+    if (currentDir === home) {
+      // Already checked the home directory above (both here and in the
+      // canonical check at the top). Don't keep climbing past it into
+      // unrelated ancestors — e.g. a workspace nested under a temp dir that
+      // happens to sit inside the home tree — since those ancestors have no
+      // relationship to the current project or user config.
+      return null;
+    }
+
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir || !parentDir) {
-      // Home fallbacks: ~/.openagent/.env (already checked), then ~/.gemini/.env, ~/.env
+      // Reached filesystem root without ever crossing home (e.g. workspace
+      // is on a different drive). Fall back to home: ~/.openagent/.env
+      // (already checked), then ~/.gemini/.env, ~/.env.
       if (isTrusted) {
-        const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, '.env');
+        const homeGeminiEnvPath = path.join(home, GEMINI_DIR, '.env');
         if (fs.existsSync(homeGeminiEnvPath)) {
           return homeGeminiEnvPath;
         }
       }
-      const homeEnvPath = path.join(homedir(), '.env');
+      const homeEnvPath = path.join(home, '.env');
       if (fs.existsSync(homeEnvPath)) {
         return homeEnvPath;
       }

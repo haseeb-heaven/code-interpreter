@@ -27,6 +27,7 @@ import { PermissionsModifyTrustDialog } from './PermissionsModifyTrustDialog.js'
 import { ProviderModelDialog } from './ProviderModelDialog.js';
 import { WebSearchSettingsDialog } from './WebSearchSettingsDialog.js';
 import { VoiceModelDialog } from './VoiceModelDialog.js';
+import { FreeModelDialog } from './FreeModelDialog.js';
 import { theme } from '../semantic-colors.js';
 import { useUIState } from '../contexts/UIStateContext.js';
 import { useQuotaState } from '../contexts/QuotaContext.js';
@@ -246,6 +247,9 @@ export const DialogManager = ({
   }
   if (uiState.isVoiceModelDialogOpen) {
     return <VoiceModelDialog onClose={uiActions.closeVoiceModelDialog} />;
+  }
+  if (uiState.isFreeModelDialogOpen) {
+    return <FreeModelDialog onClose={uiActions.closeFreeModelDialog} />;
   }
   if (
     uiState.isAgentConfigDialogOpen &&

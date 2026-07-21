@@ -1,5 +1,26 @@
 ## Unreleased
 
+## v4.1.0 (2026-07-21) — Free-model picker & extension marketplace
+
+- feat(tui): `/free-models` is now an interactive picker dialog (was a static
+  text listing) — browse the free/local catalog, select an entry, enter and save
+  a provider API key inline when one is required, and switch models without
+  leaving the session; `/free` remains as an alias
+- feat(extensions): `/extensions market` opens a real marketplace browser
+  (`MarketExtensionsView` + `marketplaceAdapters`) — pick a registry source
+  (e.g. the Claude Code or Codex marketplaces), browse it live, and install/link
+  an extension with `installRef`/`installSubdir` wired through; bare
+  `/extensions` now reopens the last-selected market instead of always falling
+  back to the installed list
+- fix(providers): add the missing `provider = "openai"` field to several
+  `configs/models.toml` entries (`gpt-4.1-mini`, `gpt-4o`, `gpt-4o-mini`,
+  `gpt-5-mini`, `gpt-5.4*`, `gpt-5.6*`, `o3`, `o3-mini`, `o4-mini`) so registry
+  routing resolves them correctly instead of throwing "No provider route found"
+- chore(config): default `.openagent/settings.json` now ships tool sandboxing
+  enabled (`security.toolSandboxing`, `tools.sandboxAllowedPaths`,
+  `tools.sandboxNetworkAccess`)
+- test: add component coverage for `FreeModelDialog` and `MarketExtensionsView`
+
 - fix(tui): rename the interactive model picker command to `/models` (with
   `/model` retained as a compatibility alias); unavailable paid-provider models
   now offer their provider-specific `.env` key setup directly in the dialog

@@ -130,6 +130,7 @@ export interface OpenDialogActionReturn {
     | 'model'
     | 'websearch'
     | 'voice-model'
+    | 'free-model'
     | 'agentConfig'
     | 'permissions';
 }

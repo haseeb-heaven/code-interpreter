@@ -10,16 +10,43 @@ if (process.env['NO_COLOR'] !== undefined) {
 }
 
 import { mkdir, readdir, rm, readFile } from 'node:fs/promises';
-import { join, dirname, extname } from 'node:path';
+import { join, dirname, extname, parse, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir, homedir } from 'node:os';
 import { resolveRipgrepPath } from '../packages/core/src/tools/ripGrep.js';
 import { disableMouseTracking } from '@open-agent/core';
 import { isolateTestEnv } from '../packages/test-utils/src/env-setup.js';
 import { createServer, type Server } from 'node:http';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const rootDir = join(__dirname, '..');
-const integrationTestsDir = join(rootDir, '.integration-tests');
+
+// findEnvFile() (packages/cli/src/config/settings.ts) walks upward from a
+// test's workspace directory checking every ancestor for a `.openagent/.env`
+// file. On Windows (and potentially other platforms), `os.tmpdir()` resolves
+// to a path nested *inside* the real user's home directory (e.g.
+// `C:\Users\<user>\AppData\Local\Temp`), so that upward walk passes straight
+// through the real home dir and picks up the real `~/.openagent/.env` —
+// leaking live BYOK provider keys into isolated tests — no matter what the
+// per-test fake home / GEMINI_CLI_HOME override says, since that override
+// only affects explicit `homedir()` calls, not this directory-tree walk.
+// Guard against this by refusing to root the isolated tests dir anywhere
+// under the real home directory.
+function computeIntegrationTestsRoot(): string {
+  const base = tmpdir();
+  const home = homedir();
+  const normalizedBase = base.toLowerCase();
+  const normalizedHome = home.toLowerCase();
+  if (
+    normalizedBase === normalizedHome ||
+    normalizedBase.startsWith(normalizedHome + sep)
+  ) {
+    const driveRoot = parse(base).root;
+    return join(driveRoot, 'oa-integration-tests');
+  }
+  return join(base, 'open-agent-integration-tests');
+}
+
+const integrationTestsDir = computeIntegrationTestsRoot();
 let runDir = ''; // Make runDir accessible in teardown
 let fixtureServer: Server | undefined;
 

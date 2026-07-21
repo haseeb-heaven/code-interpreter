@@ -104,6 +104,7 @@ import { useSettingsCommand } from './hooks/useSettingsCommand.js';
 import { useModelCommand } from './hooks/useModelCommand.js';
 import { useWebSearchCommand } from './hooks/useWebSearchCommand.js';
 import { useVoiceModelCommand } from './hooks/useVoiceModelCommand.js';
+import { useFreeModelCommand } from './hooks/useFreeModelCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { useVimMode } from './contexts/VimModeContext.js';
 import {
@@ -969,6 +970,9 @@ Logging in with Google... Restarting OpenAgent to continue.
     closeVoiceModelDialog,
   } = useVoiceModelCommand();
 
+  const { isFreeModelDialogOpen, openFreeModelDialog, closeFreeModelDialog } =
+    useFreeModelCommand();
+
   const { toggleVimEnabled } = useVimMode();
 
   const setIsBackgroundTaskListOpenRef = useRef<(open: boolean) => void>(
@@ -994,6 +998,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       openModelDialog,
       openWebSearchDialog,
       openVoiceModelDialog,
+      openFreeModelDialog,
       openAgentConfigDialog,
       openPermissionsDialog,
       quit: (messages: HistoryItem[]) => {
@@ -1034,6 +1039,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       openModelDialog,
       openWebSearchDialog,
       openVoiceModelDialog,
+      openFreeModelDialog,
       openAgentConfigDialog,
       setQuittingMessages,
       setDebugMessage,
@@ -2228,6 +2234,7 @@ Logging in with Google... Restarting OpenAgent to continue.
     isModelDialogOpen ||
     isWebSearchDialogOpen ||
     isVoiceModelDialogOpen ||
+    isFreeModelDialogOpen ||
     isAgentConfigDialogOpen ||
     isPermissionsDialogOpen ||
     isAuthenticating ||
@@ -2490,6 +2497,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       isModelDialogOpen,
       isWebSearchDialogOpen,
       isVoiceModelDialogOpen,
+      isFreeModelDialogOpen,
       isAgentConfigDialogOpen,
       selectedAgentName,
       selectedAgentDisplayName,
@@ -2604,6 +2612,7 @@ Logging in with Google... Restarting OpenAgent to continue.
       isModelDialogOpen,
       isWebSearchDialogOpen,
       isVoiceModelDialogOpen,
+      isFreeModelDialogOpen,
       isAgentConfigDialogOpen,
       selectedAgentName,
       selectedAgentDisplayName,
@@ -2722,6 +2731,8 @@ Logging in with Google... Restarting OpenAgent to continue.
       closeWebSearchDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
+      openFreeModelDialog,
+      closeFreeModelDialog,
       openAgentConfigDialog,
       closeAgentConfigDialog,
       openPermissionsDialog,
@@ -2825,6 +2836,8 @@ Logging in with Google... Restarting OpenAgent to continue.
       closeWebSearchDialog,
       openVoiceModelDialog,
       closeVoiceModelDialog,
+      openFreeModelDialog,
+      closeFreeModelDialog,
       openAgentConfigDialog,
       closeAgentConfigDialog,
       openPermissionsDialog,

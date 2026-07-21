@@ -79,6 +79,7 @@ const LEGACY_HOME_DIRS = [
   'history',
   'cache',
   'tmp',
+  'policies',
 ] as const;
 
 function copyIfMissing(src: string, dest: string): void {

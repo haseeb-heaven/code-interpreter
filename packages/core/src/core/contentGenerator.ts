@@ -283,7 +283,24 @@ export async function createContentGenerator(
           gcConfig.setModel(registryDefault);
         }
       }
-      const multiProvider = createMultiProviderGenerator(routedModel);
+      let multiProvider = createMultiProviderGenerator(routedModel);
+      if (
+        !multiProvider &&
+        config.authType === AuthType.MULTI_PROVIDER &&
+        routedModel !== GEMINI_MODEL_ALIAS_AUTO
+      ) {
+        // routedModel was a real-looking name (not empty/'auto') but no
+        // longer resolves to any provider route — most likely a persisted
+        // selection (~/.openagent/settings.json) for a model that was since
+        // removed from configs/models.toml. Retry once against the registry
+        // default instead of hard-crashing the session on startup.
+        const registryDefault = getModelRegistry().defaultModelName();
+        if (registryDefault && registryDefault !== routedModel) {
+          routedModel = registryDefault;
+          gcConfig.setModel(registryDefault);
+          multiProvider = createMultiProviderGenerator(routedModel);
+        }
+      }
       if (multiProvider) {
         return new LoggingContentGenerator(multiProvider, gcConfig);
       }

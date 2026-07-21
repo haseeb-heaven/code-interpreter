@@ -555,6 +555,8 @@ const mockUIActions: UIActions = {
   closeWebSearchDialog: vi.fn(),
   openVoiceModelDialog: vi.fn(),
   closeVoiceModelDialog: vi.fn(),
+  openFreeModelDialog: vi.fn(),
+  closeFreeModelDialog: vi.fn(),
   openAgentConfigDialog: vi.fn(),
   closeAgentConfigDialog: vi.fn(),
   openPermissionsDialog: vi.fn(),

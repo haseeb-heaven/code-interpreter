@@ -44,6 +44,8 @@ export interface UIActions {
   closeWebSearchDialog: () => void;
   openVoiceModelDialog: () => void;
   closeVoiceModelDialog: () => void;
+  openFreeModelDialog: () => void;
+  closeFreeModelDialog: () => void;
   openAgentConfigDialog: (
     name: string,
     displayName: string,

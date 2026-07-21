@@ -442,6 +442,8 @@ export interface ExtensionInstallMetadata {
   type: 'git' | 'local' | 'link' | 'github-release';
   releaseTag?: string; // Only present for github-release installs.
   ref?: string;
+  /** Subdirectory within the cloned repo where the extension actually lives. */
+  subdir?: string;
   autoUpdate?: boolean;
   allowPreRelease?: boolean;
 }

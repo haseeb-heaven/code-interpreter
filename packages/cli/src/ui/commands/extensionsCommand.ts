@@ -9,6 +9,7 @@ import {
   listExtensions,
   getErrorMessage,
   type ExtensionInstallMetadata,
+  type RegistrySource,
 } from '@open-agent/core';
 import type { ExtensionUpdateInfo } from '../../config/extension.js';
 import {
@@ -37,7 +38,20 @@ import { ExtensionSettingScope } from '../../config/extensions/extensionSettings
 import { type ConfigLogger } from '../../commands/extensions/utils.js';
 import { ConfigExtensionDialog } from '../components/ConfigExtensionDialog.js';
 import { ExtensionRegistryView } from '../components/views/ExtensionRegistryView.js';
+import {
+  MarketExtensionsView,
+  type MarketId,
+} from '../components/views/MarketExtensionsView.js';
+import type { RegistryExtension } from '../../config/extensionRegistryClient.js';
 import React from 'react';
+
+/**
+ * The registry sources for the marketplace the user most recently selected via
+ * `/extensions market`. Persisted for the lifetime of the process so a bare
+ * `/extensions` call reopens the registry browser scoped to that market
+ * instead of falling back to the installed-extensions list.
+ */
+let selectedMarketSources: RegistrySource[] | null = null;
 
 function showMessageIfNoExtensions(
   context: CommandContext,
@@ -279,7 +293,11 @@ function openRegistryView(
       component: React.createElement(ExtensionRegistryView, {
         onSelect: async (extension, requestConsentOverride) => {
           debugLogger.log(`Selected extension: ${extension.extensionName}`);
-          await installAction(context, extension.url, requestConsentOverride);
+          await installRegistryExtension(
+            context,
+            extension,
+            requestConsentOverride,
+          );
           context.ui.removeComponent();
         },
         onLink: async (extension, requestConsentOverride) => {
@@ -295,18 +313,88 @@ function openRegistryView(
   return undefined;
 }
 
-async function marketAction(
+function marketAction(
   context: CommandContext,
-): Promise<SlashCommandActionReturn | void> {
-  const result = openRegistryView(context);
-  if (result) {
-    return result;
+): SlashCommandActionReturn | void {
+  const extensionManager =
+    context.services.agentContext?.config.getExtensionLoader();
+  if (!(extensionManager instanceof ExtensionManager)) {
+    context.ui.addItem({
+      type: MessageType.ERROR,
+      text: 'Extension marketplace is unavailable in this session.',
+    });
+    return undefined;
   }
-  context.ui.addItem({
-    type: MessageType.ERROR,
-    text: 'Extension marketplace is unavailable in this session.',
-  });
-  return undefined;
+
+  const allSources =
+    context.services.agentContext?.config.getExtensionRegistrySources() ?? [];
+
+  return {
+    type: 'custom_dialog' as const,
+    component: React.createElement(MarketExtensionsView, {
+      extensionManager,
+      allSources,
+      onSelectExtension: async (extension, requestConsentOverride) => {
+        debugLogger.log(`Selected extension: ${extension.extensionName}`);
+        await installRegistryExtension(
+          context,
+          extension,
+          requestConsentOverride,
+        );
+        context.ui.removeComponent();
+      },
+      onLinkExtension: async (extension, requestConsentOverride) => {
+        debugLogger.log(`Linking extension: ${extension.extensionName}`);
+        await linkAction(context, extension.url, requestConsentOverride);
+        context.ui.removeComponent();
+      },
+      onMarketSelected: (_market: MarketId, sources: RegistrySource[]) => {
+        selectedMarketSources = sources;
+      },
+      onClose: () => context.ui.removeComponent(),
+    }),
+  };
+}
+
+/**
+ * Bare `/extensions` (no subcommand). If a marketplace was previously chosen
+ * via `/extensions market`, reopen the registry browser scoped to that
+ * market; otherwise fall back to listing installed extensions.
+ */
+function browseAction(
+  context: CommandContext,
+): SlashCommandActionReturn | Promise<void> {
+  const extensionManager =
+    context.services.agentContext?.config.getExtensionLoader();
+  if (
+    !selectedMarketSources ||
+    !(extensionManager instanceof ExtensionManager)
+  ) {
+    return listAction(context);
+  }
+
+  return {
+    type: 'custom_dialog' as const,
+    component: React.createElement(ExtensionRegistryView, {
+      extensionManager,
+      sources: selectedMarketSources,
+      onSelect: async (extension, requestConsentOverride) => {
+        debugLogger.log(`Selected extension: ${extension.extensionName}`);
+        await installRegistryExtension(
+          context,
+          extension,
+          requestConsentOverride,
+        );
+        context.ui.removeComponent();
+      },
+      onLink: async (extension, requestConsentOverride) => {
+        debugLogger.log(`Linking extension: ${extension.extensionName}`);
+        await linkAction(context, extension.url, requestConsentOverride);
+        context.ui.removeComponent();
+      },
+      onClose: () => context.ui.removeComponent(),
+    }),
+  };
 }
 
 async function exploreAction(
@@ -491,6 +579,22 @@ async function enableAction(context: CommandContext, args: string) {
   }
 }
 
+/**
+ * Reloads skills and agents so a newly installed/linked extension takes
+ * effect immediately, without requiring a manual `/extensions reload`.
+ */
+async function reloadSkillsAndAgents(context: CommandContext): Promise<void> {
+  try {
+    await context.services.agentContext?.config.reloadSkills();
+    await context.services.agentContext?.config.getAgentRegistry()?.reload();
+  } catch (error) {
+    context.ui.addItem({
+      type: MessageType.WARNING,
+      text: `Installed, but failed to live-reload skills/agents: ${getErrorMessage(error)}`,
+    });
+  }
+}
+
 async function installAction(
   context: CommandContext,
   args: string,
@@ -543,19 +647,81 @@ async function installAction(
 
   try {
     const installMetadata = await inferInstallMetadata(source);
-    const extension = await extensionLoader.installOrUpdateExtension(
+    await performInstall(
+      context,
+      extensionLoader,
       installMetadata,
-      undefined,
       requestConsentOverride,
     );
-    context.ui.addItem({
-      type: MessageType.INFO,
-      text: `Extension "${extension.name}" installed successfully.`,
-    });
   } catch (error) {
     context.ui.addItem({
       type: MessageType.ERROR,
       text: `Failed to install extension from "${source}": ${getErrorMessage(
+        error,
+      )}`,
+    });
+  }
+}
+
+async function performInstall(
+  context: CommandContext,
+  extensionLoader: ExtensionManager,
+  installMetadata: ExtensionInstallMetadata,
+  requestConsentOverride?: (consent: string) => Promise<boolean>,
+): Promise<void> {
+  const extension = await extensionLoader.installOrUpdateExtension(
+    installMetadata,
+    undefined,
+    requestConsentOverride,
+  );
+  context.ui.addItem({
+    type: MessageType.INFO,
+    text: `Extension "${extension.name}" installed successfully.`,
+  });
+  await reloadSkillsAndAgents(context);
+}
+
+/**
+ * Installs an extension picked from a marketplace registry view, threading
+ * through its `installRef`/`installSubdir` (when the registry entry's
+ * source lives in a subdirectory of the cloned repo, e.g. Claude Code and
+ * Codex marketplace entries) instead of discarding everything but the URL.
+ */
+async function installRegistryExtension(
+  context: CommandContext,
+  extension: RegistryExtension,
+  requestConsentOverride?: (consent: string) => Promise<boolean>,
+): Promise<void> {
+  const extensionLoader =
+    context.services.agentContext?.config.getExtensionLoader();
+  if (!(extensionLoader instanceof ExtensionManager)) {
+    debugLogger.error('Cannot install extensions in this environment');
+    return;
+  }
+
+  context.ui.addItem({
+    type: MessageType.INFO,
+    text: `Installing extension "${extension.extensionName}"...`,
+  });
+
+  try {
+    const installMetadata = await inferInstallMetadata(extension.url);
+    if (extension.installRef) {
+      installMetadata.ref = extension.installRef;
+    }
+    if (extension.installSubdir) {
+      installMetadata.subdir = extension.installSubdir;
+    }
+    await performInstall(
+      context,
+      extensionLoader,
+      installMetadata,
+      requestConsentOverride,
+    );
+  } catch (error) {
+    context.ui.addItem({
+      type: MessageType.ERROR,
+      text: `Failed to install extension "${extension.extensionName}": ${getErrorMessage(
         error,
       )}`,
     });
@@ -624,6 +790,7 @@ async function linkAction(
       type: MessageType.INFO,
       text: `Extension "${extension.name}" linked successfully.`,
     });
+    await reloadSkillsAndAgents(context);
   } catch (error) {
     context.ui.addItem({
       type: MessageType.ERROR,
@@ -943,8 +1110,9 @@ export function extensionsCommand(
           return parsed.commandToExecute.action(context, parsed.args);
         }
       }
-      // Default to list if no subcommand is provided
-      return listExtensionsCommand.action!(context, args);
+      // Default to the scoped registry browser if a market was selected,
+      // otherwise fall back to listing installed extensions.
+      return browseAction(context);
     },
   };
 }

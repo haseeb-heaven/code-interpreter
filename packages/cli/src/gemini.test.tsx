@@ -1066,7 +1066,12 @@ describe('gemini.tsx main function kitty protocol', () => {
       terminalNotificationMocks.buildRunEventNotificationContent,
     ).not.toHaveBeenCalled();
     expect(terminalNotificationMocks.notifyViaTerminal).not.toHaveBeenCalled();
-    expect(processExitSpy).toHaveBeenCalledWith(0);
+    // The success path exits via cleanup.js's exitProcess() (which defers to
+    // process.exitCode + a grace-period timer, see cleanup.ts), not a direct
+    // process.exit() call, so assert against the mocked exitProcess instead.
+    const { exitProcess } = await import('./utils/cleanup.js');
+    expect(exitProcess).toHaveBeenCalledWith(0);
+    expect(processExitSpy).not.toHaveBeenCalled();
     processExitSpy.mockRestore();
   });
 });
@@ -1659,6 +1664,13 @@ describe('startInteractiveUI', () => {
     registerTelemetryConfig: vi.fn(),
     setupSignalHandlers: vi.fn(),
     setupTtyCheck: vi.fn(() => vi.fn()),
+    exitProcess: vi.fn(),
+    ProcessExitSignal: class ProcessExitSignal extends Error {
+      constructor(readonly code: number) {
+        super('__process_exit_signal__');
+        this.name = 'ProcessExitSignal';
+      }
+    },
   }));
 
   beforeEach(() => {

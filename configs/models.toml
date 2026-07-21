@@ -256,12 +256,14 @@ tier = "paid"
 
 [models."gpt-4.1-mini"]
 model = "gpt-4.1-mini"
+provider = "openai"
 temperature = 0.1
 max_tokens = 3072
 tier = "paid"
 
 [models."gpt-4o"]
 model = "gpt-4o"
+provider = "openai"
 temperature = 0.1
 max_tokens = 4096
 timeout_seconds = 120
@@ -277,36 +279,42 @@ cooldown_seconds = 120
 
 [models."gpt-4o-mini"]
 model = "gpt-4o-mini"
+provider = "openai"
 temperature = 0.1
 max_tokens = 3072
 tier = "paid"
 
 [models."gpt-5-mini"]
 model = "gpt-5-mini"
+provider = "openai"
 temperature = 0.1
 max_tokens = 3072
 tier = "paid"
 
 [models."gpt-5.4"]
 model = "gpt-5.4"
+provider = "openai"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."gpt-5.4-mini"]
 model = "gpt-5.4-mini"
+provider = "openai"
 temperature = 0.1
 max_tokens = 3072
 tier = "paid"
 
 [models."gpt-5.4-nano"]
 model = "gpt-5.4-nano"
+provider = "openai"
 temperature = 0.1
 max_tokens = 2048
 tier = "paid"
 
 [models."gpt-5.6-luna"]
 model = "gpt-5.6-luna"
+provider = "openai"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
@@ -314,6 +322,7 @@ notes = "GPT-5.6 Luna (fastest/cheapest tier, everyday tasks; $1/$6 per 1M, GA 2
 
 [models."gpt-5.6-sol"]
 model = "gpt-5.6-sol"
+provider = "openai"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
@@ -321,6 +330,7 @@ notes = "GPT-5.6 Sol (flagship reasoning/coding tier; $5/$30 per 1M, GA 2026-07-
 
 [models."gpt-5.6-terra"]
 model = "gpt-5.6-terra"
+provider = "openai"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
@@ -400,18 +410,21 @@ tier = "paid"
 
 [models."o3"]
 model = "o3"
+provider = "openai"
 temperature = 0.1
 max_tokens = 4096
 tier = "paid"
 
 [models."o3-mini"]
 model = "o3-mini"
+provider = "openai"
 temperature = 0.1
 max_tokens = 3072
 tier = "paid"
 
 [models."o4-mini"]
 model = "o4-mini"
+provider = "openai"
 temperature = 0.1
 max_tokens = 3072
 tier = "paid"

@@ -32,6 +32,9 @@ import { runSyncCleanup } from './cleanup.js';
 // Mock the cleanup module
 vi.mock('./cleanup.js', () => ({
   runSyncCleanup: vi.fn(),
+  terminateProcess: vi.fn((code: number) => {
+    throw new Error(`process.exit called with code: ${code}`);
+  }),
 }));
 
 // Mock the core modules

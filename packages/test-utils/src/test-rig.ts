@@ -632,10 +632,17 @@ export class TestRig {
       'node_modules',
     );
 
-    // Create symlink to node_modules in testDir for ESM resolution
+    // Create symlink to node_modules in testDir for ESM resolution.
+    // On Windows, plain directory symlinks require admin rights or Developer
+    // Mode; junctions create the same effective link without that
+    // requirement, so prefer them there.
     const testNodeModules = join(this.testDir, 'node_modules');
     if (!fs.existsSync(testNodeModules)) {
-      fs.symlinkSync(monorepoNodeModules, testNodeModules, 'dir');
+      fs.symlinkSync(
+        monorepoNodeModules,
+        testNodeModules,
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
     }
 
     // Update settings in workspace and home
@@ -667,6 +674,26 @@ export class TestRig {
     }
   }
 
+  // BYOK provider keys that getAuthTypeFromEnv() treats as an implicit
+  // signal to select multi-provider auth. Developer machines commonly have
+  // these set (e.g. via a root .env used for live testing), which would
+  // otherwise silently change which auth path non-interactive tests exercise
+  // regardless of the auth env vars a given test explicitly sets.
+  private static readonly BYOK_PROVIDER_ENV_KEYS = [
+    'OPENAI_API_KEY',
+    'ANTHROPIC_API_KEY',
+    'GROQ_API_KEY',
+    'DEEPSEEK_API_KEY',
+    'NVIDIA_API_KEY',
+    'TOGETHER_API_KEY',
+    'OPENROUTER_API_KEY',
+    'CEREBRAS_API_KEY',
+    'Z_AI_API_KEY',
+    'HF_TOKEN',
+    'HUGGINGFACE_API_KEY',
+    'BROWSER_USE_API_KEY',
+  ];
+
   private _getCleanEnv(
     extraEnv?: Record<string, string | undefined>,
   ): Record<string, string | undefined> {
@@ -688,6 +715,10 @@ export class TestRig {
       ) {
         delete cleanEnv[key];
       }
+    }
+
+    for (const key of TestRig.BYOK_PROVIDER_ENV_KEYS) {
+      delete cleanEnv[key];
     }
 
     return {
@@ -807,7 +838,16 @@ export class TestRig {
 
           resolve(finalResult);
         } else {
-          reject(new Error(`Process exited with code ${code}:\n${stderr}`));
+          // JSON-mode errors are written to stdout as a single clean JSON
+          // object; including stderr alongside it can add extra braces that
+          // break naive JSON-extraction regexes in callers, so keep it out.
+          const isJsonOutput =
+            commandArgs.includes('--output-format') &&
+            commandArgs.includes('json');
+          const message = isJsonOutput
+            ? `Process exited with code ${code}:\n${stdout}`
+            : `Process exited with code ${code}:\nStdout:\n${stdout}\nStderr:\n${stderr}`;
+          reject(new Error(message));
         }
       });
     });
@@ -973,7 +1013,13 @@ export class TestRig {
               : result;
           resolve(finalResult);
         } else {
-          reject(new Error(`Process exited with code ${code}:\n${stderr}`));
+          const isJsonOutput =
+            commandArgs.includes('--output-format') &&
+            commandArgs.includes('json');
+          const message = isJsonOutput
+            ? `Process exited with code ${code}:\n${stdout}`
+            : `Process exited with code ${code}:\nStdout:\n${stdout}\nStderr:\n${stderr}`;
+          reject(new Error(message));
         }
       });
     });

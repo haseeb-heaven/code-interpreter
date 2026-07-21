@@ -73,7 +73,7 @@ describe('toOpenAIMessages', () => {
     expect(messages).toEqual([
       {
         role: 'assistant',
-        content: null,
+        content: '',
         tool_calls: [
           {
             id: 'call_1',
@@ -188,7 +188,11 @@ describe('OpenAICompatContentGenerator', () => {
         tools: [
           {
             functionDeclarations: [
-              { name: 'read_file', description: 'read', parametersJsonSchema: {} },
+              {
+                name: 'read_file',
+                description: 'read',
+                parametersJsonSchema: {},
+              },
             ],
           },
         ],
@@ -223,15 +227,21 @@ describe('OpenAICompatContentGenerator', () => {
     const response = await generator.generateContent(toolRequest, 'prompt-id');
     expect(response.candidates?.[0]?.content?.parts?.[0]?.text).toBe('ok');
     expect(fetchImpl).toHaveBeenCalledTimes(2);
-    const first = JSON.parse((fetchImpl.mock.calls[0][1] as { body: string }).body);
-    const second = JSON.parse((fetchImpl.mock.calls[1][1] as { body: string }).body);
+    const first = JSON.parse(
+      (fetchImpl.mock.calls[0][1] as { body: string }).body,
+    );
+    const second = JSON.parse(
+      (fetchImpl.mock.calls[1][1] as { body: string }).body,
+    );
     expect(first.tools).toBeDefined();
     expect(second.tools).toBeUndefined();
 
     // Later calls skip tools immediately (no extra round-trip).
     await generator.generateContent(toolRequest, 'prompt-id');
     expect(fetchImpl).toHaveBeenCalledTimes(3);
-    const third = JSON.parse((fetchImpl.mock.calls[2][1] as { body: string }).body);
+    const third = JSON.parse(
+      (fetchImpl.mock.calls[2][1] as { body: string }).body,
+    );
     expect(third.tools).toBeUndefined();
   });
 
@@ -277,7 +287,10 @@ describe('OpenAICompatContentGenerator', () => {
     });
     const controller = new AbortController();
     await generator.generateContent(
-      { ...REQUEST, config: { ...REQUEST.config, abortSignal: controller.signal } },
+      {
+        ...REQUEST,
+        config: { ...REQUEST.config, abortSignal: controller.signal },
+      },
       'p',
     );
     expect(fetchImpl).toHaveBeenCalledWith(
@@ -383,7 +396,10 @@ describe('OpenAICompatContentGenerator', () => {
             {
               delta: {
                 tool_calls: [
-                  { id: 'call_a', function: { name: 'google_web_search', arguments: '' } },
+                  {
+                    id: 'call_a',
+                    function: { name: 'google_web_search', arguments: '' },
+                  },
                 ],
               },
             },
@@ -394,7 +410,10 @@ describe('OpenAICompatContentGenerator', () => {
             {
               delta: {
                 tool_calls: [
-                  { id: 'call_b', function: { name: 'ask_user', arguments: '' } },
+                  {
+                    id: 'call_b',
+                    function: { name: 'ask_user', arguments: '' },
+                  },
                 ],
               },
             },

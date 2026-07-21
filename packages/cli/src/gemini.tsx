@@ -73,6 +73,7 @@ import {
   registerTelemetryConfig,
   setupSignalHandlers,
   exitProcess,
+  ProcessExitSignal,
 } from './utils/cleanup.js';
 import { setupWorktree } from './utils/worktreeSetup.js';
 import {
@@ -541,6 +542,13 @@ export async function main() {
         await partialConfig.refreshAuth(authType);
       }
     } catch (err) {
+      if (err instanceof ProcessExitSignal) {
+        // The auth error was already reported (e.g. JSON error written to
+        // stdout) and the process is terminating; let it propagate instead
+        // of falling through and re-running non-interactive auth below.
+        throw err;
+      }
+
       if (err instanceof ValidationCancelledError) {
         // User cancelled verification, exit immediately.
         await runExitCleanup();

@@ -284,6 +284,15 @@ Would you like to attempt to install via "git clone" instead?`,
           }
         }
         localSourcePath = tempDir;
+        if (installMetadata.subdir) {
+          const joined = path.join(tempDir, installMetadata.subdir);
+          if (!isSubpath(tempDir, joined)) {
+            throw new Error(
+              `Invalid extension subdirectory "${installMetadata.subdir}": resolves outside the cloned repository.`,
+            );
+          }
+          localSourcePath = joined;
+        }
       } else if (
         installMetadata.type === 'local' ||
         installMetadata.type === 'link'
