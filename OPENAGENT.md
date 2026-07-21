@@ -86,6 +86,39 @@ terminal-first, extensible, and powerful tool for developers.
   it can lead to test leakage and is less reliable. To "unset" a variable, use
   an empty string `vi.stubEnv('NAME', '')`.
 
+## Branches
+
+- `main` — stable releases.
+- `develop` — active integration branch; most work lands here first.
+- `feature` — latest multi-provider work; README's "from source" install
+  instructions point here, not `main`. Don't assume `main` is the most current
+  branch for this repo's active work.
+
+## Publishing
+
+Published to npm as **`@haseeb_heaven/open-agent`** (scoped) — the unscoped name
+`open-agent` collided with an unrelated pre-existing npm package and was
+rejected by the registry. `package.json`'s `name` field must stay scoped; do not
+revert it. Install: `npm install -g @haseeb_heaven/open-agent`.
+
+`.github/workflows/release-public-packages.yml` is the real public-registry
+release pipeline (npm, Docker Hub, GitHub Release binaries), gated behind
+`NPM_TOKEN`/`DOCKERHUB_*` secrets. The other `release-*.yml` workflows are
+inherited from upstream Gemini CLI and use Google-internal "wombat" tokens this
+fork does not have — they cannot publish to the public npm registry.
+
+`packaging/` holds template manifests (Scoop, Homebrew, AUR, Snap, Chocolatey,
+winget) for channels not yet published — see `packaging/README.md`.
+
+`bundle/` accumulates a new content-hashed file per build if not cleaned between
+manual runs — sanity-check `npm run bundle` output size before packaging for
+publish/release, and clean first if it looks bloated.
+
+## Secrets
+
+API keys and the npm publish token live in root `.env` (gitignored, never
+commit). See `.env.example` for the expected keys.
+
 ## Documentation
 
 - Always use the `docs-writer` skill when you are asked to write, edit, or
