@@ -21,11 +21,22 @@ npm install && npm run build
 npm start -- --free "analyze sales.csv and plot top 10 customers"
 ```
 
-**Free** OpenRouter models · **local** Ollama / LM Studio · **Windows / Mac / Linux** · no vendor lock-in
+**Free** OpenRouter models · **local** Ollama / LM Studio · **Windows / Mac /
+Linux** · no vendor lock-in
 
 ## Install
 
-Node.js 22+. Latest multi-provider work is on **`feature`**:
+Node.js 22+.
+
+**From npm** (published as
+[`@haseeb_heaven/open-agent`](https://www.npmjs.com/package/@haseeb_heaven/open-agent)):
+
+```bash
+npm install -g @haseeb_heaven/open-agent
+openagent
+```
+
+**From source** — latest multi-provider work is on **`feature`**:
 
 ```bash
 git clone --branch feature https://github.com/haseeb-heaven/open-agent.git
@@ -53,39 +64,41 @@ In-session: `/models`, `/byok [provider key]`, `/websearch`.
 Local (Ollama, LM Studio): **no key**. Cloud: one env var per provider — copy
 [`.env.example`](.env.example) → `.env`, or use `--byok` / `/byok`.
 
-| Provider | Env |
-| -------- | --- |
-| OpenAI | `OPENAI_API_KEY` |
-| Anthropic | `ANTHROPIC_API_KEY` |
-| Gemini | `GEMINI_API_KEY` |
-| Groq | `GROQ_API_KEY` |
-| DeepSeek | `DEEPSEEK_API_KEY` |
-| NVIDIA | `NVIDIA_API_KEY` |
-| Together | `TOGETHER_API_KEY` |
-| HuggingFace | `HF_TOKEN` |
-| OpenRouter | `OPENROUTER_API_KEY` |
-| Cerebras | `CEREBRAS_API_KEY` |
-| Z.ai | `Z_AI_API_KEY` |
+| Provider    | Env                  |
+| ----------- | -------------------- |
+| OpenAI      | `OPENAI_API_KEY`     |
+| Anthropic   | `ANTHROPIC_API_KEY`  |
+| Gemini      | `GEMINI_API_KEY`     |
+| Groq        | `GROQ_API_KEY`       |
+| DeepSeek    | `DEEPSEEK_API_KEY`   |
+| NVIDIA      | `NVIDIA_API_KEY`     |
+| Together    | `TOGETHER_API_KEY`   |
+| HuggingFace | `HF_TOKEN`           |
+| OpenRouter  | `OPENROUTER_API_KEY` |
+| Cerebras    | `CEREBRAS_API_KEY`   |
+| Z.ai        | `Z_AI_API_KEY`       |
 
 ## Web search
 
-`google_web_search` auto-picks a backend from available keys (you do **not** need all of them). Fallback without keys: **DuckDuckGo**.
+`google_web_search` auto-picks a backend from available keys (you do **not**
+need all of them). Fallback without keys: **DuckDuckGo**.
 
-| Model family | Best backend |
-| ------------ | ------------ |
-| Gemini | Google grounding (`GEMINI_API_KEY`) |
-| Open-source / free | **Brave** (`BRAVE_API_KEY`) |
-| Local | DuckDuckGo (no key) |
+| Model family       | Best backend                        |
+| ------------------ | ----------------------------------- |
+| Gemini             | Google grounding (`GEMINI_API_KEY`) |
+| Open-source / free | **Brave** (`BRAVE_API_KEY`)         |
+| Local              | DuckDuckGo (no key)                 |
 
-Also: Tavily, Serper, Exa. Force with `WEB_SEARCH_PROVIDER=brave` (or `tavily` / `serper` / `exa` / `gemini` / `duckduckgo`).
+Also: Tavily, Serper, Exa. Force with `WEB_SEARCH_PROVIDER=brave` (or `tavily` /
+`serper` / `exa` / `gemini` / `duckduckgo`).
 
-| Backend | Env | Signup |
-| ------- | --- | ------ |
-| Brave | `BRAVE_API_KEY` | [keys](https://api.search.brave.com/app/keys) |
-| Tavily | `TAVILY_API_KEY` | [app](https://app.tavily.com/home) |
-| Serper | `SERPER_API_KEY` | [key](https://serper.dev/api-key) |
-| Exa | `EXA_API_KEY` | [keys](https://dashboard.exa.ai/api-keys) |
-| Gemini | `GEMINI_API_KEY` | [AI Studio](https://aistudio.google.com/apikey) |
+| Backend | Env              | Signup                                          |
+| ------- | ---------------- | ----------------------------------------------- |
+| Brave   | `BRAVE_API_KEY`  | [keys](https://api.search.brave.com/app/keys)   |
+| Tavily  | `TAVILY_API_KEY` | [app](https://app.tavily.com/home)              |
+| Serper  | `SERPER_API_KEY` | [key](https://serper.dev/api-key)               |
+| Exa     | `EXA_API_KEY`    | [keys](https://dashboard.exa.ai/api-keys)       |
+| Gemini  | `GEMINI_API_KEY` | [AI Studio](https://aistudio.google.com/apikey) |
 
 ```text
 /websearch              # wizard (★ = recommended for current model)
@@ -96,24 +109,30 @@ Also: Tavily, Serper, Exa. Force with `WEB_SEARCH_PROVIDER=brave` (or `tavily` /
 
 ## Models
 
-Registry: [`configs/models.toml`](configs/models.toml). Full matrix: [Models.MD](Models.MD).
+Registry: [`configs/models.toml`](configs/models.toml). Full matrix:
+[Models.MD](Models.MD).
 
-| Flag | Effect |
-| ---- | ------ |
+| Flag              | Effect                                                           |
+| ----------------- | ---------------------------------------------------------------- |
 | `--provider <id>` | `ollama`, `lmstudio`, `openai`, `anthropic`, `gemini`, `groq`, … |
-| `-m, --model` | Registry key or `provider/model` |
-| `--free` | Free/cheap rotation + fallback |
-| `--models` | Print catalog and exit |
-| `--byok` | Interactive key setup |
-| `-y, --yolo` | Auto-approve tools (trusted workspaces only) |
+| `-m, --model`     | Registry key or `provider/model`                                 |
+| `--free`          | Free/cheap rotation + fallback                                   |
+| `--models`        | Print catalog and exit                                           |
+| `--byok`          | Interactive key setup                                            |
+| `-y, --yolo`      | Auto-approve tools (trusted workspaces only)                     |
 
 ## Docs
 
-[docs/](docs/README.md) · [Quickstart](docs/get-started/index.md) · [Free models](docs/get-started/free-models.md) · [Local](docs/get-started/local-models.md) · [Providers](docs/get-started/providers.md) · [Errors](docs/resources/common-errors.md)
+[docs/](docs/README.md) · [Quickstart](docs/get-started/index.md) ·
+[Free models](docs/get-started/free-models.md) ·
+[Local](docs/get-started/local-models.md) ·
+[Providers](docs/get-started/providers.md) ·
+[Errors](docs/resources/common-errors.md)
 
 ## Testing
 
-From repo root. Vitest loads repo-root **`.env`** automatically (missing keys skip; live quota soft-skips).
+From repo root. Vitest loads repo-root **`.env`** automatically (missing keys
+skip; live quota soft-skips).
 
 ```bash
 npm test
@@ -139,7 +158,8 @@ npx vitest run src/providers/cloud.integration.test.ts --root packages/core
 
 ## Attribution
 
-Based on [Gemini CLI](https://github.com/google-gemini/gemini-cli) (Google LLC, Apache-2.0). Modifications by Haseeb Mir (`open-agent` fork).
+Based on [Gemini CLI](https://github.com/google-gemini/gemini-cli) (Google LLC,
+Apache-2.0). Modifications by Haseeb Mir (`open-agent` fork).
 
 ## License
 

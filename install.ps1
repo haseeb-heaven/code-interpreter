@@ -4,7 +4,7 @@
 Write-Host "Installing OpenAgent..." -ForegroundColor Cyan
 
 if (Get-Command npm -ErrorAction SilentlyContinue) {
-    npm install -g open-agent
+    npm install -g @haseeb_heaven/open-agent
     Write-Host "Installed! Run: openagent" -ForegroundColor Green
 } elseif (Get-Command winget -ErrorAction SilentlyContinue) {
     winget install HaseebHeaven.OpenAgent

@@ -6,7 +6,7 @@ set -e
 echo "Installing OpenAgent..."
 
 if command -v npm &> /dev/null; then
-  npm install -g open-agent
+  npm install -g @haseeb_heaven/open-agent
   echo "Installed via npm. Run: openagent"
 elif command -v brew &> /dev/null; then
   brew tap haseeb-heaven/openagent

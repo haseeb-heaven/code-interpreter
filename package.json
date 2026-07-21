@@ -1,5 +1,5 @@
 {
-  "name": "open-agent",
+  "name": "@haseeb_heaven/open-agent",
   "version": "4.1.1",
   "engines": {
     "node": ">=22.0.0"
