@@ -306,23 +306,67 @@ export function parseRetryAfterSeconds(
   return cap > 0 ? Math.min(best, cap) : best;
 }
 
+/** One fallback candidate's failure, kept for user-facing diagnostics. */
+export interface FreeFallbackFailure {
+  model: string;
+  message: string;
+}
+
 /** Raised when the primary free model and all catalog fallbacks fail. */
 export class FreeModelsExhaustedError extends Error {
   constructor(
     message: string,
     readonly tried: string[] = [],
     readonly lastError?: unknown,
+    readonly failures: readonly FreeFallbackFailure[] = [],
   ) {
     super(message);
     this.name = 'FreeModelsExhaustedError';
   }
 }
 
+/**
+ * Compresses a raw provider error into a one-line reason a user can act on.
+ */
+export function summarizeFreeFallbackError(error: unknown): string {
+  const raw = errorText(error).replace(/\n/g, ' ').trim();
+  const status = /failed \((\d{3})\)/.exec(raw)?.[1];
+  switch (status) {
+    case '401':
+      return 'invalid API key (401)';
+    case '402':
+      return 'out of credits (402)';
+    case '404':
+      return 'model not found (404)';
+    case '413':
+      return 'request too large for tier (413)';
+    case '429':
+      return 'rate limited (429)';
+    default:
+      break;
+  }
+  if (status) return `HTTP ${status}`;
+  if (raw.includes('ECONNREFUSED')) return 'connection refused (server down?)';
+  if (raw.includes('fetch failed')) return 'network error';
+  return raw.length > 80 ? raw.slice(0, 77) + '...' : raw || 'unknown error';
+}
+
 /** User-facing message when every free model attempt failed. */
 export function formatFreeModelsExhaustedMessage(
   tried: readonly string[],
   lastError?: unknown,
+  failures?: readonly FreeFallbackFailure[],
 ): string {
+  // A per-model breakdown beats "Last error: ..." — the last candidate is
+  // often a local server (lmstudio) whose "connection refused" used to mask
+  // the real reason (e.g. every hosted provider being rate limited).
+  if (failures && failures.length > 0) {
+    const lines = failures.map((f) => `  - ${f.model}: ${f.message}`);
+    return (
+      `All free / cheap models failed:\n${lines.join('\n')}\n` +
+      'Use /pick to choose a model or /byok to add an API key.'
+    );
+  }
   const triedList = tried.length > 0 ? tried.join(', ') : '(none)';
   let detail = '';
   if (lastError !== undefined) {

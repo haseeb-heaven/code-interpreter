@@ -27,10 +27,12 @@ import { getProvider } from './providers.js';
 import { OpenAICompatContentGenerator } from './openaiCompatGenerator.js';
 import {
   type FreeLLMCatalog,
+  type FreeFallbackFailure,
   FreeModelsExhaustedError,
   formatFreeModelsExhaustedMessage,
   freeFallbackCandidates,
   isFreeRoutingFailure,
+  summarizeFreeFallbackError,
   type FallbackCandidate,
 } from './freeCatalog.js';
 import type { ModelRegistry } from './modelRegistry.js';
@@ -87,6 +89,12 @@ export class FreeFallbackContentGenerator implements ContentGenerator {
       if (!isFreeRoutingFailure(primaryError)) throw primaryError;
       const tried = [this.activeModelId];
       let lastError: unknown = primaryError;
+      const failures: FreeFallbackFailure[] = [
+        {
+          model: this.activeModelId,
+          message: summarizeFreeFallbackError(primaryError),
+        },
+      ];
       for (const candidate of freeFallbackCandidates(this.activeModelId, {
         env: this.env,
         registry: this.options.registry,
@@ -102,12 +110,17 @@ export class FreeFallbackContentGenerator implements ContentGenerator {
         } catch (candidateError) {
           // Local servers that are down or further rate limits: move on.
           lastError = candidateError;
+          failures.push({
+            model: candidate.model,
+            message: summarizeFreeFallbackError(candidateError),
+          });
         }
       }
       throw new FreeModelsExhaustedError(
-        formatFreeModelsExhaustedMessage(tried, lastError),
+        formatFreeModelsExhaustedMessage(tried, lastError, failures),
         tried,
         lastError,
+        failures,
       );
     }
   }
