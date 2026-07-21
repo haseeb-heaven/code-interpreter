@@ -462,8 +462,11 @@ export class Turn {
       ? rawCallId
       : `${name}__${rawCallId}`;
 
-    // Mutate the function call object ID so that history consolidation inherits it
+    // Mutate the function call object ID (and fallback name, for nameless
+    // hallucinated calls) so that history consolidation inherits them —
+    // Gemini's API rejects history containing empty function names.
     fnCall.id = callId;
+    fnCall.name = name;
 
     const tool = this.chat.loopContext.toolRegistry.getTool(name);
     let display;

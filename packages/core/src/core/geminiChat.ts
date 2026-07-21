@@ -1256,6 +1256,10 @@ export class GeminiChat {
               fnCall.id = id;
             }
             const name = fnCall.name?.trim() || 'generic_tool';
+            // Write the fallback name back for nameless hallucinated calls —
+            // history parts share this object, and Gemini's API rejects
+            // history containing empty function names.
+            fnCall.name = name;
             if (fnCall.id && !fnCall.id.startsWith(`${name}__`)) {
               fnCall.id = `${name}__${fnCall.id}`;
             }
@@ -1265,6 +1269,7 @@ export class GeminiChat {
         } else {
           for (const fnCall of chunk.functionCalls) {
             const name = fnCall.name?.trim() || 'generic_tool';
+            fnCall.name = name;
             if (fnCall.id && !fnCall.id.startsWith(`${name}__`)) {
               fnCall.id = `${name}__${fnCall.id}`;
             }
