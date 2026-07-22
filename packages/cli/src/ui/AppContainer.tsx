@@ -382,6 +382,10 @@ export const AppContainer = (props: AppContainerProps) => {
   // approval mode so Auto/YOLO auto-approve the workspace-trust consent
   // prompt during installs.
   useEffect(() => {
+    // The extension loader is cast `as ExtensionManager` above; tests inject
+    // a partial mock that may not implement setApprovalMode. Guard so a
+    // missing method can't break the React tree.
+    if (typeof extensionManager.setApprovalMode !== 'function') return;
     extensionManager.setApprovalMode(config.getApprovalMode());
     const handleApprovalModeChanged = () => {
       extensionManager.setApprovalMode(config.getApprovalMode());

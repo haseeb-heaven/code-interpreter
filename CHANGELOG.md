@@ -1,5 +1,19 @@
 ## Unreleased
 
+- fix(cli): Slack marketplace extension install no longer fails with
+  "Configuration file not found" — OpenAgent now recognizes Claude's
+  `.claude-plugin/plugin.json` manifest format (in addition to
+  `open-agent-extension.json` / `.mcp.json`) and adapts it into an
+  `ExtensionConfig`, reading the sibling `.mcp.json` for MCP server declarations
+- fix(cli): Auto-mode (`--auto`) and YOLO mode now skip the workspace-trust
+  consent prompt for extensions, so installing a trusted marketplace extension
+  is non-interactive
+- fix(cli): `approvalMode` can be updated live at runtime via `setApprovalMode`,
+  with the TUI reacting through `CoreEvent.ApprovalModeChanged`
+- fix(core): free-model streaming no longer silently stalls when a provider
+  returns an empty 200 completion or an empty SSE stream — the error is now
+  classified as a routing failure and the next fallback model is tried
+
 ## v4.1.2 (2026-07-22) — Session resume & free-fallback fixes
 
 - fix(core): resuming a session (`--resume`) no longer breaks strict

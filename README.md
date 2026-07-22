@@ -121,6 +121,24 @@ Registry: [`configs/models.toml`](configs/models.toml). Full matrix:
 | `--byok`          | Interactive key setup                                            |
 | `-y, --yolo`      | Auto-approve tools (trusted workspaces only)                     |
 
+## Extensions & marketplace
+
+OpenAgent installs extensions from the Slack marketplace (and any Claude
+`.claude-plugin` manifest). Supported manifest formats:
+
+- `.claude-plugin/plugin.json` (Claude-style) — reads sibling `.mcp.json` for
+  MCP server declarations
+- `open-agent-extension.json`
+- `.mcp.json`
+
+```bash
+npm start -- --install-extension <url-or-path>
+npm start -- --auto     # skip trust prompts for trusted extensions
+```
+
+In Auto mode, workspace-trust consent is auto-approved so extension install is
+non-interactive. Approval mode can be changed live at runtime.
+
 ## Docs
 
 [docs/](docs/README.md) · [Quickstart](docs/get-started/index.md) ·

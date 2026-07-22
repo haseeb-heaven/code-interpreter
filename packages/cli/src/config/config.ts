@@ -829,8 +829,15 @@ export async function loadCliConfig(
 
   // Propagate the resolved approval mode to the extension manager so it can
   // auto-approve the workspace-trust consent prompt during installs when in
-  // Auto/YOLO mode.
-  extensionManager?.setApprovalMode(approvalMode);
+  // Auto/YOLO mode. Guard on the method too: tests inject a partial loader
+  // mock, and optional chaining (`?.`) only short-circuits on null/undefined
+  // — not on a property that exists but isn't a function.
+  if (
+    extensionManager &&
+    typeof extensionManager.setApprovalMode === 'function'
+  ) {
+    extensionManager.setApprovalMode(approvalMode);
+  }
 
   // Force approval mode to default if the folder is not trusted.
   if (!trustedFolder && approvalMode !== ApprovalMode.DEFAULT) {
