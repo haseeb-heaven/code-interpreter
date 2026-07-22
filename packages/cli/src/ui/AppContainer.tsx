@@ -378,6 +378,19 @@ export const AppContainer = (props: AppContainerProps) => {
 
   const { addConfirmUpdateExtensionRequest, confirmUpdateExtensionRequests } =
     useConfirmUpdateRequests();
+  // Keep the extension manager's approval mode in sync with the live Config
+  // approval mode so Auto/YOLO auto-approve the workspace-trust consent
+  // prompt during installs.
+  useEffect(() => {
+    extensionManager.setApprovalMode(config.getApprovalMode());
+    const handleApprovalModeChanged = () => {
+      extensionManager.setApprovalMode(config.getApprovalMode());
+    };
+    coreEvents.on(CoreEvent.ApprovalModeChanged, handleApprovalModeChanged);
+    return () => {
+      coreEvents.off(CoreEvent.ApprovalModeChanged, handleApprovalModeChanged);
+    };
+  }, [extensionManager, config]);
   const {
     extensionsUpdateState,
     extensionsUpdateStateInternal,

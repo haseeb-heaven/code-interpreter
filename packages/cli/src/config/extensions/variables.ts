@@ -29,9 +29,21 @@ export const EXTENSIONS_DIRECTORY_NAME = path.join(OPENAGENT_DIR, 'extensions');
  */
 export const EXTENSIONS_CONFIG_FILENAME = 'open-agent-extension.json';
 export const LEGACY_EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
+/**
+ * Claude Code plugin manifest, living at `.claude-plugin/plugin.json` inside
+ * a plugin directory. Recognized last so OpenAgent / legacy Gemini-CLI
+ * manifests always win when both are present, but a plugin-structured source
+ * (e.g. the anthropics/claude-plugins-official marketplace) loads cleanly
+ * instead of failing with "Configuration file not found".
+ */
+export const CLAUDE_PLUGIN_CONFIG_FILENAME = path.join(
+  '.claude-plugin',
+  'plugin.json',
+);
 export const EXTENSIONS_CONFIG_FILENAMES = [
   EXTENSIONS_CONFIG_FILENAME,
   LEGACY_EXTENSIONS_CONFIG_FILENAME,
+  CLAUDE_PLUGIN_CONFIG_FILENAME,
 ];
 
 export const INSTALL_METADATA_FILENAME = '.open-agent-extension-install.json';

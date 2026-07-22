@@ -60,6 +60,7 @@ import {
   type PolicyRule,
   type SafetyCheckerRule,
   HookType,
+  ApprovalMode,
 } from '@open-agent/core';
 import { maybeRequestConsentOrFail } from './extensions/consent.js';
 import { resolveEnvVarsInObject } from '../utils/envVarResolver.js';
@@ -96,6 +97,14 @@ interface ExtensionManagerParams {
   eventEmitter?: EventEmitter<ExtensionEvents>;
   clientVersion?: string;
   integrityManager?: IExtensionIntegrity;
+  /**
+   * Initial approval mode. When AUTO or YOLO, the workspace-trust consent
+   * prompt during install is auto-approved (folder access for extension
+   * installs is considered pre-approved by the operator opting into an
+   * auto-approve mode). DEFAULT/PLAN still prompt. Updated live via
+   * {@link setApprovalMode}.
+   */
+  approvalMode?: ApprovalMode;
 }
 
 /**
@@ -115,6 +124,7 @@ export class ExtensionManager extends ExtensionLoader {
   private workspaceDir: string;
   private loadedExtensions: GeminiCLIExtension[] | undefined;
   private loadingPromise: Promise<GeminiCLIExtension[]> | null = null;
+  private approvalMode: ApprovalMode;
 
   constructor(options: ExtensionManagerParams) {
     super(options.eventEmitter);
@@ -137,6 +147,16 @@ export class ExtensionManager extends ExtensionLoader {
     this.requestSetting = options.requestSetting ?? undefined;
     this.integrityManager =
       options.integrityManager ?? new ExtensionIntegrityManager();
+    this.approvalMode = options.approvalMode ?? ApprovalMode.DEFAULT;
+  }
+
+  /**
+   * Updates the approval mode the manager consults when deciding whether to
+   * auto-approve the workspace-trust consent prompt during installs. AUTO
+   * and YOLO skip the prompt; DEFAULT and PLAN still ask.
+   */
+  setApprovalMode(mode: ApprovalMode): void {
+    this.approvalMode = mode;
   }
 
   getEnablementManager(): ExtensionEnablementManager {
@@ -218,21 +238,32 @@ export class ExtensionManager extends ExtensionLoader {
     let extension: GeminiCLIExtension | null;
     try {
       if (!isWorkspaceTrusted(this.settings).isTrusted) {
-        if (
-          await this.requestConsent(
-            `The current workspace at "${this.workspaceDir}" is not trusted. Do you want to trust this workspace to install extensions?`,
-          )
-        ) {
-          const trustedFolders = loadTrustedFolders();
-          await trustedFolders.setValue(
-            this.workspaceDir,
-            TrustLevel.TRUST_FOLDER,
-          );
-        } else {
+        // In Auto/YOLO approval mode the operator has already opted into
+        // auto-approving folder access, so trusting the workspace to install
+        // extensions is implicit — don't prompt.
+        const autoTrust =
+          this.approvalMode === ApprovalMode.AUTO ||
+          this.approvalMode === ApprovalMode.YOLO;
+        const consented = autoTrust
+          ? true
+          : await this.requestConsent(
+              `The current workspace at "${this.workspaceDir}" is not trusted. Do you want to trust this workspace to install extensions?`,
+            );
+        if (!consented) {
           throw new Error(
             `Could not install extension because the current workspace at ${this.workspaceDir} is not trusted.`,
           );
         }
+        if (autoTrust) {
+          debugLogger.debug(
+            `Auto-trusting workspace "${this.workspaceDir}" for extension install (approval mode: ${this.approvalMode}).`,
+          );
+        }
+        const trustedFolders = loadTrustedFolders();
+        await trustedFolders.setValue(
+          this.workspaceDir,
+          TrustLevel.TRUST_FOLDER,
+        );
       }
       const extensionsDir = ExtensionStorage.getUserExtensionsDir();
       await fs.promises.mkdir(extensionsDir, { recursive: true });
@@ -1035,16 +1066,25 @@ Would you like to attempt to install via "git clone" instead?`,
     try {
       const configContent = await fs.promises.readFile(configFilePath, 'utf-8');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      const rawConfig = JSON.parse(configContent) as ExtensionConfig;
-      if (!rawConfig.name || !rawConfig.version) {
-        throw new Error(
-          `Invalid configuration in ${configFilePath}: missing ${!rawConfig.name ? '"name"' : '"version"'}`,
-        );
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-      const config = recursivelyHydrateStrings(
+      const rawConfig = JSON.parse(configContent) as Record<string, unknown>;
+
+      let config: ExtensionConfig;
+      if (path.basename(configFilePath) === 'plugin.json') {
+        config = await adaptClaudePluginManifest(extensionDir, rawConfig);
+      } else {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
-        rawConfig as unknown as JsonObject,
+        config = rawConfig as unknown as ExtensionConfig;
+        if (!config.name || !config.version) {
+          throw new Error(
+            `Invalid configuration in ${configFilePath}: missing ${!config.name ? '"name"' : '"version"'}`,
+          );
+        }
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+      config = recursivelyHydrateStrings(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        config as unknown as JsonObject,
         {
           extensionPath: extensionDir,
           workspacePath: this.workspaceDir,
@@ -1369,4 +1409,63 @@ export function getExtensionId(
 
 export function hashValue(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+/**
+ * Adapts a Claude Code `plugin.json` manifest into an `ExtensionConfig`.
+ *
+ * - Synthesizes `name` (required) and `version` (defaults to `'0.0.0'`,
+ *   since the Claude marketplace schema doesn't require it).
+ * - Merges a sibling `.mcp.json` (when present) into `mcpServers`.
+ *
+ * Skills and agents are loaded separately by `_buildExtension` from the
+ * extension directory's `skills/` and `agents/` subdirs, so mapping them
+ * here is unnecessary.
+ */
+async function adaptClaudePluginManifest(
+  extensionDir: string,
+  raw: Record<string, unknown>,
+): Promise<ExtensionConfig> {
+  const name = typeof raw.name === 'string' ? raw.name : undefined;
+  if (!name) {
+    throw new Error(
+      `Invalid Claude plugin manifest in ${extensionDir}: missing "name"`,
+    );
+  }
+  const version =
+    typeof raw.version === 'string' && raw.version.length > 0
+      ? raw.version
+      : '0.0.0';
+
+  let mcpServers: Record<string, MCPServerConfig> | undefined;
+  const mcpJsonPath = path.join(extensionDir, '.mcp.json');
+  if (fs.existsSync(mcpJsonPath)) {
+    try {
+      const mcpContent = await fs.promises.readFile(mcpJsonPath, 'utf-8');
+      const parsed: unknown = JSON.parse(mcpContent);
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        !Array.isArray(parsed) &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+        Object.keys(parsed as Record<string, unknown>).length > 0
+      ) {
+        // Hydration of the synthesized config (including these mcpServers) is
+        // performed by the caller in loadExtensionConfig.
+        mcpServers =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
+          parsed as Record<string, MCPServerConfig>;
+      }
+    } catch (e) {
+      throw new Error(
+        `Failed to load .mcp.json from ${mcpJsonPath}: ${getErrorMessage(e)}`,
+      );
+    }
+  }
+
+  return {
+    name,
+    version,
+    mcpServers,
+  };
 }
