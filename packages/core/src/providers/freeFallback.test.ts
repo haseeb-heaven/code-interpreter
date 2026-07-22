@@ -154,4 +154,42 @@ describe('FreeFallbackContentGenerator', () => {
       globalFetch.mockRestore();
     }
   });
+
+  it('rotates to the next free model when the primary returns an empty 200 completion', async () => {
+    // Reproduces the silent "Thinking... then stops" symptom: an overloaded
+    // free router answers HTTP 200 with no content and no tool calls.
+    // The empty-response guard classifies this as a routing failure, so the
+    // fallback chain should rotate to a working candidate instead of
+    // returning a zero-parts response.
+    const emptyOk = async () =>
+      new Response(
+        JSON.stringify({
+          choices: [{ message: { content: null }, finish_reason: 'stop' }],
+          model: 'whatever',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    const primaryFetch = vi.fn(emptyOk);
+    const globalFetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => okResponse('recovered answer'));
+    try {
+      const wrapper = new FreeFallbackContentGenerator(
+        makePrimary(primaryFetch as unknown as typeof fetch),
+        ENV_ALL_KEYS,
+        { registry: REGISTRY },
+      );
+      const response = await wrapper.generateContent(
+        REQUEST,
+        'p',
+        LlmRole.MAIN,
+      );
+      expect(response.candidates?.[0]?.content?.parts?.[0]?.text).toBe(
+        'recovered answer',
+      );
+      expect(wrapper.activeModelId).not.toBe('openrouter/free');
+    } finally {
+      globalFetch.mockRestore();
+    }
+  });
 });

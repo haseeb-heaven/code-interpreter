@@ -256,6 +256,23 @@ function mapFinishReason(reason: string | undefined): FinishReason {
 }
 
 /**
+ * Builds an error thrown when a provider returns HTTP 200 but no content —
+ * an empty/aborted SSE stream or a completion with no `message.content` and
+ * no `tool_calls`. Common on overloaded free routers (OpenRouter/HF), and
+ * previously surfaced as a silent "Thinking..." that disappears with no
+ * output because the consumer treats an empty-parts response as a no-op.
+ *
+ * The message text intentionally includes "provider returned error" (a
+ * `FREE_ROUTING_FAILURE_MARKERS` substring) so free-fallback classification
+ * rotates to the next free model instead of stalling the session.
+ */
+function emptyResponseError(providerId: string, stream: boolean): Error {
+  return new Error(
+    `${providerId} ${stream ? 'stream' : 'request'} returned no content (provider returned error)`,
+  );
+}
+
+/**
  * ContentGenerator that routes to any OpenAI-compatible endpoint.
  */
 export class OpenAICompatContentGenerator implements ContentGenerator {
@@ -425,6 +442,13 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
         // Usage persistence must never break completions.
       }
     }
+    // HTTP 200 but an empty completion (no text, no tool_calls) happens on
+    // overloaded free routers; classify it as a routing failure so the free
+    // fallback chain rotates to the next model instead of returning a
+    // zero-parts response that silently ends the turn.
+    if (parts.length === 0) {
+      throw emptyResponseError(this.provider.id, false);
+    }
     return makeResponse(parts, {
       finishReason: mapFinishReason(choice?.finish_reason),
       usage: payload.usage,
@@ -567,6 +591,13 @@ export class OpenAICompatContentGenerator implements ContentGenerator {
           usage,
           modelVersion: model,
         });
+      } else {
+        // HTTP 200 but the SSE stream produced no deltas and no finish
+        // reason (overloaded free router opened a connection then closed
+        // it without emitting content). Previously this completed silently
+        // and the agent stopped "thinking" with no output; classify it as
+        // a routing failure so callers can fall back / surface an error.
+        throw emptyResponseError(providerId, true);
       }
     }
     return stream();

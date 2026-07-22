@@ -246,11 +246,13 @@ describe('OpenAICompatContentGenerator', () => {
   });
 
   it('sends a Bearer key for cloud providers but none for local', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockImplementation(() =>
-        Promise.resolve(jsonResponse({ choices: [{ message: {} }] })),
-      );
+    const fetchImpl = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        jsonResponse({
+          choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }],
+        }),
+      ),
+    );
     const groq = new OpenAICompatContentGenerator({
       modelId: 'groq/llama-3.1-8b-instant',
       provider: getProvider('groq')!,
@@ -277,9 +279,11 @@ describe('OpenAICompatContentGenerator', () => {
   });
 
   it('forwards config.abortSignal to fetch so Esc actually cancels the request', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse({ choices: [{ message: {} }] }));
+    const fetchImpl = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }],
+      }),
+    );
     const generator = new OpenAICompatContentGenerator({
       modelId: 'ollama/llama3.1:8b',
       provider: getProvider('ollama')!,
@@ -300,9 +304,11 @@ describe('OpenAICompatContentGenerator', () => {
   });
 
   it('omits signal from fetch options when no abortSignal is set', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse({ choices: [{ message: {} }] }));
+    const fetchImpl = vi.fn().mockResolvedValueOnce(
+      jsonResponse({
+        choices: [{ message: { content: 'ok' }, finish_reason: 'stop' }],
+      }),
+    );
     const generator = new OpenAICompatContentGenerator({
       modelId: 'ollama/llama3.1:8b',
       provider: getProvider('ollama')!,
@@ -483,5 +489,42 @@ describe('OpenAICompatContentGenerator', () => {
     await expect(
       generator.embedContent({ model: 'm', contents: [] }),
     ).rejects.toThrow(/not supported/);
+  });
+
+  it('throws when a 200 completion has no text and no tool calls (silent-stall guard)', async () => {
+    const fetchImpl = vi.fn(async () =>
+      jsonResponse({
+        choices: [{ message: { content: null }, finish_reason: 'stop' }],
+        model: 'whatever',
+      }),
+    );
+    const generator = new OpenAICompatContentGenerator({
+      modelId: 'ollama/llama3.1:8b',
+      provider: getProvider('ollama')!,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    await expect(generator.generateContent(REQUEST, 'p')).rejects.toThrow(
+      /returned no content/,
+    );
+  });
+
+  it('throws when a 200 SSE stream emits no content and no finish (aborted free stream)', async () => {
+    // Overloaded free routers commonly open 200 then immediately close
+    // with only the [DONE] sentinel and no deltas. Previously this
+    // completed silently and the agent stopped "thinking" with no output.
+    const fetchImpl = vi.fn(async () => sseResponse(['[DONE]']));
+    const generator = new OpenAICompatContentGenerator({
+      modelId: 'ollama/llama3.1:8b',
+      provider: getProvider('ollama')!,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    const stream = await generator.generateContentStream(REQUEST, 'p');
+    const chunks: unknown[] = [];
+    await expect(
+      (async () => {
+        for await (const chunk of stream) chunks.push(chunk);
+      })(),
+    ).rejects.toThrow(/stream returned no content/);
+    expect(chunks).toHaveLength(0);
   });
 });
